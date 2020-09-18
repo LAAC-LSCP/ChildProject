@@ -3,8 +3,7 @@
 ## Installation
 
 ```
-python3.6 -m venv
-python3 -m venv ˜/ChildProjectVenv
+python3.6 -m venv ˜/ChildProjectVenv
 
 git clone https://github.com/lucasgautheron/ChildRecordsData.git
 cd ChildRecordsData
