@@ -2,7 +2,7 @@ from ChildProject.ChildProject import ChildProject
 import argparse
 import sys
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(description='Validate raw data formatting and consistency')
 parser.add_argument("--source", help = "source data path", required = True)
 args = parser.parse_args()
 
