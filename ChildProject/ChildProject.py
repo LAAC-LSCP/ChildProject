@@ -30,7 +30,7 @@ class ChildProject:
     def register_error(self, message, fatal = False):
         if fatal:
             raise Exception(message)
-        
+
         self.errors.append(message)
 
     def register_warning(self, message):
@@ -120,20 +120,23 @@ class ChildProject:
                 self.register_error("child_id '{}' in recordings on line {} cannot be found in the children table.".format(row['child_id'], row['lineno']))
 
         # look for duplicates
+        # ...
 
-        # detect un-indexed recordings
-        self.recordings['abspath'] = self.recordings['filename'].apply(lambda s: os.path.abspath(s))
+        # detect un-indexed recordings and throw warnings
+        self.recordings['abspath'] = self.recordings['filename'].apply(lambda s:
+            os.path.abspath(os.path.join(path, 'recordings', s))
+        )
 
         recordings_files = glob.glob(os.path.join(path, 'recordings', '**.*'), recursive = True)
 
         for rf in recordings_files:
-            print(rf)
+            if os.path.splitext(rf)[1] in ['.csv', '.xls', 'xlsx']:
+                continue
+
             ap = os.path.abspath(rf)
             if ap not in self.recordings['abspath'].tolist():
                 self.register_warning("file '{}' not indexed.".format(rf))
 
-
-        # throw warnings for every file not in the index
         return {
             'errors': self.errors,
             'warnings': self.warnings
