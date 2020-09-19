@@ -3,11 +3,11 @@
 ## Installation
 
 ```
-python3.6 -m venv ˜/ChildProjectVenv
+python3.6 -m venv ~/ChildProjectVenv
 
 git clone https://github.com/lucasgautheron/ChildRecordsData.git
 cd ChildRecordsData
-source ˜/ChildProjectVenv/bin/activate
+source ~/ChildProjectVenv/bin/activate
 pip install -r requirements.txt
 ```
 
