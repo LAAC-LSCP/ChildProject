@@ -103,18 +103,21 @@ class ChildProject:
 
         for index, row in self.recordings.iterrows():
             # make sure that recordings exist
-            if not os.path.exists(os.path.join(path, 'recordings', row['filename'])):
-                self.register_error("cannot find recording '{}'".format(row['filename']))
+            if not os.path.exists(os.path.join(path, 'recordings', str(row['filename']))):
+                self.register_error("cannot find recording '{}'".format(str(row['filename'])))
 
             try:
                 date = datetime.datetime.strptime(row['date_iso'], "%Y-%m-%d")
             except:
-                self.register_error("'{}' is not a proper date (expected %Y-%m-%d) on line {}".format(row['lineno']))
+                self.register_error("'{}' is not a proper date (expected YYYY-MM-DD) on line {}".format(row['date_iso'], row['lineno']))
 
             try:
                 start = datetime.datetime.strptime("1970-01-01 {}".format(row['start_time']), "%Y-%m-%d %H:%M")
             except:
-                self.register_error("'{}' is not a proper time (expected %H:%M) on line {}".format(row['lineno']))
+                try:
+                    datetime.datetime.strptime("1970-01-01 {}".format(row['start_time']), "%Y-%m-%d %H:%M:%S")
+                except:
+                    self.register_error("'{}' is not a proper time (expected HH:MM or HH:MM:SS) on line {}".format(row['start_time'], row['lineno']))
 
             if row['child_id'] not in self.children['child_id'].tolist():
                 self.register_error("child_id '{}' in recordings on line {} cannot be found in the children table.".format(row['child_id'], row['lineno']))
@@ -124,13 +127,13 @@ class ChildProject:
 
         # detect un-indexed recordings and throw warnings
         self.recordings['abspath'] = self.recordings['filename'].apply(lambda s:
-            os.path.abspath(os.path.join(path, 'recordings', s))
+            os.path.abspath(os.path.join(path, 'recordings', str(s)))   
         )
 
         recordings_files = glob.glob(os.path.join(path, 'recordings', '**.*'), recursive = True)
 
         for rf in recordings_files:
-            if os.path.splitext(rf)[1] in ['.csv', '.xls', 'xlsx']:
+            if len(os.path.splitext(rf)) > 1 and os.path.splitext(rf)[1] in ['.csv', '.xls', '.xlsx']:
                 continue
 
             ap = os.path.abspath(rf)
