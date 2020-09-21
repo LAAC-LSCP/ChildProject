@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import os
 import datetime
 import glob
@@ -8,18 +9,28 @@ class ChildProject:
         'recordings',
         'extra'
     ]
+
     CHILDREN_REQUIRED_COLUMNS = [
         'experiment',
         'child_id'
     ]
+
     RECORDINGS_REQUIRED_COLUMNS = [
         'experiment',
         'child_id',
         'date_iso',
         'start_time',
         'recording_device_type',
-        'filename',
-        'notes'
+        'filename'
+    ]
+
+    DATE_FORMAT = '%Y-%m-%d'
+    TIME_FORMAT = '%H:%M'
+
+    RECORDING_DEVICE_TYPES = [
+        'usb',
+        'olympus',
+        'lena'
     ]
 
     def __init__(self):
@@ -103,27 +114,47 @@ class ChildProject:
 
         for index, row in self.recordings.iterrows():
             # make sure that recordings exist
-            if not os.path.exists(os.path.join(path, 'recordings', str(row['filename']))):
+            if row['filename'] != 'none' and not os.path.exists(os.path.join(path, 'recordings', str(row['filename']))):
                 self.register_error("cannot find recording '{}'".format(str(row['filename'])))
 
+            # date is valid
             try:
-                date = datetime.datetime.strptime(row['date_iso'], "%Y-%m-%d")
+                date = datetime.datetime.strptime(row['date_iso'], self.DATE_FORMAT)
             except:
                 self.register_error("'{}' is not a proper date (expected YYYY-MM-DD) on line {}".format(row['date_iso'], row['lineno']))
 
+            # start_time is valid
             try:
-                start = datetime.datetime.strptime("1970-01-01 {}".format(row['start_time']), "%Y-%m-%d %H:%M")
+                start = datetime.datetime.strptime("1970-01-01 {}".format(row['start_time'][:5]), "%Y-%m-%d %H:%M")
             except:
-                try:
-                    datetime.datetime.strptime("1970-01-01 {}".format(row['start_time']), "%Y-%m-%d %H:%M:%S")
-                except:
-                    self.register_error("'{}' is not a proper time (expected HH:MM or HH:MM:SS) on line {}".format(row['start_time'], row['lineno']))
+                self.register_error("'{}' is not a proper time (expected HH:MM) on line {}".format(row['start_time'], row['lineno']))
 
+            # child id refers to an existing child in the children table
             if row['child_id'] not in self.children['child_id'].tolist():
                 self.register_error("child_id '{}' in recordings on line {} cannot be found in the children table.".format(row['child_id'], row['lineno']))
 
+            # recording_device_type exists
+            if row['recording_device_type'] not in self.RECORDING_DEVICE_TYPES:
+                self.register_warning("invalid device type '{}' in recordings on line {}".format(row['recording_device_type'], row['lineno']))
+
         # look for duplicates
-        # ...
+        grouped = self.recordings[self.recordings['filename'] != 'none']\
+            .groupby('filename')['lineno']\
+            .agg([
+                ('count', len),
+                ('lines', lambda lines: ",".join([str(line) for line in sorted(lines)])),
+                ('first', np.min)
+            ])\
+            .sort_values('first')
+
+        duplicates = grouped[grouped['count'] > 1]
+        for filename, row in duplicates.iterrows():
+            self.register_error("filename '{}' appears {} times in lines [{}], should appear once".format(
+                filename,
+                row['count'],
+                row['lines']
+            ))
+
 
         # detect un-indexed recordings and throw warnings
         self.recordings['abspath'] = self.recordings['filename'].apply(lambda s:
@@ -144,3 +175,4 @@ class ChildProject:
             'errors': self.errors,
             'warnings': self.warnings
         }
+
