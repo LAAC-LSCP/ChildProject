@@ -3,6 +3,7 @@ import numpy as np
 import os
 import datetime
 import glob
+import shutil
 
 class ChildProject:
     REQUIRED_DIRECTORIES = [
@@ -34,8 +35,13 @@ class ChildProject:
         'babylogger'
     ]
 
-    def __init__(self):
-        self.raw_data_path = ''
+    PROJECT_FOLDERS = [
+        'doc',
+        'scripts'
+    ]
+
+    def __init__(self, path):
+        self.path = path
         self.errors = []
         self.warnings = []
 
@@ -87,7 +93,7 @@ class ChildProject:
         self.errors = []
         self.warnings = []
 
-        path = self.raw_data_path
+        path = self.path
 
         directories = [d for d in os.listdir(path) if os.path.isdir(path)]
 
@@ -186,3 +192,18 @@ class ChildProject:
             'warnings': self.warnings
         }
 
+    def import_data(self, destination, follow_symlinks = True):
+        validation = self.validate_input_data()
+
+        if len(validation['errors']) > 0:
+            raise Exception('cannot import data: validation failed')
+
+        # perform copy
+        shutil.copytree(src = self.path, dst = destination, symlinks = follow_symlinks)
+
+        # create folders
+        for folder in self.PROJECT_FOLDERS:
+            os.makedirs(
+                name = os.path.join(destination, folder),
+                exist_ok = True
+            )

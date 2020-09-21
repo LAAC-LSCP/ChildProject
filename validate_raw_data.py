@@ -6,8 +6,7 @@ parser = argparse.ArgumentParser(description='Validate raw data formatting and c
 parser.add_argument("--source", help = "source data path", required = True)
 args = parser.parse_args()
 
-project = ChildProject()
-project.raw_data_path = args.source
+project = ChildProject(args.source)
 
 results = project.validate_input_data()
 
