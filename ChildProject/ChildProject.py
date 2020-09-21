@@ -30,7 +30,8 @@ class ChildProject:
     RECORDING_DEVICE_TYPES = [
         'usb',
         'olympus',
-        'lena'
+        'lena',
+        'babylogger'
     ]
 
     def __init__(self):
@@ -56,18 +57,26 @@ class ChildProject:
             if not os.path.exists(filename):
                 continue
 
+            pd_flags = {
+                'keep_default_na': False,
+                'na_values': ['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN',
+                              '#N/A N/A', '#N/A', 'N/A', 'n/a', '', '#NA',
+                              'NULL', 'null', 'NaN', '-NaN', 'nan',
+                              '-nan', '']
+            }
+
             try:
                 if extension == '.csv':
-                    df = pd.read_csv(filename)
+                    df = pd.read_csv(filename, **pd_flags)
                 elif extension == '.xls' or extension == '.xlsx':
-                    df = pd.read_excel(filename)
+                    df = pd.read_excel(filename, **pd_flags)
                 else:
                     raise Exception('table format not supported ({})'.format(extension))    
             except Exception as e:
                 self.register_error(str(e), True)
                 return None
 
-            df['lineno'] = df.index + 1
+            df['lineno'] = df.index + 2
             return df
 
         self.register_error("could not find table '{}'".format(path), True)
@@ -114,7 +123,7 @@ class ChildProject:
 
         for index, row in self.recordings.iterrows():
             # make sure that recordings exist
-            if row['filename'] != 'none' and not os.path.exists(os.path.join(path, 'recordings', str(row['filename']))):
+            if row['filename'] != 'NA' and not os.path.exists(os.path.join(path, 'recordings', str(row['filename']))):
                 self.register_error("cannot find recording '{}'".format(str(row['filename'])))
 
             # date is valid
@@ -124,10 +133,11 @@ class ChildProject:
                 self.register_error("'{}' is not a proper date (expected YYYY-MM-DD) on line {}".format(row['date_iso'], row['lineno']))
 
             # start_time is valid
-            try:
-                start = datetime.datetime.strptime("1970-01-01 {}".format(row['start_time'][:5]), "%Y-%m-%d %H:%M")
-            except:
-                self.register_error("'{}' is not a proper time (expected HH:MM) on line {}".format(row['start_time'], row['lineno']))
+            if row['start_time'] != 'NA':
+                try:
+                    start = datetime.datetime.strptime("1970-01-01 {}".format(str(row['start_time'])[:5]), "%Y-%m-%d %H:%M")
+                except:
+                    self.register_error("'{}' is not a proper time (expected HH:MM) on line {}".format(str(row['start_time'])[:5], row['lineno']))
 
             # child id refers to an existing child in the children table
             if row['child_id'] not in self.children['child_id'].tolist():
@@ -138,7 +148,7 @@ class ChildProject:
                 self.register_warning("invalid device type '{}' in recordings on line {}".format(row['recording_device_type'], row['lineno']))
 
         # look for duplicates
-        grouped = self.recordings[self.recordings['filename'] != 'none']\
+        grouped = self.recordings[self.recordings['filename'] != 'NA']\
             .groupby('filename')['lineno']\
             .agg([
                 ('count', len),
