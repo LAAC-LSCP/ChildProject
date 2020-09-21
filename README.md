@@ -19,3 +19,10 @@ pip install -r requirements.txt
 python validate_raw_data.py --source=/path/to/raw/data
 ```
 
+### Import raw data
+
+Copy all raw data files to the specified destination and creates the working tree.
+
+```
+python import_data.py --source=/path/to/raw/data --destination=/path/to/the/working/directory
+```
