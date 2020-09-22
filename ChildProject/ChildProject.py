@@ -7,12 +7,22 @@ import shutil
 import subprocess
 
 class RecordingProfile:
-    def __init__(self, name, format = 'wav', codec = 'pcm_s16le', sampling = 16000, extra_flags = None):
-        self.name = name
+    def __init__(self, name, format = 'wav', codec = 'pcm_s16le', sampling = 16000,
+                 split = None, extra_flags = None):
+
+        self.name = str(name)
         self.format = format
-        self.codec = codec
-        self.sampling = sampling
+        self.codec = str(codec)
+        self.sampling = int(sampling)
         self.extra_flags = extra_flags
+
+        if split is not None:
+            try:
+                split_time = datetime.datetime.strptime(split, '%H:%M:%S')
+            except:
+                raise ValueError('split should be specified as HH:MM:SS')
+
+        self.split = split
         self.recordings = []
 
 class ChildProject:
@@ -252,12 +262,21 @@ class ChildProject:
                 self.path,
                 'converted_recordings',
                 profile.name,
-                os.path.splitext(row['filename'])[0] + '.' + profile.format
+                os.path.splitext(row['filename'])[0] + '.%03d.' + profile.format if profile.split
+                else os.path.splitext(row['filename'])[0] + '.' + profile.format
             )
+
+            split_args = []
+            if profile.split:
+                split_args.append('-segment_time')
+                split_args.append(profile.split)
+                split_args.append('-f')
+                split_args.append('segment')
 
             proc = subprocess.Popen(
                 [
                     'ffmpeg',
+                    '-y',
                     '-i',
                     original_file,
                     '-ac',
@@ -265,7 +284,10 @@ class ChildProject:
                     '-c:a',
                     profile.codec,
                     '-ar',
-                    str(profile.sampling),
+                    str(profile.sampling)
+                ]
+                + split_args
+                + [
                     destination_file
                 ],
                 stdout = subprocess.PIPE,
@@ -282,11 +304,19 @@ class ChildProject:
                     'success': False
                 })
             else:
-                conversion_table.append({
+                if profile.split:
+                    converted_files = [
+                        os.path.basename(cf)
+                        for cf in glob.glob(os.path.join(self.path, 'converted_recordings', profile.name, os.path.splitext(row['filename'])[0] + '.*.' + profile.format))
+                    ]
+                else:
+                    converted_files = [os.path.splitext(row['filename'])[0] + '.' + profile.format]
+
+                conversion_table += [{
                     'original_filename': row['filename'],
-                    'converted_filename': os.path.splitext(row['filename'])[0] + '.' + profile.format,
+                    'converted_filename': cf,
                     'success': True
-                })
+                } for cf in converted_files]
 
         profile.recordings = pd.DataFrame(conversion_table)
 

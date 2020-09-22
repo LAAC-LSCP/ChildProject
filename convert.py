@@ -11,6 +11,7 @@ parser.add_argument("--name", help = "profile name", required = True)
 parser.add_argument("--format", help = "audio format (e.g. {})".format(default_profile.format), required = True)
 parser.add_argument("--codec", help = "audio codec (e.g. {})".format(default_profile.codec), required = True)
 parser.add_argument("--sampling", help = "sampling frequency (e.g. {})".format(default_profile.sampling), required = True)
+parser.add_argument("--split", help = "split duration (e.g. 15:00:00)", required = False, default = None)
 
 args = parser.parse_args()
 
@@ -18,7 +19,8 @@ profile = RecordingProfile(
     name = args.name,
     format = args.format,
     codec = args.codec,
-    sampling = args.sampling
+    sampling = args.sampling,
+    split = args.split
 )
 
 project = ChildProject(args.source)
