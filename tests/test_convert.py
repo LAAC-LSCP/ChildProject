@@ -2,7 +2,7 @@ from ChildProject.ChildProject import ChildProject, RecordingProfile
 import os
 import pandas
 
-def test_import():
+def test_convert():
     project = ChildProject("examples/valid_raw_data")
     project.import_data("examples/convert")
     project = ChildProject("examples/convert")
