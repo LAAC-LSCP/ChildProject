@@ -25,6 +25,16 @@ class RecordingProfile:
         self.split = split
         self.recordings = []
 
+    def to_csv(self, destination):
+        pd.DataFrame([
+            {'key': 'name', 'value': self.name},
+            {'key': 'format', 'value': self.format},
+            {'key': 'codec', 'value': self.codec},
+            {'key': 'sampling', 'value': self.sampling},
+            {'key': 'split', 'value': self.split},
+            {'key': 'extra_flags', 'value': self.extra_flags}
+        ]).to_csv(destination, index = False)
+
 class ChildProject:
     REQUIRED_DIRECTORIES = [
         'recordings',
@@ -329,5 +339,12 @@ class ChildProject:
             ),
             index = False
         )
+
+        profile.to_csv(os.path.join(
+            self.path,
+            'converted_recordings',
+            profile.name,
+            'profile.csv'
+        ))
 
         return profile
