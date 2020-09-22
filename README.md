@@ -32,3 +32,9 @@ python import_data.py --source=/path/to/raw/data --destination=/path/to/the/work
 ```
 python convert.py --source=/path/to/project --name=16kHz --format=wav --sampling=16000 --codec=pcm_s16le
 ```
+
+With audio splitting every 15 hours :
+
+```
+python convert.py --source=/path/to/project --name=16kHz --split=15:00:00 --format=wav --sampling=16000 --codec=pcm_s16le
+```
