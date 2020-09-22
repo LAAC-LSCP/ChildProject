@@ -26,3 +26,9 @@ Copy all raw data files to the specified destination and creates the working tre
 ```
 python import_data.py --source=/path/to/raw/data --destination=/path/to/the/working/directory
 ```
+
+### Convert recordings
+
+```
+python convert.py --source=/path/to/project --name=16kHz --format=wav --sampling=16000 --codec=pcm_s16le
+```
