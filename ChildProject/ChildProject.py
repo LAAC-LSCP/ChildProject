@@ -3,6 +3,37 @@ import numpy as np
 import os
 import datetime
 import glob
+import shutil
+import subprocess
+
+class RecordingProfile:
+    def __init__(self, name, format = 'wav', codec = 'pcm_s16le', sampling = 16000,
+                 split = None, extra_flags = None):
+
+        self.name = str(name)
+        self.format = format
+        self.codec = str(codec)
+        self.sampling = int(sampling)
+        self.extra_flags = extra_flags
+
+        if split is not None:
+            try:
+                split_time = datetime.datetime.strptime(split, '%H:%M:%S')
+            except:
+                raise ValueError('split should be specified as HH:MM:SS')
+
+        self.split = split
+        self.recordings = []
+
+    def to_csv(self, destination):
+        pd.DataFrame([
+            {'key': 'name', 'value': self.name},
+            {'key': 'format', 'value': self.format},
+            {'key': 'codec', 'value': self.codec},
+            {'key': 'sampling', 'value': self.sampling},
+            {'key': 'split', 'value': self.split},
+            {'key': 'extra_flags', 'value': self.extra_flags}
+        ]).to_csv(destination, index = False)
 
 class ChildProject:
     REQUIRED_DIRECTORIES = [
@@ -66,10 +97,18 @@ class ChildProject:
         'babylogger'
     ]
 
-    def __init__(self):
-        self.raw_data_path = ''
+    PROJECT_FOLDERS = [
+        'doc',
+        'scripts',
+        'converted_recordings'
+    ]
+
+    def __init__(self, path):
+        self.path = path
         self.errors = []
         self.warnings = []
+        self.children = None
+        self.recordings = None
 
     def register_error(self, message, fatal = False):
         if fatal:
@@ -114,12 +153,15 @@ class ChildProject:
         self.register_error("could not find table '{}'".format(path), True)
         return None
     
+    def read(self):
+        self.children = self.read_table(os.path.join(self.path, 'children'))
+        self.recordings = self.read_table(os.path.join(self.path, 'recordings/recordings'))
 
     def validate_input_data(self):
         self.errors = []
         self.warnings = []
 
-        path = self.raw_data_path
+        path = self.path
 
         directories = [d for d in os.listdir(path) if os.path.isdir(path)]
 
@@ -128,7 +170,7 @@ class ChildProject:
                 self.register_error("missing directory {}.".format(rd), True)
 
         # check tables
-        self.children = self.read_table(os.path.join(path, 'children'))
+        self.read()
 
         for rc in self.CHILDREN_REQUIRED_COLUMNS:
             if rc not in self.children.columns:
@@ -154,7 +196,6 @@ class ChildProject:
             ))
 
 
-        self.recordings = self.read_table(os.path.join(path, 'recordings/recordings'))
         for rc in self.RECORDINGS_REQUIRED_COLUMNS:
             if rc not in self.recordings.columns:
                 self.register_error("recordings table is missing column '{}'".format(rc), True)
@@ -243,3 +284,124 @@ class ChildProject:
             'warnings': self.warnings
         }
 
+    def import_data(self, destination, follow_symlinks = True):
+        validation = self.validate_input_data()
+
+        if len(validation['errors']) > 0:
+            raise Exception('cannot import data: validation failed')
+
+        # perform copy
+        shutil.copytree(src = self.path, dst = destination, symlinks = follow_symlinks)
+
+        # create folders
+        for folder in self.PROJECT_FOLDERS:
+            os.makedirs(
+                name = os.path.join(destination, folder),
+                exist_ok = True
+            )
+
+    def convert_recordings(self, profile):
+        if not isinstance(profile, RecordingProfile):
+            raise ValueError('profile should be a RecordingProfile instance')
+
+        validation = self.validate_input_data()
+        if len(validation['errors']) > 0:
+            raise Exception('cannot convert: validation failed')
+
+        os.makedirs(
+            name = os.path.join(self.path, 'converted_recordings', profile.name),
+            exist_ok = True
+        )
+
+        conversion_table = []
+
+        for index, row in self.recordings.iterrows():
+            if row['filename'] == 'NA':
+                continue
+
+            original_file = os.path.join(
+                self.path,
+                'recordings',
+                row['filename']
+            )
+
+            destination_file = os.path.join(
+                self.path,
+                'converted_recordings',
+                profile.name,
+                os.path.splitext(row['filename'])[0] + '.%03d.' + profile.format if profile.split
+                else os.path.splitext(row['filename'])[0] + '.' + profile.format
+            )
+
+            split_args = []
+            if profile.split:
+                split_args.append('-segment_time')
+                split_args.append(profile.split)
+                split_args.append('-f')
+                split_args.append('segment')
+
+            proc = subprocess.Popen(
+                [
+                    'ffmpeg',
+                    '-y',
+                    '-i',
+                    original_file,
+                    '-ac',
+                    '1',
+                    '-c:a',
+                    profile.codec,
+                    '-ar',
+                    str(profile.sampling)
+                ]
+                + split_args
+                + [
+                    destination_file
+                ],
+                stdout = subprocess.PIPE,
+                stderr = subprocess.PIPE
+            )
+            proc.wait()
+            (stdout, stderr) = proc.communicate()
+
+            if proc.returncode != 0:
+                self.register_error("failure while processing recording '{}': {}".format(row['filename'], str(stderr)))
+                conversion_table.append({
+                    'original_filename': row['filename'],
+                    'converted_filename': "",
+                    'success': False
+                })
+            else:
+                if profile.split:
+                    converted_files = [
+                        os.path.basename(cf)
+                        for cf in glob.glob(os.path.join(self.path, 'converted_recordings', profile.name, os.path.splitext(row['filename'])[0] + '.*.' + profile.format))
+                    ]
+                else:
+                    converted_files = [os.path.splitext(row['filename'])[0] + '.' + profile.format]
+
+                conversion_table += [{
+                    'original_filename': row['filename'],
+                    'converted_filename': cf,
+                    'success': True
+                } for cf in converted_files]
+
+        profile.recordings = pd.DataFrame(conversion_table)
+
+        profile.recordings.to_csv(
+            os.path.join(
+                self.path,
+                'converted_recordings',
+                profile.name,
+                'recordings.csv'
+            ),
+            index = False
+        )
+
+        profile.to_csv(os.path.join(
+            self.path,
+            'converted_recordings',
+            profile.name,
+            'profile.csv'
+        ))
+
+        return profile
