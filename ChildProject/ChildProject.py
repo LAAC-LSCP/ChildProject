@@ -12,7 +12,26 @@ class ChildProject:
 
     CHILDREN_REQUIRED_COLUMNS = [
         'experiment',
-        'child_id'
+        'child_id',
+        'child_dob'
+    ]
+
+    CHILDREN_OPTIONAL_COLUMNS = [
+        'location_id',
+        'culture',
+        'child_sex',
+        'language',
+        'languages',
+        'mat_ed',
+        'fat_ed',
+        'car_ed',
+        'monoling',
+        'monoling_criterion',
+        'normative',
+        'normative_criterion',
+        'mother_id',
+        'father_id',
+        'daytime'
     ]
 
     RECORDINGS_REQUIRED_COLUMNS = [
@@ -22,6 +41,17 @@ class ChildProject:
         'start_time',
         'recording_device_type',
         'filename'
+    ]
+
+    RECORDINGS_OPTIONAL_COLUMNS = [
+        'recording_device_id',
+        'experimenter',
+        'location_id',
+        'its_filename',
+        'upl_filename',
+        'lena_id',
+        'age',
+        'notes'
     ]
 
     DATE_FORMAT = '%Y-%m-%d'
@@ -107,7 +137,20 @@ class ChildProject:
                 self.register_error(
                     """children table has undefined values
                     for column '{}' in lines: {}""".format(rc, ','.join(null))
-                )         
+                )
+        
+        unknown_columns = [
+            c for c in self.children.columns
+            if c not in self.CHILDREN_REQUIRED_COLUMNS and c not in self.CHILDREN_OPTIONAL_COLUMNS
+        ]
+
+        if len(unknown_columns) > 0:
+            self.register_warning("unknown column{} '{}' in children, exepected columns are: {}".format(
+                's' if len(unknown_columns) > 1 else '',
+                ','.join(unknown_columns),
+                ','.join(self.CHILDREN_REQUIRED_COLUMNS+self.CHILDREN_OPTIONAL_COLUMNS)
+            ))
+
 
         self.recordings = self.read_table(os.path.join(path, 'recordings/recordings'))
         for rc in self.RECORDINGS_REQUIRED_COLUMNS:
@@ -120,6 +163,18 @@ class ChildProject:
                     """recordings table has undefined values
                     for column '{}' in lines: {}""".format(rc, ','.join(map(str, null)))
                 )
+
+        unknown_columns = [
+            c for c in self.recordings.columns
+            if c not in self.RECORDINGS_REQUIRED_COLUMNS and c not in self.RECORDINGS_OPTIONAL_COLUMNS
+        ]
+
+        if len(unknown_columns) > 0:
+            self.register_warning("unknown column{} '{}' in recordings, exepected columns are: {}".format(
+                's' if len(unknown_columns) > 1 else '',
+                ','.join(unknown_columns),
+                ','.join(self.RECORDINGS_REQUIRED_COLUMNS+self.RECORDINGS_OPTIONAL_COLUMNS)
+            ))
 
         for index, row in self.recordings.iterrows():
             # make sure that recordings exist
