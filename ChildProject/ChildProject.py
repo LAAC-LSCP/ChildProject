@@ -157,7 +157,7 @@ class ChildProject:
         self.recordings = self.read_table(os.path.join(path, 'recordings/recordings'))
         for rc in self.RECORDINGS_REQUIRED_COLUMNS:
             if rc not in self.recordings.columns:
-                self.register_error("recordings table is missing column '{}'".format(rc))
+                self.register_error("recordings table is missing column '{}'".format(rc), True)
 
             null = self.recordings[self.recordings[rc].isnull()]['lineno'].tolist()
             if len(null) > 0:
