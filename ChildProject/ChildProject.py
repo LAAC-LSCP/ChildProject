@@ -13,7 +13,8 @@ class ChildProject:
     CHILDREN_REQUIRED_COLUMNS = [
         'experiment',
         'child_id',
-        'child_dob'
+        'child_dob',
+        'lineno' # generated
     ]
 
     CHILDREN_OPTIONAL_COLUMNS = [
@@ -40,7 +41,8 @@ class ChildProject:
         'date_iso',
         'start_time',
         'recording_device_type',
-        'filename'
+        'filename',
+        'lineno' # generated
     ]
 
     RECORDINGS_OPTIONAL_COLUMNS = [
