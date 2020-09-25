@@ -219,10 +219,12 @@ class ChildProject:
                 ','.join(self.RECORDINGS_REQUIRED_COLUMNS+self.RECORDINGS_OPTIONAL_COLUMNS)
             ))
 
+        file_columns = set(self.recordings.columns).intersection(['filename', 'its_filename', 'upl_filename'])
         for index, row in self.recordings.iterrows():
             # make sure that recordings exist
-            if row['filename'] != 'NA' and not os.path.exists(os.path.join(path, 'recordings', str(row['filename']))):
-                self.register_error("cannot find recording '{}'".format(str(row['filename'])))
+            for fc in file_columns:
+                if fc in self.recordings.columns and row[fc] != 'NA' and not os.path.exists(os.path.join(path, 'recordings', str(row[fc]))):
+                    self.register_error("cannot find recording '{}'".format(str(row[fc])))
 
             # date is valid
             try:
@@ -265,9 +267,11 @@ class ChildProject:
 
 
         # detect un-indexed recordings and throw warnings
-        self.recordings['abspath'] = self.recordings['filename'].apply(lambda s:
-            os.path.abspath(os.path.join(path, 'recordings', str(s)))   
-        )
+        indexed_files = [
+            os.path.abspath(os.path.join(path, 'recordings', str(s)))
+            for s in self.recordings[fc].tolist()
+            for fc in file_columns 
+        ]
 
         recordings_files = glob.glob(os.path.join(path, 'recordings', '**.*'), recursive = True)
 
@@ -276,7 +280,7 @@ class ChildProject:
                 continue
 
             ap = os.path.abspath(rf)
-            if ap not in self.recordings['abspath'].tolist():
+            if ap not in indexed_files:
                 self.register_warning("file '{}' not indexed.".format(rf))
 
         return {
