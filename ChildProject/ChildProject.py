@@ -273,7 +273,7 @@ class ChildProject:
             for fc in file_columns 
         ]
 
-        recordings_files = glob.glob(os.path.join(path, 'recordings', '**.*'), recursive = True)
+        recordings_files = glob.glob(os.path.join(path, 'recordings', '**/*.*'), recursive = True)
 
         for rf in recordings_files:
             if len(os.path.splitext(rf)) > 1 and os.path.splitext(rf)[1] in ['.csv', '.xls', '.xlsx']:
