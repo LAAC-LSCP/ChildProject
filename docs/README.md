@@ -1,5 +1,9 @@
 # ChildRecordsData
 
+## Formatting data
+
+See the [formatting instructions](http://sciencestechniques.fr/FORMATTING.md)
+
 ## Installation
 
 ```
