@@ -5,6 +5,8 @@ import datetime
 import glob
 import shutil
 import subprocess
+import re
+
 
 class RecordingProfile:
     def __init__(self, name, format = 'wav', codec = 'pcm_s16le', sampling = 16000,
@@ -35,66 +37,59 @@ class RecordingProfile:
             {'key': 'extra_flags', 'value': self.extra_flags}
         ]).to_csv(destination, index = False)
 
+class IndexColumn:
+    def __init__(self, name = "", description = "", required = False, regex = None,
+                 filename = False, datetime = None, unique = False):
+        self.name = name
+        self.description = description
+        self.required = required
+        self.filename = filename
+        self.regex = regex
+        self.datetime = datetime
+        self.unique = unique
+
+
 class ChildProject:
     REQUIRED_DIRECTORIES = [
         'recordings',
         'extra'
     ]
 
-    CHILDREN_REQUIRED_COLUMNS = [
-        'experiment',
-        'child_id',
-        'child_dob',
-        'lineno' # generated
+    CHILDREN_COLUMNS = [
+        IndexColumn(name = 'experiment', description = 'one word to capture the unique ID of the data collection effort; for instance Tsimane_2018, solis-intervention-pre', required = True),
+        IndexColumn(name = 'child_id', description = 'unique child ID -- unique within the experiment (Id could be repeated across experiments to refer to different children)', required = True),
+        IndexColumn(name = 'child_dob', description = "child's date of birth", required = True, datetime = '%Y-%m-%d'),
+        IndexColumn(name = 'location_id', description = 'Unique location ID -- only specify here if children never change locations in this culture; otherwise, specify in the recordings metadata'),
+        IndexColumn(name = 'child_sex', description = 'f= female, m=male', regex = '(m|f|M|F)'),
+        IndexColumn(name = 'language', description = 'language the child is exposed to if child is monolingual; small caps, indicate dialect by name or location if available; eg "france french"; "paris french"'),
+        IndexColumn(name = 'languages', description = 'list languages child is exposed to separating them with ; and indicating the percentage if one is available; eg: "french 35%; english 65%"'),
+        IndexColumn(name = 'mat_ed', description = 'maternal years of education'),
+        IndexColumn(name = 'fat_ed', description = 'paternal years of education'),
+        IndexColumn(name = 'car_ed', description = 'years of education of main caregiver (if not mother or father)'),
+        IndexColumn(name = 'monoling', description = 'whether the child is monolingual (Y) or not (N)', regex = '(Y|N)'),
+        IndexColumn(name = 'monoling_criterion', description = 'how monoling was decided; eg "we asked families which languages they spoke in the home"'),
+        IndexColumn(name = 'normative', description = 'whether the child is normative (Y) or not (N)', regex = '(Y|N)'),
+        IndexColumn(name = 'normative_criterion', description = 'how normative was decided; eg "unless the caregivers volunteered information whereby the child had a problem, we consider them normative by default"'),
+        IndexColumn(name = 'mother_id', description = 'unique ID of the mother'),
+        IndexColumn(name = 'father_id', description = 'unique ID of the father'),
+        IndexColumn(name = 'daytime', description = 'yes (Y) means recording launched such that most or all of the audiorecording happens during daytime; no (N) means at least 30% of the recording may happen at night', regex = '(Y|N)')
     ]
 
-    CHILDREN_OPTIONAL_COLUMNS = [
-        'location_id',
-        'culture',
-        'child_sex',
-        'language',
-        'languages',
-        'mat_ed',
-        'fat_ed',
-        'car_ed',
-        'monoling',
-        'monoling_criterion',
-        'normative',
-        'normative_criterion',
-        'mother_id',
-        'father_id',
-        'daytime'
-    ]
-
-    RECORDINGS_REQUIRED_COLUMNS = [
-        'experiment',
-        'child_id',
-        'date_iso',
-        'start_time',
-        'recording_device_type',
-        'filename',
-        'lineno' # generated
-    ]
-
-    RECORDINGS_OPTIONAL_COLUMNS = [
-        'recording_device_id',
-        'experimenter',
-        'location_id',
-        'its_filename',
-        'upl_filename',
-        'lena_id',
-        'age',
-        'notes'
-    ]
-
-    DATE_FORMAT = '%Y-%m-%d'
-    TIME_FORMAT = '%H:%M'
-
-    RECORDING_DEVICE_TYPES = [
-        'usb',
-        'olympus',
-        'lena',
-        'babylogger'
+    RECORDINGS_COLUMNS = [
+        IndexColumn(name = 'experiment', description = 'one word to capture the unique ID of the data collection effort; for instance Tsimane_2018, solis-intervention-pre', required = True),
+        IndexColumn(name = 'child_id', description = 'unique child ID -- unique within the experiment (Id could be repeated across experiments to refer to different children)', required = True),
+        IndexColumn(name = 'date_iso', description = 'date in which recording was started in ISO (eg 2020-09-17)', required = True, datetime = '%Y-%m-%d'),
+        IndexColumn(name = 'start_time', description = 'local time in which recording was started in format 24-hour (H)H:MM; if minutes are unknown, use 00. Set as ‘NA’ if unknown.', required = True, datetime = '%H:%M'),
+        IndexColumn(name = 'recording_device_type', description = 'lena, usb, olympus, babylogger (lowercase)', required = True, regex = '({})'.format('|'.join(['lena', 'usb', 'olympus', 'babylogger']))),
+        IndexColumn(name = 'filename', description = 'the path to the file from the root of “recordings”), set to ‘NA’ if no valid recording available. It is unique (two recordings cannot point towards the same file).', required = True, filename = True),
+        IndexColumn(name = 'recording_device_id', description = 'unique ID of the recording device'),
+        IndexColumn(name = 'experimenter', description = 'who collected the data (could be anonymized ID)'),
+        IndexColumn(name = 'location_id', description = 'unique location ID -- can be specified at the level of the child (if children do not change locations)'),
+        IndexColumn(name = 'its_filename', description = 'its_filename', filename = True),
+        IndexColumn(name = 'upl_filename', description = 'upl_filename', filename = True),
+        IndexColumn(name = 'lena_id', description = ''),
+        IndexColumn(name = 'age', description = 'age in months (rounded)', regex = '^[0-9]+$'),
+        IndexColumn(name = 'notes', description = 'free-style notes about individual recordings (avoid tabs and newlines)')
     ]
 
     PROJECT_FOLDERS = [
@@ -133,7 +128,8 @@ class ChildProject:
                 'na_values': ['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN',
                               '#N/A N/A', '#N/A', 'N/A', 'n/a', '', '#NA',
                               'NULL', 'null', 'NaN', '-NaN', 'nan',
-                              '-nan', '']
+                              '-nan', ''],
+                'parse_dates': False
             }
 
             try:
@@ -172,105 +168,120 @@ class ChildProject:
         # check tables
         self.read()
 
-        for rc in self.CHILDREN_REQUIRED_COLUMNS:
-            if rc not in self.children.columns:
-                self.register_error("children table is missing column '{}'".format(rc), True)
+        for rc in self.CHILDREN_COLUMNS:
+            if not rc.required:
+                continue
 
-            null = self.children[self.children[rc].isnull()]['lineno'].tolist()
+            if rc.name not in self.children.columns:
+                self.register_error("children table is missing column '{}'".format(rc.name), True)
+
+            null = self.children[self.children[rc.name].isnull()]['lineno'].tolist()
             if len(null) > 0:
                 self.register_error(
                     """children table has undefined values
-                    for column '{}' in lines: {}""".format(rc, ','.join(null))
+                    for column '{}' in lines: {}""".format(rc.name, ','.join(null))
                 )
         
         unknown_columns = [
             c for c in self.children.columns
-            if c not in self.CHILDREN_REQUIRED_COLUMNS and c not in self.CHILDREN_OPTIONAL_COLUMNS
+            if c not in [c.name for c in self.CHILDREN_COLUMNS] and c != 'lineno'
         ]
 
         if len(unknown_columns) > 0:
             self.register_warning("unknown column{} '{}' in children, exepected columns are: {}".format(
                 's' if len(unknown_columns) > 1 else '',
                 ','.join(unknown_columns),
-                ','.join(self.CHILDREN_REQUIRED_COLUMNS+self.CHILDREN_OPTIONAL_COLUMNS)
+                ','.join([c.name for c in self.CHILDREN_COLUMNS])
             ))
 
 
-        for rc in self.RECORDINGS_REQUIRED_COLUMNS:
-            if rc not in self.recordings.columns:
-                self.register_error("recordings table is missing column '{}'".format(rc), True)
+        for rc in self.RECORDINGS_COLUMNS:
+            if not rc.required:
+                continue
 
-            null = self.recordings[self.recordings[rc].isnull()]['lineno'].tolist()
+            if rc.name not in self.recordings.columns:
+                self.register_error("recordings table is missing column '{}'".format(rc.name), True)
+
+            null = self.recordings[self.recordings[rc.name].isnull()]['lineno'].tolist()
             if len(null) > 0:
                 self.register_error(
                     """recordings table has undefined values
-                    for column '{}' in lines: {}""".format(rc, ','.join(map(str, null)))
+                    for column '{}' in lines: {}""".format(rc.name, ','.join(map(str, null)))
                 )
 
         unknown_columns = [
             c for c in self.recordings.columns
-            if c not in self.RECORDINGS_REQUIRED_COLUMNS and c not in self.RECORDINGS_OPTIONAL_COLUMNS
+            if c not in [c.name for c in self.RECORDINGS_COLUMNS] and c != 'lineno'
         ]
 
         if len(unknown_columns) > 0:
             self.register_warning("unknown column{} '{}' in recordings, exepected columns are: {}".format(
                 's' if len(unknown_columns) > 1 else '',
                 ','.join(unknown_columns),
-                ','.join(self.RECORDINGS_REQUIRED_COLUMNS+self.RECORDINGS_OPTIONAL_COLUMNS)
+                ','.join([c.name for c in self.RECORDINGS_COLUMNS])
             ))
 
-        file_columns = set(self.recordings.columns).intersection(['filename', 'its_filename', 'upl_filename'])
         for index, row in self.recordings.iterrows():
             # make sure that recordings exist
-            for fc in file_columns:
-                if fc in self.recordings.columns and row[fc] != 'NA' and not os.path.exists(os.path.join(path, 'recordings', str(row[fc]))):
-                    self.register_error("cannot find recording '{}'".format(str(row[fc])))
+            for column_name in self.recordings.columns:
+                column_attr = next((c for c in self.RECORDINGS_COLUMNS if c.name == column_name), None)
 
-            # date is valid
-            try:
-                date = datetime.datetime.strptime(row['date_iso'], self.DATE_FORMAT)
-            except:
-                self.register_error("'{}' is not a proper date (expected YYYY-MM-DD) on line {}".format(row['date_iso'], row['lineno']))
+                if column_attr is None:
+                    continue
 
-            # start_time is valid
-            if row['start_time'] != 'NA':
-                try:
-                    start = datetime.datetime.strptime("1970-01-01 {}".format(str(row['start_time'])[:5]), "%Y-%m-%d %H:%M")
-                except:
-                    self.register_error("'{}' is not a proper time (expected HH:MM) on line {}".format(str(row['start_time'])[:5], row['lineno']))
+                if column_attr.filename and row[column_name] != 'NA' and not os.path.exists(os.path.join(path, 'recordings', str(row[column_name]))):
+                    self.register_error("cannot find recording '{}'".format(str(row[column_name])))
+                elif column_attr.datetime:
+                    try:
+                        dt = datetime.datetime.strptime(row[column_name], column_attr.datetime)
+                    except:
+                        if column_attr.required:
+                            self.register_error("'{}' is not a proper date/time (expected {}) on line {}".format(row[column_name], column_attr.datetime, row['lineno']))
+                        else:
+                            self.register_warning("'{}' is not a proper date/time (expected {}) on line {}".format(row[column_name], column_attr.datetime, row['lineno']))
+                elif column_attr.regex:
+                    if not re.fullmatch(column_attr.regex, row[column_name]):
+                        self.register_warning("'{} does not match required format on line {}, expected '{}'".format(row[column_name], row['lineno'], column_attr.regex))
+
 
             # child id refers to an existing child in the children table
             if row['child_id'] not in self.children['child_id'].tolist():
                 self.register_error("child_id '{}' in recordings on line {} cannot be found in the children table.".format(row['child_id'], row['lineno']))
 
-            # recording_device_type exists
-            if row['recording_device_type'] not in self.RECORDING_DEVICE_TYPES:
-                self.register_warning("invalid device type '{}' in recordings on line {}".format(row['recording_device_type'], row['lineno']))
-
         # look for duplicates
-        grouped = self.recordings[self.recordings['filename'] != 'NA']\
-            .groupby('filename')['lineno']\
-            .agg([
-                ('count', len),
-                ('lines', lambda lines: ",".join([str(line) for line in sorted(lines)])),
-                ('first', np.min)
-            ])\
-            .sort_values('first')
+        for c in self.RECORDINGS_COLUMNS:
+            if not c.unique:
+                continue
 
-        duplicates = grouped[grouped['count'] > 1]
-        for filename, row in duplicates.iterrows():
-            self.register_error("filename '{}' appears {} times in lines [{}], should appear once".format(
-                filename,
-                row['count'],
-                row['lines']
-            ))
+            grouped = self.recordings[self.recordings[c.name] != 'NA']\
+                .groupby(c.name)['lineno']\
+                .agg([
+                    ('count', len),
+                    ('lines', lambda lines: ",".join([str(line) for line in sorted(lines)])),
+                    ('first', np.min)
+                ])\
+                .sort_values('first')
+
+            duplicates = grouped[grouped['count'] > 1]
+            for col, row in duplicates.iterrows():
+                self.register_error("{} '{}' appears {} times in lines [{}], should appear once".format(
+                    c.name,
+                    col,
+                    row['count'],
+                    row['lines']
+                ))
 
 
         # detect un-indexed recordings and throw warnings
+        files = [
+            self.recordings[c.name].tolist()
+            for c in self.RECORDINGS_COLUMNS
+            if c.filename and c.name in self.recordings.columns
+        ]
+
         indexed_files = [
-            os.path.abspath(os.path.join(path, 'recordings', str(s)))
-            for s in self.recordings[fc].tolist()
-            for fc in file_columns 
+            os.path.abspath(os.path.join(path, 'recordings', str(f)))
+            for f in pd.core.common.flatten(files)
         ]
 
         recordings_files = glob.glob(os.path.join(path, 'recordings', '**/*.*'), recursive = True)
@@ -346,16 +357,11 @@ class ChildProject:
 
             proc = subprocess.Popen(
                 [
-                    'ffmpeg',
-                    '-y',
-                    '-i',
-                    original_file,
-                    '-ac',
-                    '1',
-                    '-c:a',
-                    profile.codec,
-                    '-ar',
-                    str(profile.sampling)
+                    'ffmpeg', '-y',
+                    '-i', original_file,
+                    '-ac', '1',
+                    '-c:a', profile.codec,
+                    '-ar', str(profile.sampling)
                 ]
                 + split_args
                 + [
