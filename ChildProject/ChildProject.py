@@ -357,16 +357,11 @@ class ChildProject:
 
             proc = subprocess.Popen(
                 [
-                    'ffmpeg',
-                    '-y',
-                    '-i',
-                    original_file,
-                    '-ac',
-                    '1',
-                    '-c:a',
-                    profile.codec,
-                    '-ar',
-                    str(profile.sampling)
+                    'ffmpeg', '-y',
+                    '-i', original_file,
+                    '-ac', '1',
+                    '-c:a', profile.codec,
+                    '-ar', str(profile.sampling)
                 ]
                 + split_args
                 + [
