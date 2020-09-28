@@ -128,4 +128,8 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# scripts output
 output/
+
+# generated docs
+docs/FORMATTING.md
