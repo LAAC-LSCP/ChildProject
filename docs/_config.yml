@@ -5,4 +5,4 @@ relative_links:
   collections: true
 include:
   - FORMATTING.md
-theme: cayman
+theme: jekyll-theme-cayman
