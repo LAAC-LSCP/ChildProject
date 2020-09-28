@@ -2,7 +2,7 @@
 
 ## Formatting data
 
-See the [formatting instructions](http://sciencestechniques.fr/FORMATTING.md)
+See the [formatting instructions](http://sciencestechniques.fr/ChildRecordsData/FORMATTING.md)
 
 ## Installation
 
