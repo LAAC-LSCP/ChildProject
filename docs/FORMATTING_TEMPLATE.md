@@ -23,7 +23,7 @@ Can be either `children.csv`, `children.xls` or `children.xslx`.
 {% for column in children -%}
 | **{{column.name}}** | {{column.description}} | {{'**required**' if column.required else 'optional'}}
 {%- if column.datetime %} | `{{column.datetime}}` (date/time) |
-{%- elif column.regex %} | `{{column.regex.replace('|',"\\|")}}` (regex) |
+{%- elif column.regex %} | `{{column.regex}}` (regex) |
 {%- elif column.filename %} | filename |
 {%- else %} | - |
 {%- endif %}
