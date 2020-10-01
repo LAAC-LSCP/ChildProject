@@ -11,16 +11,16 @@ args = parser.parse_args()
 
 project = ChildProject(args.source)
 
-results = project.validate_input_data()
+errors, warnings = project.validate_input_data()
 
-for error in results['errors']:
+for error in errors:
     print("error: {}".format(error), file = sys.stderr)
 
-for warning in results['warnings']:
+for warning in warnings:
     print("warning: {}".format(warning))
 
-if len(results['errors']) > 0:
-    print("validation failed, {} error(s) occured".format(len(results['errors'])), file = sys.stderr)
+if len(errors) > 0:
+    print("validation failed, {} error(s) occured".format(len(errors)), file = sys.stderr)
     print("cannot import data", file = sys.stderr)
     sys.exit(1)
 

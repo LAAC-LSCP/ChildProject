@@ -294,15 +294,12 @@ class ChildProject:
             if ap not in indexed_files:
                 self.register_warning("file '{}' not indexed.".format(rf))
 
-        return {
-            'errors': self.errors,
-            'warnings': self.warnings
-        }
+        return self.errors, self.warnings
 
     def import_data(self, destination, follow_symlinks = True):
-        validation = self.validate_input_data()
+        errors, warnings = self.validate_input_data()
 
-        if len(validation['errors']) > 0:
+        if len(errors) > 0:
             raise Exception('cannot import data: validation failed')
 
         # perform copy
@@ -319,8 +316,8 @@ class ChildProject:
         if not isinstance(profile, RecordingProfile):
             raise ValueError('profile should be a RecordingProfile instance')
 
-        validation = self.validate_input_data()
-        if len(validation['errors']) > 0:
+        errors, warnings = self.validate_input_data()
+        if len(errors) > 0:
             raise Exception('cannot convert: validation failed')
 
         os.makedirs(
