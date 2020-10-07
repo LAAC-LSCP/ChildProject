@@ -7,6 +7,7 @@ import shutil
 import subprocess
 import re
 
+from .tables import IndexTable, IndexColumn
 
 class RecordingProfile:
     def __init__(self, name, format = 'wav', codec = 'pcm_s16le', sampling = 16000,
@@ -37,18 +38,6 @@ class RecordingProfile:
             {'key': 'extra_flags', 'value': self.extra_flags}
         ]).to_csv(destination, index = False)
 
-class IndexColumn:
-    def __init__(self, name = "", description = "", required = False, regex = None,
-                 filename = False, datetime = None, unique = False):
-        self.name = name
-        self.description = description
-        self.required = required
-        self.filename = filename
-        self.regex = regex
-        self.datetime = datetime
-        self.unique = unique
-
-
 class ChildProject:
     REQUIRED_DIRECTORIES = [
         'recordings',
@@ -57,7 +46,7 @@ class ChildProject:
 
     CHILDREN_COLUMNS = [
         IndexColumn(name = 'experiment', description = 'one word to capture the unique ID of the data collection effort; for instance Tsimane_2018, solis-intervention-pre', required = True),
-        IndexColumn(name = 'child_id', description = 'unique child ID -- unique within the experiment (Id could be repeated across experiments to refer to different children)', required = True),
+        IndexColumn(name = 'child_id', description = 'unique child ID -- unique within the experiment (Id could be repeated across experiments to refer to different children)', unique = True, required = True),
         IndexColumn(name = 'child_dob', description = "child's date of birth", required = True, datetime = '%Y-%m-%d'),
         IndexColumn(name = 'location_id', description = 'Unique location ID -- only specify here if children never change locations in this culture; otherwise, specify in the recordings metadata'),
         IndexColumn(name = 'child_sex', description = 'f= female, m=male', regex = '(m|f|M|F)'),
@@ -81,7 +70,7 @@ class ChildProject:
         IndexColumn(name = 'date_iso', description = 'date in which recording was started in ISO (eg 2020-09-17)', required = True, datetime = '%Y-%m-%d'),
         IndexColumn(name = 'start_time', description = 'local time in which recording was started in format 24-hour (H)H:MM; if minutes are unknown, use 00. Set as ‘NA’ if unknown.', required = True, datetime = '%H:%M'),
         IndexColumn(name = 'recording_device_type', description = 'lena, usb, olympus, babylogger (lowercase)', required = True, regex = '({})'.format('|'.join(['lena', 'usb', 'olympus', 'babylogger']))),
-        IndexColumn(name = 'filename', description = 'the path to the file from the root of “recordings”), set to ‘NA’ if no valid recording available. It is unique (two recordings cannot point towards the same file).', required = True, filename = True),
+        IndexColumn(name = 'filename', description = 'the path to the file from the root of “recordings”), set to ‘NA’ if no valid recording available. It is unique (two recordings cannot point towards the same file).', required = True, filename = True, unique = True),
         IndexColumn(name = 'recording_device_id', description = 'unique ID of the recording device'),
         IndexColumn(name = 'experimenter', description = 'who collected the data (could be anonymized ID)'),
         IndexColumn(name = 'location_id', description = 'unique location ID -- can be specified at the level of the child (if children do not change locations)'),
@@ -93,9 +82,10 @@ class ChildProject:
     ]
 
     PROJECT_FOLDERS = [
+        'annotations',
+        'converted_recordings',
         'doc',
-        'scripts',
-        'converted_recordings'
+        'scripts'
     ]
 
     def __init__(self, path):
@@ -104,54 +94,13 @@ class ChildProject:
         self.warnings = []
         self.children = None
         self.recordings = None
-
-    def register_error(self, message, fatal = False):
-        if fatal:
-            raise Exception(message)
-
-        self.errors.append(message)
-
-    def register_warning(self, message):
-        self.warnings.append(message)
-
-    def read_table(self, path):
-        extensions = ['.csv', '.xls', '.xlsx']
-        
-        for extension in extensions:
-            filename = path + extension
-            
-            if not os.path.exists(filename):
-                continue
-
-            pd_flags = {
-                'keep_default_na': False,
-                'na_values': ['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN',
-                              '#N/A N/A', '#N/A', 'N/A', 'n/a', '', '#NA',
-                              'NULL', 'null', 'NaN', '-NaN', 'nan',
-                              '-nan', ''],
-                'parse_dates': False
-            }
-
-            try:
-                if extension == '.csv':
-                    df = pd.read_csv(filename, **pd_flags)
-                elif extension == '.xls' or extension == '.xlsx':
-                    df = pd.read_excel(filename, **pd_flags)
-                else:
-                    raise Exception('table format not supported ({})'.format(extension))    
-            except Exception as e:
-                self.register_error(str(e), True)
-                return None
-
-            df['lineno'] = df.index + 2
-            return df
-
-        self.register_error("could not find table '{}'".format(path), True)
-        return None
     
     def read(self):
-        self.children = self.read_table(os.path.join(self.path, 'children'))
-        self.recordings = self.read_table(os.path.join(self.path, 'recordings/recordings'))
+        self.ct = IndexTable('children', os.path.join(self.path, 'children'), self.CHILDREN_COLUMNS)
+        self.rt = IndexTable('recordings', os.path.join(self.path, 'recordings/recordings'), self.RECORDINGS_COLUMNS)
+
+        self.children = self.ct.read(lookup_extensions = ['.csv', '.xls', '.xlsx'])
+        self.recordings = self.rt.read(lookup_extensions = ['.csv', '.xls', '.xlsx'])
 
     def validate_input_data(self):
         self.errors = []
@@ -163,63 +112,18 @@ class ChildProject:
 
         for rd in self.REQUIRED_DIRECTORIES:
             if rd not in directories:
-                self.register_error("missing directory {}.".format(rd), True)
+                self.errors.append("missing directory {}.".format(rd))
 
         # check tables
         self.read()
-
-        for rc in self.CHILDREN_COLUMNS:
-            if not rc.required:
-                continue
-
-            if rc.name not in self.children.columns:
-                self.register_error("children table is missing column '{}'".format(rc.name), True)
-
-            null = self.children[self.children[rc.name].isnull()]['lineno'].tolist()
-            if len(null) > 0:
-                self.register_error(
-                    """children table has undefined values
-                    for column '{}' in lines: {}""".format(rc.name, ','.join(null))
-                )
         
-        unknown_columns = [
-            c for c in self.children.columns
-            if c not in [c.name for c in self.CHILDREN_COLUMNS] and c != 'lineno'
-        ]
+        errors, warnings = self.ct.validate()
+        self.errors += errors
+        self.warnings += warnings
 
-        if len(unknown_columns) > 0:
-            self.register_warning("unknown column{} '{}' in children, exepected columns are: {}".format(
-                's' if len(unknown_columns) > 1 else '',
-                ','.join(unknown_columns),
-                ','.join([c.name for c in self.CHILDREN_COLUMNS])
-            ))
-
-
-        for rc in self.RECORDINGS_COLUMNS:
-            if not rc.required:
-                continue
-
-            if rc.name not in self.recordings.columns:
-                self.register_error("recordings table is missing column '{}'".format(rc.name), True)
-
-            null = self.recordings[self.recordings[rc.name].isnull()]['lineno'].tolist()
-            if len(null) > 0:
-                self.register_error(
-                    """recordings table has undefined values
-                    for column '{}' in lines: {}""".format(rc.name, ','.join(map(str, null)))
-                )
-
-        unknown_columns = [
-            c for c in self.recordings.columns
-            if c not in [c.name for c in self.RECORDINGS_COLUMNS] and c != 'lineno'
-        ]
-
-        if len(unknown_columns) > 0:
-            self.register_warning("unknown column{} '{}' in recordings, exepected columns are: {}".format(
-                's' if len(unknown_columns) > 1 else '',
-                ','.join(unknown_columns),
-                ','.join([c.name for c in self.RECORDINGS_COLUMNS])
-            ))
+        errors, warnings = self.rt.validate()
+        self.errors += errors
+        self.warnings += warnings
 
         for index, row in self.recordings.iterrows():
             # make sure that recordings exist
@@ -230,47 +134,11 @@ class ChildProject:
                     continue
 
                 if column_attr.filename and row[column_name] != 'NA' and not os.path.exists(os.path.join(path, 'recordings', str(row[column_name]))):
-                    self.register_error("cannot find recording '{}'".format(str(row[column_name])))
-                elif column_attr.datetime:
-                    try:
-                        dt = datetime.datetime.strptime(row[column_name], column_attr.datetime)
-                    except:
-                        if column_attr.required:
-                            self.register_error("'{}' is not a proper date/time (expected {}) on line {}".format(row[column_name], column_attr.datetime, row['lineno']))
-                        else:
-                            self.register_warning("'{}' is not a proper date/time (expected {}) on line {}".format(row[column_name], column_attr.datetime, row['lineno']))
-                elif column_attr.regex:
-                    if not re.fullmatch(column_attr.regex, row[column_name]):
-                        self.register_warning("'{} does not match required format on line {}, expected '{}'".format(row[column_name], row['lineno'], column_attr.regex))
-
+                    self.errors.append("cannot find recording '{}'".format(str(row[column_name])))
 
             # child id refers to an existing child in the children table
             if row['child_id'] not in self.children['child_id'].tolist():
-                self.register_error("child_id '{}' in recordings on line {} cannot be found in the children table.".format(row['child_id'], row['lineno']))
-
-        # look for duplicates
-        for c in self.RECORDINGS_COLUMNS:
-            if not c.unique:
-                continue
-
-            grouped = self.recordings[self.recordings[c.name] != 'NA']\
-                .groupby(c.name)['lineno']\
-                .agg([
-                    ('count', len),
-                    ('lines', lambda lines: ",".join([str(line) for line in sorted(lines)])),
-                    ('first', np.min)
-                ])\
-                .sort_values('first')
-
-            duplicates = grouped[grouped['count'] > 1]
-            for col, row in duplicates.iterrows():
-                self.register_error("{} '{}' appears {} times in lines [{}], should appear once".format(
-                    c.name,
-                    col,
-                    row['count'],
-                    row['lines']
-                ))
-
+                self.errors.append("child_id '{}' in recordings on line {} cannot be found in the children table.".format(row['child_id'], row['lineno']))
 
         # detect un-indexed recordings and throw warnings
         files = [
@@ -292,7 +160,7 @@ class ChildProject:
 
             ap = os.path.abspath(rf)
             if ap not in indexed_files:
-                self.register_warning("file '{}' not indexed.".format(rf))
+                self.warnings.append("file '{}' not indexed.".format(rf))
 
         return self.errors, self.warnings
 
@@ -371,7 +239,7 @@ class ChildProject:
             (stdout, stderr) = proc.communicate()
 
             if proc.returncode != 0:
-                self.register_error("failure while processing recording '{}': {}".format(row['filename'], str(stderr)))
+                self.errors.append("failure while processing recording '{}': {}".format(row['filename'], str(stderr)))
                 conversion_table.append({
                     'original_filename': row['filename'],
                     'converted_filename': "",
@@ -394,21 +262,7 @@ class ChildProject:
 
         profile.recordings = pd.DataFrame(conversion_table)
 
-        profile.recordings.to_csv(
-            os.path.join(
-                self.path,
-                'converted_recordings',
-                profile.name,
-                'recordings.csv'
-            ),
-            index = False
-        )
-
-        profile.to_csv(os.path.join(
-            self.path,
-            'converted_recordings',
-            profile.name,
-            'profile.csv'
-        ))
+        profile.recordings.to_csv(os.path.join(self.path, 'converted_recordings', profile.name, 'recordings.csv'), index = False)
+        profile.to_csv(os.path.join(self.path, 'converted_recordings', profile.name, 'profile.csv'))
 
         return profile
