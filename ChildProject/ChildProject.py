@@ -69,6 +69,11 @@ def convert_recording(path, profile, skip_existing, row):
         else os.path.splitext(row['filename'])[0] + '.' + profile.format
     )
 
+    os.makedirs(
+        name = os.path.dirname(destination_file),
+        exist_ok = True
+    )
+
     skip = skip_existing and os.path.exists(destination_file)
     success = skip
 
