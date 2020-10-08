@@ -42,3 +42,13 @@ With audio splitting every 15 hours :
 ```
 python convert.py --source=/path/to/project --name=16kHz --split=15:00:00 --format=wav --sampling=16000 --codec=pcm_s16le
 ```
+
+#### Multi-core audio conversion with sbatch :
+
+1. create `convert.sh`
+```bash
+#!/bin/bash
+python convert.py --source ../data/namibia/ --name mp --format WAV --codec pcm_s16le --sampling 16000 --threads 4
+```
+2. run `$ chmod +x convert.sh`
+3. run `$ sbatch --mem=64G --time=5:00:00 --cpus-per-task=4 --ntasks=1 -o namibia.txt ./convert.sh`
