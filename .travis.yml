@@ -14,7 +14,7 @@ before_install:
 install:
   - conda env create -f env.yml
   - conda activate laac_recordings
-  - conda install python=$TRAVIS_PYTHON_VERSION
+#  - conda install python=$TRAVIS_PYTHON_VERSION
   - pip install . --upgrade
 script:
   - python -m pytest
