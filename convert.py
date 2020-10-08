@@ -13,7 +13,7 @@ parser.add_argument("--codec", help = "audio codec (e.g. {})".format(default_pro
 parser.add_argument("--sampling", help = "sampling frequency (e.g. {})".format(default_profile.sampling), required = True)
 parser.add_argument("--split", help = "split duration (e.g. 15:00:00)", required = False, default = None)
 parser.add_argument('--skip_existing', dest='skip_existing', required = False, default = False, action='store_true')
-parser.add_argument('--threads', help = "amount of threads running conversions in parallel (0 = uses all available cores)", required = False, default = 0)
+parser.add_argument('--threads', help = "amount of threads running conversions in parallel (0 = uses all available cores)", required = False, default = 0, type = int)
 
 args = parser.parse_args()
 
