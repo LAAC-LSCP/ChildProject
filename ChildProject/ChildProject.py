@@ -409,7 +409,7 @@ class ChildProject:
         pool = mp.Pool(processes = threads if threads > 0 else mp.cpu_count())
         conversion_table = pool.map(
             partial(convert_recording, self.path, profile, skip_existing),
-            [row for index,row in self.recordings.iterrows()]
+            self.recordings.to_dict('records')
         )
 
         conversion_table = reduce(operator.concat, conversion_table)
