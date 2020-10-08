@@ -235,7 +235,7 @@ class ChildProject:
                     try:
                         dt = datetime.datetime.strptime(row[column_name], column_attr.datetime)
                     except:
-                        if column_attr.required:
+                        if column_attr.required and row[column_name] != 'NA':
                             self.register_error("'{}' is not a proper date/time (expected {}) on line {}".format(row[column_name], column_attr.datetime, row['lineno']))
                         else:
                             self.register_warning("'{}' is not a proper date/time (expected {}) on line {}".format(row[column_name], column_attr.datetime, row['lineno']))
