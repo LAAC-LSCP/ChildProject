@@ -17,7 +17,7 @@ install:
   - conda install python=$TRAVIS_PYTHON_VERSION
   - pip install . --upgrade
 script:
-  - pytest
+  - python -m pytest
   - python docs/generate_docs.py
 deploy:
   provider: pages
