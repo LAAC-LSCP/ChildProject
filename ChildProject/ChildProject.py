@@ -6,7 +6,9 @@ import glob
 import shutil
 import subprocess
 import re
-
+import multiprocessing as mp
+from functools import partial, reduce
+import operator
 
 class RecordingProfile:
     def __init__(self, name, format = 'wav', codec = 'pcm_s16le', sampling = 16000,
@@ -48,6 +50,78 @@ class IndexColumn:
         self.datetime = datetime
         self.unique = unique
 
+
+def convert_recording(path, profile, skip_existing, row):
+    if row['filename'] == 'NA':
+            return []
+
+    original_file = os.path.join(
+        path,
+        'recordings',
+        row['filename']
+    )
+
+    destination_file = os.path.join(
+        path,
+        'converted_recordings',
+        profile.name,
+        os.path.splitext(row['filename'])[0] + '.%03d.' + profile.format if profile.split
+        else os.path.splitext(row['filename'])[0] + '.' + profile.format
+    )
+
+    skip = skip_existing and os.path.exists(destination_file)
+    success = skip
+
+    if not skip:
+        split_args = []
+        if profile.split:
+            split_args.append('-segment_time')
+            split_args.append(profile.split)
+            split_args.append('-f')
+            split_args.append('segment')
+
+        proc = subprocess.Popen(
+            [
+                'ffmpeg', '-y',
+                '-loglevel', 'error',
+                '-i', original_file,
+                '-ac', '1',
+                '-c:a', profile.codec,
+                '-ar', str(profile.sampling)
+            ]
+            + split_args
+            + [
+                destination_file
+            ],
+            stdout = subprocess.PIPE,
+            stderr = subprocess.PIPE
+        )
+        proc.wait()
+        (stdout, stderr) = proc.communicate()
+
+        success = proc.returncode == 0
+
+    if not success:
+        return [{
+            'original_filename': row['filename'],
+            'converted_filename': "",
+            'success': False,
+            'error': stderr
+        }]
+    else:
+        if profile.split:
+            converted_files = [
+                os.path.basename(cf)
+                for cf in glob.glob(os.path.join(path, 'converted_recordings', profile.name, os.path.splitext(row['filename'])[0] + '.*.' + profile.format))
+            ]
+        else:
+            converted_files = [os.path.splitext(row['filename'])[0] + '.' + profile.format]
+
+    return [{
+        'original_filename': row['filename'],
+        'converted_filename': cf,
+        'success': True
+    } for cf in converted_files]
 
 class ChildProject:
     REQUIRED_DIRECTORIES = [
@@ -312,7 +386,7 @@ class ChildProject:
                 exist_ok = True
             )
 
-    def convert_recordings(self, profile, skip_existing = False):
+    def convert_recordings(self, profile, skip_existing = False, threads = 0):
         if not isinstance(profile, RecordingProfile):
             raise ValueError('profile should be a RecordingProfile instance')
 
@@ -327,78 +401,13 @@ class ChildProject:
 
         conversion_table = []
 
-        for index, row in self.recordings.iterrows():
-            if row['filename'] == 'NA':
-                continue
+        pool = mp.Pool(processes = threads if threads > 0 else mp.cpu_count())
+        conversion_table = pool.map(
+            partial(convert_recording, self.path, profile, skip_existing),
+            [row for index,row in self.recordings.iterrows()]
+        )
 
-            original_file = os.path.join(
-                self.path,
-                'recordings',
-                row['filename']
-            )
-
-            destination_file = os.path.join(
-                self.path,
-                'converted_recordings',
-                profile.name,
-                os.path.splitext(row['filename'])[0] + '.%03d.' + profile.format if profile.split
-                else os.path.splitext(row['filename'])[0] + '.' + profile.format
-            )
-
-            skip = skip_existing and os.path.exists(destination_file)
-            success = skip
-
-            if not skip:
-                split_args = []
-                if profile.split:
-                    split_args.append('-segment_time')
-                    split_args.append(profile.split)
-                    split_args.append('-f')
-                    split_args.append('segment')
-
-                proc = subprocess.Popen(
-                    [
-                        'ffmpeg', '-y',
-                        '-loglevel', 'error',
-                        '-i', original_file,
-                        '-ac', '1',
-                        '-c:a', profile.codec,
-                        '-ar', str(profile.sampling)
-                    ]
-                    + split_args
-                    + [
-                        destination_file
-                    ],
-                    stdout = subprocess.PIPE,
-                    stderr = subprocess.PIPE
-                )
-                proc.wait()
-                (stdout, stderr) = proc.communicate()
-
-                success = proc.returncode == 0
-
-            if not success:
-                self.register_error("failure while processing recording '{}': {}".format(row['filename'], str(stderr)))
-                conversion_table.append({
-                    'original_filename': row['filename'],
-                    'converted_filename': "",
-                    'success': False
-                })
-            else:
-                if profile.split:
-                    converted_files = [
-                        os.path.basename(cf)
-                        for cf in glob.glob(os.path.join(self.path, 'converted_recordings', profile.name, os.path.splitext(row['filename'])[0] + '.*.' + profile.format))
-                    ]
-                else:
-                    converted_files = [os.path.splitext(row['filename'])[0] + '.' + profile.format]
-
-                conversion_table += [{
-                    'original_filename': row['filename'],
-                    'converted_filename': cf,
-                    'success': True
-                } for cf in converted_files]
-
+        conversion_table = reduce(operator.concat, conversion_table)
         profile.recordings = pd.DataFrame(conversion_table)
 
         profile.recordings.to_csv(
