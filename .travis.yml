@@ -15,7 +15,7 @@ install:
   - conda env create -f env.yml
   - conda activate laac_recordings
   - conda install python=$TRAVIS_PYTHON_VERSION
-  - python setup.py install -f
+  - pip install . --upgrade
 script:
   - pytest
   - python docs/generate_docs.py
