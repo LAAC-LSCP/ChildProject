@@ -1,16 +1,19 @@
 language: python
 python:
-#  - "3.4"
   - "3.5"
   - "3.6"
   - "3.7"
   - "3.8"
-addons:
-  apt:
-    packages:
-      - ffmpeg
+before_install:
+  - wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
+  - chmod +x miniconda.sh
+  - ./miniconda.sh -b
+  - export PATH=/home/travis/miniconda/bin:$PATH
+  - conda update --yes conda
 install:
-  - pip install -r requirements.txt
+  - conda env create -f env.yml
+  - conda activate laac_recordings
+  - conda install python=$TRAVIS_PYTHON_VERSION
   - python setup.py install -f
 script:
   - pytest
