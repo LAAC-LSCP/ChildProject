@@ -12,6 +12,7 @@ parser.add_argument("--format", help = "audio format (e.g. {})".format(default_p
 parser.add_argument("--codec", help = "audio codec (e.g. {})".format(default_profile.codec), required = True)
 parser.add_argument("--sampling", help = "sampling frequency (e.g. {})".format(default_profile.sampling), required = True)
 parser.add_argument("--split", help = "split duration (e.g. 15:00:00)", required = False, default = None)
+parser.add_argument('--skip_existing', dest='skip_existing', required = False, default = False, action='store_true')
 
 args = parser.parse_args()
 
@@ -24,7 +25,7 @@ profile = RecordingProfile(
 )
 
 project = ChildProject(args.source)
-results = project.convert_recordings(profile)
+results = project.convert_recordings(profile, skip_existing = args.skip_existing)
 
 for error in project.errors:
     print("error: {}".format(error), file = sys.stderr)

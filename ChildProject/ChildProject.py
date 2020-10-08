@@ -312,7 +312,7 @@ class ChildProject:
                 exist_ok = True
             )
 
-    def convert_recordings(self, profile):
+    def convert_recordings(self, profile, skip_existing = False):
         if not isinstance(profile, RecordingProfile):
             raise ValueError('profile should be a RecordingProfile instance')
 
@@ -345,32 +345,39 @@ class ChildProject:
                 else os.path.splitext(row['filename'])[0] + '.' + profile.format
             )
 
-            split_args = []
-            if profile.split:
-                split_args.append('-segment_time')
-                split_args.append(profile.split)
-                split_args.append('-f')
-                split_args.append('segment')
+            skip = skip_existing and os.path.exists(destination_file)
+            success = skip
 
-            proc = subprocess.Popen(
-                [
-                    'ffmpeg', '-y',
-                    '-i', original_file,
-                    '-ac', '1',
-                    '-c:a', profile.codec,
-                    '-ar', str(profile.sampling)
-                ]
-                + split_args
-                + [
-                    destination_file
-                ],
-                stdout = subprocess.PIPE,
-                stderr = subprocess.PIPE
-            )
-            proc.wait()
-            (stdout, stderr) = proc.communicate()
+            if not skip:
+                split_args = []
+                if profile.split:
+                    split_args.append('-segment_time')
+                    split_args.append(profile.split)
+                    split_args.append('-f')
+                    split_args.append('segment')
 
-            if proc.returncode != 0:
+                proc = subprocess.Popen(
+                    [
+                        'ffmpeg', '-y',
+                        '-loglevel', 'error',
+                        '-i', original_file,
+                        '-ac', '1',
+                        '-c:a', profile.codec,
+                        '-ar', str(profile.sampling)
+                    ]
+                    + split_args
+                    + [
+                        destination_file
+                    ],
+                    stdout = subprocess.PIPE,
+                    stderr = subprocess.PIPE
+                )
+                proc.wait()
+                (stdout, stderr) = proc.communicate()
+
+                success = proc.returncode == 0
+
+            if not success:
                 self.register_error("failure while processing recording '{}': {}".format(row['filename'], str(stderr)))
                 conversion_table.append({
                     'original_filename': row['filename'],
