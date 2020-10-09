@@ -98,10 +98,9 @@ def convert_recording(path, profile, skip_existing, row):
             + [
                 destination_file
             ],
-            stdout = subprocess.PIPE,
+            stdout = subprocess.DEVNULL,
             stderr = subprocess.PIPE
         )
-        proc.wait()
         (stdout, stderr) = proc.communicate()
 
         success = proc.returncode == 0
