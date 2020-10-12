@@ -1,31 +1,33 @@
 from ChildProject.projects import ChildProject, RecordingProfile
-from ChildProject.VTCAnnotation import VTCAnnotation
+from ChildProject.annotations import AnnotationManager
 import pandas as pd
+import numpy as np
 import os
 
-def test_vtc():
+def test_import():
     project = ChildProject("examples/valid_raw_data")
-    project.import_data("output/vtc")
-    project.convert_recordings(RecordingProfile(name = '16kHz', sampling = 16000))
+    project.import_data("output/annotations")
+    project = ChildProject("output/annotations")
+    am = AnnotationManager(project)
 
-    inputs = [
-        pd.read_csv('examples/vtc_input1.csv'),
-        pd.read_csv('examples/vtc_input2.csv')
-    ]
+    input_annotations = pd.read_csv('examples/valid_raw_data/raw_annotations/input.csv')
 
-    vtc = VTCAnnotation(project)
-
-    for input in inputs:
-        vtc.pre_process('vtc_test', input, '16kHz')
-        vtc.process(options = ['--device=gpu'])
-        vtc.post_process()
-
-    index = pd.read_csv("output/vtc/annotations/vtc_test/index.csv")
+    am.import_annotations(input_annotations)
     
-    assert sum(input.shape[0] for input in inputs) == index.shape[0], "input index is not complete"
-    assert all(index['completed'].tolist()), "some task(s) failed to complete"
+    assert am.annotations.shape[0] == input_annotations.shape[0], "imported annotations length does not match input"
+
     assert all([
-        os.path.exists(os.path.join("output/vtc/annotations/vtc_test/output", f))
-        for f in index['output_filename'].tolist()
-    ]), "output files are missing"
+        os.path.exists(os.path.join(project.path, 'annotations', f))
+        for f in am.annotations['annotation_filename'].tolist()
+    ]), "some annotations are missing"
+
+    segments = am.annotations['annotation_filename'].map(lambda f: pd.read_csv(os.path.join(project.path, 'annotations', f))).tolist()
+    segments = pd.concat(segments)
+    CHI_segments = segments[(segments['speaker_type'] == 'CHI') & (segments['ling_type'] == 1)]
+
+    raise Exception((CHI_segments['segment_offset']-CHI_segments['segment_onset']).sum())
+    
+    assert np.isclose((CHI_segments['segment_offset']-CHI_segments['segment_onset']).sum(), 2.867) == True
+
+
 

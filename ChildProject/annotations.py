@@ -1,144 +1,158 @@
-import pandas as pd
-import shutil
+import datetime
 import os
+import pandas as pd
+import pympi
+import shutil
 
 from .projects import ChildProject
 from .tables import IndexTable, IndexColumn
 
-class AnnotationProcess:
+class AnnotationManager:
     INPUT_COLUMNS = [
+        IndexColumn(name = 'set', description = 'annotation set (e.g. VTC, annotator1, etc.)', required = True),
         IndexColumn(name = 'recording_filename', description = 'recording filename as in the recordings index', required = True),
-        IndexColumn(name = 'segment_offset', description = 'extract start time in seconds, e.g: 3600, or 3600.500', regex = r"[0-9]{1,}(\.[0-9]{3})?", required = False),
-        IndexColumn(name = 'segment_length', description = 'extract length in seconds, e.g: 3600, or 3600.500', regex = r"[0-9]{1,}(\.[0-9]{3})?", required = False)    ]
-
-    INDEX_COLUMNS = INPUT_COLUMNS + [
-        IndexColumn(name = 'input_filename', description = 'file to be processed', required = True),
-        IndexColumn(name = 'completed', description = 'processing completed for this file', required = True, regex = r'(True|False)'),
-        IndexColumn(name = 'result', description = 'processing output', required = False),
-        IndexColumn(name = 'profile', description = 'audio profile', required = False)
-
+        IndexColumn(name = 'time_seek', description = 'reference time in seconds, e.g: 3600, or 3600.500.', regex = r"[0-9]{1,}(\.[0-9]{3})?", required = True),
+        IndexColumn(name = 'range_onset', description = 'covered range start time in seconds, measured since time_seek', regex = r"[0-9]{1,}(\.[0-9]{3})?", required = True),
+        IndexColumn(name = 'range_offset', description = 'covered range end time in seconds, measured since time_seek', regex = r"[0-9]{1,}(\.[0-9]{3})?", required = True),
+        IndexColumn(name = 'raw_filename', description = 'input filename location', filename = True, required = True),
+        IndexColumn(name = 'annotation_filename', description = 'output formatted annotation location', filename = True, required = False),
+        IndexColumn(name = 'imported_at', description = 'importationd date', datetime = "%Y-%m-%d %H:%M:%S", required = False),
+        IndexColumn(name = 'format', description = 'input annotation format', regex = r"(TextGrid|eaf|rttm)", required = True)
     ]
 
-    def __init__(self, name, project):
-        self.name = name
+    SPEAKER_ID_TO_TYPE = {
+        'C1': 'OCH',
+        'C2': 'OCH',
+        'CHI': 'CHI',
+        'CHI*': 'CHI',
+        'EE1': 'ELE',
+        'FA0': 'FEM',
+        'FA1': 'FEM',
+        'FA2': 'FEM',
+        'FA3': 'FEM',
+        'FA4': 'FEM',
+        'FA5': 'FEM',
+        'FA6': 'FEM',
+        'FA7': 'FEM',
+        'FA8': 'FEM',
+        'FAE': 'ELE',
+        'FC1': 'OCH',
+        'FC2': 'OCH',
+        'FC3': 'OCH',
+        'MA0': 'MAL',
+        'MA1': 'MAL',
+        'MA2': 'MAL',
+        'MA3': 'MAL',
+        'MA4': 'MAL',
+        'MA5': 'MAL',
+        'MAE': 'ELE',
+        'MC1': 'OCH',
+        'MC2': 'OCH',
+        'MC3': 'OCH',
+        'MC4': 'OCH',
+        'MC5': 'OCH',
+        'MI1': 'OCH',
+        'MOT*': 'FEM',
+        'OC0': 'OCH',
+        'UC1': 'OCH',
+        'UC2': 'OCH',
+        'UC3': 'OCH',
+        'UC4': 'OCH',
+        'UC5': 'OCH',
+        'UC6': 'OCH'
+    }
+
+
+    def __init__(self, project):
         self.project = project
+        self.annotations = None
+        self.errors = []
 
         if not isinstance(project, ChildProject):
             raise ValueError('project should derive from ChildProject')
 
         project.read()
 
-        os.makedirs(os.path.join('annotations', self.name, 'input'), exist_ok = True)
-        os.makedirs(os.path.join('annotations', self.name, 'output'), exist_ok = True)
+        index_path = os.path.join(self.project.path, 'annotations/annotations.csv')
+        if not os.path.exists(index_path):
+            open(index_path, 'w+').write(','.join([c.name for c in self.INPUT_COLUMNS]))
 
-        index_path = os.path.join(self.project.path, 'annotations', self.name, 'index.csv')
-        if not os.path.exists(input_index_path):
-            open(input_index_path, 'w+').write(','.join([c.name for c in self.INPUT_COLUMNS]))
+        errors, warnings = self.read()
 
-    def read_index(self):
-        index = IndexTable(
-            'index',
-            path = os.path.join(self.project.path, 'annotations', self.name, 'index.csv'),
-            columns = self.INDEX_COLUMNS
-        )
-
-        df = index.read()
-        return df
-
-    def extract_audio(self, filename, offset, length, destination):
-        return None
-        
-    def pre_process(self, input_df, profile = None):
-        it = IndexTable('input', columns = self.INPUT_COLUMNS)
-        it.df = input_df
-        errors, warnings = it.validate()
-
-        if profile:
-            profile_df = pd.read_csv(os.path.join(self.project.path, 'converted_recordings', profile, 'recordings.csv'))
-            input_df = input_df.merge(profile_df, left_on = 'recording_filename', right_on = 'original_filename')
-
-        for index, row in input_df.iterrows():
-            if profile:
-                if not row['converted_filename'] or not row['success']:
-                    errors.append("could not find any converted version of '{}' for profile '{}'".format(row['recording_filename'], profile))
-            else:
-                if row['recording_filename'] not in self.project.recordings['filename'].tolist():
-                    errors.append("'{}' is not a valid recording filename".format(row['recording_filename']))
-
-        if len(errors) > 0:
-            return errors, warnings
-
-        preprocessed_inputs = []
-        for index, row in input_df.iterrows():
-            if profile:
-                origin = os.path.join(self.project.path, 'converted_recordings', profile, row['converted_filename'])
-            else:
-                origin = os.path.join(self.project.path, 'recordings', row['recording_filename'])
-            
-            if row['segment_offset'] and row['segment_length']:
-                base, extension = os.path.splitext(row['recording_filename'])
-
-                filename = "{}_{}_{}{}".format(base, row['segment_offset'], row['segment_length'], extension)
-
-                self.extract_audio(
-                    origin,
-                    row['segment_offset'],
-                    row['segment_length'],
-                    os.path.join(self.project.path, 'annotations', self.name, 'input', filename)
-                )
-            else:
-                filename = row['recording_filename']
-                shutil.copyfile(
-                    origin,
-                    os.path.join(self.project.path, 'annotations', self.name, 'input', filename)
-                )
-            
-            preprocessed_inputs.append(dict(row).update({
-                'input_filename': filename,
-                'completed': False,
-                'profile': profile
-            }))
-
-        df = self.read_index()
-
-        merge_cols = ['recording_filename', 'segment_offset', 'segment_length']
-        df = df.merge(pd.DataFrame(preprocessed_inputs), how = 'outer', left_on = merge_cols, right_on = merge_cols)
-        df.to_csv(os.path.join(self.project.path, 'annotations', self.name, 'index.csv'), index = False)
-
+    def read(self):
+        table = IndexTable('input', path = os.path.join(self.project.path, 'annotations/annotations.csv'), columns = self.INPUT_COLUMNS)
+        self.annotations = table.read()
+        errors, warnings = table.validate()
         return errors, warnings
 
-    def get_queue(self):
-        index = IndexTable(
-            'index',
-            path = os.path.join(self.project.path, 'annotations', self.name, 'index.csv'),
-            columns = self.INDEX_COLUMNS
-        )
+    def load_textgrid(self, filename):
+        path = os.path.join(self.project.path, 'raw_annotations', filename)
+        textgrid = pympi.Praat.TextGrid(path)
 
-        queue = index.read()
-        queue = queue[queue['completed'] == False]
+        segments = []
+        for tier in textgrid.tiers:
+            for interval in tier.intervals:
+                tier_name = tier.name.strip()
 
-        return queue
+                if tier_name == 'Autre':
+                    continue
 
-    def process_segment(self, segment, options):
-        return 0
+                segment = {
+                    'annotation_file': filename,
+                    'segment_onset': "{:.2f}".format(interval[0]),
+                    'segment_offset': "{:.2f}".format(interval[1]),
+                    'speaker_id': tier_name,
+                    'ling_type': interval[2] if interval[2] else "",
+                    'speaker_type': self.SPEAKER_ID_TO_TYPE[tier_name] if tier_name in self.SPEAKER_ID_TO_TYPE else 'NA',
+                    'vcm_type': 'NA',
+                    'lex_type': 'NA',
+                    'mwu_type': 'NA',
+                    'addresseee': 'NA',
+                    'transcription': 'NA'
+                }
 
-    def process(self, options):
-        queue = self.get_queue()
+                segments.append(segment)
 
-        queue['result'] = queue.apply(lambda row: self.process_segment(row, options))
-        queue['completed'] = queue['result'] == 0
+        return pd.DataFrame(segments)
 
-        merge_cols = ['recording_filename', 'segment_offset', 'segment_length']
-        df = self.read_index()
-        df = df.merge(queue, how = 'outer', left_on = merge_cols, right_on = merge_cols)
-        df.to_csv(os.path.join(self.project.path, 'annotations', self.name, 'index.csv'), index = False)
-        return None
-
-    def post_process(self):
-        return None
+    def load_eaf(self, filename):
+        path = os.path.join(self.project.path, 'raw_annotations', filename)
+        eaf = pympi.Elan.Eaf(path)
 
 
+        return df
 
+    def import_annotation(self, raw_filename, output_filename, annotation_format):
+        if annotation_format == 'TextGrid':
+            df = self.load_textgrid(raw_filename)
+        elif annotation_format == 'eaf':
+            df = self.load_eaf(raw_filename)
+        else:
+            df = None
+            self.errors.append("file format '{}' unknown for '{}'".format(annotation_format, raw_filename))
+
+        if df is not None:
+            os.makedirs(os.path.dirname(os.path.join(self.project.path, 'annotations', output_filename)), exist_ok = True)
+            df.to_csv(os.path.join(self.project.path, 'annotations', output_filename))
+
+    def import_annotations(self, input):
+        imported = []
+        for row in input.to_dict(orient = 'records'):
+            source_recording = os.path.splitext(row['recording_filename'])[0]
+            annotation_filename = "{}/{}_{}.csv".format(row['set'], source_recording, row['time_seek'])
+
+            self.import_annotation(row['raw_filename'], annotation_filename, row['format'])
+
+            row.update({
+                'annotation_filename': annotation_filename,
+                'imported_at': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            })
+
+            imported.append(row)
+
+        self.read()
+        self.annotations = pd.concat([self.annotations, pd.DataFrame(imported)])
+        self.annotations.to_csv(os.path.join(self.project.path, 'annotations/annotations.csv'), index = False)
 
 
 

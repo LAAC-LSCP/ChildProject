@@ -1,0 +1,2 @@
+set,recording_filename,time_seek,raw_filename,range_onset,range_offset,imported_at,format
+annotator1,GW150914_H1_shifted.wav,0,example.TextGrid,180,240,,TextGrid
