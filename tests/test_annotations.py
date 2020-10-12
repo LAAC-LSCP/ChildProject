@@ -24,8 +24,6 @@ def test_import():
     segments = am.annotations['annotation_filename'].map(lambda f: pd.read_csv(os.path.join(project.path, 'annotations', f))).tolist()
     segments = pd.concat(segments)
     CHI_segments = segments[(segments['speaker_type'] == 'CHI') & (segments['ling_type'] == 1)]
-
-    raise Exception((CHI_segments['segment_offset']-CHI_segments['segment_onset']).sum())
     
     assert np.isclose((CHI_segments['segment_offset']-CHI_segments['segment_onset']).sum(), 2.867) == True
 
