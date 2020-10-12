@@ -1,4 +1,4 @@
-from ChildProject.ChildProject import ChildProject, IndexColumn
+from ChildProject.projects import ChildProject
 import jinja2
 
 formatting = jinja2.Template(open('docs/FORMATTING_TEMPLATE.md', 'r').read())
