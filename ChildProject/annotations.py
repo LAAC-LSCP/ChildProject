@@ -8,7 +8,7 @@ from .projects import ChildProject
 from .tables import IndexTable, IndexColumn
 
 class AnnotationManager:
-    INPUT_COLUMNS = [
+    INDEX_COLUMNS = [
         IndexColumn(name = 'set', description = 'annotation set (e.g. VTC, annotator1, etc.)', required = True),
         IndexColumn(name = 'recording_filename', description = 'recording filename as in the recordings index', required = True),
         IndexColumn(name = 'time_seek', description = 'reference time in seconds, e.g: 3600, or 3600.500.', regex = r"[0-9]{1,}(\.[0-9]{3})?", required = True),
@@ -18,6 +18,20 @@ class AnnotationManager:
         IndexColumn(name = 'annotation_filename', description = 'output formatted annotation location', filename = True, required = False),
         IndexColumn(name = 'imported_at', description = 'importationd date', datetime = "%Y-%m-%d %H:%M:%S", required = False),
         IndexColumn(name = 'format', description = 'input annotation format', regex = r"(TextGrid|eaf|rttm)", required = True)
+    ]
+
+    SEGMENTS_COLUMNS = [
+        IndexColumn(name = 'annotation_file', description = 'raw annotation path relative to /raw_annotations/', required = True),
+        IndexColumn(name = 'segment_onset', description = 'segment start time in seconds', regex = r"[0-9]{1,}(\.[0-9]{3})?", required = True),
+        IndexColumn(name = 'segment_offset', description = 'segment end time in seconds', regex = r"[0-9]{1,}(\.[0-9]{3})?", required = True),
+        IndexColumn(name = 'speaker_id', description = '', required = True),
+        IndexColumn(name = 'speaker_type', description = '', required = True),
+        IndexColumn(name = 'ling_type', description = '1 if the vocalization contains at least a vowel (ie canonical or non-canonical)', required = True),
+        IndexColumn(name = 'vcm_type', description = '', required = True),
+        IndexColumn(name = 'lex_type', description = '', required = True),
+        IndexColumn(name = 'mwu_type', description = '', required = True),
+        IndexColumn(name = 'addresseee', description = '', required = True),
+        IndexColumn(name = 'transcription', description = '', required = True)
     ]
 
     SPEAKER_ID_TO_TYPE = {
@@ -75,15 +89,33 @@ class AnnotationManager:
 
         index_path = os.path.join(self.project.path, 'annotations/annotations.csv')
         if not os.path.exists(index_path):
-            open(index_path, 'w+').write(','.join([c.name for c in self.INPUT_COLUMNS]))
+            open(index_path, 'w+').write(','.join([c.name for c in self.INDEX_COLUMNS]))
 
         errors, warnings = self.read()
 
     def read(self):
-        table = IndexTable('input', path = os.path.join(self.project.path, 'annotations/annotations.csv'), columns = self.INPUT_COLUMNS)
+        table = IndexTable('input', path = os.path.join(self.project.path, 'annotations/annotations.csv'), columns = self.INDEX_COLUMNS)
         self.annotations = table.read()
         errors, warnings = table.validate()
         return errors, warnings
+
+    def validate(self):
+        errors, warnings = [], []
+
+        for annotation in self.annotations.to_dict(orient = 'records'):
+            segments = IndexTable(
+                'segments',
+                path = os.path.join(self.project.path, 'annotations', annotation['annotation_filename']),
+                columns = AnnotationManager.SEGMENTS_COLUMNS
+            )
+
+            segments.read()
+            res = segments.validate()
+            errors += res[0]
+            warnings += res[1]
+
+        return errors, warnings
+        
 
     def load_textgrid(self, filename):
         path = os.path.join(self.project.path, 'raw_annotations', filename)
