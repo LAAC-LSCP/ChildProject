@@ -21,7 +21,8 @@ def test_import():
         for f in am.annotations['annotation_filename'].tolist()
     ]), "some annotations are missing"
 
-    segments = am.annotations['annotation_filename'].map(lambda f: pd.read_csv(os.path.join(project.path, 'annotations', f))).tolist()
+    human_annotations = am.annotations[am.annotations['set'] == 'annotator1']
+    segments = human_annotations['annotation_filename'].map(lambda f: pd.read_csv(os.path.join(project.path, 'annotations', f))).tolist()
     segments = pd.concat(segments)
     CHI_segments = segments[(segments['speaker_type'] == 'CHI') & (segments['ling_type'] == 1)]
     

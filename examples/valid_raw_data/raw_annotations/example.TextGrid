@@ -2,7 +2,7 @@ File type = "ooTextFile"
 Object class = "TextGrid"
 
 xmin = 0 
-xmax = 300 
+xmax = 10 
 tiers? <exists> 
 size = 11 
 item []: 
@@ -10,421 +10,149 @@ item []:
         class = "IntervalTier" 
         name = "    CHI*" 
         xmin = 0 
-        xmax = 300 
-        intervals: size = 17 
+        xmax = 10 
+        intervals: size = 3 
         intervals [1]:
             xmin = 0 
-            xmax = 185.56139748330241 
+            xmax = 1.602202475775698 
             text = "" 
         intervals [2]:
-            xmin = 185.56139748330241 
-            xmax = 186.1291875 
+            xmin = 1.602202475775698 
+            xmax = 2.2149350364643396 
             text = "1" 
         intervals [3]:
-            xmin = 186.1291875 
-            xmax = 187.28206250000002 
-            text = "" 
-        intervals [4]:
-            xmin = 187.28206250000002 
-            xmax = 188.49843750000002 
-            text = "1" 
-        intervals [5]:
-            xmin = 188.49843750000002 
-            xmax = 195.85668750000002 
-            text = "" 
-        intervals [6]:
-            xmin = 195.85668750000002 
-            xmax = 197.53324905368078 
-            text = "1" 
-        intervals [7]:
-            xmin = 197.53324905368078 
-            xmax = 214.79225000000002 
-            text = "" 
-        intervals [8]:
-            xmin = 214.79225000000002 
-            xmax = 215.71200000000002 
-            text = "1" 
-        intervals [9]:
-            xmin = 215.71200000000002 
-            xmax = 228.715 
-            text = "" 
-        intervals [10]:
-            xmin = 228.715 
-            xmax = 229.58387530508747 
-            text = "1" 
-        intervals [11]:
-            xmin = 229.58387530508747 
-            xmax = 230.06575 
-            text = "" 
-        intervals [12]:
-            xmin = 230.06575 
-            xmax = 230.80018750000002 
-            text = "1" 
-        intervals [13]:
-            xmin = 230.80018750000002 
-            xmax = 237.604 
-            text = "" 
-        intervals [14]:
-            xmin = 237.604 
-            xmax = 238.4764375 
-            text = "1" 
-        intervals [15]:
-            xmin = 238.4764375 
-            xmax = 239.52899609780337 
-            text = "" 
-        intervals [16]:
-            xmin = 239.52899609780337 
-            xmax = 240 
-            text = "1" 
-        intervals [17]:
-            xmin = 240 
-            xmax = 300 
+            xmin = 2.2149350364643396 
+            xmax = 10 
             text = "" 
     item [2]:
         class = "IntervalTier" 
         name = "    MOT*" 
         xmin = 0 
-        xmax = 300 
-        intervals: size = 17 
+        xmax = 10 
+        intervals: size = 3 
         intervals [1]:
             xmin = 0 
-            xmax = 182.49773467985912 
+            xmax = 5.592624999999998 
             text = "" 
         intervals [2]:
-            xmin = 182.49773467985912 
-            xmax = 185.56139748330241 
+            xmin = 5.592624999999998 
+            xmax = 7.520937500000002 
             text = "1" 
         intervals [3]:
-            xmin = 185.56139748330241 
-            xmax = 188.49843750000002 
-            text = "" 
-        intervals [4]:
-            xmin = 188.49843750000002 
-            xmax = 195.85668750000002 
-            text = "1" 
-        intervals [5]:
-            xmin = 195.85668750000002 
-            xmax = 202.42418750000002 
-            text = "" 
-        intervals [6]:
-            xmin = 202.42418750000002 
-            xmax = 203.5534375 
-            text = "1" 
-        intervals [7]:
-            xmin = 203.5534375 
-            xmax = 204.11112500000002 
-            text = "" 
-        intervals [8]:
-            xmin = 204.11112500000002 
-            xmax = 205.56956250000002 
-            text = "1" 
-        intervals [9]:
-            xmin = 205.56956250000002 
-            xmax = 206.9426875 
-            text = "" 
-        intervals [10]:
-            xmin = 206.9426875 
-            xmax = 210.96231250000002 
-            text = "1" 
-        intervals [11]:
-            xmin = 210.96231250000002 
-            xmax = 211.31287500000002 
-            text = "" 
-        intervals [12]:
-            xmin = 211.31287500000002 
-            xmax = 213.28925 
-            text = "1" 
-        intervals [13]:
-            xmin = 213.28925 
-            xmax = 234.53286906449586 
-            text = "" 
-        intervals [14]:
-            xmin = 234.53286906449586 
-            xmax = 235.4044375 
-            text = "1" 
-        intervals [15]:
-            xmin = 235.4044375 
-            xmax = 238.4764375 
-            text = "" 
-        intervals [16]:
-            xmin = 238.4764375 
-            xmax = 239.70712500000002 
-            text = "1" 
-        intervals [17]:
-            xmin = 239.70712500000002 
-            xmax = 300 
+            xmin = 7.520937500000002 
+            xmax = 10 
             text = "" 
     item [3]:
         class = "IntervalTier" 
         name = "    C1" 
         xmin = 0 
-        xmax = 300 
-        intervals: size = 11 
+        xmax = 10 
+        intervals: size = 3 
         intervals [1]:
             xmin = 0 
-            xmax = 196.5375625 
+            xmax = 2.2149350364643396 
             text = "" 
         intervals [2]:
-            xmin = 196.5375625 
-            xmax = 198.64518750000002 
+            xmin = 2.2149350364643396 
+            xmax = 3.319749999999999 
             text = "1" 
         intervals [3]:
-            xmin = 198.64518750000002 
-            xmax = 203.5534375 
-            text = "" 
-        intervals [4]:
-            xmin = 203.5534375 
-            xmax = 206.9426875 
-            text = "1" 
-        intervals [5]:
-            xmin = 206.9426875 
-            xmax = 212.80442979699808 
-            text = "" 
-        intervals [6]:
-            xmin = 212.80442979699808 
-            xmax = 214.20487500000002 
-            text = "1" 
-        intervals [7]:
-            xmin = 214.20487500000002 
-            xmax = 221.4676875 
-            text = "" 
-        intervals [8]:
-            xmin = 221.4676875 
-            xmax = 222.88737500000002 
-            text = "1" 
-        intervals [9]:
-            xmin = 222.88737500000002 
-            xmax = 232.31760519123688 
-            text = "" 
-        intervals [10]:
-            xmin = 232.31760519123688 
-            xmax = 234.7543125 
-            text = "1" 
-        intervals [11]:
-            xmin = 234.7543125 
-            xmax = 300 
+            xmin = 3.319749999999999 
+            xmax = 10 
             text = "" 
     item [4]:
         class = "IntervalTier" 
         name = "    C2" 
         xmin = 0 
-        xmax = 300 
+        xmax = 10 
         intervals: size = 3 
         intervals [1]:
             xmin = 0 
-            xmax = 236.3464375 
+            xmax = 4.100265992429456 
             text = "" 
         intervals [2]:
-            xmin = 236.3464375 
-            xmax = 237.604 
+            xmin = 4.100265992429456 
+            xmax = 5.209750000000014 
             text = "1" 
         intervals [3]:
-            xmin = 237.604 
-            xmax = 300 
+            xmin = 5.209750000000014 
+            xmax = 10 
             text = "" 
     item [5]:
         class = "IntervalTier" 
         name = "    FA1" 
         xmin = 0 
-        xmax = 300 
-        intervals: size = 5 
+        xmax = 10 
+        intervals: size = 1 
         intervals [1]:
             xmin = 0 
-            xmax = 181.69646902357394 
-            text = "" 
-        intervals [2]:
-            xmin = 181.69646902357394 
-            xmax = 182.64125 
-            text = "1" 
-        intervals [3]:
-            xmin = 182.64125 
-            xmax = 213.98276164447628 
-            text = "" 
-        intervals [4]:
-            xmin = 213.98276164447628 
-            xmax = 214.79225000000002 
-            text = "1" 
-        intervals [5]:
-            xmin = 214.79225000000002 
-            xmax = 300 
+            xmax = 10 
             text = "" 
     item [6]:
         class = "IntervalTier" 
         name = "    FA2" 
         xmin = 0 
-        xmax = 300 
-        intervals: size = 7 
+        xmax = 10 
+        intervals: size = 1 
         intervals [1]:
             xmin = 0 
-            xmax = 186.1291875 
-            text = "" 
-        intervals [2]:
-            xmin = 186.1291875 
-            xmax = 187.28206250000002 
-            text = "1" 
-        intervals [3]:
-            xmin = 187.28206250000002 
-            xmax = 193.6211873200532 
-            text = "" 
-        intervals [4]:
-            xmin = 193.6211873200532 
-            xmax = 194.46743750000002 
-            text = "0" 
-        intervals [5]:
-            xmin = 194.46743750000002 
-            xmax = 200.5650625 
-            text = "" 
-        intervals [6]:
-            xmin = 200.5650625 
-            xmax = 201.16637500000002 
-            text = "1" 
-        intervals [7]:
-            xmin = 201.16637500000002 
-            xmax = 300 
+            xmax = 10 
             text = "" 
     item [7]:
         class = "IntervalTier" 
         name = "    MA1" 
         xmin = 0 
-        xmax = 300 
-        intervals: size = 5 
+        xmax = 10 
+        intervals: size = 1 
         intervals [1]:
             xmin = 0 
-            xmax = 199.1335 
-            text = "" 
-        intervals [2]:
-            xmin = 199.1335 
-            xmax = 200.5650625 
-            text = "1" 
-        intervals [3]:
-            xmin = 200.5650625 
-            xmax = 201.02111132221623 
-            text = "" 
-        intervals [4]:
-            xmin = 201.02111132221623 
-            xmax = 202.42418750000002 
-            text = "1" 
-        intervals [5]:
-            xmin = 202.42418750000002 
-            xmax = 300 
+            xmax = 10 
             text = "" 
     item [8]:
         class = "IntervalTier" 
         name = "    MA2" 
         xmin = 0 
-        xmax = 300 
+        xmax = 10 
         intervals: size = 1 
         intervals [1]:
             xmin = 0 
-            xmax = 300 
+            xmax = 10 
             text = "" 
     item [9]:
         class = "IntervalTier" 
         name = "    2POPMT" 
         xmin = 0 
-        xmax = 300 
+        xmax = 10 
         intervals: size = 1 
         intervals [1]:
             xmin = 0 
-            xmax = 300 
+            xmax = 10 
             text = "" 
     item [10]:
         class = "IntervalTier" 
         name = "    LF2P" 
         xmin = 0 
-        xmax = 300 
-        intervals: size = 13 
+        xmax = 10 
+        intervals: size = 3 
         intervals [1]:
             xmin = 0 
-            xmax = 180 
+            xmax = 8.100562500000024 
             text = "" 
         intervals [2]:
-            xmin = 180 
-            xmax = 198.64518750000002 
-            text = "" 
+            xmin = 8.100562500000024 
+            xmax = 9.284926121333484 
+            text = "1" 
         intervals [3]:
-            xmin = 198.64518750000002 
-            xmax = 200.162 
-            text = "1" 
-        intervals [4]:
-            xmin = 200.162 
-            xmax = 218.824125 
-            text = "" 
-        intervals [5]:
-            xmin = 218.824125 
-            xmax = 220.500875 
-            text = "1" 
-        intervals [6]:
-            xmin = 220.500875 
-            xmax = 222.88737500000002 
-            text = "" 
-        intervals [7]:
-            xmin = 222.88737500000002 
-            xmax = 226.9870625 
-            text = "1" 
-        intervals [8]:
-            xmin = 226.9870625 
-            xmax = 228.120875 
-            text = "" 
-        intervals [9]:
-            xmin = 228.120875 
-            xmax = 228.715 
-            text = "1" 
-        intervals [10]:
-            xmin = 228.715 
-            xmax = 235.4044375 
-            text = "" 
-        intervals [11]:
-            xmin = 235.4044375 
-            xmax = 236.3464375 
-            text = "1" 
-        intervals [12]:
-            xmin = 236.3464375 
-            xmax = 240 
-            text = "" 
-        intervals [13]:
-            xmin = 240 
-            xmax = 300 
+            xmin = 9.284926121333484 
+            xmax = 10 
             text = "" 
     item [11]:
         class = "IntervalTier" 
         name = "Autre" 
         xmin = 0 
-        xmax = 300 
-        intervals: size = 9 
+        xmax = 10 
+        intervals: size = 1 
         intervals [1]:
             xmin = 0 
-            xmax = 201.16637500000002 
-            text = "" 
-        intervals [2]:
-            xmin = 201.16637500000002 
-            xmax = 203.6266875 
-            text = "x" 
-        intervals [3]:
-            xmin = 203.6266875 
-            xmax = 218.08335647370038 
-            text = "" 
-        intervals [4]:
-            xmin = 218.08335647370038 
-            xmax = 218.824125 
-            text = "x" 
-        intervals [5]:
-            xmin = 218.824125 
-            xmax = 220.7600625 
-            text = "" 
-        intervals [6]:
-            xmin = 220.7600625 
-            xmax = 221.4676875 
-            text = "x" 
-        intervals [7]:
-            xmin = 221.4676875 
-            xmax = 226.9870625 
-            text = "" 
-        intervals [8]:
-            xmin = 226.9870625 
-            xmax = 228.120875 
-            text = "x" 
-        intervals [9]:
-            xmin = 228.120875 
-            xmax = 300 
+            xmax = 10 
             text = "" 

@@ -97,10 +97,13 @@ class AnnotationManager:
                 if tier_name == 'Autre':
                     continue
 
+                if interval[2] == "":
+                    continue
+
                 segment = {
                     'annotation_file': filename,
-                    'segment_onset': "{:.2f}".format(interval[0]),
-                    'segment_offset': "{:.2f}".format(interval[1]),
+                    'segment_onset': "{:.3f}".format(interval[0]),
+                    'segment_offset': "{:.3f}".format(interval[1]),
                     'speaker_id': tier_name,
                     'ling_type': interval[2] if interval[2] else "",
                     'speaker_type': self.SPEAKER_ID_TO_TYPE[tier_name] if tier_name in self.SPEAKER_ID_TO_TYPE else 'NA',
@@ -120,6 +123,31 @@ class AnnotationManager:
         eaf = pympi.Elan.Eaf(path)
 
 
+        return None
+
+    def load_vtc_rttm(self, filename):
+        path = os.path.join(self.project.path, 'raw_annotations', filename)
+        rttm = pd.read_csv(
+            path,
+            sep = " ",
+            names = ['type', 'file', 'chnl', 'tbeg', 'tdur', 'ortho', 'stype', 'name', 'conf', 'unk']
+        )
+
+        df = rttm
+        df['annotation_file'] = filename
+        df['segment_onset'] = df['tbeg'].map(lambda f: "{:.3f}".format(f))
+        df['segment_offset'] = (df['tbeg']+df['tdur']).map(lambda f: "{:.3f}".format(f))
+        df['speaker_id'] = 'NA'
+        df['ling_type'] = 'NA'
+        df['speaker_type'] = df['name']
+        df['vcm_type'] = 'NA'
+        df['lex_type'] = 'NA'
+        df['mwu_type'] = 'NA'
+        df['addresseee'] = 'NA'
+        df['transcription'] = 'NA'  
+
+        df.drop(['type', 'file', 'chnl', 'tbeg', 'tdur', 'ortho', 'stype', 'name', 'conf', 'unk'], axis = 1, inplace = True)
+
         return df
 
     def import_annotation(self, raw_filename, output_filename, annotation_format):
@@ -127,6 +155,8 @@ class AnnotationManager:
             df = self.load_textgrid(raw_filename)
         elif annotation_format == 'eaf':
             df = self.load_eaf(raw_filename)
+        elif annotation_format == 'vtc_rttm':
+            df = self.load_vtc_rttm(raw_filename)
         else:
             df = None
             self.errors.append("file format '{}' unknown for '{}'".format(annotation_format, raw_filename))
@@ -153,6 +183,4 @@ class AnnotationManager:
         self.read()
         self.annotations = pd.concat([self.annotations, pd.DataFrame(imported)])
         self.annotations.to_csv(os.path.join(self.project.path, 'annotations/annotations.csv'), index = False)
-
-
 
