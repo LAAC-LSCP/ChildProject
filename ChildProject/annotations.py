@@ -106,7 +106,7 @@ class AnnotationManager:
             segments = IndexTable(
                 'segments',
                 path = os.path.join(self.project.path, 'annotations', annotation['annotation_filename']),
-                columns = AnnotationManager.SEGMENTS_COLUMNS
+                columns = self.SEGMENTS_COLUMNS
             )
 
             segments.read()
@@ -194,8 +194,9 @@ class AnnotationManager:
             self.errors.append("file format '{}' unknown for '{}'".format(annotation_format, raw_filename))
 
         if df is not None:
+            df.sort_values(['segment_onset', 'segment_offset', 'speaker_id', 'speaker_type'], inplace = True)
             os.makedirs(os.path.dirname(os.path.join(self.project.path, 'annotations', output_filename)), exist_ok = True)
-            df.to_csv(os.path.join(self.project.path, 'annotations', output_filename))
+            df.to_csv(os.path.join(self.project.path, 'annotations', output_filename), index = False)
 
     def import_annotations(self, input):
         imported = []

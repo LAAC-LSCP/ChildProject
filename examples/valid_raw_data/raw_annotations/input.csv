@@ -1,3 +1,3 @@
 set,recording_filename,time_seek,raw_filename,range_onset,range_offset,format
-annotator1,GW150914_H1_shifted.wav,0,example.TextGrid,0,10,TextGrid
-vtc,GW150914_H1_shifted.wav,0,example.rttm,1980,1990,vtc_rttm
+textgrid,sound.wav,0,example.TextGrid,0,10,TextGrid
+vtc_rttm,sound.wav,0,example.rttm,1980,1990,vtc_rttm
