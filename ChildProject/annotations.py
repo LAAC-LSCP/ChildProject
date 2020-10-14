@@ -24,14 +24,14 @@ class AnnotationManager:
         IndexColumn(name = 'annotation_file', description = 'raw annotation path relative to /raw_annotations/', required = True),
         IndexColumn(name = 'segment_onset', description = 'segment start time in seconds', regex = r"[0-9]{1,}(\.[0-9]{3})?", required = True),
         IndexColumn(name = 'segment_offset', description = 'segment end time in seconds', regex = r"[0-9]{1,}(\.[0-9]{3})?", required = True),
-        IndexColumn(name = 'speaker_id', description = '', required = True),
-        IndexColumn(name = 'speaker_type', description = '', required = True),
-        IndexColumn(name = 'ling_type', description = '1 if the vocalization contains at least a vowel (ie canonical or non-canonical)', required = True),
-        IndexColumn(name = 'vcm_type', description = '', required = True),
-        IndexColumn(name = 'lex_type', description = '', required = True),
-        IndexColumn(name = 'mwu_type', description = '', required = True),
-        IndexColumn(name = 'addresseee', description = '', required = True),
-        IndexColumn(name = 'transcription', description = '', required = True)
+        IndexColumn(name = 'speaker_id', description = 'identity of speaker in the annotation', required = True),
+        IndexColumn(name = 'speaker_type', description = 'class of speaker (FEM, MAL, CHI, OCH)', required = True),
+        IndexColumn(name = 'ling_type', description = '1 if the vocalization contains at least a vowel (ie canonical or non-canonical), 0 if crying or laughing', required = True),
+        IndexColumn(name = 'vcm_type', description = 'vocal maturity defined as: C (canonical), N (non-canonical), Y (crying) L (laughing), J (junk)', required = True),
+        IndexColumn(name = 'lex_type', description = 'W if meaningful, 0 otherwise', required = True),
+        IndexColumn(name = 'mwu_type', description = 'M if multiword, 1 if single word -- only filled if lex_type==W', required = True),
+        IndexColumn(name = 'addresseee', description = 'T if target-child-directed, C if other-child-directed, A if adult-directed, U if uncertain or other', required = True),
+        IndexColumn(name = 'transcription', description = 'orthographic transcription of the speach', required = True)
     ]
 
     SPEAKER_ID_TO_TYPE = {
