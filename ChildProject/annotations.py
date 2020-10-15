@@ -180,7 +180,7 @@ class AnnotationManager:
                     'lex_type': 'NA',
                     'mwu_type': 'NA',
                     'addresseee': 'NA',
-                    'transcription': value
+                    'transcription': value if value != '0.' else '0'
                 }
 
                 segments[aid] = segment
