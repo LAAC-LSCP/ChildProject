@@ -155,16 +155,9 @@ class AnnotationManager:
         eaf = pympi.Elan.Eaf(path)
 
         segments = {}
-        references = {}
 
         for tier_name in eaf.tiers:
             annotations = eaf.tiers[tier_name][0]
-            reference_annotations = eaf.tiers[tier_name][1]
-
-            if '@' in tier_name:
-                label, ref = tier_name.split('@')
-            else:
-                label, ref = tier_name, None
 
             for aid in annotations:
                 (start_ts, end_ts, value, svg_ref) = annotations[aid]
@@ -185,14 +178,24 @@ class AnnotationManager:
 
                 segments[aid] = segment
 
+        for tier_name in eaf.tiers:
+            if '@' in tier_name:
+                label, ref = tier_name.split('@')
+            else:
+                label, ref = tier_name, None
+
+            reference_annotations = eaf.tiers[tier_name][1]
+
             for aid in reference_annotations:
                 (ann, value, prev, svg) = reference_annotations[aid]
 
-                if ann not in segments.keys():
-                    ann = references[ann]
+                ann = aid
+                parentTier = eaf.tiers[eaf.annotations[ann]]
+                while 'PARENT_REF' in parentTier[2] and parentTier[2]['PARENT_REF'] and len(parentTier[2]) > 0:
+                    ann = parentTier[1][ann][0]
+                    parentTier = eaf.tiers[eaf.annotations[ann]]
 
                 segment = segments[ann]
-                references[aid] = ann
 
                 if label == 'lex':
                     segment['lex_type'] = value
