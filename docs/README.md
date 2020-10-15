@@ -2,7 +2,7 @@
 
 ## Formatting data
 
-See the [formatting instructions](http://sciencestechniques.fr/ChildRecordsData/FORMATTING.html)
+See the [formatting instructions](http://laac-lscp.github.io/ChildRecordsData/FORMATTING.html)
 
 ## Installation
 
