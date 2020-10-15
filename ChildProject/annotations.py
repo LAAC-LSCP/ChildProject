@@ -158,6 +158,12 @@ class AnnotationManager:
         references = {}
 
         for tier_name in eaf.tiers:
+            reference_annotations = eaf.tiers[tier_name][1]
+            for aid in reference_annotations:
+                (ann, value, prev, svg) = reference_annotations[aid]
+                references[aid] = ann
+
+        for tier_name in eaf.tiers:
             annotations = eaf.tiers[tier_name][0]
             reference_annotations = eaf.tiers[tier_name][1]
 
@@ -192,7 +198,6 @@ class AnnotationManager:
                     ann = references[ann]
 
                 segment = segments[ann]
-                references[aid] = ann
 
                 if label == 'lex':
                     segment['lex_type'] = value
