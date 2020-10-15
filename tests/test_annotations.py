@@ -26,9 +26,14 @@ def test_import():
     errors, warnings = am.validate()
     assert len(errors) > 0 or len(warnings) > 0, "malformed annotations detected"
 
-    annotations = am.annotations[am.annotations['set'] == 'textgrid']
-    segments = annotations['annotation_filename'].map(lambda f: pd.read_csv(os.path.join(project.path, 'annotations', f))).tolist()
-    segments = pd.concat(segments)
+    for dataset in ['eaf', 'textgrid']:
+        annotations = am.annotations[am.annotations['set'] == dataset]
+        segments = annotations['annotation_filename'].map(lambda f: pd.read_csv(os.path.join(project.path, 'annotations', f))).tolist()
+        segments = pd.concat(segments)
 
-    pd.testing.assert_frame_equal(segments.sort_index(axis=1), pd.read_csv('tests/truth/textgrid.csv').sort_index(axis=1))
+        pd.testing.assert_frame_equal(
+            segments.sort_index(axis = 1).sort_values(segments.columns.tolist()).reset_index(drop = True),
+            pd.read_csv('tests/truth/{}.csv'.format(dataset)).sort_index(axis = 1).sort_values(segments.columns.tolist()).reset_index(drop = True),
+            check_less_precise = True
+        )
 

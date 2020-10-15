@@ -1,4 +1,5 @@
 import datetime
+from numbers import Number
 import os
 import pandas as pd
 import pympi
@@ -133,7 +134,6 @@ class AnnotationManager:
                     continue
 
                 segment = {
-                    'annotation_file': filename,
                     'segment_onset': "{:.3f}".format(interval[0]),
                     'segment_offset': "{:.3f}".format(interval[1]),
                     'speaker_id': tier_name,
@@ -154,8 +154,56 @@ class AnnotationManager:
         path = os.path.join(self.project.path, 'raw_annotations', filename)
         eaf = pympi.Elan.Eaf(path)
 
+        segments = {}
+        references = {}
 
-        return None
+        for tier_name in eaf.tiers:
+            annotations = eaf.tiers[tier_name][0]
+            reference_annotations = eaf.tiers[tier_name][1]
+
+            if '@' in tier_name:
+                label, ref = tier_name.split('@')
+            else:
+                label, ref = tier_name, None
+
+            for aid in annotations:
+                (start_ts, end_ts, value, svg_ref) = annotations[aid]
+                (start_t, end_t) = (eaf.timeslots[start_ts], eaf.timeslots[end_ts])
+
+                segment = {
+                    'segment_onset': "{:.3f}".format(start_t/1000),
+                    'segment_offset': "{:.3f}".format(end_t/1000),
+                    'speaker_id': tier_name,
+                    'ling_type': 'NA',
+                    'speaker_type': self.SPEAKER_ID_TO_TYPE[tier_name] if tier_name in self.SPEAKER_ID_TO_TYPE else 'NA',
+                    'vcm_type': 'NA',
+                    'lex_type': 'NA',
+                    'mwu_type': 'NA',
+                    'addresseee': 'NA',
+                    'transcription': value
+                }
+
+                segments[aid] = segment
+
+            for aid in reference_annotations:
+                (ann, value, prev, svg) = reference_annotations[aid]
+
+                if ann not in segments.keys():
+                    ann = references[ann]
+
+                segment = segments[ann]
+                references[aid] = ann
+
+                if label == 'lex':
+                    segment['lex_type'] = value
+                elif label == 'mwu':
+                    segment['mwu_type'] = value
+                elif label == 'xds':
+                    segment['addresseee'] = value
+
+        df = pd.DataFrame(segments.values())
+
+        return df
 
     def load_vtc_rttm(self, filename):
         path = os.path.join(self.project.path, 'raw_annotations', filename)
@@ -166,7 +214,6 @@ class AnnotationManager:
         )
 
         df = rttm
-        df['annotation_file'] = filename
         df['segment_onset'] = df['tbeg'].map(lambda f: "{:.3f}".format(f))
         df['segment_offset'] = (df['tbeg']+df['tdur']).map(lambda f: "{:.3f}".format(f))
         df['speaker_id'] = 'NA'
@@ -182,7 +229,10 @@ class AnnotationManager:
 
         return df
 
-    def import_annotation(self, raw_filename, output_filename, annotation_format):
+    def import_annotation(self, annotation, output_filename):
+        raw_filename = annotation['raw_filename']
+        annotation_format = annotation['format']
+
         if annotation_format == 'TextGrid':
             df = self.load_textgrid(raw_filename)
         elif annotation_format == 'eaf':
@@ -193,10 +243,25 @@ class AnnotationManager:
             df = None
             self.errors.append("file format '{}' unknown for '{}'".format(annotation_format, raw_filename))
 
-        if df is not None:
-            df.sort_values(['segment_onset', 'segment_offset', 'speaker_id', 'speaker_type'], inplace = True)
-            os.makedirs(os.path.dirname(os.path.join(self.project.path, 'annotations', output_filename)), exist_ok = True)
-            df.to_csv(os.path.join(self.project.path, 'annotations', output_filename), index = False)
+        if df is None:
+            return False
+        
+        df['annotation_file'] = raw_filename
+
+        if isinstance(annotation['range_onset'], Number) and isinstance(annotation['range_offset'], Number):
+            df['segment_onset'] = df['segment_onset'].astype(float)
+            df['segment_offset'] = df['segment_offset'].astype(float)
+
+            df['segment_onset'].clip(lower = annotation['range_onset'], upper = annotation['range_offset'], inplace = True)
+            df['segment_offset'].clip(lower = annotation['range_onset'], upper = annotation['range_offset'], inplace = True)
+
+            df['segment_onset'] = df['segment_onset'].map(lambda f: "{:.3f}".format(f))
+            df['segment_offset'] = df['segment_offset'].map(lambda f: "{:.3f}".format(f))
+
+        df.sort_values(['segment_onset', 'segment_offset', 'speaker_id', 'speaker_type'], inplace = True)
+
+        os.makedirs(os.path.dirname(os.path.join(self.project.path, 'annotations', output_filename)), exist_ok = True)
+        df.to_csv(os.path.join(self.project.path, 'annotations', output_filename), index = False)
 
     def import_annotations(self, input):
         imported = []
@@ -204,7 +269,7 @@ class AnnotationManager:
             source_recording = os.path.splitext(row['recording_filename'])[0]
             annotation_filename = "{}/{}_{}.csv".format(row['set'], source_recording, row['time_seek'])
 
-            self.import_annotation(row['raw_filename'], annotation_filename, row['format'])
+            self.import_annotation(row, annotation_filename)
 
             row.update({
                 'annotation_filename': annotation_filename,
