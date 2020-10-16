@@ -27,12 +27,12 @@ class AnnotationManager:
         IndexColumn(name = 'segment_onset', description = 'segment start time in seconds', regex = r"[0-9]{1,}(\.[0-9]{3})?", required = True),
         IndexColumn(name = 'segment_offset', description = 'segment end time in seconds', regex = r"[0-9]{1,}(\.[0-9]{3})?", required = True),
         IndexColumn(name = 'speaker_id', description = 'identity of speaker in the annotation', required = True),
-        IndexColumn(name = 'speaker_type', description = 'class of speaker (FEM, MAL, CHI, OCH)', required = True),
-        IndexColumn(name = 'ling_type', description = '1 if the vocalization contains at least a vowel (ie canonical or non-canonical), 0 if crying or laughing', required = True),
-        IndexColumn(name = 'vcm_type', description = 'vocal maturity defined as: C (canonical), N (non-canonical), Y (crying) L (laughing), J (junk)', required = True),
-        IndexColumn(name = 'lex_type', description = 'W if meaningful, 0 otherwise', required = True),
-        IndexColumn(name = 'mwu_type', description = 'M if multiword, 1 if single word -- only filled if lex_type==W', required = True),
-        IndexColumn(name = 'addresseee', description = 'T if target-child-directed, C if other-child-directed, A if adult-directed, U if uncertain or other', required = True),
+        IndexColumn(name = 'speaker_type', description = 'class of speaker (FEM, MAL, CHI, OCH)', regex = r"(FEM|MAL|CHI|OCH|NA)", required = True),
+        IndexColumn(name = 'ling_type', description = '1 if the vocalization contains at least a vowel (ie canonical or non-canonical), 0 if crying or laughing', regex = r"(1|0|NA)", required = True),
+        IndexColumn(name = 'vcm_type', description = 'vocal maturity defined as: C (canonical), N (non-canonical), Y (crying) L (laughing), J (junk)', regex = r"(C|N|Y|L|J|NA)", required = True),
+        IndexColumn(name = 'lex_type', description = 'W if meaningful, 0 otherwise', regex = r"(W|0|NA)", required = True),
+        IndexColumn(name = 'mwu_type', description = 'M if multiword, 1 if single word -- only filled if lex_type==W',regex = r"(M|1|NA)", required = True),
+        IndexColumn(name = 'addresseee', description = 'T if target-child-directed, C if other-child-directed, A if adult-directed, U if uncertain or other', regex = r"(T|C|A|U|NA)", required = True),
         IndexColumn(name = 'transcription', description = 'orthographic transcription of the speach', required = True)
     ]
 
@@ -79,7 +79,7 @@ class AnnotationManager:
     }
 
     VTC_SPEAKER_TYPE_TRANSLATION = defaultdict(lambda: 'NA', {
-        'CHI': 'OCHI',
+        'CHI': 'OCH',
         'KCHI': 'CHI',
         'FEM': 'FEM',
         'MAL':'MAL'
