@@ -24,8 +24,8 @@ class AnnotationManager:
 
     SEGMENTS_COLUMNS = [
         IndexColumn(name = 'annotation_file', description = 'raw annotation path relative to /raw_annotations/', required = True),
-        IndexColumn(name = 'segment_onset', description = 'segment start time in seconds', regex = r"[0-9]{1,}(\.[0-9]{3})?", required = True),
-        IndexColumn(name = 'segment_offset', description = 'segment end time in seconds', regex = r"[0-9]{1,}(\.[0-9]{3})?", required = True),
+        IndexColumn(name = 'segment_onset', description = 'segment start time in seconds', regex = r"(\d+(\.\d+)?)", required = True),
+        IndexColumn(name = 'segment_offset', description = 'segment end time in seconds', regex = r"(\d+(\.\d+)?)", required = True),
         IndexColumn(name = 'speaker_id', description = 'identity of speaker in the annotation', required = True),
         IndexColumn(name = 'speaker_type', description = 'class of speaker (FEM, MAL, CHI, OCH)', regex = r"(FEM|MAL|CHI|OCH|NA)", required = True),
         IndexColumn(name = 'ling_type', description = '1 if the vocalization contains at least a vowel (ie canonical or non-canonical), 0 if crying or laughing', regex = r"(1|0|NA)", required = True),
