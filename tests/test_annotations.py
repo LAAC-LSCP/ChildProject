@@ -37,3 +37,21 @@ def test_import():
             check_less_precise = True
         )
 
+def test_intersect():
+    project = ChildProject("examples/valid_raw_data")
+    project.import_data("output/metrics")
+    project = ChildProject("output/metrics")
+    am = AnnotationManager(project)
+
+    input_annotations = pd.read_csv('examples/valid_raw_data/raw_annotations/intersect.csv')
+
+    am.import_annotations(input_annotations)
+    am.read()
+
+    a, b = am.intersection(
+        am.annotations[am.annotations['set'] == 'textgrid'],
+        am.annotations[am.annotations['set'] == 'vtc_rttm']
+    )
+
+    a.to_csv('intersect_a.csv')
+    b.to_csv('intersect_b.csv')
