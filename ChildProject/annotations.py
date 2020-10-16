@@ -1,3 +1,4 @@
+from collections import defaultdict
 import datetime
 from numbers import Number
 import os
@@ -77,6 +78,13 @@ class AnnotationManager:
         'UC6': 'OCH'
     }
 
+    VTC_SPEAKER_TYPE_TRANSLATION = defaultdict(lambda: 'NA', {
+        'CHI': 'OCHI',
+        'KCHI': 'CHI',
+        'FEM': 'FEM',
+        'MAL':'MAL'
+    })
+
 
     def __init__(self, project):
         self.project = project
@@ -122,6 +130,17 @@ class AnnotationManager:
         path = os.path.join(self.project.path, 'raw_annotations', filename)
         textgrid = pympi.Praat.TextGrid(path)
 
+        def ling_type(s):
+            s = str(s)
+            if not s:
+                return "NA"
+
+            a, b = ('0' in s, '1' in s)
+            if a^b:
+                return '0' if a else '1' 
+            else:
+                return 'NA'
+
         segments = []
         for tier in textgrid.tiers:
             for interval in tier.intervals:
@@ -137,7 +156,7 @@ class AnnotationManager:
                     'segment_onset': "{:.3f}".format(interval[0]),
                     'segment_offset': "{:.3f}".format(interval[1]),
                     'speaker_id': tier_name,
-                    'ling_type': interval[2] if interval[2] else "",
+                    'ling_type': ling_type(interval[2]),
                     'speaker_type': self.SPEAKER_ID_TO_TYPE[tier_name] if tier_name in self.SPEAKER_ID_TO_TYPE else 'NA',
                     'vcm_type': 'NA',
                     'lex_type': 'NA',
@@ -221,7 +240,7 @@ class AnnotationManager:
         df['segment_offset'] = (df['tbeg']+df['tdur']).map(lambda f: "{:.3f}".format(f))
         df['speaker_id'] = 'NA'
         df['ling_type'] = 'NA'
-        df['speaker_type'] = df['name']
+        df['speaker_type'] = df['name'].map(self.VTC_SPEAKER_TYPE_TRANSLATION)
         df['vcm_type'] = 'NA'
         df['lex_type'] = 'NA'
         df['mwu_type'] = 'NA'
