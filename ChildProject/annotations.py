@@ -129,8 +129,6 @@ class AnnotationManager:
 
         def ling_type(s):
             s = str(s)
-            if not s:
-                return "NA"
 
             a, b = ('0' in s, '1' in s)
             if a^b:
