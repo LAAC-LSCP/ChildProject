@@ -100,7 +100,7 @@ class IndexTable:
                     try:
                         dt = datetime.datetime.strptime(row[column_name], column_attr.datetime)
                     except:
-                        if column_attr.required:
+                        if column_attr.required and str(row[column_name]) != 'NA':
                             errors.append("'{}' is not a proper date/time (expected {}) on line {}".format(row[column_name], column_attr.datetime, row['lineno']))
                         else:
                             warnings.append("'{}' is not a proper date/time (expected {}) on line {}".format(row[column_name], column_attr.datetime, row['lineno']))
