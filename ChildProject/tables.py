@@ -81,7 +81,7 @@ class IndexTable:
         ]
 
         if len(unknown_columns) > 0:
-            errors.append("unknown column{} '{}' in {}, exepected columns are: {}".format(
+            warnings.append("unknown column{} '{}' in {}, exepected columns are: {}".format(
                 's' if len(unknown_columns) > 1 else '',
                 ','.join(unknown_columns),
                 self.name,
