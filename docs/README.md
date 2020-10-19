@@ -15,6 +15,18 @@ source ~/ChildProjectVenv/bin/activate
 pip install -r requirements.txt
 ```
 
+```
+pip install git+https://github.com/LAAC-LSCP/ChildRecordsData.git
+```
+
+### Installing the package
+
+If you want to import ChildProject modules into your code, you should install the package by doing :
+
+```
+pip install git+https://github.com/LAAC-LSCP/ChildRecordsData.git
+```
+
 ## Usage
 
 ### Validate raw data
