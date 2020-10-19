@@ -250,15 +250,18 @@ class AnnotationManager:
         raw_filename = annotation['raw_filename']
         annotation_format = annotation['format']
 
-        if annotation_format == 'TextGrid':
-            df = self.load_textgrid(raw_filename)
-        elif annotation_format == 'eaf':
-            df = self.load_eaf(raw_filename)
-        elif annotation_format == 'vtc_rttm':
-            df = self.load_vtc_rttm(raw_filename)
-        else:
-            df = None
-            self.errors.append("file format '{}' unknown for '{}'".format(annotation_format, raw_filename))
+        df = None
+        try:
+            if annotation_format == 'TextGrid':
+                df = self.load_textgrid(raw_filename)
+            elif annotation_format == 'eaf':
+                df = self.load_eaf(raw_filename)
+            elif annotation_format == 'vtc_rttm':
+                df = self.load_vtc_rttm(raw_filename)
+            else:
+                raise ValueError("file format '{}' unknown for '{}'".format(annotation_format, raw_filename))
+        except Exception as e:
+            self.errors.append(str(e))
 
         if df is None:
             return False
