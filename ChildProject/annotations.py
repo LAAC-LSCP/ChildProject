@@ -299,6 +299,6 @@ class AnnotationManager:
             imported.append(row)
 
         self.read()
-        self.annotations = pd.concat([self.annotations, pd.DataFrame(imported)])
+        self.annotations = pd.concat([self.annotations, pd.DataFrame(imported)], sort = False)
         self.annotations.to_csv(os.path.join(self.project.path, 'annotations/annotations.csv'), index = False)
 
