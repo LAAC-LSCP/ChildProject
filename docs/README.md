@@ -60,3 +60,11 @@ python convert.py --source ../data/namibia/ --name mp --format WAV --codec pcm_s
 ```
 2. run `$ chmod +x convert.sh`
 3. run `$ sbatch --mem=64G --time=5:00:00 --cpus-per-task=4 --ntasks=1 -o namibia.txt ./convert.sh`
+
+### Import annotations
+
+```
+python import_annotations.py --source /path/to/project --annotations /path/to/dataframe.csv
+```
+
+The input dataframe must have one entry per annotation to import, according to the format specified [here](http://sciencestechniques.fr/ChildRecordsData/FORMATTING.html#annotations-formatting).

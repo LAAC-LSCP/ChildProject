@@ -1,4 +1,4 @@
-from ChildProject.ChildProject import ChildProject, RecordingProfile
+from ChildProject.projects import ChildProject, RecordingProfile
 import argparse
 import sys
 import os

@@ -1,5 +1,7 @@
 
 
+# Source data formatting guidelines
+
 ## Raw data tree
 
 ```
@@ -38,6 +40,21 @@ Can be either `recordings/recordings.csv`, `recordings/recordings.xls` or `recor
 | Name | Description | Required ? | Format |
 |------|-------------|------------|--------|
 {% for column in recordings -%}
+| **{{column.name}}** | {{column.description}} | {{'**required**' if column.required else 'optional'}}
+{%- if column.datetime %} | `{{column.datetime}}` (date/time) |
+{%- elif column.regex %} | `{{column.regex}}` (regex) |
+{%- elif column.filename %} | filename |
+{%- else %} | - |
+{%- endif %}
+{% endfor %}
+
+# Annotations formatting
+
+Dataframes passed to the importation script must have the following format :
+
+| Name | Description | Required ? | Format |
+|------|-------------|------------|--------|
+{% for column in input_annotations -%}
 | **{{column.name}}** | {{column.description}} | {{'**required**' if column.required else 'optional'}}
 {%- if column.datetime %} | `{{column.datetime}}` (date/time) |
 {%- elif column.regex %} | `{{column.regex}}` (regex) |

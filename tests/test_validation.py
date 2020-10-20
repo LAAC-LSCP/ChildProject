@@ -1,4 +1,4 @@
-from ChildProject.ChildProject import ChildProject
+from ChildProject.projects import ChildProject
 
 def test_valid_project():
     project = ChildProject("examples/valid_raw_data")

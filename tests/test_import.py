@@ -1,4 +1,4 @@
-from ChildProject.ChildProject import ChildProject
+from ChildProject.projects import ChildProject
 import os
 import glob
 
