@@ -4,7 +4,7 @@ import argparse
 import pandas as pd
 import sys
 
-parser = argparse.ArgumentParser(description='')
+parser = argparse.ArgumentParser(description='import and convert annotations into the project')
 parser.add_argument("--source", help = "project path", required = True)
 parser.add_argument("--annotations", help = "path to input annotations index (csv)", required = True)
 
