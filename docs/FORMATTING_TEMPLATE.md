@@ -12,6 +12,10 @@ project
 │   │   recordings.csv
 │   │   recording1.wav
 │
+└───raw_annotations
+│   │   child1.rttm
+│   │   child1_3600.TextGrid
+│
 └───extra
     │   notes.txt
 ``` 
