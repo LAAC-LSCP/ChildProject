@@ -2,7 +2,7 @@
 
 ## Formatting data
 
-See the [formatting instructions](http://sciencestechniques.fr/ChildRecordsData/FORMATTING.html)
+See the [formatting instructions](http://laac-lscp.github.io/ChildRecordsData/FORMATTING.html)
 
 ## Installation
 
@@ -13,6 +13,14 @@ git clone https://github.com/lucasgautheron/ChildRecordsData.git
 cd ChildRecordsData
 source ~/ChildProjectVenv/bin/activate
 pip install -r requirements.txt
+```
+
+### Installing the package
+
+If you want to import ChildProject modules into your code, you should install the package by doing :
+
+```
+pip install git+https://github.com/LAAC-LSCP/ChildRecordsData.git
 ```
 
 ## Usage
