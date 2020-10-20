@@ -79,7 +79,8 @@ class AnnotationManager:
         'CHI': 'OCH',
         'KCHI': 'CHI',
         'FEM': 'FEM',
-        'MAL':'MAL'
+        'MAL':'MAL',
+        'SPEECH': 'SPEECH'
     })
 
 
