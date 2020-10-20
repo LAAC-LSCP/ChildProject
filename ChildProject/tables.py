@@ -28,7 +28,7 @@ def read_dataframe(filename):
 
 class IndexColumn:
     def __init__(self, name = "", description = "", required = False, regex = None,
-                 filename = False, datetime = None, unique = False):
+                 filename = False, datetime = None, unique = False, generated = False):
         self.name = name
         self.description = description
         self.required = required
@@ -36,6 +36,7 @@ class IndexColumn:
         self.regex = regex
         self.datetime = datetime
         self.unique = unique
+        self.generated = generated
 
 class IndexTable:
     def __init__(self, name, path = None, columns = []):

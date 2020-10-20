@@ -11,15 +11,16 @@ from .tables import IndexTable, IndexColumn
 
 class AnnotationManager:
     INDEX_COLUMNS = [
-        IndexColumn(name = 'set', description = 'annotation set (e.g. VTC, annotator1, etc.)', required = True),
-        IndexColumn(name = 'recording_filename', description = 'recording filename as in the recordings index', required = True),
-        IndexColumn(name = 'time_seek', description = 'reference time in seconds, e.g: 3600, or 3600.500.', regex = r"[0-9]{1,}(\.[0-9]{3})?", required = True),
-        IndexColumn(name = 'range_onset', description = 'covered range start time in seconds, measured since time_seek', regex = r"[0-9]{1,}(\.[0-9]{3})?", required = True),
-        IndexColumn(name = 'range_offset', description = 'covered range end time in seconds, measured since time_seek', regex = r"[0-9]{1,}(\.[0-9]{3})?", required = True),
-        IndexColumn(name = 'raw_filename', description = 'input filename location', filename = True, required = True),
-        IndexColumn(name = 'annotation_filename', description = 'output formatted annotation location', filename = True, required = False),
-        IndexColumn(name = 'imported_at', description = 'importationd date', datetime = "%Y-%m-%d %H:%M:%S", required = False),
-        IndexColumn(name = 'format', description = 'input annotation format', regex = r"(TextGrid|eaf|rttm)", required = True)
+        IndexColumn(name = 'set', description = 'name of the annotation set (e.g. VTC, annotator1, etc.)', required = True),
+        IndexColumn(name = 'recording_filename', description = 'recording filename as specified in the recordings index', required = True),
+        IndexColumn(name = 'time_seek', description = 'reference time in seconds, e.g: 3600, or 3600.500. All times expressed in the annotations are relative to this time.', regex = r"[0-9]{1,}(\.[0-9]{3})?", required = True),
+        IndexColumn(name = 'range_onset', description = 'covered range start time in seconds, measured since `time_seek`', regex = r"[0-9]{1,}(\.[0-9]{3})?", required = True),
+        IndexColumn(name = 'range_offset', description = 'covered range end time in seconds, measured since `time_seek`', regex = r"[0-9]{1,}(\.[0-9]{3})?", required = True),
+        IndexColumn(name = 'raw_filename', description = 'annotation input filename location (relative to raw_annotations/)', filename = True, required = True),
+        IndexColumn(name = 'format', description = 'input annotation format', regex = r"(TextGrid|eaf|rttm)", required = True),
+        IndexColumn(name = 'filter', description = 'source file to filter in (for rttm only)', required = False),
+        IndexColumn(name = 'annotation_filename', description = 'output formatted annotation location (automatic column, don\'t specify)', filename = True, required = False, generated = True),
+        IndexColumn(name = 'imported_at', description = 'importation date (automatic column, don\'t specify)', datetime = "%Y-%m-%d %H:%M:%S", required = False, generated = True)
     ]
 
     SEGMENTS_COLUMNS = [
