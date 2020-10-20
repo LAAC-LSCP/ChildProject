@@ -222,7 +222,7 @@ class AnnotationManager:
 
         return df
 
-    def load_vtc_rttm(self, filename):
+    def load_vtc_rttm(self, filename, source_file = None):
         path = os.path.join(self.project.path, 'raw_annotations', filename)
         rttm = pd.read_csv(
             path,
@@ -242,6 +242,9 @@ class AnnotationManager:
         df['addresseee'] = 'NA'
         df['transcription'] = 'NA'  
 
+        if source_file:
+            df = df[df['file'] == source_file]
+
         df.drop(['type', 'file', 'chnl', 'tbeg', 'tdur', 'ortho', 'stype', 'name', 'conf', 'unk'], axis = 1, inplace = True)
 
         return df
@@ -257,7 +260,8 @@ class AnnotationManager:
             elif annotation_format == 'eaf':
                 df = self.load_eaf(raw_filename)
             elif annotation_format == 'vtc_rttm':
-                df = self.load_vtc_rttm(raw_filename)
+                filter = annotation['filter'] if 'filter' in annotation else None
+                df = self.load_vtc_rttm(raw_filename, source_file = filter)
             else:
                 raise ValueError("file format '{}' unknown for '{}'".format(annotation_format, raw_filename))
         except Exception as e:

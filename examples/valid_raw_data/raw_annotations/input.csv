@@ -1,4 +1,4 @@
-set,recording_filename,time_seek,raw_filename,range_onset,range_offset,format
-textgrid,sound.wav,0,example.TextGrid,0,10,TextGrid
-eaf,sound.wav,0,example.eaf,0,300,eaf
-vtc_rttm,sound.wav,0,example.rttm,1980,1990,vtc_rttm
+set,recording_filename,time_seek,raw_filename,range_onset,range_offset,format,filter
+textgrid,sound.wav,0,example.TextGrid,0,10,TextGrid,
+eaf,sound.wav,0,example.eaf,0,300,eaf,
+vtc_rttm,sound.wav,0,example.rttm,1980,1990,vtc_rttm,namibie_aiku_20160714_1
