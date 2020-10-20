@@ -17,7 +17,7 @@ class AnnotationManager:
         IndexColumn(name = 'range_onset', description = 'covered range start time in seconds, measured since `time_seek`', regex = r"[0-9]{1,}(\.[0-9]{3})?", required = True),
         IndexColumn(name = 'range_offset', description = 'covered range end time in seconds, measured since `time_seek`', regex = r"[0-9]{1,}(\.[0-9]{3})?", required = True),
         IndexColumn(name = 'raw_filename', description = 'annotation input filename location (relative to raw_annotations/)', filename = True, required = True),
-        IndexColumn(name = 'format', description = 'input annotation format', regex = r"(TextGrid|eaf|rttm)", required = True),
+        IndexColumn(name = 'format', description = 'input annotation format', regex = r"(TextGrid|eaf|vtc_rttm)", required = True),
         IndexColumn(name = 'filter', description = 'source file to filter in (for rttm only)', required = False),
         IndexColumn(name = 'annotation_filename', description = 'output formatted annotation location (automatic column, don\'t specify)', filename = True, required = False, generated = True),
         IndexColumn(name = 'imported_at', description = 'importation date (automatic column, don\'t specify)', datetime = "%Y-%m-%d %H:%M:%S", required = False, generated = True)
