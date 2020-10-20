@@ -20,6 +20,10 @@ if len(errors) > 0:
 am = AnnotationManager(project)
 am.import_annotations(pd.read_csv(args.annotations))
 
+errors, warnings = am.validate()
+
 if len(am.errors) > 0:
-    print("importation completed with {} errors".format(len(am.errors)), file = sys.stderr)
+    print("importation completed with {} errors and {} warnings".format(len(am.errors)+len(errors), len(warnings)), file = sys.stderr)
     print("\n".join(am.errors), file = sys.stderr)
+    print("\n".join(errors), file = sys.stderr)
+    print("\n".join(warnings))
