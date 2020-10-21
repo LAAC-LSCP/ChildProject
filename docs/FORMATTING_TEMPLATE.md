@@ -79,3 +79,18 @@ Annotations are converted to the following format :
 {%- else %} | - |
 {%- endif %}
 {% endfor %}
+
+Annotations are indexed in one unique dataframe located at `annotations/annotations.csv`, with the following format :
+
+Annotations are converted to the following format :
+
+| Name | Description | Format |
+|------|-------------|--------|
+{% for column in annotations -%}
+| **{{column.name}}** | {{column.description}}
+{%- if column.datetime %} | `{{column.datetime}}` (date/time) |
+{%- elif column.regex %} | `{{column.regex}}` (regex) |
+{%- elif column.filename %} | filename |
+{%- else %} | - |
+{%- endif %}
+{% endfor %}
