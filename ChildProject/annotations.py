@@ -1,6 +1,5 @@
 from collections import defaultdict
 import datetime
-from functools import partial
 import multiprocessing as mp
 from numbers import Number
 import os
@@ -22,7 +21,8 @@ class AnnotationManager:
         IndexColumn(name = 'format', description = 'input annotation format', regex = r"(TextGrid|eaf|vtc_rttm)", required = True),
         IndexColumn(name = 'filter', description = 'source file to filter in (for rttm only)', required = False),
         IndexColumn(name = 'annotation_filename', description = 'output formatted annotation location (automatic column, don\'t specify)', filename = True, required = False, generated = True),
-        IndexColumn(name = 'imported_at', description = 'importation date (automatic column, don\'t specify)', datetime = "%Y-%m-%d %H:%M:%S", required = False, generated = True)
+        IndexColumn(name = 'imported_at', description = 'importation date (automatic column, don\'t specify)', datetime = "%Y-%m-%d %H:%M:%S", required = False, generated = True),
+        IndexColumn(name = 'error', description = 'error message in case the annotation could not be imported', required = False, generated = True)
     ]
 
     SEGMENTS_COLUMNS = [
@@ -272,11 +272,10 @@ class AnnotationManager:
             else:
                 raise ValueError("file format '{}' unknown for '{}'".format(annotation_format, raw_filename))
         except Exception as e:
-            self.errors.append(str(e))
-            pass
+            annotation['error'] = str(e)
 
         if df is None:
-            return None
+            return annotation
         
         df['annotation_file'] = raw_filename
 
