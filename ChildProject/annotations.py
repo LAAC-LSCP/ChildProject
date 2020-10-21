@@ -274,7 +274,10 @@ class AnnotationManager:
         
         df['annotation_file'] = raw_filename
 
-        if isinstance(annotation['range_onset'], Number) and isinstance(annotation['range_offset'], Number):
+        if isinstance(annotation['range_onset'], Number)\
+            and isinstance(annotation['range_offset'], Number)\
+            and (annotation['range_offset'] - annotation['range_onset']) > 0.001:
+
             df['segment_onset'] = df['segment_onset'].astype(float)
             df['segment_offset'] = df['segment_offset'].astype(float)
 
