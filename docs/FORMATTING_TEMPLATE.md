@@ -66,3 +66,16 @@ Dataframes passed to the importation script must have the following format :
 {%- else %} | - |
 {%- endif %}
 {% endfor %}
+
+Annotations are converted to the following format :
+
+| Name | Description | Format |
+|------|-------------|--------|
+{% for column in annotation_segments -%}
+| **{{column.name}}** | {{column.description}}
+{%- if column.datetime %} | `{{column.datetime}}` (date/time) |
+{%- elif column.regex %} | `{{column.regex}}` (regex) |
+{%- elif column.filename %} | filename |
+{%- else %} | - |
+{%- endif %}
+{% endfor %}

@@ -7,6 +7,7 @@ open('docs/FORMATTING.md', 'w+').write(
     formatting.render(
         children = ChildProject.CHILDREN_COLUMNS,
         recordings = ChildProject.RECORDINGS_COLUMNS,
-        input_annotations = [c for c in AnnotationManager.INDEX_COLUMNS if not c.generated]
+        input_annotations = [c for c in AnnotationManager.INDEX_COLUMNS if not c.generated],
+        annotation_segments = AnnotationManager.SEGMENTS_COLUMNS
     )
 )
