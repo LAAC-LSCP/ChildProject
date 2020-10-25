@@ -82,8 +82,6 @@ Annotations are converted to the following format :
 
 Annotations are indexed in one unique dataframe located at `annotations/annotations.csv`, with the following format :
 
-Annotations are converted to the following format :
-
 | Name | Description | Format |
 |------|-------------|--------|
 {% for column in annotations -%}

@@ -218,7 +218,7 @@ class ChildProject:
 
             # child id refers to an existing child in the children table
             if row['child_id'] not in self.children['child_id'].tolist():
-                self.errors.append("child_id '{}' in recordings on line {} cannot be found in the children table.".format(row['child_id'], row['lineno']))
+                self.errors.append("child_id '{}' in recordings on line {} cannot be found in the children table.".format(row['child_id'], index))
 
         # detect un-indexed recordings and throw warnings
         files = [
