@@ -1,5 +1,6 @@
 from collections import defaultdict
 import datetime
+import multiprocessing as mp
 from numbers import Number
 import os
 import pandas as pd
@@ -20,7 +21,8 @@ class AnnotationManager:
         IndexColumn(name = 'format', description = 'input annotation format', regex = r"(TextGrid|eaf|vtc_rttm)", required = True),
         IndexColumn(name = 'filter', description = 'source file to filter in (for rttm only)', required = False),
         IndexColumn(name = 'annotation_filename', description = 'output formatted annotation location (automatic column, don\'t specify)', filename = True, required = False, generated = True),
-        IndexColumn(name = 'imported_at', description = 'importation date (automatic column, don\'t specify)', datetime = "%Y-%m-%d %H:%M:%S", required = False, generated = True)
+        IndexColumn(name = 'imported_at', description = 'importation date (automatic column, don\'t specify)', datetime = "%Y-%m-%d %H:%M:%S", required = False, generated = True),
+        IndexColumn(name = 'error', description = 'error message in case the annotation could not be imported', required = False, generated = True)
     ]
 
     SEGMENTS_COLUMNS = [
@@ -251,7 +253,10 @@ class AnnotationManager:
 
         return df
 
-    def import_annotation(self, annotation, output_filename):
+    def import_annotation(self, annotation):
+        source_recording = os.path.splitext(annotation['recording_filename'])[0]
+        output_filename = "{}/{}_{}.csv".format(annotation['set'], source_recording, annotation['time_seek'])
+
         raw_filename = annotation['raw_filename']
         annotation_format = annotation['format']
 
@@ -267,10 +272,10 @@ class AnnotationManager:
             else:
                 raise ValueError("file format '{}' unknown for '{}'".format(annotation_format, raw_filename))
         except Exception as e:
-            self.errors.append(str(e))
+            annotation['error'] = str(e)
 
         if df is None:
-            return False
+            return annotation
         
         df['annotation_file'] = raw_filename
 
@@ -292,22 +297,22 @@ class AnnotationManager:
         os.makedirs(os.path.dirname(os.path.join(self.project.path, 'annotations', output_filename)), exist_ok = True)
         df.to_csv(os.path.join(self.project.path, 'annotations', output_filename), index = False)
 
+        annotation['annotation_filename'] = output_filename
+        annotation['imported_at'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        return annotation
+
     def import_annotations(self, input):
-        imported = []
-        for row in input.to_dict(orient = 'records'):
-            source_recording = os.path.splitext(row['recording_filename'])[0]
-            annotation_filename = "{}/{}_{}.csv".format(row['set'], source_recording, row['time_seek'])
+        pool = mp.Pool(processes = mp.cpu_count())
+        imported = pool.map(
+            self.import_annotation,
+            input.to_dict(orient = 'records')
+        )
 
-            self.import_annotation(row, annotation_filename)
-
-            row.update({
-                'annotation_filename': annotation_filename,
-                'imported_at': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            })
-
-            imported.append(row)
+        imported = pd.DataFrame(imported)
+        imported.drop(list(set(imported.columns)-set([c.name for c in self.INDEX_COLUMNS])), axis = 1, inplace = True)
 
         self.read()
-        self.annotations = pd.concat([self.annotations, pd.DataFrame(imported)], sort = False)
+        self.annotations = pd.concat([self.annotations, imported], sort = False)
         self.annotations.to_csv(os.path.join(self.project.path, 'annotations/annotations.csv'), index = False)
 
