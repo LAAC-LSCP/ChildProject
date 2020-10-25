@@ -16,8 +16,6 @@ def test_invalid_project():
         "cannot find recording 'test_1_20200918.mp3'"
     ]
     
-    assert len(errors) >= len(expected_errors), "some errors were not detected"
-    assert len(errors) <= len(expected_errors), "too many errors thrown"
-    assert all(error in errors for error in expected_errors), "some error messages are incorrect"
+    assert sorted(expected_errors) == sorted(errors), "errors do not match expected errors"
 
     
