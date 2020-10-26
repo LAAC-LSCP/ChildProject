@@ -5,6 +5,7 @@ relative_links:
   collections: true
 include:
   - FORMATTING.md
+  - PROJECTS.md
 exclude:
-  - FORMATTING_TEMPLATE.md
+  - templates/
 theme: jekyll-theme-cayman

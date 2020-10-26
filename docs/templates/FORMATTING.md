@@ -1,5 +1,11 @@
 
 
+- [Source data formatting guidelines](#source-data-formatting-guidelines)
+  - [Raw data tree](#raw-data-tree)
+  - [children notebook](#children-notebook)
+  - [recording notebook](#recording-notebook)
+- [Annotations formatting](#annotations-formatting)
+
 # Source data formatting guidelines
 
 ## Raw data tree
@@ -15,6 +21,9 @@ project
 └───raw_annotations
 │   │   child1.rttm
 │   │   child1_3600.TextGrid
+│
+└───annotations
+│   │   annotations.csv
 │
 └───extra
     │   notes.txt
