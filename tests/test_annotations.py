@@ -24,7 +24,7 @@ def test_import():
     ]), "some annotations are missing"
 
     errors, warnings = am.validate()
-    assert len(errors) > 0 or len(warnings) > 0, "malformed annotations detected"
+    assert len(errors) == 0 and len(warnings) == 0, "malformed annotations detected"
 
     for dataset in ['eaf', 'textgrid']:
         annotations = am.annotations[am.annotations['set'] == dataset]

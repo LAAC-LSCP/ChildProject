@@ -13,7 +13,8 @@ def read_dataframe(filename):
                     '#N/A N/A', '#N/A', 'N/A', 'n/a', '', '#NA',
                     'NULL', 'null', 'NaN', '-NaN', 'nan',
                     '-nan', ''],
-        'parse_dates': False
+        'parse_dates': False,
+        'index_col': False
     }
 
     if extension == '.csv':
@@ -23,12 +24,12 @@ def read_dataframe(filename):
     else:
         raise Exception('table format not supported ({})'.format(extension))
 
-    df['lineno'] = df.index + 2
+    df.index = df.index+2
     return df
 
 class IndexColumn:
     def __init__(self, name = "", description = "", required = False, regex = None,
-                 filename = False, datetime = None, unique = False):
+                 filename = False, datetime = None, unique = False, generated = False):
         self.name = name
         self.description = description
         self.required = required
@@ -36,6 +37,7 @@ class IndexColumn:
         self.regex = regex
         self.datetime = datetime
         self.unique = unique
+        self.generated = generated
 
 class IndexTable:
     def __init__(self, name, path = None, columns = []):
@@ -59,9 +61,6 @@ class IndexTable:
     def validate(self):
         errors, warnings = [], []
 
-        if not 'lineno' in self.df.columns:
-            self.df['lineno'] = self.df.index + 2
-
         for rc in self.columns:
             if not rc.required:
                 continue
@@ -69,7 +68,7 @@ class IndexTable:
             if rc.name not in self.df.columns:
                 errors.append("{} table is missing column '{}'".format(self.name, rc.name))
 
-            null = self.df[self.df[rc.name].isnull()]['lineno'].tolist()
+            null = self.df[self.df[rc.name].isnull()].index.values.tolist()
             if len(null) > 0:
                 errors.append(
                     """{} table has undefined values
@@ -77,11 +76,11 @@ class IndexTable:
 
         unknown_columns = [
             c for c in self.df.columns
-            if c not in [c.name for c in self.columns] and c != 'lineno'
+            if c not in [c.name for c in self.columns]
         ]
 
         if len(unknown_columns) > 0:
-            errors.append("unknown column{} '{}' in {}, exepected columns are: {}".format(
+            warnings.append("unknown column{} '{}' in {}, exepected columns are: {}".format(
                 's' if len(unknown_columns) > 1 else '',
                 ','.join(unknown_columns),
                 self.name,
@@ -100,20 +99,21 @@ class IndexTable:
                     try:
                         dt = datetime.datetime.strptime(row[column_name], column_attr.datetime)
                     except:
-                        if column_attr.required:
-                            errors.append("'{}' is not a proper date/time (expected {}) on line {}".format(row[column_name], column_attr.datetime, row['lineno']))
+                        if column_attr.required and str(row[column_name]) != 'NA':
+                            errors.append("'{}' is not a proper date/time (expected {}) on line {}".format(row[column_name], column_attr.datetime, index))
                         else:
-                            warnings.append("'{}' is not a proper date/time (expected {}) on line {}".format(row[column_name], column_attr.datetime, row['lineno']))
+                            warnings.append("'{}' is not a proper date/time (expected {}) on line {}".format(row[column_name], column_attr.datetime, index))
                 elif column_attr.regex:
                     if not re.fullmatch(column_attr.regex, str(row[column_name])):
-                        warnings.append("'{} does not match required format on line {}, expected '{}'".format(row[column_name], row['lineno'], column_attr.regex))
+                        warnings.append("'{} does not match required format on line {}, expected '{}'".format(row[column_name], index, column_attr.regex))
 
         for c in self.columns:
             if not c.unique:
                 continue
 
-            grouped = self.df[self.df[c.name] != 'NA']\
-                .groupby(c.name)['lineno']\
+            grouped = self.df[self.df[c.name] != 'NA']
+            grouped['lineno'] = grouped.index
+            grouped = grouped.groupby(c.name)['lineno']\
                 .agg([
                     ('count', len),
                     ('lines', lambda lines: ",".join([str(line) for line in sorted(lines)])),
