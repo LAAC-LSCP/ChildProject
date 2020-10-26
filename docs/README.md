@@ -83,7 +83,7 @@ python convert.py --source ../data/namibia/ --name mp --format WAV --codec pcm_s
 python import_annotations.py --source /path/to/project --annotations /path/to/dataframe.csv
 ```
 
-The input dataframe `/path/to/dataframe.csv` must have one entry per annotation to import, according to the format specified [here](http://laac-lscp.github.io/ChildRecordsData/FORMATTING.html#annotations-formatting).
+The input dataframe `/path/to/dataframe.csv` must have one entry per annotation to import, according to the format specified [here](http://laac-lscp.github.io/ChildRecordsData/FORMATTING.html#annotation-importation-input-format).
 
 ## Available data
 

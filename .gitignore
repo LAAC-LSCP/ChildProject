@@ -130,3 +130,6 @@ dmypy.json
 
 # scripts output
 output/
+
+docs/FORMATTING.md
+docs/PROJECTS.md
