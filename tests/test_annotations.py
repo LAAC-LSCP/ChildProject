@@ -28,8 +28,8 @@ def test_import():
 
     for dataset in ['eaf', 'textgrid']:
         annotations = am.annotations[am.annotations['set'] == dataset]
-        segments = annotations['annotation_filename'].map(lambda f: pd.read_csv(os.path.join(project.path, 'annotations', f))).tolist()
-        segments = pd.concat(segments)
+        segments = am.get_segments(annotations)
+        segments.drop(columns = annotations.columns, inplace = True)
 
         pd.testing.assert_frame_equal(
             segments.sort_index(axis = 1).sort_values(segments.columns.tolist()).reset_index(drop = True),
@@ -52,6 +52,13 @@ def test_intersect():
         am.annotations[am.annotations['set'] == 'textgrid'],
         am.annotations[am.annotations['set'] == 'vtc_rttm']
     )
+    
+    pd.testing.assert_frame_equal(
+        a.sort_index(axis = 1).sort_values(a.columns.tolist()).reset_index(drop = True).drop(columns=['imported_at']),
+        pd.read_csv('tests/truth/intersect_a.csv').sort_index(axis = 1).sort_values(a.columns.tolist()).reset_index(drop = True).drop(columns=['imported_at'])
+    )
 
-    a.to_csv('intersect_a.csv')
-    b.to_csv('intersect_b.csv')
+    pd.testing.assert_frame_equal(
+        b.sort_index(axis = 1).sort_values(b.columns.tolist()).reset_index(drop = True).drop(columns=['imported_at']),
+        pd.read_csv('tests/truth/intersect_b.csv').sort_index(axis = 1).sort_values(b.columns.tolist()).reset_index(drop = True).drop(columns=['imported_at'])
+    )
