@@ -11,7 +11,11 @@
 
 # Source data formatting guidelines
 
+Projects must pass the [the validation script](https://laac-lscp.github.io/ChildRecordsData/#validate-raw-data) with no error and as few warnings as possible before submission.
+
 ## Raw data tree
+
+Before submission, data should comply with the following structure :
 
 ```
 project
@@ -25,12 +29,11 @@ project
 │   │   child1.rttm
 │   │   child1_3600.TextGrid
 │
-└───annotations
-│   │   annotations.csv
-│
 └───extra
     │   notes.txt
-``` 
+```
+
+The children and recordings notebooks should be formatted according to the standards detailed right below.
 
 ## children notebook
 
@@ -46,8 +49,6 @@ Can be either `children.csv`, `children.xls` or `children.xslx`.
 {%- else %} | - |
 {%- endif %}
 {% endfor %}
-
-
 
 ## recording notebook
 
