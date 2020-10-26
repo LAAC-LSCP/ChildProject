@@ -352,6 +352,14 @@ class AnnotationManager:
         self.annotations = pd.concat([self.annotations, imported], sort = False)
         self.annotations.to_csv(os.path.join(self.project.path, 'annotations/annotations.csv'), index = False)
 
+    def get_segments(self, annotations):
+        segments = pd.concat([
+            pd.read_csv(os.path.join(self.project.path, 'annotations', f)).assign(annotation_filename = f)
+            for f in annotations['annotation_filename'].tolist()
+        ])
+
+        return segments.merge(annotations, how = 'left', left_on = 'annotation_filename', right_on = 'annotation_filename')
+
     def intersection(self, a, b):
         for bound in ('onset', 'offset'):
             a['abs_range_' + bound] = a['range_' + bound] + a['time_seek']
