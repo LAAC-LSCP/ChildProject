@@ -6,6 +6,5 @@ relative_links:
 include:
   - FORMATTING.md
   - PROJECTS.md
-exclude:
-  - templates/
+exclude: [templates]
 theme: jekyll-theme-cayman
