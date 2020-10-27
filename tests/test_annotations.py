@@ -4,15 +4,25 @@ from ChildProject.tables import IndexTable
 import pandas as pd
 import numpy as np
 import os
+import pytest
+import shutil
 
-def test_import():
-    project = ChildProject("examples/valid_raw_data")
-    project.import_data("output/annotations")
+@pytest.fixture(scope='function')
+def project(request):
+    if not os.path.exists("output/annotations"):
+        project = ChildProject("examples/valid_raw_data")
+        project.import_data("output/annotations")
+
     project = ChildProject("output/annotations")
+    yield project
+    
+    shutil.rmtree("output/annotations/annotations")
+    os.mkdir("output/annotations/annotations")
+
+def test_import(project):
     am = AnnotationManager(project)
 
     input_annotations = pd.read_csv('examples/valid_raw_data/raw_annotations/input.csv')
-
     am.import_annotations(input_annotations)
     am.read()
     
@@ -37,14 +47,10 @@ def test_import():
             check_less_precise = True
         )
 
-def test_intersect():
-    project = ChildProject("examples/valid_raw_data")
-    project.import_data("output/metrics")
-    project = ChildProject("output/metrics")
+def test_intersect(project):
     am = AnnotationManager(project)
 
     input_annotations = pd.read_csv('examples/valid_raw_data/raw_annotations/intersect.csv')
-
     am.import_annotations(input_annotations)
     am.read()
 
@@ -62,3 +68,19 @@ def test_intersect():
         b.sort_index(axis = 1).sort_values(b.columns.tolist()).reset_index(drop = True).drop(columns=['imported_at']),
         pd.read_csv('tests/truth/intersect_b.csv').sort_index(axis = 1).sort_values(b.columns.tolist()).reset_index(drop = True).drop(columns=['imported_at'])
     )
+
+def test_clipping(project):
+    am = AnnotationManager(project)
+
+    input_annotations = pd.read_csv('examples/valid_raw_data/raw_annotations/input.csv')
+    am.import_annotations(input_annotations)
+    am.read()
+
+    start = 1981
+    stop = 1984
+    segments = am.get_segments(am.annotations[am.annotations['set'] == 'vtc_rttm'])
+    segments = am.clip_segments(segments, start, stop)
+    
+    assert all(segments['segment_onset'].between(start, stop)) and all(segments['segment_offsset'].between(start, stop), "segments not properly clipped")
+    assert segments.shape[0] == 2, "got {} segments, expected 2".format(segments.shape[0])
+

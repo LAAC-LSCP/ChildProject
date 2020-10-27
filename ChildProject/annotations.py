@@ -2,6 +2,7 @@ from collections import defaultdict
 import datetime
 import multiprocessing as mp
 from numbers import Number
+import numpy as np
 import os
 import pandas as pd
 import pympi
@@ -398,3 +399,10 @@ class AnnotationManager:
         b_out.drop(['abs_range_onset', 'abs_range_offset'], axis = 1, inplace = True)
 
         return a_out, b_out
+
+    def clip_segments(self, segments, start, stop):
+        segments['segment_onset'].clip(lower = start, upper = stop, inplace = True)
+        segments['segment_offset'].clip(lower = start, upper = stop, inplace = True)
+
+        segments = segments[~np.isclose(segments['segment_offset']-segments['segment_onset'], 0)]
+        return segments
