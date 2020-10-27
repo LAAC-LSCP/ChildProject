@@ -140,7 +140,10 @@ class ChildProject:
         IndexColumn(name = 'normative_criterion', description = 'how normative was decided; eg "unless the caregivers volunteered information whereby the child had a problem, we consider them normative by default"'),
         IndexColumn(name = 'mother_id', description = 'unique ID of the mother'),
         IndexColumn(name = 'father_id', description = 'unique ID of the father'),
-        IndexColumn(name = 'daytime', description = 'yes (Y) means recording launched such that most or all of the audiorecording happens during daytime; no (N) means at least 30% of the recording may happen at night', regex = '(Y|N)')
+        IndexColumn(name = 'daytime', description = 'yes (Y) means recording launched such that most or all of the audiorecording happens during daytime; no (N) means at least 30% of the recording may happen at night', regex = '(Y|N)'),
+        IndexColumn(name = 'order_of_birth', description = 'child order of birth', regex = '([0-9]+|NA)', required = False),
+        IndexColumn(name = 'n_of_siblings', description = 'amount of siblings', regex = '([0-9]+|NA)', required = False),
+        IndexColumn(name = 'household_size', description = 'household size', regex = '([0-9]+|NA)', required = False)
     ]
 
     RECORDINGS_COLUMNS = [
