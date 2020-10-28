@@ -290,11 +290,7 @@ class AnnotationManager:
             df['segment_onset'] = df['segment_onset'].astype(float)
             df['segment_offset'] = df['segment_offset'].astype(float)
 
-            df['segment_onset'].clip(lower = annotation['range_onset'], upper = annotation['range_offset'], inplace = True)
-            df['segment_offset'].clip(lower = annotation['range_onset'], upper = annotation['range_offset'], inplace = True)
-
-            df['segment_onset'] = df['segment_onset'].map(lambda f: "{:.3f}".format(f))
-            df['segment_offset'] = df['segment_offset'].map(lambda f: "{:.3f}".format(f))
+            df = self.clip_segments(df, annotation['range_onset'], annotation['range_offset'])
 
         df.sort_values(['segment_onset', 'segment_offset', 'speaker_id', 'speaker_type'], inplace = True)
 
