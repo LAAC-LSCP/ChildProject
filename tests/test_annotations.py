@@ -47,28 +47,6 @@ def test_import(project):
             check_less_precise = True
         )
 
-def test_intersect(project):
-    am = AnnotationManager(project)
-
-    input_annotations = pd.read_csv('examples/valid_raw_data/raw_annotations/intersect.csv')
-    am.import_annotations(input_annotations)
-    am.read()
-
-    a, b = am.intersection(
-        am.annotations[am.annotations['set'] == 'textgrid'],
-        am.annotations[am.annotations['set'] == 'vtc_rttm']
-    )
-    
-    pd.testing.assert_frame_equal(
-        a.sort_index(axis = 1).sort_values(a.columns.tolist()).reset_index(drop = True).drop(columns=['imported_at']),
-        pd.read_csv('tests/truth/intersect_a.csv').sort_index(axis = 1).sort_values(a.columns.tolist()).reset_index(drop = True).drop(columns=['imported_at'])
-    )
-
-    pd.testing.assert_frame_equal(
-        b.sort_index(axis = 1).sort_values(b.columns.tolist()).reset_index(drop = True).drop(columns=['imported_at']),
-        pd.read_csv('tests/truth/intersect_b.csv').sort_index(axis = 1).sort_values(b.columns.tolist()).reset_index(drop = True).drop(columns=['imported_at'])
-    )
-
 def test_clipping(project):
     am = AnnotationManager(project)
 
