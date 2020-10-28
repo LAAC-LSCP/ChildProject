@@ -4,15 +4,25 @@ from ChildProject.tables import IndexTable
 import pandas as pd
 import numpy as np
 import os
+import pytest
+import shutil
 
-def test_import():
-    project = ChildProject("examples/valid_raw_data")
-    project.import_data("output/annotations")
+@pytest.fixture(scope='function')
+def project(request):
+    if not os.path.exists("output/annotations"):
+        project = ChildProject("examples/valid_raw_data")
+        project.import_data("output/annotations")
+
     project = ChildProject("output/annotations")
+    yield project
+    
+    shutil.rmtree("output/annotations/annotations")
+    os.mkdir("output/annotations/annotations")
+
+def test_import(project):
     am = AnnotationManager(project)
 
     input_annotations = pd.read_csv('examples/valid_raw_data/raw_annotations/input.csv')
-
     am.import_annotations(input_annotations)
     am.read()
     
@@ -28,12 +38,49 @@ def test_import():
 
     for dataset in ['eaf', 'textgrid']:
         annotations = am.annotations[am.annotations['set'] == dataset]
-        segments = annotations['annotation_filename'].map(lambda f: pd.read_csv(os.path.join(project.path, 'annotations', f))).tolist()
-        segments = pd.concat(segments)
+        segments = am.get_segments(annotations)
+        segments.drop(columns = annotations.columns, inplace = True)
 
         pd.testing.assert_frame_equal(
             segments.sort_index(axis = 1).sort_values(segments.columns.tolist()).reset_index(drop = True),
             pd.read_csv('tests/truth/{}.csv'.format(dataset)).sort_index(axis = 1).sort_values(segments.columns.tolist()).reset_index(drop = True),
             check_less_precise = True
         )
+
+def test_intersect(project):
+    am = AnnotationManager(project)
+
+    input_annotations = pd.read_csv('examples/valid_raw_data/raw_annotations/intersect.csv')
+    am.import_annotations(input_annotations)
+    am.read()
+
+    a, b = am.intersection(
+        am.annotations[am.annotations['set'] == 'textgrid'],
+        am.annotations[am.annotations['set'] == 'vtc_rttm']
+    )
+    
+    pd.testing.assert_frame_equal(
+        a.sort_index(axis = 1).sort_values(a.columns.tolist()).reset_index(drop = True).drop(columns=['imported_at']),
+        pd.read_csv('tests/truth/intersect_a.csv').sort_index(axis = 1).sort_values(a.columns.tolist()).reset_index(drop = True).drop(columns=['imported_at'])
+    )
+
+    pd.testing.assert_frame_equal(
+        b.sort_index(axis = 1).sort_values(b.columns.tolist()).reset_index(drop = True).drop(columns=['imported_at']),
+        pd.read_csv('tests/truth/intersect_b.csv').sort_index(axis = 1).sort_values(b.columns.tolist()).reset_index(drop = True).drop(columns=['imported_at'])
+    )
+
+def test_clipping(project):
+    am = AnnotationManager(project)
+
+    input_annotations = pd.read_csv('examples/valid_raw_data/raw_annotations/input.csv')
+    am.import_annotations(input_annotations)
+    am.read()
+
+    start = 1981
+    stop = 1984
+    segments = am.get_segments(am.annotations[am.annotations['set'] == 'vtc_rttm'])
+    segments = am.clip_segments(segments, start, stop)
+    
+    assert all(segments['segment_onset'].between(start, stop)) and all(segments['segment_offsset'].between(start, stop), "segments not properly clipped")
+    assert segments.shape[0] == 2, "got {} segments, expected 2".format(segments.shape[0])
 

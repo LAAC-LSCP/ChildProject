@@ -2,6 +2,7 @@ from collections import defaultdict
 import datetime
 import multiprocessing as mp
 from numbers import Number
+import numpy as np
 import os
 import pandas as pd
 import pympi
@@ -9,6 +10,42 @@ import shutil
 
 from .projects import ChildProject
 from .tables import IndexTable, IndexColumn
+
+class Segment:
+    def __init__(self, start, stop):
+        self.start = start
+        self.stop = stop
+
+    def length(self):
+        return self.stop - self.start
+
+    def __repr__(self):
+        return "Segment([{}, {}])".format(self.start, self.stop)
+
+def intersect_ranges(xs, ys):
+    # Try to get the first range in each iterator:
+    try:
+        x, y = next(xs), next(ys)
+    except StopIteration:
+        return
+
+    while True:
+        # Yield the intersection of the two ranges, if it's not empty:
+        intersection = Segment(
+            max(x.start, y.start),
+            min(x.stop, y.stop)
+        )
+        if intersection.length() > 0:
+            yield intersection
+
+        # Try to increment the range with the earlier stopping value:
+        try:
+            if x.stop <= y.stop:
+                x = next(xs)
+            else:
+                y = next(ys)
+        except StopIteration:
+            return
 
 class AnnotationManager:
     INDEX_COLUMNS = [
@@ -319,3 +356,56 @@ class AnnotationManager:
         self.annotations = pd.concat([self.annotations, imported], sort = False)
         self.annotations.to_csv(os.path.join(self.project.path, 'annotations/annotations.csv'), index = False)
 
+    def get_segments(self, annotations):
+        segments = pd.concat([
+            pd.read_csv(os.path.join(self.project.path, 'annotations', f)).assign(annotation_filename = f)
+            for f in annotations['annotation_filename'].tolist()
+        ])
+
+        return segments.merge(annotations, how = 'left', left_on = 'annotation_filename', right_on = 'annotation_filename')
+
+    def intersection(self, a, b):
+        for bound in ('onset', 'offset'):
+            a['abs_range_' + bound] = a['range_' + bound] + a['time_seek']
+            b['abs_range_' + bound] = b['range_' + bound] + b['time_seek']
+
+        a_ranges = a[['abs_range_onset', 'abs_range_offset']].sort_values(['abs_range_onset', 'abs_range_offset']).values.tolist()
+        b_ranges = b[['abs_range_onset', 'abs_range_offset']].sort_values(['abs_range_onset', 'abs_range_offset']).values.tolist()
+
+        segments = list(intersect_ranges(
+            (Segment(onset, offset) for (onset, offset) in a_ranges),
+            (Segment(onset, offset) for (onset, offset) in b_ranges)
+        ))
+
+        a_out = []
+        b_out = []
+
+        for segment in segments:
+            a_row = a[(a['abs_range_onset'] <= segment.start) & (a['abs_range_offset'] >= segment.stop)].to_dict(orient = 'records')[0]
+            a_row['abs_range_onset'] = segment.start
+            a_row['abs_range_offset'] = segment.stop
+            a_out.append(a_row)
+
+            b_row = b[(b['abs_range_onset'] <= segment.start) & (b['abs_range_offset'] >= segment.stop)].to_dict(orient = 'records')[0]
+            b_row['abs_range_onset'] = segment.start
+            b_row['abs_range_offset'] = segment.stop
+            b_out.append(b_row)
+
+        a_out = pd.DataFrame(a_out)
+        b_out = pd.DataFrame(b_out)
+
+        for bound in ('onset', 'offset'):
+            a_out['range_' + bound] = a_out['abs_range_' + bound] - a_out['time_seek']
+            b_out['range_' + bound] = b_out['abs_range_' + bound] - b_out['time_seek']
+
+        a_out.drop(['abs_range_onset', 'abs_range_offset'], axis = 1, inplace = True)
+        b_out.drop(['abs_range_onset', 'abs_range_offset'], axis = 1, inplace = True)
+
+        return a_out, b_out
+
+    def clip_segments(self, segments, start, stop):
+        segments['segment_onset'].clip(lower = start, upper = stop, inplace = True)
+        segments['segment_offset'].clip(lower = start, upper = stop, inplace = True)
+
+        segments = segments[~np.isclose(segments['segment_offset']-segments['segment_onset'], 0)]
+        return segments
