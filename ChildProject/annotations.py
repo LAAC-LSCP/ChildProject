@@ -180,7 +180,8 @@ class AnnotationManager:
         for tier_name in eaf.tiers:
             annotations = eaf.tiers[tier_name][0]
 
-            if tier_name not in self.SPEAKER_ID_TO_TYPE:
+            if tier_name not in self.SPEAKER_ID_TO_TYPE and len(annotations) > 0:
+                print("warning: unknown tier '{}' will be ignored in '{}".format(tier_name, filename))
                 continue
 
             for aid in annotations:
@@ -222,6 +223,10 @@ class AnnotationManager:
                     ann = parentTier[1][ann][0]
                     parentTier = eaf.tiers[eaf.annotations[ann]]
 
+                if ann not in segments:
+                    print("warning: annotation '{}' not found in segments for '{}".format(ann, filename))
+                    continue
+                
                 segment = segments[ann]
 
                 if label == 'lex':
