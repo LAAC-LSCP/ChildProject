@@ -210,6 +210,9 @@ class AnnotationManager:
 
             reference_annotations = eaf.tiers[tier_name][1]
 
+            if ref not in self.SPEAKER_ID_TO_TYPE:
+                continue
+
             for aid in reference_annotations:
                 (ann, value, prev, svg) = reference_annotations[aid]
 
