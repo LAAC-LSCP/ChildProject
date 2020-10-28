@@ -36,7 +36,7 @@ def test_import(project):
     errors, warnings = am.validate()
     assert len(errors) == 0 and len(warnings) == 0, "malformed annotations detected"
 
-    for dataset in ['eaf', 'textgrid']:
+    for dataset in ['eaf', 'textgrid', 'eaf_solis']:
         annotations = am.annotations[am.annotations['set'] == dataset]
         segments = am.get_segments(annotations)
         segments.drop(columns = annotations.columns, inplace = True)

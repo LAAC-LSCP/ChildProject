@@ -7,6 +7,8 @@ import os
 import pandas as pd
 import pympi
 import shutil
+import sys
+import traceback
 
 from .projects import ChildProject
 from .tables import IndexTable, IndexColumn
@@ -178,7 +180,8 @@ class AnnotationManager:
         for tier_name in eaf.tiers:
             annotations = eaf.tiers[tier_name][0]
 
-            if tier_name not in self.SPEAKER_ID_TO_TYPE:
+            if tier_name not in self.SPEAKER_ID_TO_TYPE and len(annotations) > 0:
+                print("warning: unknown tier '{}' will be ignored in '{}'".format(tier_name, filename))
                 continue
 
             for aid in annotations:
@@ -208,6 +211,9 @@ class AnnotationManager:
 
             reference_annotations = eaf.tiers[tier_name][1]
 
+            if ref not in self.SPEAKER_ID_TO_TYPE:
+                continue
+
             for aid in reference_annotations:
                 (ann, value, prev, svg) = reference_annotations[aid]
 
@@ -217,6 +223,10 @@ class AnnotationManager:
                     ann = parentTier[1][ann][0]
                     parentTier = eaf.tiers[eaf.annotations[ann]]
 
+                if ann not in segments:
+                    print("warning: annotation '{}' not found in segments for '{}'".format(ann, filename))
+                    continue
+                
                 segment = segments[ann]
 
                 if label == 'lex':
@@ -225,10 +235,10 @@ class AnnotationManager:
                     segment['mwu_type'] = value
                 elif label == 'xds':
                     segment['addresseee'] = value
+                elif label == 'vcm':
+                    segment['vcm_type'] = value
 
-        df = pd.DataFrame(segments.values())
-
-        return df
+        return pd.DataFrame(segments.values())
 
     def load_vtc_rttm(self, filename, source_file = None):
         path = os.path.join(self.project.path, 'raw_annotations', filename)
@@ -259,7 +269,7 @@ class AnnotationManager:
 
     def import_annotation(self, annotation):
         source_recording = os.path.splitext(annotation['recording_filename'])[0]
-        output_filename = "{}/{}_{}.csv".format(annotation['set'], source_recording, annotation['time_seek'])
+        output_filename = "{}/{}_{}_{}.csv".format(annotation['set'], source_recording, annotation['time_seek'], annotation['range_onset'])
 
         raw_filename = annotation['raw_filename']
         annotation_format = annotation['format']
@@ -275,11 +285,16 @@ class AnnotationManager:
                 df = self.load_vtc_rttm(raw_filename, source_file = filter)
             else:
                 raise ValueError("file format '{}' unknown for '{}'".format(annotation_format, raw_filename))
-        except Exception as e:
-            annotation['error'] = str(e)
+        except:
+            annotation['error'] = traceback.format_exc()
+            print("an error occured while processing '{}'".format(raw_filename), file = sys.stderr)
+            print(traceback.format_exc(), file = sys.stderr)
 
-        if df is None:
+        if df is None or not isinstance(df, pd.DataFrame):
             return annotation
+
+        if not df.shape[1]:
+            df = pd.DataFrame(columns = [c.name for c in self.SEGMENTS_COLUMNS])
         
         df['annotation_file'] = raw_filename
 
@@ -290,11 +305,7 @@ class AnnotationManager:
             df['segment_onset'] = df['segment_onset'].astype(float)
             df['segment_offset'] = df['segment_offset'].astype(float)
 
-            df['segment_onset'].clip(lower = annotation['range_onset'], upper = annotation['range_offset'], inplace = True)
-            df['segment_offset'].clip(lower = annotation['range_onset'], upper = annotation['range_offset'], inplace = True)
-
-            df['segment_onset'] = df['segment_onset'].map(lambda f: "{:.3f}".format(f))
-            df['segment_offset'] = df['segment_offset'].map(lambda f: "{:.3f}".format(f))
+            df = self.clip_segments(df, annotation['range_onset'], annotation['range_offset'])
 
         df.sort_values(['segment_onset', 'segment_offset', 'speaker_id', 'speaker_type'], inplace = True)
 
