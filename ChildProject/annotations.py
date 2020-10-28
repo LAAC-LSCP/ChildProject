@@ -2,6 +2,7 @@ from collections import defaultdict
 import datetime
 import multiprocessing as mp
 from numbers import Number
+import numpy as np
 import os
 import pandas as pd
 import pympi
@@ -173,9 +174,12 @@ class AnnotationManager:
         eaf = pympi.Elan.Eaf(path)
 
         segments = {}
-
+        
         for tier_name in eaf.tiers:
             annotations = eaf.tiers[tier_name][0]
+
+            if tier_name not in self.SPEAKER_ID_TO_TYPE:
+                continue
 
             for aid in annotations:
                 (start_ts, end_ts, value, svg_ref) = annotations[aid]
@@ -316,3 +320,17 @@ class AnnotationManager:
         self.annotations = pd.concat([self.annotations, imported], sort = False)
         self.annotations.to_csv(os.path.join(self.project.path, 'annotations/annotations.csv'), index = False)
 
+    def get_segments(self, annotations):
+        segments = pd.concat([
+            pd.read_csv(os.path.join(self.project.path, 'annotations', f)).assign(annotation_filename = f)
+            for f in annotations['annotation_filename'].tolist()
+        ])
+
+        return segments.merge(annotations, how = 'left', left_on = 'annotation_filename', right_on = 'annotation_filename')
+
+    def clip_segments(self, segments, start, stop):
+        segments['segment_onset'].clip(lower = start, upper = stop, inplace = True)
+        segments['segment_offset'].clip(lower = start, upper = stop, inplace = True)
+
+        segments = segments[~np.isclose(segments['segment_offset']-segments['segment_onset'], 0)]
+        return segments
