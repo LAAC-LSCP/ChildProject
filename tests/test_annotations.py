@@ -59,6 +59,6 @@ def test_clipping(project):
     segments = am.get_segments(am.annotations[am.annotations['set'] == 'vtc_rttm'])
     segments = am.clip_segments(segments, start, stop)
     
-    assert all(segments['segment_onset'].between(start, stop)) and all(segments['segment_offsset'].between(start, stop), "segments not properly clipped")
+    assert segments['segment_onset'].between(start, stop).all() and segments['segment_offset'].between(start, stop).all(), "segments not properly clipped"
     assert segments.shape[0] == 2, "got {} segments, expected 2".format(segments.shape[0])
 
