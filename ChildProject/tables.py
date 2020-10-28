@@ -72,7 +72,7 @@ class IndexTable:
             if len(null) > 0:
                 errors.append(
                     """{} table has undefined values
-                    for column '{}' in lines: {}""".format(self.name, rc.name, ','.join(null)))
+                    for column '{}' in lines: {}""".format(self.name, rc.name, ','.join([str(n) for n in null])))
 
         unknown_columns = [
             c for c in self.df.columns
@@ -105,7 +105,7 @@ class IndexTable:
                             warnings.append("'{}' is not a proper date/time (expected {}) on line {}".format(row[column_name], column_attr.datetime, index))
                 elif column_attr.regex:
                     if not re.fullmatch(column_attr.regex, str(row[column_name])):
-                        warnings.append("'{} does not match required format on line {}, expected '{}'".format(row[column_name], index, column_attr.regex))
+                        warnings.append("'{} does not match the format required for '{}' on line {}, expected '{}'".format(row[column_name], column_name, index, column_attr.regex))
 
         for c in self.columns:
             if not c.unique:

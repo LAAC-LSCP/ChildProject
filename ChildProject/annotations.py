@@ -210,9 +210,12 @@ class AnnotationManager:
         eaf = pympi.Elan.Eaf(path)
 
         segments = {}
-
+        
         for tier_name in eaf.tiers:
             annotations = eaf.tiers[tier_name][0]
+
+            if tier_name not in self.SPEAKER_ID_TO_TYPE:
+                continue
 
             for aid in annotations:
                 (start_ts, end_ts, value, svg_ref) = annotations[aid]
