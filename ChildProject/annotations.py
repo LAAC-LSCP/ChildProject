@@ -235,6 +235,8 @@ class AnnotationManager:
                     segment['mwu_type'] = value
                 elif label == 'xds':
                     segment['addresseee'] = value
+                elif label == 'vcm':
+                    segment['vcm_type'] = value
 
         return pd.DataFrame(segments.values())
 
@@ -283,7 +285,7 @@ class AnnotationManager:
                 df = self.load_vtc_rttm(raw_filename, source_file = filter)
             else:
                 raise ValueError("file format '{}' unknown for '{}'".format(annotation_format, raw_filename))
-        except Exception as e:
+        except:
             annotation['error'] = traceback.format_exc()
             print("an error occured while processing '{}'".format(raw_filename), file = sys.stderr)
             print(traceback.format_exc(), file = sys.stderr)
