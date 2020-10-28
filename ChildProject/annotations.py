@@ -7,6 +7,8 @@ import os
 import pandas as pd
 import pympi
 import shutil
+import sys
+import traceback
 
 from .projects import ChildProject
 from .tables import IndexTable, IndexColumn
@@ -259,7 +261,7 @@ class AnnotationManager:
 
     def import_annotation(self, annotation):
         source_recording = os.path.splitext(annotation['recording_filename'])[0]
-        output_filename = "{}/{}_{}.csv".format(annotation['set'], source_recording, annotation['time_seek'])
+        output_filename = "{}/{}_{}_{}.csv".format(annotation['set'], source_recording, annotation['time_seek'], annotation['range_onset'])
 
         raw_filename = annotation['raw_filename']
         annotation_format = annotation['format']
@@ -276,9 +278,15 @@ class AnnotationManager:
             else:
                 raise ValueError("file format '{}' unknown for '{}'".format(annotation_format, raw_filename))
         except Exception as e:
-            annotation['error'] = str(e)
+            annotation['error'] = traceback.format_exc()
+            print("an error occured while processing '{}'".format(raw_filename), file = sys.stderr)
+            print(traceback.format_exc(), file = sys.stderr)
 
         if df is None:
+            return annotation
+
+        if df.shape[0] == 0:
+            annotation['error'] = 'empty annotation'
             return annotation
         
         df['annotation_file'] = raw_filename
