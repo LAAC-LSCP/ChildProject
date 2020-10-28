@@ -181,7 +181,7 @@ class AnnotationManager:
             annotations = eaf.tiers[tier_name][0]
 
             if tier_name not in self.SPEAKER_ID_TO_TYPE and len(annotations) > 0:
-                print("warning: unknown tier '{}' will be ignored in '{}".format(tier_name, filename))
+                print("warning: unknown tier '{}' will be ignored in '{}'".format(tier_name, filename))
                 continue
 
             for aid in annotations:
@@ -224,7 +224,7 @@ class AnnotationManager:
                     parentTier = eaf.tiers[eaf.annotations[ann]]
 
                 if ann not in segments:
-                    print("warning: annotation '{}' not found in segments for '{}".format(ann, filename))
+                    print("warning: annotation '{}' not found in segments for '{}'".format(ann, filename))
                     continue
                 
                 segment = segments[ann]
@@ -236,9 +236,7 @@ class AnnotationManager:
                 elif label == 'xds':
                     segment['addresseee'] = value
 
-        df = pd.DataFrame(segments.values())
-
-        return df
+        return pd.DataFrame(segments.values())
 
     def load_vtc_rttm(self, filename, source_file = None):
         path = os.path.join(self.project.path, 'raw_annotations', filename)
@@ -290,12 +288,11 @@ class AnnotationManager:
             print("an error occured while processing '{}'".format(raw_filename), file = sys.stderr)
             print(traceback.format_exc(), file = sys.stderr)
 
-        if df is None:
+        if df is None or not isinstance(df, pd.DataFrame):
             return annotation
 
-        if df.shape[0] == 0:
-            annotation['error'] = 'empty annotation'
-            return annotation
+        if not df.shape[1]:
+            df = pd.DataFrame(columns = [c.name for c in self.SEGMENTS_COLUMNS])
         
         df['annotation_file'] = raw_filename
 
