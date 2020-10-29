@@ -101,14 +101,14 @@ class IndexTable:
                         message = "'{}' is not a proper date/time for column '{}' (expected {}) on line {}".format(row[column_name], column_name, column_attr.datetime, line_number)
                         if column_attr.required and str(row[column_name]) != 'NA':
                             errors.append(message)
-                        else:
+                        elif column_attr.required or str(row[column_name]) != 'NA':
                             warnings.append(message)
                 elif column_attr.regex:
                     if not re.fullmatch(column_attr.regex, str(row[column_name])):
                         message = "'{}' does not match the format required for '{}' on line {}, expected '{}'".format(row[column_name], column_name, line_number, column_attr.regex)
                         if column_attr.required and str(row[column_name]) != 'NA':
                             errors.append(message)
-                        else:
+                        elif column_attr.required or str(row[column_name]) != 'NA':
                             warnings.append(message)
 
         for c in self.columns:
