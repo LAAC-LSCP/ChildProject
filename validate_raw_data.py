@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from ChildProject.projects import ChildProject
 import argparse
 import sys
