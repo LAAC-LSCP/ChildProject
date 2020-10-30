@@ -8,6 +8,8 @@
   - [Convert recordings](#convert-recordings)
     - [Multi-core audio conversion with slurm on a cluster](#multi-core-audio-conversion-with-slurm-on-a-cluster)
   - [Import annotations](#import-annotations)
+    - [Single importation](#single-importation)
+    - [Bulk importation](#bulk-importation)
 - [Available data](#available-data)
 
 ## Introduction
@@ -74,6 +76,16 @@ sbatch --mem=64G --time=5:00:00 --cpus-per-task=4 --ntasks=1 -o namibia.txt ./co
 ```
 
 ### Import annotations
+
+Annotations can be imported one by one or in bulk.
+
+#### Single importation
+
+```
+python import_annotations.py --source /path/to/project --set eaf --recording_filename sound.wav --time_seek 0 --raw_filename example.eaf --range_onset 0 --range_offset 300 --format eaf
+```
+
+#### Bulk importation
 
 ```
 python import_annotations.py --source /path/to/project --annotations /path/to/dataframe.csv
