@@ -297,6 +297,8 @@ class AnnotationManager:
             df = pd.DataFrame(columns = [c.name for c in self.SEGMENTS_COLUMNS])
         
         df['annotation_file'] = raw_filename
+        df['segment_onset'] = df['segment_onset'].astype(float)
+        df['segment_offset'] = df['segment_offset'].astype(float)
 
         if isinstance(annotation['range_onset'], Number)\
             and isinstance(annotation['range_offset'], Number)\
