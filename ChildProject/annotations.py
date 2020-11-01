@@ -155,8 +155,8 @@ class AnnotationManager:
                     continue
 
                 segment = {
-                    'segment_onset': "{:.3f}".format(interval[0]),
-                    'segment_offset': "{:.3f}".format(interval[1]),
+                    'segment_onset': float(interval[0]),
+                    'segment_offset': float(interval[1]),
                     'speaker_id': tier_name,
                     'ling_type': ling_type(interval[2]),
                     'speaker_type': self.SPEAKER_ID_TO_TYPE[tier_name] if tier_name in self.SPEAKER_ID_TO_TYPE else 'NA',
@@ -189,8 +189,8 @@ class AnnotationManager:
                 (start_t, end_t) = (eaf.timeslots[start_ts], eaf.timeslots[end_ts])
 
                 segment = {
-                    'segment_onset': "{:.3f}".format(start_t/1000),
-                    'segment_offset': "{:.3f}".format(end_t/1000),
+                    'segment_onset': start_t/1000,
+                    'segment_offset': end_t/1000,
                     'speaker_id': tier_name,
                     'ling_type': 'NA',
                     'speaker_type': self.SPEAKER_ID_TO_TYPE[tier_name] if tier_name in self.SPEAKER_ID_TO_TYPE else 'NA',
@@ -249,8 +249,8 @@ class AnnotationManager:
         )
 
         df = rttm
-        df['segment_onset'] = df['tbeg'].map(lambda f: "{:.3f}".format(f))
-        df['segment_offset'] = (df['tbeg']+df['tdur']).map(lambda f: "{:.3f}".format(f))
+        df['segment_onset'] = df['tbeg'].astype(float)
+        df['segment_offset'] = (df['tbeg']+df['tdur']).astype(float)
         df['speaker_id'] = 'NA'
         df['ling_type'] = 'NA'
         df['speaker_type'] = df['name'].map(self.VTC_SPEAKER_TYPE_TRANSLATION)
@@ -301,9 +301,6 @@ class AnnotationManager:
         if isinstance(annotation['range_onset'], Number)\
             and isinstance(annotation['range_offset'], Number)\
             and (annotation['range_offset'] - annotation['range_onset']) > 0.001:
-
-            df['segment_onset'] = df['segment_onset'].astype(float)
-            df['segment_offset'] = df['segment_offset'].astype(float)
 
             df = self.clip_segments(df, annotation['range_onset'], annotation['range_offset'])
 
