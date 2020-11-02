@@ -100,14 +100,14 @@ class AnnotationManager:
 
         project.read()
 
-        index_path = os.path.join(self.project.path, 'annotations/annotations.csv')
+        index_path = os.path.join(self.project.path, 'metadata/annotations.csv')
         if not os.path.exists(index_path):
             open(index_path, 'w+').write(','.join([c.name for c in self.INDEX_COLUMNS]))
 
         errors, warnings = self.read()
 
     def read(self):
-        table = IndexTable('input', path = os.path.join(self.project.path, 'annotations/annotations.csv'), columns = self.INDEX_COLUMNS)
+        table = IndexTable('input', path = os.path.join(self.project.path, 'metadata/annotations.csv'), columns = self.INDEX_COLUMNS)
         self.annotations = table.read()
         errors, warnings = table.validate()
         return errors, warnings
@@ -328,7 +328,7 @@ class AnnotationManager:
 
         self.read()
         self.annotations = pd.concat([self.annotations, imported], sort = False)
-        self.annotations.to_csv(os.path.join(self.project.path, 'annotations/annotations.csv'), index = False)
+        self.annotations.to_csv(os.path.join(self.project.path, 'metadata/annotations.csv'), index = False)
 
     def get_segments(self, annotations):
         segments = pd.concat([

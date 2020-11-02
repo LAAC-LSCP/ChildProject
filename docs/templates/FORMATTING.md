@@ -19,8 +19,12 @@ Before submission, data should comply with the following structure :
 
 ```
 project
-│   children.csv
+│   
 │
+└───metadata
+│   │   children.csv
+│   │   recordings.csv
+|
 └───recordings
 │   │   recordings.csv
 │   │   recording1.wav
@@ -37,7 +41,7 @@ The children and recordings notebooks should be formatted according to the stand
 
 ## children notebook
 
-Can be either `children.csv`, `children.xls` or `children.xslx`.
+Located in the `metadata` folder. Can be named either `children.csv`, `children.xls` or `children.xslx`.
 
 | Name | Description | Required ? | Format |
 |------|-------------|------------|--------|
@@ -52,7 +56,7 @@ Can be either `children.csv`, `children.xls` or `children.xslx`.
 
 ## recording notebook
 
-Can be either `recordings/recordings.csv`, `recordings/recordings.xls` or `recordings/recordings.xslx`.
+Located in the `metadata` folder.  Can be named either `recordings.csv`, `recordings.xls` or `recordings.xslx`.
 
 | Name | Description | Required ? | Format |
 |------|-------------|------------|--------|
@@ -84,7 +88,7 @@ The package provides functions to convert any annotation into the following csv 
 
 ## Annotations index
 
-Annotations are indexed in one unique dataframe located at `/annotations/annotations.csv`, with the following format :
+Annotations are indexed in one unique dataframe located at `/metadata/annotations.csv`, with the following format :
 
 | Name | Description | Format |
 |------|-------------|--------|
