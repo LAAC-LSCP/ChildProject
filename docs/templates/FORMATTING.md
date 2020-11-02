@@ -19,8 +19,12 @@ Before submission, data should comply with the following structure :
 
 ```
 project
-│   children.csv
+│   
 │
+└───metadata
+│   │   children.csv
+│   │   recordings.csv
+|
 └───recordings
 │   │   recordings.csv
 │   │   recording1.wav
@@ -84,7 +88,7 @@ The package provides functions to convert any annotation into the following csv 
 
 ## Annotations index
 
-Annotations are indexed in one unique dataframe located at `/annotations/annotations.csv`, with the following format :
+Annotations are indexed in one unique dataframe located at `/metadata/annotations.csv`, with the following format :
 
 | Name | Description | Format |
 |------|-------------|--------|

@@ -16,6 +16,7 @@ def project(request):
     project = ChildProject("output/annotations")
     yield project
     
+    os.remove("output/annotations/metadata/annotations.csv")
     shutil.rmtree("output/annotations/annotations")
     os.mkdir("output/annotations/annotations")
 
