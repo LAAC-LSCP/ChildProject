@@ -41,7 +41,7 @@ The children and recordings notebooks should be formatted according to the stand
 
 ## children notebook
 
-Can be either `children.csv`, `children.xls` or `children.xslx`.
+Located in the `metadata` folder. Can be named either `children.csv`, `children.xls` or `children.xslx`.
 
 | Name | Description | Required ? | Format |
 |------|-------------|------------|--------|
@@ -56,7 +56,7 @@ Can be either `children.csv`, `children.xls` or `children.xslx`.
 
 ## recording notebook
 
-Can be either `recordings/recordings.csv`, `recordings/recordings.xls` or `recordings/recordings.xslx`.
+Located in the `metadata` folder.  Can be named either `recordings.csv`, `recordings.xls` or `recordings.xslx`.
 
 | Name | Description | Required ? | Format |
 |------|-------------|------------|--------|
