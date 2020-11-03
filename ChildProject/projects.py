@@ -6,10 +6,10 @@ import numpy as np
 import operator
 import os
 import pandas as pd
+import sox
 import re
 import shutil
 import subprocess
-import wave
 
 from .tables import IndexTable, IndexColumn
 
@@ -273,11 +273,10 @@ class ChildProject:
 
             duration = 0
             try:
-                f = wave.open(filename, 'r')
-                duration = f.getnframes() / float(f.getframerate())
+                duration = sox.file_info.duration(filename)
             except:
                 pass
-            
+
             return duration
 
         recordings['duration'] = recordings['filename'].map(lambda f:

@@ -3,3 +3,4 @@ xlrd
 jinja2
 numpy
 pympi-ling
+sox

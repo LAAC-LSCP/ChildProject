@@ -9,6 +9,6 @@ setup(
     author_email='lucas.gautheron@gmail.com',
     license='unlicense',
     packages=['ChildProject'],
-    install_requires=['pandas', 'xlrd', 'jinja2', 'numpy', 'pympi-ling'],
+    install_requires=['pandas', 'xlrd', 'jinja2', 'numpy', 'pympi-ling', 'sox'],
     zip_safe=False
 )
