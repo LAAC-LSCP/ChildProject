@@ -282,6 +282,7 @@ class AnnotationManager:
                 df = self.load_eaf(raw_filename)
             elif annotation_format == 'vtc_rttm':
                 filter = annotation['filter'] if 'filter' in annotation else None
+                print("filter=", filter)
                 df = self.load_vtc_rttm(raw_filename, source_file = filter)
             else:
                 raise ValueError("file format '{}' unknown for '{}'".format(annotation_format, raw_filename))
@@ -344,3 +345,37 @@ class AnnotationManager:
 
         segments = segments[~np.isclose(segments['segment_offset']-segments['segment_onset'], 0)]
         return segments
+
+    def get_vc_stats(self, segments, turntakingthresh = 1):
+        segments = segments.sort_values(['segment_onset', 'segment_offset'])
+        segments = segments[segments['speaker_type'] != 'SPEECH']
+        segments['duration'] = segments['segment_offset']-segments['segment_onset']
+        segments['iti'] = segments['segment_onset'] - segments['segment_offset'].shift(1)
+        segments['prev_speaker_type'] = segments['speaker_type'].shift(1)
+
+        key_child_env = ['FEM', 'MAL', 'OCH']
+
+        segments['turn'] = segments.apply(
+            lambda row: (row['iti'] < turntakingthresh) and (
+                (row['speaker_type'] == 'CHI' and row['prev_speaker_type'] in key_child_env) or
+                (row['speaker_type'] in key_child_env and row['prev_speaker_type'] == 'CHI')
+            ), axis = 1
+        )
+
+        segments['post_iti'] = segments['segment_onset'].shift(-1) - segments['segment_offset']
+        segments['next_speaker_type'] = segments['speaker_type'].shift(-1)
+        segments['cds'] = segments.apply(
+            lambda row: row['duration'] if (
+                (row['speaker_type'] == 'CHI' and row['prev_speaker_type'] in key_child_env and row['iti'] < turntakingthresh) or
+                (row['speaker_type'] in key_child_env and row['prev_speaker_type'] == 'CHI' and row['iti'] < turntakingthresh) or
+                (row['speaker_type'] == 'CHI' and row['next_speaker_type'] in key_child_env and row['post_iti'] < turntakingthresh) or
+                (row['speaker_type'] in key_child_env and row['next_speaker_type'] == 'CHI' and row['post_iti'] < turntakingthresh)
+            ) else 0, axis = 1
+        )
+
+        return segments.groupby('speaker_type').agg(
+            cum_dur = ('duration', 'sum'),
+            voc_count = ('duration', 'count'),
+            turns = ('turn', 'sum'),
+            cds_dur = ('cds', 'sum')
+        )
