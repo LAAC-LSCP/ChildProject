@@ -270,9 +270,15 @@ class ChildProject:
         def get_audio_duration(filename):
             if not os.path.exists(filename):
                 return 0
+
+            duration = 0
+            try:
+                f = wave.open(filename, 'r')
+                duration = f.getnframes() / float(f.getframerate())
+            except:
+                pass
             
-            f = wave.open(filename, 'r')
-            return f.getnframes() / float(f.getframerate())
+            return duration
 
         recordings['duration'] = recordings['filename'].map(lambda f:
             get_audio_duration(os.path.join(self.path, 'recordings', f))
@@ -280,7 +286,7 @@ class ChildProject:
         
         stats['total_recordings'] = recordings.shape[0]
         stats['total_existing_recordings'] = recordings[recordings['exists'] == True].shape[0]
-        stats['audio_length'] = recordings['duration'].sum()
+        stats['audio_duration'] = recordings['duration'].sum()
         stats['total_children'] = self.children.shape[0]
 
         return stats
