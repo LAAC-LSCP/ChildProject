@@ -9,6 +9,7 @@ import pandas as pd
 import re
 import shutil
 import subprocess
+import wave
 
 from .tables import IndexTable, IndexColumn
 
@@ -260,6 +261,29 @@ class ChildProject:
                 name = os.path.join(destination, folder),
                 exist_ok = True
             )
+
+    def get_stats(self):
+        stats = {}
+        recordings = self.recordings
+        recordings['exists'] = recordings['filename'].map(lambda f: os.path.exists(os.path.join(self.path, 'recordings', f)))
+
+        def get_audio_duration(filename):
+            if not os.path.exists(filename):
+                return 0
+            
+            f = wave.open(filename, 'r')
+            return f.getnframes() / float(f.getframerate())
+
+        recordings['duration'] = recordings['filename'].map(lambda f:
+            get_audio_duration(os.path.join(self.path, 'recordings', f))
+        )
+        
+        stats['total_recordings'] = recordings.shape[0]
+        stats['total_existing_recordings'] = recordings[recordings['exists'] == True].shape[0]
+        stats['audio_length'] = recordings['duration'].sum()
+        stats['total_children'] = self.children.shape[0]
+
+        return stats
 
     def convert_recordings(self, profile, skip_existing = False, threads = 0):
         if not isinstance(profile, RecordingProfile):
