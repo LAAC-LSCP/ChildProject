@@ -281,8 +281,7 @@ class AnnotationManager:
             elif annotation_format == 'eaf':
                 df = self.load_eaf(raw_filename)
             elif annotation_format == 'vtc_rttm':
-                filter = annotation['filter'] if 'filter' in annotation else None
-                print("filter=", filter)
+                filter = annotation['filter'] if 'filter' in annotation and not pd.isnull(annotation['filter']) else None
                 df = self.load_vtc_rttm(raw_filename, source_file = filter)
             else:
                 raise ValueError("file format '{}' unknown for '{}'".format(annotation_format, raw_filename))
