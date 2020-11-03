@@ -89,6 +89,22 @@ def convert(args):
 
     print("recordings successfully converted to '{}'".format(os.path.join(project.path, 'converted_recordings', profile.name)))
 
+def stats(args):
+    project = ChildProject(args.source)
+
+    errors, warnings = project.validate_input_data()
+
+    if len(errors) > 0:
+        print("validation failed, {} error(s) occured".format(len(errors)), file = sys.stderr)
+        sys.exit(1)
+
+    stats = project.get_stats()
+    args.stats = args.stats.split(',') if args.stats else []
+
+    for stat in stats:
+        if not args.stats or stat in args.stats:
+            print("{}: {}".format(stat, stats[stat]))
+
 parser = argparse.ArgumentParser()
 subparsers = parser.add_subparsers()
 
@@ -123,6 +139,12 @@ parser_id = subparsers.add_parser('import-data')
 parser_id.add_argument("--source", help = "source data path", required = True)
 parser_id.add_argument("--destination", help = "destination path", required = True)
 parser_id.add_argument("--follow-symlinks", help = "follow symlinks", required = False, default = False)
+parser_id.set_defaults(func = import_data)
+
+parser_s = subparsers.add_parser('stats')
+parser_s.add_argument("--source", help = "source data path", required = True)
+parser_s.add_argument("--stats", help = "stats to retrieve (comma-separated)", required = False, default = "")
+parser_s.set_defaults(func = stats)
 
 args = parser.parse_args()
 args.func(args)
