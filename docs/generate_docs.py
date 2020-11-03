@@ -6,8 +6,11 @@ import time
 # recursively get the sum of durations of each audio in the current directory :
 # find . -type f -execdir soxi -D {} \; | awk '{s+=$1} END {printf "%.0f", s}'
 projects = [
-    {'name': 'Namibia', 'authors': "Gandhi", 'location': '/scratch1/data/laac_data/namibia', 'duration': 5214771/3600},
-    {'name': 'Solomon', 'authors': "Sarah", 'location': '/scratch1/data/laac_data/solomon', 'duration': 21435406/3600}
+    {'name': 'Namibia', 'status': 'ready', 'authors': "Gandhi", 'location': '/scratch1/data/laac_data/namibia', 'recordings': 113, 'duration': 5214771/3600},
+    {'name': 'Solomon', 'status': 'ready', 'authors': "Sarah", 'location': '/scratch1/data/laac_data/solomon', 'recordings': 388, 'duration': 21435406/3600},
+    {'name': 'Tsimane 2017', 'status': 'awaiting validation', 'authors': "", 'location': '/scratch1/data/laac_data/tsimane2017', 'recordings': 41, 'duration': 2001601/3600},
+    {'name': 'png 2019', 'status': 'awaiting data', 'authors': "", 'location': '/scratch1/data/laac_data/rossel_png_2019', 'recordings': 51, 'duration': 2737005/3600},
+    {'name': 'Vanuatu', 'status': 'awaiting data', 'authors': "", 'location': 'none yet', 'recordings': 0, 'duration': 0}
 ]
 
 template = jinja2.Template(open('docs/templates/FORMATTING.md', 'r').read())
