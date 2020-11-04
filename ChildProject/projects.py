@@ -6,6 +6,7 @@ import numpy as np
 import operator
 import os
 import pandas as pd
+import sox
 import re
 import shutil
 import subprocess
@@ -260,6 +261,34 @@ class ChildProject:
                 name = os.path.join(destination, folder),
                 exist_ok = True
             )
+
+    def get_stats(self):
+        stats = {}
+        recordings = self.recordings
+        recordings['exists'] = recordings['filename'].map(lambda f: os.path.exists(os.path.join(self.path, 'recordings', f)))
+
+        def get_audio_duration(filename):
+            if not os.path.exists(filename):
+                return 0
+
+            duration = 0
+            try:
+                duration = sox.file_info.duration(filename)
+            except:
+                pass
+
+            return duration
+
+        recordings['duration'] = recordings['filename'].map(lambda f:
+            get_audio_duration(os.path.join(self.path, 'recordings', f))
+        )
+        
+        stats['total_recordings'] = recordings.shape[0]
+        stats['total_existing_recordings'] = recordings[recordings['exists'] == True].shape[0]
+        stats['audio_duration'] = recordings['duration'].sum()
+        stats['total_children'] = self.children.shape[0]
+
+        return stats
 
     def convert_recordings(self, profile, skip_existing = False, threads = 0):
         if not isinstance(profile, RecordingProfile):
