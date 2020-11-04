@@ -159,8 +159,7 @@ class ChildProject:
         IndexColumn(name = 'its_filename', description = 'its_filename', filename = True),
         IndexColumn(name = 'upl_filename', description = 'upl_filename', filename = True),
         IndexColumn(name = 'lena_id', description = ''),
-        IndexColumn(name = 'notes', description = 'free-style notes about individual recordings (avoid tabs and newlines)'),
-        IndexColumn(name = 'daytime', description = 'yes (Y) means recording launched such that most or all of the audiorecording happens during daytime; no (N) means at least 30% of the recording may happen at night', regex = '(Y|N)')
+        IndexColumn(name = 'notes', description = 'free-style notes about individual recordings (avoid tabs and newlines)')
     ]
 
     PROJECT_FOLDERS = [
