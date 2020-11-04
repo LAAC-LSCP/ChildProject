@@ -159,6 +159,7 @@ class ChildProject:
         IndexColumn(name = 'location_id', description = 'unique location ID -- can be specified at the level of the child (if children do not change locations)'),
         IndexColumn(name = 'its_filename', description = 'its_filename', filename = True),
         IndexColumn(name = 'upl_filename', description = 'upl_filename', filename = True),
+        IndexColumn(name = 'trs_filename', description = 'trs_filename', filename = True),
         IndexColumn(name = 'lena_id', description = ''),
         IndexColumn(name = 'notes', description = 'free-style notes about individual recordings (avoid tabs and newlines)')
     ]
