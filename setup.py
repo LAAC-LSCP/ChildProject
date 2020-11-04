@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name='ChildProject',
@@ -8,7 +8,8 @@ setup(
     author='Lucas',
     author_email='lucas.gautheron@gmail.com',
     license='unlicense',
-    packages=['ChildProject'],
+    packages=find_packages(),
     install_requires=['pandas', 'xlrd', 'jinja2', 'numpy', 'pympi-ling', 'sox'],
+    scripts=['child-project'],
     zip_safe=False
 )
