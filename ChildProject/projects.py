@@ -6,7 +6,6 @@ import numpy as np
 import operator
 import os
 import pandas as pd
-import sox
 import re
 import shutil
 import subprocess
@@ -266,6 +265,7 @@ class ChildProject:
             )
 
     def get_stats(self):
+        import sox
         stats = {}
         recordings = self.recordings
         recordings['exists'] = recordings['filename'].map(lambda f: os.path.exists(os.path.join(self.path, 'recordings', f)))
