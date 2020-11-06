@@ -317,16 +317,8 @@ class AnnotationManager:
         return annotation
 
     def import_annotations(self, input):
-        missing_recordings = input[['recording_filename']]\
-            .merge(
-                self.project.recordings[['filename']],
-                how = 'left',
-                left_on = 'recording_filename',
-                right_on = 'filename',
-                indicator = True
-            )\
-            .query('_merge=="left_only"')['recording_filename']\
-            .tolist()
+        missing_recordings = input[~input['recording_filename'].isin(self.project.recordings['filename'].tolist())]
+        missing_recordings = missing_recordings['recording_filename'].tolist()
 
         if len(missing_recordings) > 0:
             raise ValueError("cannot import annotations. the following recordings are incorrect:\n{}".format("\n".join(missing_recordings)))
