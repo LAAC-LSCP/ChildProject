@@ -317,6 +317,12 @@ class AnnotationManager:
         return annotation
 
     def import_annotations(self, input):
+        missing_recordings = input[~input['recording_filename'].isin(self.project.recordings['filename'].tolist())]
+        missing_recordings = missing_recordings['recording_filename'].tolist()
+
+        if len(missing_recordings) > 0:
+            raise ValueError("cannot import annotations. the following recordings are incorrect:\n{}".format("\n".join(missing_recordings)))
+
         pool = mp.Pool(processes = mp.cpu_count())
         imported = pool.map(
             self.import_annotation,
