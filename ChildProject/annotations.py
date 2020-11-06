@@ -317,6 +317,20 @@ class AnnotationManager:
         return annotation
 
     def import_annotations(self, input):
+        missing_recordings = input[['recording_filename']]\
+            .merge(
+                self.project.recordings[['filename']],
+                how = 'left',
+                left_on = 'recording_filename',
+                right_on = 'filename',
+                indicator = True
+            )\
+            .query('_merge=="left_only"')['recording_filename']\
+            .tolist()
+
+        if len(missing_recordings) > 0:
+            raise ValueError("cannot import annotations. the following recordings are incorrect:\n{}".format("\n".join(missing_recordings)))
+
         pool = mp.Pool(processes = mp.cpu_count())
         imported = pool.map(
             self.import_annotation,
