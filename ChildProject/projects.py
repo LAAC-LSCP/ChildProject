@@ -140,9 +140,9 @@ class ChildProject:
         IndexColumn(name = 'normative_criterion', description = 'how normative was decided; eg "unless the caregivers volunteered information whereby the child had a problem, we consider them normative by default"'),
         IndexColumn(name = 'mother_id', description = 'unique ID of the mother'),
         IndexColumn(name = 'father_id', description = 'unique ID of the father'),
-        IndexColumn(name = 'order_of_birth', description = 'child order of birth', regex = '([0-9]+|NA)', required = False),
-        IndexColumn(name = 'n_of_siblings', description = 'amount of siblings', regex = '([0-9]+|NA)', required = False),
-        IndexColumn(name = 'household_size', description = 'number of people living in the household (adults+children)', regex = '([0-9]+|NA)', required = False),
+        IndexColumn(name = 'order_of_birth', description = 'child order of birth', regex = '(\d+(\.\d+)?)', required = False),
+        IndexColumn(name = 'n_of_siblings', description = 'amount of siblings', regex = '(\d+(\.\d+)?)', required = False),
+        IndexColumn(name = 'household_size', description = 'number of people living in the household (adults+children)', regex = '(\d+(\.\d+)?)', required = False),
         IndexColumn(name = 'dob_criterion', description = "determines whether the date of birth is known exactly or extrapolated e.g. from the age. Dates of birth are assumed to be known exactly if this column is NA or unspecified.", regex = "(extrapolated|exact|NA)", required = False)
     ]
 
