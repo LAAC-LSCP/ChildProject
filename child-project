@@ -3,6 +3,7 @@ from ChildProject.projects import ChildProject, RecordingProfile
 from ChildProject.annotations import AnnotationManager
 
 import argparse
+import os
 import pandas as pd
 import sys
 
