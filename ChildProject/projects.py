@@ -186,7 +186,7 @@ class ChildProject:
         self.children = self.ct.read(lookup_extensions = ['.csv', '.xls', '.xlsx'])
         self.recordings = self.rt.read(lookup_extensions = ['.csv', '.xls', '.xlsx'])
 
-    def validate_input_data(self):
+    def validate_input_data(self, ignore_files = False):
         self.errors = []
         self.warnings = []
 
@@ -208,6 +208,9 @@ class ChildProject:
         errors, warnings = self.rt.validate()
         self.errors += errors
         self.warnings += warnings
+
+        if ignore_files:
+            return self.errors, self.warnings
 
         for index, row in self.recordings.iterrows():
             # make sure that recordings exist

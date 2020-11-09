@@ -9,7 +9,7 @@ import sys
 
 def validate(args):
     project = ChildProject(args.source)
-    errors, warnings = project.validate_input_data()
+    errors, warnings = project.validate_input_data(args.ignore_files)
 
     for error in errors:
         print("error: {}".format(error), file = sys.stderr)
@@ -111,6 +111,7 @@ subparsers = parser.add_subparsers()
 
 parser_v = subparsers.add_parser('validate', description = "validate the consistency of the dataset returning detailed errors and warnings")
 parser_v.add_argument("--source", help = "project path", required = True)
+parser_v.add_argument('--ignore-files', dest='ignore_files', required = False, default = False, action='store_true')
 parser_v.set_defaults(func = validate)
 
 parser_ia = subparsers.add_parser('import-annotations', description = "convert and import a set of annotations")
@@ -132,7 +133,7 @@ parser_c.add_argument("--format", help = "audio format (e.g. {})".format(default
 parser_c.add_argument("--codec", help = "audio codec (e.g. {})".format(default_profile.codec), required = True)
 parser_c.add_argument("--sampling", help = "sampling frequency (e.g. {})".format(default_profile.sampling), required = True)
 parser_c.add_argument("--split", help = "split duration (e.g. 15:00:00)", required = False, default = None)
-parser_c.add_argument('--skip_existing', dest='skip_existing', required = False, default = False, action='store_true')
+parser_c.add_argument('--skip-existing', dest='skip_existing', required = False, default = False, action='store_true')
 parser_c.add_argument('--threads', help = "amount of threads running conversions in parallel (0 = uses all available cores)", required = False, default = 0, type = int)
 parser_c.set_defaults(func = convert)
 
