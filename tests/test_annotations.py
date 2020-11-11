@@ -7,6 +7,7 @@ import os
 import pytest
 import shutil
 import subprocess
+import sys
 
 @pytest.fixture(scope='function')
 def project(request):
@@ -46,8 +47,7 @@ def test_import(project):
         pd.testing.assert_frame_equal(
             segments.sort_index(axis = 1).sort_values(segments.columns.tolist()).reset_index(drop = True),
             pd.read_csv('tests/truth/{}.csv'.format(dataset)).sort_index(axis = 1).sort_values(segments.columns.tolist()).reset_index(drop = True),
-            atol = 1e-3,
-            rtol = 1e-3
+            check_less_precise = True
         )
 
 def test_clipping(project):
@@ -67,6 +67,7 @@ def test_clipping(project):
 
 thresholds = [0, 0.5, 1]
 @pytest.mark.parametrize('turntakingthresh', thresholds)
+@pytest.mark.skipif(sys.version_info < (3,6), reason = "requires python 3.6")
 def test_vc_stats(project, turntakingthresh):
     am = AnnotationManager(project)
     am.import_annotations(pd.read_csv('examples/valid_raw_data/raw_annotations/input.csv'))
