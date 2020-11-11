@@ -7,10 +7,14 @@ import os
 
 parser = argparse.ArgumentParser(description='import and convert VTC annotations into the project')
 parser.add_argument("--source", help = "project path", required = True)
+parser.add_argument("--overwrite", help = "project path", dest = 'overwrite', action = 'store_true')
 args = parser.parse_args()
 
 project = ChildProject(args.source)
 am = AnnotationManager(project)
+
+if args.overwrite:
+    am.remove_set('vtc')
 
 input = project.recordings[['filename']]
 input.rename(columns = {'filename': 'recording_filename'}, inplace = True)

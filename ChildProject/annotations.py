@@ -336,6 +336,17 @@ class AnnotationManager:
         self.annotations = pd.concat([self.annotations, imported], sort = False)
         self.annotations.to_csv(os.path.join(self.project.path, 'metadata/annotations.csv'), index = False)
 
+    def remove_set(self, annotation_set):
+        self.read()
+
+        try:
+            shutil.rmtree(os.path.join(self.project.path, 'annotations', annotation_set))
+        except:
+            pass
+
+        self.annotations = self.annotations[self.annotations['set'] != annotation_set]
+        self.annotations.to_csv(os.path.join(self.project.path, 'metadata/annotations.csv'), index = False)
+
     def get_segments(self, annotations):
         segments = pd.concat([
             pd.read_csv(os.path.join(self.project.path, 'annotations', f)).assign(annotation_filename = f)
