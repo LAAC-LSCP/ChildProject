@@ -6,6 +6,8 @@ import numpy as np
 import os
 import pytest
 import shutil
+import subprocess
+import sys
 
 @pytest.fixture(scope='function')
 def project(request):
@@ -63,3 +65,21 @@ def test_clipping(project):
     assert segments['segment_onset'].between(start, stop).all() and segments['segment_offset'].between(start, stop).all(), "segments not properly clipped"
     assert segments.shape[0] == 2, "got {} segments, expected 2".format(segments.shape[0])
 
+thresholds = [0, 0.5, 1]
+@pytest.mark.parametrize('turntakingthresh', thresholds)
+@pytest.mark.skipif(sys.version_info < (3,6), reason = "requires python 3.6")
+def test_vc_stats(project, turntakingthresh):
+    am = AnnotationManager(project)
+    am.import_annotations(pd.read_csv('examples/valid_raw_data/raw_annotations/input.csv'))
+
+    raw_rttm = 'example_metrics.rttm'
+    segments = am.annotations[am.annotations['raw_filename'] == raw_rttm]
+    
+    vc = am.get_vc_stats(am.get_segments(segments), turntakingthresh = turntakingthresh).reset_index()
+    truth_vc = pd.read_csv('tests/truth/vc_truth_{:.1f}.csv'.format(turntakingthresh))
+   
+    pd.testing.assert_frame_equal(
+        vc.reset_index().sort_index(axis = 1).sort_values(vc.columns.tolist()),
+        truth_vc.reset_index().sort_index(axis = 1).sort_values(vc.columns.tolist()),
+        atol = 3
+    )
