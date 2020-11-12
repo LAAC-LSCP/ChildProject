@@ -3,7 +3,7 @@
 - [Installation](#installation)
 - [Usage](#usage)
   - [Validate raw data](#validate-raw-data)
-  - [Import raw data](#import-raw-data)
+  - [Import a dataset](#import-a-dataset)
   - [Convert recordings](#convert-recordings)
     - [Multi-core audio conversion with slurm on a cluster](#multi-core-audio-conversion-with-slurm-on-a-cluster)
   - [Import annotations](#import-annotations)
@@ -45,12 +45,12 @@ pip install git+https://github.com/LAAC-LSCP/ChildRecordsData.git
 child-project validate --source=/path/to/raw/data
 ```
 
-### Import raw data
+### Import a dataset
 
-Copy all raw data files to the specified destination and creates the working tree.
+Installs a dataset into the specified location.
 
 ```
-child-project import-data --source=/path/to/raw/data --destination=/path/to/the/working/directory
+child-project import-data --dataset png2019-data --destination ../data/png2019 --storage-hostname foberon
 ```
 
 ### Convert recordings
