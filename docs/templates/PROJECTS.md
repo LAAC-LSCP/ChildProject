@@ -8,6 +8,7 @@
   - [Downloading large files](#downloading-large-files)
   - [Updating a dataset](#updating-a-dataset)
   - [Contributing to a dataset](#contributing-to-a-dataset)
+  - [Creating a new dataset](#creating-a-new-dataset)
 
 # List of available projects
 
@@ -88,4 +89,19 @@ These changes still have to be pushed, which can be done with :
 
 ```
 datalad publish --to scratch1 --transfer-data all
+```
+
+## Creating a new dataset
+
+This section is a work in progress.
+
+```
+DATASETNAME = "tsimane2017-data"
+datalad create -c laac $DATASETNAME
+cd $DATASETNAME
+datalad create-sibling-github -s origin --github-organization LAAC-LSCP --access-protocol ssh $DATASETNAME
+datalad create-sibling -s scratch1 "/scratch1/data/laac_data/$DATASETNAME"
+echo "/scratch1/data/laac_data/$DATASETNAME" > .datalad/path
+datalad run-procedure setup
+datalad publish --to scratch1
 ```
