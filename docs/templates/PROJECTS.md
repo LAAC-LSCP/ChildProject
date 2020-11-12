@@ -3,6 +3,8 @@
   - [How it works](#how-it-works)
   - [Installing datalad](#installing-datalad)
   - [Installing a dataset](#installing-a-dataset)
+    - [Quick way (using child-project)](#quick-way-using-child-project)
+    - [Datalad way (using only datalad)](#datalad-way-using-only-datalad)
   - [Downloading large files](#downloading-large-files)
   - [Updating a dataset](#updating-a-dataset)
   - [Contributing to a dataset](#contributing-to-a-dataset)
@@ -36,6 +38,14 @@ If you are still having permission issues, consider using python virtual environ
 
 ## Installing a dataset
 
+### Quick way (using child-project)
+
+```
+child-project import-data --dataset namibia-data --destination namibia-data --storage-hostname foberon
+```
+
+### Datalad way (using only datalad)
+
 1. The first step is to clone the dataset from github, for instance :
 
 ```
@@ -54,6 +64,7 @@ Otherwise, you need to specify the SSH alias for Oberon on your system. For me, 
 ```
 datalad run-procedure setup foberon
 ```
+
 
 That's it ! Your dataset is ready to go. By default, large files do not get downloaded automatically. See the next section for help with downloading those files.
 
