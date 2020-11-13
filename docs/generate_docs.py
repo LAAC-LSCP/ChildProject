@@ -6,10 +6,10 @@ import time
 # recursively get the sum of durations of each audio in the current directory :
 # find . -type f -execdir soxi -D {} \; | awk '{s+=$1} END {printf "%.0f", s}'
 projects = [
-    {'name': 'Namibia', 'status': 'ready', 'authors': "Gandhi", 'location': '/scratch1/data/laac_data/namibia', 'recordings': 113, 'duration': 5214771/3600},
-    {'name': 'Solomon', 'status': 'ready', 'authors': "Sarah", 'location': '/scratch1/data/laac_data/solomon', 'recordings': 388, 'duration': 21435406/3600},
-    {'name': 'Tsimane 2017', 'status': 'awaiting validation', 'authors': "", 'location': '/scratch1/data/laac_data/tsimane2017', 'recordings': 41, 'duration': 2001601/3600},
-    {'name': 'png 2019', 'status': 'awaiting data', 'authors': "", 'location': '/scratch1/data/laac_data/rossel_png_2019', 'recordings': 51, 'duration': 2737005/3600},
+    {'name': 'Namibia', 'status': 'ready', 'authors': "Gandhi", 'location': 'https://github.com/LAAC-LSCP/namibia-data', 'recordings': 113, 'duration': 5214771/3600},
+    {'name': 'Solomon', 'status': 'ready', 'authors': "Sarah", 'location': 'https://github.com/LAAC-LSCP/solomon-data', 'recordings': 388, 'duration': 21435406/3600},
+    {'name': 'Tsimane 2017', 'status': 'validation', 'authors': "", 'location': 'https://github.com/LAAC-LSCP/tsimane2017-data', 'recordings': 41, 'duration': 2001601/3600},
+    {'name': 'png 2019', 'status': 'ready', 'authors': "", 'location': 'https://github.com/LAAC-LSCP/png2019-data', 'recordings': 51, 'duration': 2737005/3600},
     {'name': 'Vanuatu', 'status': 'raw', 'authors': "", 'location': '/scratch1/projects/ac_lacie01/STRUCTURE/raw/vanuatu', 'recordings': 53, 'duration': 1040709/3600}
 ]
 

@@ -9,7 +9,7 @@ setup(
     author_email='lucas.gautheron@gmail.com',
     license='unlicense',
     packages=find_packages(),
-    install_requires=['pandas', 'xlrd', 'jinja2', 'numpy', 'pympi-ling', 'sox'],
+    install_requires=['pandas', 'xlrd', 'jinja2', 'numpy', 'pympi-ling', 'sox', 'datalad'],
     scripts=['child-project'],
     zip_safe=False
 )
