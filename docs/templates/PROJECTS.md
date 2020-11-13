@@ -28,7 +28,7 @@ Datalad relies on another tool called [git-annex](https://git-annex.branchable.c
 Our dataset are distributed on two "siblings". Siblings are analogous to git and git-annex remotes.
 The github remote doesn't include large files, only pointers refering to them. The large files are stored in a sibling hosted on the /scratch1 partition available through Oberon.
 
-![structure](http://laac-lscp.github.io/ChildRecordsData/images/infastructure.png "Dataset infrastructure")
+![structure](http://laac-lscp.github.io/ChildRecordsData/images/infrastructure.png "Dataset infrastructure")
 
 ## Installing datalad
 
