@@ -348,6 +348,8 @@ class AnnotationManager:
         self.annotations.to_csv(os.path.join(self.project.path, 'metadata/annotations.csv'), index = False)
 
     def get_segments(self, annotations):
+        annotations = annotations.dropna(subset = ['annotation_filename'])
+
         segments = pd.concat([
             pd.read_csv(os.path.join(self.project.path, 'annotations', f)).assign(annotation_filename = f)
             for f in annotations['annotation_filename'].tolist()
