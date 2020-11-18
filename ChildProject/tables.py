@@ -87,8 +87,7 @@ class IndexTable:
                 ','.join([c.name for c in self.columns])
             ))
 
-        for index, row in self.df.iterrows():
-            # make sure that recordings exist
+        for line_number, row in self.df.iterrows():
             for column_name in self.df.columns:
                 column_attr = next((c for c in self.columns if c.name == column_name), None)
 
@@ -99,13 +98,18 @@ class IndexTable:
                     try:
                         dt = datetime.datetime.strptime(row[column_name], column_attr.datetime)
                     except:
+                        message = "'{}' is not a proper date/time for column '{}' (expected {}) on line {}".format(row[column_name], column_name, column_attr.datetime, line_number)
                         if column_attr.required and str(row[column_name]) != 'NA':
-                            errors.append("'{}' is not a proper date/time (expected {}) on line {}".format(row[column_name], column_attr.datetime, index))
-                        else:
-                            warnings.append("'{}' is not a proper date/time (expected {}) on line {}".format(row[column_name], column_attr.datetime, index))
+                            errors.append(message)
+                        elif column_attr.required or str(row[column_name]) != 'NA':
+                            warnings.append(message)
                 elif column_attr.regex:
                     if not re.fullmatch(column_attr.regex, str(row[column_name])):
-                        warnings.append("'{} does not match the format required for '{}' on line {}, expected '{}'".format(row[column_name], column_name, index, column_attr.regex))
+                        message = "'{}' does not match the format required for '{}' on line {}, expected '{}'".format(row[column_name], column_name, line_number, column_attr.regex)
+                        if column_attr.required and str(row[column_name]) != 'NA':
+                            errors.append(message)
+                        elif column_attr.required or str(row[column_name]) != 'NA':
+                            warnings.append(message)
 
         for c in self.columns:
             if not c.unique:

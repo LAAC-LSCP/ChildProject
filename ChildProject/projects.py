@@ -140,7 +140,10 @@ class ChildProject:
         IndexColumn(name = 'normative_criterion', description = 'how normative was decided; eg "unless the caregivers volunteered information whereby the child had a problem, we consider them normative by default"'),
         IndexColumn(name = 'mother_id', description = 'unique ID of the mother'),
         IndexColumn(name = 'father_id', description = 'unique ID of the father'),
-        IndexColumn(name = 'daytime', description = 'yes (Y) means recording launched such that most or all of the audiorecording happens during daytime; no (N) means at least 30% of the recording may happen at night', regex = '(Y|N)')
+        IndexColumn(name = 'order_of_birth', description = 'child order of birth', regex = r'(\d+(\.\d+)?)', required = False),
+        IndexColumn(name = 'n_of_siblings', description = 'amount of siblings', regex = r'(\d+(\.\d+)?)', required = False),
+        IndexColumn(name = 'household_size', description = 'number of people living in the household (adults+children)', regex = r'(\d+(\.\d+)?)', required = False),
+        IndexColumn(name = 'dob_criterion', description = "determines whether the date of birth is known exactly or extrapolated e.g. from the age. Dates of birth are assumed to be known exactly if this column is NA or unspecified.", regex = "(extrapolated|exact|NA)", required = False)
     ]
 
     RECORDINGS_COLUMNS = [
@@ -155,14 +158,15 @@ class ChildProject:
         IndexColumn(name = 'location_id', description = 'unique location ID -- can be specified at the level of the child (if children do not change locations)'),
         IndexColumn(name = 'its_filename', description = 'its_filename', filename = True),
         IndexColumn(name = 'upl_filename', description = 'upl_filename', filename = True),
+        IndexColumn(name = 'trs_filename', description = 'trs_filename', filename = True),
         IndexColumn(name = 'lena_id', description = ''),
-        IndexColumn(name = 'age', description = 'age in months (rounded)', regex = '^[0-9]+$'),
         IndexColumn(name = 'notes', description = 'free-style notes about individual recordings (avoid tabs and newlines)')
     ]
 
     PROJECT_FOLDERS = [
         'raw_annotations',
         'annotations',
+        'metadata',
         'converted_recordings',
         'doc',
         'scripts'
@@ -176,13 +180,13 @@ class ChildProject:
         self.recordings = None
     
     def read(self):
-        self.ct = IndexTable('children', os.path.join(self.path, 'children'), self.CHILDREN_COLUMNS)
-        self.rt = IndexTable('recordings', os.path.join(self.path, 'recordings/recordings'), self.RECORDINGS_COLUMNS)
+        self.ct = IndexTable('children', os.path.join(self.path, 'metadata/children'), self.CHILDREN_COLUMNS)
+        self.rt = IndexTable('recordings', os.path.join(self.path, 'metadata/recordings'), self.RECORDINGS_COLUMNS)
 
         self.children = self.ct.read(lookup_extensions = ['.csv', '.xls', '.xlsx'])
         self.recordings = self.rt.read(lookup_extensions = ['.csv', '.xls', '.xlsx'])
 
-    def validate_input_data(self):
+    def validate_input_data(self, ignore_files = False):
         self.errors = []
         self.warnings = []
 
@@ -204,6 +208,9 @@ class ChildProject:
         errors, warnings = self.rt.validate()
         self.errors += errors
         self.warnings += warnings
+
+        if ignore_files:
+            return self.errors, self.warnings
 
         for index, row in self.recordings.iterrows():
             # make sure that recordings exist
@@ -259,6 +266,35 @@ class ChildProject:
                 name = os.path.join(destination, folder),
                 exist_ok = True
             )
+
+    def get_stats(self):
+        import sox
+        stats = {}
+        recordings = self.recordings
+        recordings['exists'] = recordings['filename'].map(lambda f: os.path.exists(os.path.join(self.path, 'recordings', f)))
+
+        def get_audio_duration(filename):
+            if not os.path.exists(filename):
+                return 0
+
+            duration = 0
+            try:
+                duration = sox.file_info.duration(filename)
+            except:
+                pass
+
+            return duration
+
+        recordings['duration'] = recordings['filename'].map(lambda f:
+            get_audio_duration(os.path.join(self.path, 'recordings', f))
+        )
+        
+        stats['total_recordings'] = recordings.shape[0]
+        stats['total_existing_recordings'] = recordings[recordings['exists'] == True].shape[0]
+        stats['audio_duration'] = recordings['duration'].sum()
+        stats['total_children'] = self.children.shape[0]
+
+        return stats
 
     def convert_recordings(self, profile, skip_existing = False, threads = 0):
         if not isinstance(profile, RecordingProfile):

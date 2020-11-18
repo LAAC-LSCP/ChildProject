@@ -1,13 +1,14 @@
 - [Introduction](#introduction)
 - [Data formatting and structure](#data-formatting-and-structure)
 - [Installation](#installation)
-  - [Installing the package](#installing-the-package)
 - [Usage](#usage)
   - [Validate raw data](#validate-raw-data)
-  - [Import raw data](#import-raw-data)
+  - [Import a dataset](#import-a-dataset)
   - [Convert recordings](#convert-recordings)
-    - [Multi-core audio conversion with sbatch :](#multi-core-audio-conversion-with-sbatch-)
+    - [Multi-core audio conversion with slurm on a cluster](#multi-core-audio-conversion-with-slurm-on-a-cluster)
   - [Import annotations](#import-annotations)
+    - [Single importation](#single-importation)
+    - [Bulk importation](#bulk-importation)
 - [Available data](#available-data)
 
 ## Introduction
@@ -22,20 +23,17 @@ See the [formatting instructions and specifications](http://laac-lscp.github.io/
 
 ## Installation
 
+The package can be installed using pip :
+
+```
+pip install git+https://github.com/LAAC-LSCP/ChildRecordsData.git
+```
+
+If you are having permissions issues, you can create and activate a python environment beforehand :
+
 ```
 python3.6 -m venv ~/ChildProjectVenv
-
-git clone https://github.com/lucasgautheron/ChildRecordsData.git
-cd ChildRecordsData
 source ~/ChildProjectVenv/bin/activate
-pip install -r requirements.txt
-```
-
-### Installing the package
-
-If you want to import ChildProject modules into your code, you should install the package by doing :
-
-```
 pip install git+https://github.com/LAAC-LSCP/ChildRecordsData.git
 ```
 
@@ -44,43 +42,49 @@ pip install git+https://github.com/LAAC-LSCP/ChildRecordsData.git
 ### Validate raw data
 
 ```
-python validate_raw_data.py --source=/path/to/raw/data
+child-project validate --source=/path/to/raw/data
 ```
 
-### Import raw data
+### Import a dataset
 
-Copy all raw data files to the specified destination and creates the working tree.
+Installs a dataset into the specified location.
 
 ```
-python import_data.py --source=/path/to/raw/data --destination=/path/to/the/working/directory
+child-project import-data --dataset png2019-data --destination ../data/png2019 --storage-hostname foberon
 ```
 
 ### Convert recordings
 
 ```
-python convert.py --source=/path/to/project --name=16kHz --format=wav --sampling=16000 --codec=pcm_s16le
+child-project convert --source=/path/to/project --name=16kHz --format=wav --sampling=16000 --codec=pcm_s16le
 ```
 
 With audio splitting every 15 hours :
 
 ```
-python convert.py --source=/path/to/project --name=16kHz --split=15:00:00 --format=wav --sampling=16000 --codec=pcm_s16le
+child-project convert --source=/path/to/project --name=16kHz --split=15:00:00 --format=wav --sampling=16000 --codec=pcm_s16le
 ```
 
-#### Multi-core audio conversion with sbatch :
+#### Multi-core audio conversion with slurm on a cluster
 
-1. create `convert.sh`
-```bash
-#!/bin/bash
-python convert.py --source ../data/namibia/ --name mp --format WAV --codec pcm_s16le --sampling 16000 --threads 4
 ```
-2. run `$ chmod +x convert.sh`
-3. run `$ sbatch --mem=64G --time=5:00:00 --cpus-per-task=4 --ntasks=1 -o namibia.txt ./convert.sh`
+sbatch --mem=64G --time=5:00:00 --cpus-per-task=4 --ntasks=1 -o namibia.txt child-project convert --source ../data/namibia/ --name standard --format WAV --codec pcm_s16le --sampling 16000 --threads 4`
+```
 
 ### Import annotations
 
+Annotations can be imported one by one or in bulk.
+
+#### Single importation
+
 ```
-python import_annotations.py --source /path/to/project --annotations /path/to/dataframe.csv
+child-project import-annotations --source /path/to/project --set eaf --recording_filename sound.wav --time_seek 0 --raw_filename example.eaf --range_onset 0 --range_offset 300 --format eaf
+```
+
+#### Bulk importation
+
+```
+child-project import-annotations --source /path/to/project --annotations /path/to/dataframe.csv
 ```
 
 The input dataframe `/path/to/dataframe.csv` must have one entry per annotation to import, according to the format specified [here](http://laac-lscp.github.io/ChildRecordsData/FORMATTING.html#annotation-importation-input-format).
