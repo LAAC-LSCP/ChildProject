@@ -50,6 +50,28 @@ def test_import(project):
             check_less_precise = True
         )
 
+def test_intersect(project):
+    am = AnnotationManager(project)
+
+    input_annotations = pd.read_csv('examples/valid_raw_data/raw_annotations/intersect.csv')
+    am.import_annotations(input_annotations)
+    am.read()
+
+    a, b = am.intersection(
+        am.annotations[am.annotations['set'] == 'textgrid'],
+        am.annotations[am.annotations['set'] == 'vtc_rttm']
+    )
+    
+    pd.testing.assert_frame_equal(
+        a.sort_index(axis = 1).sort_values(a.columns.tolist()).reset_index(drop = True).drop(columns=['imported_at']),
+        pd.read_csv('tests/truth/intersect_a.csv').sort_index(axis = 1).sort_values(a.columns.tolist()).reset_index(drop = True).drop(columns=['imported_at'])
+    )
+
+    pd.testing.assert_frame_equal(
+        b.sort_index(axis = 1).sort_values(b.columns.tolist()).reset_index(drop = True).drop(columns=['imported_at']),
+        pd.read_csv('tests/truth/intersect_b.csv').sort_index(axis = 1).sort_values(b.columns.tolist()).reset_index(drop = True).drop(columns=['imported_at'])
+    )
+
 def test_clipping(project):
     am = AnnotationManager(project)
 
@@ -67,7 +89,7 @@ def test_clipping(project):
 
 thresholds = [0, 0.5, 1]
 @pytest.mark.parametrize('turntakingthresh', thresholds)
-@pytest.mark.skipif(sys.version_info < (3,6), reason = "requires python 3.6")
+@pytest.mark.skipif(tuple(map(int, pd.__version__.split('.')[:2])) < (1,1), reason = "requires pandas>=1.1.0")
 def test_vc_stats(project, turntakingthresh):
     am = AnnotationManager(project)
     am.import_annotations(pd.read_csv('examples/valid_raw_data/raw_annotations/input.csv'))
