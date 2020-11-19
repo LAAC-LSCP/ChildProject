@@ -89,7 +89,7 @@ def test_clipping(project):
 
 thresholds = [0, 0.5, 1]
 @pytest.mark.parametrize('turntakingthresh', thresholds)
-@pytest.mark.skipif(sys.version_info < (3,6), reason = "requires python 3.6")
+@pytest.mark.skipif(tuple(map(int, pd.__version__.split('.')[:2])) < (1,1), reason = "requires pandas>=1.1.0")
 def test_vc_stats(project, turntakingthresh):
     am = AnnotationManager(project)
     am.import_annotations(pd.read_csv('examples/valid_raw_data/raw_annotations/input.csv'))
