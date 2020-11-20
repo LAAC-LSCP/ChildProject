@@ -1,21 +1,22 @@
 
 
-- [Source data formatting guidelines](#source-data-formatting-guidelines)
-  - [Raw data tree](#raw-data-tree)
-  - [children notebook](#children-notebook)
-  - [recording notebook](#recording-notebook)
-- [Annotations formatting](#annotations-formatting)
+- [Datasets structure](#datasets-structure)
+  - [Dataset tree](#dataset-tree)
+  - [Metadata](#metadata)
+    - [children notebook](#children-notebook)
+    - [recording notebook](#recording-notebook)
+- [Annotations](#annotations)
   - [Annotations format](#annotations-format)
   - [Annotations index](#annotations-index)
   - [Annotation importation input format](#annotation-importation-input-format)
 
-# Source data formatting guidelines
+# Datasets structure
 
-Projects must pass the [the validation script](https://laac-lscp.github.io/ChildRecordsData/#validate-raw-data) with no error and as few warnings as possible before submission.
+Datasets must pass the [the validation routine](https://laac-lscp.github.io/ChildRecordsData/#validate-raw-data) with no error and as few warnings as possible before submission.
 
-## Raw data tree
+## Dataset tree
 
-Before submission, data should comply with the following structure :
+All datasets should have this structure :
 
 ```
 project
@@ -24,6 +25,7 @@ project
 └───metadata
 │   │   children.csv
 │   │   recordings.csv
+│   │   annotations.csv
 |
 └───recordings
 │   │   recordings.csv
@@ -39,7 +41,10 @@ project
 
 The children and recordings notebooks should be formatted according to the standards detailed right below.
 
-## children notebook
+## Metadata
+
+
+### children notebook
 
 Located in the `metadata` folder. Can be named either `children.csv`, `children.xls` or `children.xslx`.
 
@@ -54,7 +59,7 @@ Located in the `metadata` folder. Can be named either `children.csv`, `children.
 {%- endif %}
 {% endfor %}
 
-## recording notebook
+### recording notebook
 
 Located in the `metadata` folder.  Can be named either `recordings.csv`, `recordings.xls` or `recordings.xslx`.
 
@@ -69,7 +74,7 @@ Located in the `metadata` folder.  Can be named either `recordings.csv`, `record
 {%- endif %}
 {% endfor %}
 
-# Annotations formatting
+# Annotations
 
 ## Annotations format
 
