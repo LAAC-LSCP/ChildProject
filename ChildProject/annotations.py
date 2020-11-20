@@ -12,6 +12,7 @@ import traceback
 
 from .projects import ChildProject
 from .tables import IndexTable, IndexColumn
+from .utils import Segment, intersect_ranges
 
 class AnnotationManager:
     INDEX_COLUMNS = [
@@ -356,6 +357,62 @@ class AnnotationManager:
         ])
 
         return segments.merge(annotations, how = 'left', left_on = 'annotation_filename', right_on = 'annotation_filename')
+
+    def intersection(self, left, right):
+        recordings = set(left['recording_filename'].unique()) & set(right['recording_filename'].unique())
+        recordings = list(recordings)
+
+        a_stack = []
+        b_stack = []
+
+        for recording in recordings:
+            a = left[left['recording_filename'] == recording]
+            b = right[right['recording_filename'] == recording]
+
+            for bound in ('onset', 'offset'):
+                a['abs_range_' + bound] = a['range_' + bound] + a['time_seek']
+                b['abs_range_' + bound] = b['range_' + bound] + b['time_seek']
+
+            a_ranges = a[['abs_range_onset', 'abs_range_offset']].sort_values(['abs_range_onset', 'abs_range_offset']).values.tolist()
+            b_ranges = b[['abs_range_onset', 'abs_range_offset']].sort_values(['abs_range_onset', 'abs_range_offset']).values.tolist()
+
+            print(a_ranges, b_ranges)
+
+            segments = list(intersect_ranges(
+                (Segment(onset, offset) for (onset, offset) in a_ranges),
+                (Segment(onset, offset) for (onset, offset) in b_ranges)
+            ))
+
+            print(segments)
+
+            a_out = []
+            b_out = []
+
+            for segment in segments:
+                a_row = a[(a['abs_range_onset'] <= segment.start) & (a['abs_range_offset'] >= segment.stop)].to_dict(orient = 'records')[0]
+                a_row['abs_range_onset'] = segment.start
+                a_row['abs_range_offset'] = segment.stop
+                a_out.append(a_row)
+
+                b_row = b[(b['abs_range_onset'] <= segment.start) & (b['abs_range_offset'] >= segment.stop)].to_dict(orient = 'records')[0]
+                b_row['abs_range_onset'] = segment.start
+                b_row['abs_range_offset'] = segment.stop
+                b_out.append(b_row)
+
+            a_out = pd.DataFrame(a_out)
+            b_out = pd.DataFrame(b_out)
+
+            for bound in ('onset', 'offset'):
+                a_out['range_' + bound] = a_out['abs_range_' + bound] - a_out['time_seek']
+                b_out['range_' + bound] = b_out['abs_range_' + bound] - b_out['time_seek']
+
+            a_out.drop(['abs_range_onset', 'abs_range_offset'], axis = 1, inplace = True)
+            b_out.drop(['abs_range_onset', 'abs_range_offset'], axis = 1, inplace = True)
+
+            a_stack.append(a_out)
+            b_stack.append(b_out)
+
+        return pd.concat(a_stack), pd.concat(b_stack)
 
     def clip_segments(self, segments, start, stop):
         segments['segment_onset'].clip(lower = start, upper = stop, inplace = True)
