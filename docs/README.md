@@ -1,15 +1,14 @@
 - [Introduction](#introduction)
 - [Data formatting and structure](#data-formatting-and-structure)
 - [Installation](#installation)
-- [Usage examples](#usage-examples)
+- [Installing datasets](#installing-datasets)
+- [Working with the data](#working-with-the-data)
   - [Validate raw data](#validate-raw-data)
-  - [Import a dataset](#import-a-dataset)
   - [Convert recordings](#convert-recordings)
     - [Multi-core audio conversion with slurm on a cluster](#multi-core-audio-conversion-with-slurm-on-a-cluster)
   - [Import annotations](#import-annotations)
     - [Single importation](#single-importation)
     - [Bulk importation](#bulk-importation)
-- [Available data](#available-data)
 
 ## Introduction
 
@@ -39,20 +38,16 @@ source ~/ChildProjectVenv/bin/activate
 pip install git+https://github.com/LAAC-LSCP/ChildRecordsData.git
 ```
 
-## Usage examples
+## Installing datasets
+
+The list of available datasets with instructions to download them can be found [here](http://laac-lscp.github.io/ChildRecordsData/PROJECTS.html).
+
+## Working with the data
 
 ### Validate raw data
 
 ```
 child-project validate /path/to/raw/data
-```
-
-### Import a dataset
-
-Installs a dataset into the specified location.
-
-```
-child-project import-data --dataset git@github.com:LAAC-LSCP/png2019-data.git --destination ../data/png2019 --storage-hostname foberon
 ```
 
 ### Convert recordings
@@ -91,6 +86,3 @@ child-project import-annotations /path/to/project --annotations /path/to/datafra
 
 The input dataframe `/path/to/dataframe.csv` must have one entry per annotation to import, according to the format specified [here](http://laac-lscp.github.io/ChildRecordsData/FORMATTING.html#annotation-importation-input-format).
 
-## Available data
-
-The list of available data can be found [here](http://laac-lscp.github.io/ChildRecordsData/PROJECTS.html).
