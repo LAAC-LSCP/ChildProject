@@ -29,7 +29,9 @@ The package can be installed using pip :
 pip install git+https://github.com/LAAC-LSCP/ChildRecordsData.git
 ```
 
-If you are having permissions issues, you can create and activate a python environment beforehand :
+(The package requires python 3, so make sure `pip` points to a python3 installation, otherwise try pip3.)
+
+If you are having permissions issues - or any other issue -, you can create and activate a python environment beforehand :
 
 ```
 python3.6 -m venv ~/ChildProjectVenv
