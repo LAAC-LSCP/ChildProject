@@ -32,6 +32,8 @@ The github remote doesn't include large files, only pointers refering to them. T
 
 ## Installing datalad
 
+*Important: datasets are hosted on github and oberon. This means you are required access to our private github repositories as well as ssh access to oberon. You will be prompted for credentials everytime you issue datalad commands, so we recommand using SSH keys and enabling the Keychain (append `~/.ssh/config` with `UseKeychain yes`).*
+
 1. Install git-annex using `apt install git-annex` (linux) or `brew install git-annex` (mac). Git-annex is available by default on Oberon.
 2. Install datalad with pip : `pip install datalad` (or  `pip install datalad --user` in case of permission issues)
 

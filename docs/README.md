@@ -22,6 +22,8 @@ See the [formatting instructions and specifications](http://laac-lscp.github.io/
 
 ## Installation
 
+1. Install the package via pip
+  
 The package can be installed using pip :
 
 ```
@@ -37,6 +39,10 @@ python3.6 -m venv ~/ChildProjectVenv
 source ~/ChildProjectVenv/bin/activate
 pip install git+https://github.com/LAAC-LSCP/ChildRecordsData.git
 ```
+
+2. Install git-annex
+
+The package also requires git-annex in order to retrieve the datasets. It can be installed via `apt install git-annex` or `brew install git-annex`. It is encouraged to use a recent version of git-annex (8.2+).
 
 ## Installing datasets
 
