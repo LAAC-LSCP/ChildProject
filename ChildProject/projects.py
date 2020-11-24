@@ -11,6 +11,7 @@ import shutil
 import subprocess
 
 from .tables import IndexTable, IndexColumn
+from .utils import is_boolean
 
 class RecordingProfile:
     def __init__(self, name, format = 'wav', codec = 'pcm_s16le', sampling = 16000,
@@ -160,6 +161,9 @@ class ChildProject:
         IndexColumn(name = 'upl_filename', description = 'upl_filename', filename = True),
         IndexColumn(name = 'trs_filename', description = 'trs_filename', filename = True),
         IndexColumn(name = 'lena_id', description = ''),
+        IndexColumn(name = 'might_feature_gaps', description = '1 if the audio cannot be guaranteed to be a continuous block with no time jumps, 0 or NA or undefined otherwise.', function = is_boolean),
+        IndexColumn(name = 'start_time_accuracy', description = 'Accuracy of start_time for this recording. If not specified, assumes minute-accuray.', regex = '(minute|hour|unreliable)'),
+        IndexColumn(name = 'noisy_setting', description = '1 if the audio may be noisier than the childs usual day, 0 or undefined otherwise', function = is_boolean),
         IndexColumn(name = 'notes', description = 'free-style notes about individual recordings (avoid tabs and newlines)')
     ]
 

@@ -29,13 +29,15 @@ def read_dataframe(filename):
 
 class IndexColumn:
     def __init__(self, name = "", description = "", required = False, regex = None,
-                 filename = False, datetime = None, unique = False, generated = False):
+                 filename = False, datetime = None, function = None, unique = False,
+                 generated = False):
         self.name = name
         self.description = description
         self.required = required
         self.filename = filename
         self.regex = regex
         self.datetime = datetime
+        self.function = function
         self.unique = unique
         self.generated = generated
 
@@ -93,6 +95,20 @@ class IndexTable:
 
                 if column_attr is None:
                     continue
+
+                if callable(column_attr.function):
+                    try:
+                        ok = column_attr.function(str(row[column_name])) == True
+                    except:
+                        ok = False
+
+                    if not ok:
+                        message = "'{}' does not pass callable test for column '{}' on line {}".format(row[column_name], column_name, line_number)
+                        if column_attr.required and str(row[column_name]) != 'NA':
+                                errors.append(message)
+                        elif column_attr.required or str(row[column_name]) != 'NA':
+                                warnings.append(message)
+
 
                 if column_attr.datetime:
                     try:
