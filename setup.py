@@ -10,6 +10,11 @@ setup(
     license='unlicense',
     packages=find_packages(),
     install_requires=['pandas', 'xlrd', 'jinja2', 'numpy', 'pympi-ling', 'sox', 'datalad'],
-    scripts=['child-project'],
+    include_package_data=True,
+    entry_points={
+        'console_scripts': [
+            'child-project=ChildProject.cmdline:main',
+        ],
+    },
     zip_safe=False
 )
