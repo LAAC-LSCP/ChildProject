@@ -10,8 +10,7 @@ import re
 import shutil
 import subprocess
 
-from .tables import IndexTable, IndexColumn
-from .utils import is_boolean
+from .tables import IndexTable, IndexColumn, is_boolean
 
 class RecordingProfile:
     def __init__(self, name, format = 'wav', codec = 'pcm_s16le', sampling = 16000,

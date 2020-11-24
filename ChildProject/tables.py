@@ -27,6 +27,9 @@ def read_dataframe(filename):
     df.index = df.index+2
     return df
 
+def is_boolean(x):
+    return x == 'NA' or int(x) in [0,1]
+
 class IndexColumn:
     def __init__(self, name = "", description = "", required = False,
                  regex = None, filename = False, datetime = None, function = None, choices = None,

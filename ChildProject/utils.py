@@ -33,6 +33,3 @@ def intersect_ranges(xs, ys):
                 y = next(ys)
         except StopIteration:
             return
-
-def is_boolean(x):
-    return x == 'NA' or int(x) in [0,1]
