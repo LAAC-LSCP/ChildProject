@@ -129,22 +129,22 @@ class ChildProject:
         IndexColumn(name = 'child_id', description = 'unique child ID -- unique within the experiment (Id could be repeated across experiments to refer to different children)', unique = True, required = True),
         IndexColumn(name = 'child_dob', description = "child's date of birth", required = True, datetime = '%Y-%m-%d'),
         IndexColumn(name = 'location_id', description = 'Unique location ID -- only specify here if children never change locations in this culture; otherwise, specify in the recordings metadata'),
-        IndexColumn(name = 'child_sex', description = 'f= female, m=male', regex = '(m|f|M|F)'),
+        IndexColumn(name = 'child_sex', description = 'f= female, m=male', choices = ['m', 'M', 'f', 'F']),
         IndexColumn(name = 'language', description = 'language the child is exposed to if child is monolingual; small caps, indicate dialect by name or location if available; eg "france french"; "paris french"'),
         IndexColumn(name = 'languages', description = 'list languages child is exposed to separating them with ; and indicating the percentage if one is available; eg: "french 35%; english 65%"'),
         IndexColumn(name = 'mat_ed', description = 'maternal years of education'),
         IndexColumn(name = 'fat_ed', description = 'paternal years of education'),
         IndexColumn(name = 'car_ed', description = 'years of education of main caregiver (if not mother or father)'),
-        IndexColumn(name = 'monoling', description = 'whether the child is monolingual (Y) or not (N)', regex = '(Y|N)'),
+        IndexColumn(name = 'monoling', description = 'whether the child is monolingual (Y) or not (N)', choices = ['Y', 'N']),
         IndexColumn(name = 'monoling_criterion', description = 'how monoling was decided; eg "we asked families which languages they spoke in the home"'),
-        IndexColumn(name = 'normative', description = 'whether the child is normative (Y) or not (N)', regex = '(Y|N)'),
+        IndexColumn(name = 'normative', description = 'whether the child is normative (Y) or not (N)', choices = ['Y', 'N']),
         IndexColumn(name = 'normative_criterion', description = 'how normative was decided; eg "unless the caregivers volunteered information whereby the child had a problem, we consider them normative by default"'),
         IndexColumn(name = 'mother_id', description = 'unique ID of the mother'),
         IndexColumn(name = 'father_id', description = 'unique ID of the father'),
         IndexColumn(name = 'order_of_birth', description = 'child order of birth', regex = r'(\d+(\.\d+)?)', required = False),
         IndexColumn(name = 'n_of_siblings', description = 'amount of siblings', regex = r'(\d+(\.\d+)?)', required = False),
         IndexColumn(name = 'household_size', description = 'number of people living in the household (adults+children)', regex = r'(\d+(\.\d+)?)', required = False),
-        IndexColumn(name = 'dob_criterion', description = "determines whether the date of birth is known exactly or extrapolated e.g. from the age. Dates of birth are assumed to be known exactly if this column is NA or unspecified.", regex = "(extrapolated|exact|NA)", required = False)
+        IndexColumn(name = 'dob_criterion', description = "determines whether the date of birth is known exactly or extrapolated e.g. from the age. Dates of birth are assumed to be known exactly if this column is NA or unspecified.", choices = ['extrapolated', 'exact'], required = False)
     ]
 
     RECORDINGS_COLUMNS = [
@@ -152,7 +152,7 @@ class ChildProject:
         IndexColumn(name = 'child_id', description = 'unique child ID -- unique within the experiment (Id could be repeated across experiments to refer to different children)', required = True),
         IndexColumn(name = 'date_iso', description = 'date in which recording was started in ISO (eg 2020-09-17)', required = True, datetime = '%Y-%m-%d'),
         IndexColumn(name = 'start_time', description = 'local time in which recording was started in format 24-hour (H)H:MM; if minutes are unknown, use 00. Set as ‘NA’ if unknown.', required = True, datetime = '%H:%M'),
-        IndexColumn(name = 'recording_device_type', description = 'lena, usb, olympus, babylogger (lowercase)', required = True, regex = '({})'.format('|'.join(['lena', 'usb', 'olympus', 'babylogger']))),
+        IndexColumn(name = 'recording_device_type', description = 'lena, usb, olympus, babylogger (lowercase)', required = True, choices = ['lena', 'usb', 'olympus', 'babylogger']),
         IndexColumn(name = 'filename', description = 'the path to the file from the root of “recordings”), set to ‘NA’ if no valid recording available. It is unique (two recordings cannot point towards the same file).', required = True, filename = True, unique = True),
         IndexColumn(name = 'recording_device_id', description = 'unique ID of the recording device'),
         IndexColumn(name = 'experimenter', description = 'who collected the data (could be anonymized ID)'),
@@ -162,7 +162,7 @@ class ChildProject:
         IndexColumn(name = 'trs_filename', description = 'trs_filename', filename = True),
         IndexColumn(name = 'lena_id', description = ''),
         IndexColumn(name = 'might_feature_gaps', description = '1 if the audio cannot be guaranteed to be a continuous block with no time jumps, 0 or NA or undefined otherwise.', function = is_boolean),
-        IndexColumn(name = 'start_time_accuracy', description = 'Accuracy of start_time for this recording. If not specified, assumes minute-accuray.', regex = '(minute|hour|unreliable)'),
+        IndexColumn(name = 'start_time_accuracy', description = 'Accuracy of start_time for this recording. If not specified, assumes minute-accuray.', choices = ['minute', 'hour', 'reliable']),
         IndexColumn(name = 'noisy_setting', description = '1 if the audio may be noisier than the childs usual day, 0 or undefined otherwise', function = is_boolean),
         IndexColumn(name = 'notes', description = 'free-style notes about individual recordings (avoid tabs and newlines)')
     ]

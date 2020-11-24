@@ -28,9 +28,9 @@ def read_dataframe(filename):
     return df
 
 class IndexColumn:
-    def __init__(self, name = "", description = "", required = False, regex = None,
-                 filename = False, datetime = None, function = None, unique = False,
-                 generated = False):
+    def __init__(self, name = "", description = "", required = False,
+                 regex = None, filename = False, datetime = None, function = None, choices = None,
+                 unique = False, generated = False):
         self.name = name
         self.description = description
         self.required = required
@@ -38,6 +38,7 @@ class IndexColumn:
         self.regex = regex
         self.datetime = datetime
         self.function = function
+        self.choices = choices
         self.unique = unique
         self.generated = generated
 
@@ -108,6 +109,13 @@ class IndexTable:
                                 errors.append(message)
                         elif column_attr.required or str(row[column_name]) != 'NA':
                                 warnings.append(message)
+
+                if column_attr.choices and str(row[column_name]) not in column_attr.choices:
+                    message = "'{}' is not a permitted value for column '{}' on line {}, should be any of [{}]".format(row[column_name], column_name, line_number, ",".join(column_attr.choices))
+                    if column_attr.required and str(row[column_name]) != 'NA':
+                            errors.append(message)
+                    elif column_attr.required or str(row[column_name]) != 'NA':
+                            warnings.append(message)
 
 
                 if column_attr.datetime:
