@@ -69,6 +69,7 @@ Located in the `metadata` folder.  Can be named either `recordings.csv`, `record
 | **{{column.name}}** | {{column.description}} | {{'**required**' if column.required else 'optional'}}
 {%- if column.datetime %} | `{{column.datetime}}` (date/time) |
 {%- elif column.regex %} | `{{column.regex}}` (regex) |
+{%- elif column.function %} | {{column.function.__name__}} (function) |
 {%- elif column.filename %} | filename |
 {%- else %} | - |
 {%- endif %}
@@ -86,6 +87,7 @@ The package provides functions to convert any annotation into the following csv 
 | **{{column.name}}** | {{column.description}}
 {%- if column.datetime %} | `{{column.datetime}}` (date/time) |
 {%- elif column.regex %} | `{{column.regex}}` (regex) |
+{%- elif column.function %} | {{column.function.__name__}} (function) |
 {%- elif column.filename %} | filename |
 {%- else %} | - |
 {%- endif %}
