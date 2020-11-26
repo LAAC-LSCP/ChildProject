@@ -7,7 +7,27 @@ import os
 import pandas as pd
 import sys
 
+parser = argparse.ArgumentParser()
+subparsers = parser.add_subparsers()
+
+def arg(*name_or_flags, **kwargs):
+    return (list(name_or_flags), kwargs)
+
+def subcommand(args=[], parent = subparsers):
+    def decorator(func):
+        parser = parent.add_parser(func.__name__.replace('_', '-'), description=func.__doc__)
+        for arg in args:
+            parser.add_argument(*arg[0], **arg[1])
+        parser.set_defaults(func=func)
+    return decorator
+
+@subcommand([
+    arg("source", help = "project path"),
+    arg('--ignore-files', dest='ignore_files', required = False, default = False, action = 'store_true')
+])
 def validate(args):
+    """validate the consistency of the dataset returning detailed errors and warnings"""
+
     project = ChildProject(args.source)
     errors, warnings = project.validate_input_data(args.ignore_files)
 
@@ -21,8 +41,17 @@ def validate(args):
         print("validation failed, {} error(s) occured".format(len(errors)), file = sys.stderr)
         sys.exit(1)
 
-
+@subcommand([
+    arg("source", help = "project path"),
+    arg("--annotations", help = "path to input annotations index (csv)", default = "")
+] + [
+    arg("--{}".format(col.name), help = col.description, type = str, default = None)
+    for col in AnnotationManager.INDEX_COLUMNS
+    if not col.generated
+])
 def import_annotations(args):
+    """convert and import a set of annotations"""
+
     project = ChildProject(args.source)
     errors, warnings = project.validate_input_data()
 
@@ -46,7 +75,14 @@ def import_annotations(args):
         print("\n".join(errors), file = sys.stderr)
         print("\n".join(warnings))
 
+@subcommand([
+    arg("dataset", help = "dataset to install. Should be a valid repository name at https://github.com/LAAC-LSCP. (e.g.: solomon-data)"),
+    arg("--destination", help = "destination path", required = False, default = ""),
+    arg("--storage-hostname", dest = "storage_hostname", help = "ssh storage hostname (e.g. 'foberon')", required = False, default = "")
+])
 def import_data(args):
+    """import and configures a datalad dataset"""
+
     import datalad.api
     import datalad.distribution.dataset
 
@@ -69,7 +105,20 @@ def import_data(args):
 
     datalad.api.run_procedure(spec = cmd, dataset = ds)
 
+
+default_profile = RecordingProfile("default")    
+@subcommand([
+    arg("source", help = "project path"),
+    arg("--name", help = "profile name", required = True),
+    arg("--format", help = "audio format (e.g. {})".format(default_profile.format), required = True),
+    arg("--codec", help = "audio codec (e.g. {})".format(default_profile.codec), required = True),
+    arg("--sampling", help = "sampling frequency (e.g. {})".format(default_profile.sampling), required = True),
+    arg("--split", help = "split duration (e.g. 15:00:00)", required = False, default = None),
+    arg('--skip-existing', dest='skip_existing', required = False, default = False, action='store_true'),
+    arg('--threads', help = "amount of threads running conversions in parallel (0 = uses all available cores)", required = False, default = 0, type = int)
+])
 def convert(args):
+    """convert recordings to a given format"""
     profile = RecordingProfile(
         name = args.name,
         format = args.format,
@@ -94,6 +143,10 @@ def convert(args):
 
     print("recordings successfully converted to '{}'".format(os.path.join(project.path, 'converted_recordings', profile.name)))
 
+@subcommand([
+    arg("source", help = "source data path"),
+    arg("--stats", help = "stats to retrieve (comma-separated)", required = False, default = "")
+])
 def stats(args):
     project = ChildProject(args.source)
 
@@ -111,47 +164,5 @@ def stats(args):
             print("{}: {}".format(stat, stats[stat]))
 
 def main():
-    parser = argparse.ArgumentParser()
-    subparsers = parser.add_subparsers()
-
-    parser_v = subparsers.add_parser('validate', description = "validate the consistency of the dataset returning detailed errors and warnings")
-    parser_v.add_argument("source", help = "project path")
-    parser_v.add_argument('--ignore-files', dest='ignore_files', required = False, default = False, action='store_true')
-    parser_v.set_defaults(func = validate)
-
-    parser_ia = subparsers.add_parser('import-annotations', description = "convert and import a set of annotations")
-    parser_ia.add_argument("source", help = "project path")
-    parser_ia.add_argument("--annotations", help = "path to input annotations index (csv)", default = "")
-
-    for col in AnnotationManager.INDEX_COLUMNS:
-        if col.generated:
-            continue
-
-        parser_ia.add_argument("--{}".format(col.name), help = col.description, type = str, default = None)
-    parser_ia.set_defaults(func = import_annotations)
-
-    parser_c = subparsers.add_parser('convert', description = "convert recordings to a given format")
-    default_profile = RecordingProfile("default")
-    parser_c.add_argument("source", help = "project path")
-    parser_c.add_argument("--name", help = "profile name", required = True)
-    parser_c.add_argument("--format", help = "audio format (e.g. {})".format(default_profile.format), required = True)
-    parser_c.add_argument("--codec", help = "audio codec (e.g. {})".format(default_profile.codec), required = True)
-    parser_c.add_argument("--sampling", help = "sampling frequency (e.g. {})".format(default_profile.sampling), required = True)
-    parser_c.add_argument("--split", help = "split duration (e.g. 15:00:00)", required = False, default = None)
-    parser_c.add_argument('--skip-existing', dest='skip_existing', required = False, default = False, action='store_true')
-    parser_c.add_argument('--threads', help = "amount of threads running conversions in parallel (0 = uses all available cores)", required = False, default = 0, type = int)
-    parser_c.set_defaults(func = convert)
-
-    parser_id = subparsers.add_parser('import-data')
-    parser_id.add_argument("dataset", help = "dataset to install. Should be a valid repository name at https://github.com/LAAC-LSCP. (e.g.: solomon-data)")
-    parser_id.add_argument("--destination", help = "destination path", required = False, default = "")
-    parser_id.add_argument("--storage-hostname", dest = "storage_hostname", help = "ssh storage hostname (e.g. 'foberon')", required = False, default = "")
-    parser_id.set_defaults(func = import_data)
-
-    parser_s = subparsers.add_parser('stats')
-    parser_s.add_argument("source", help = "source data path")
-    parser_s.add_argument("--stats", help = "stats to retrieve (comma-separated)", required = False, default = "")
-    parser_s.set_defaults(func = stats)
-
     args = parser.parse_args()
     args.func(args)
