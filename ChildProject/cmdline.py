@@ -110,47 +110,48 @@ def stats(args):
         if not args.stats or stat in args.stats:
             print("{}: {}".format(stat, stats[stat]))
 
-parser = argparse.ArgumentParser()
-subparsers = parser.add_subparsers()
+def main():
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers()
 
-parser_v = subparsers.add_parser('validate', description = "validate the consistency of the dataset returning detailed errors and warnings")
-parser_v.add_argument("source", help = "project path")
-parser_v.add_argument('--ignore-files', dest='ignore_files', required = False, default = False, action='store_true')
-parser_v.set_defaults(func = validate)
+    parser_v = subparsers.add_parser('validate', description = "validate the consistency of the dataset returning detailed errors and warnings")
+    parser_v.add_argument("source", help = "project path")
+    parser_v.add_argument('--ignore-files', dest='ignore_files', required = False, default = False, action='store_true')
+    parser_v.set_defaults(func = validate)
 
-parser_ia = subparsers.add_parser('import-annotations', description = "convert and import a set of annotations")
-parser_ia.add_argument("source", help = "project path")
-parser_ia.add_argument("--annotations", help = "path to input annotations index (csv)", default = "")
+    parser_ia = subparsers.add_parser('import-annotations', description = "convert and import a set of annotations")
+    parser_ia.add_argument("source", help = "project path")
+    parser_ia.add_argument("--annotations", help = "path to input annotations index (csv)", default = "")
 
-for col in AnnotationManager.INDEX_COLUMNS:
-    if col.generated:
-        continue
+    for col in AnnotationManager.INDEX_COLUMNS:
+        if col.generated:
+            continue
 
-    parser_ia.add_argument("--{}".format(col.name), help = col.description, type = str, default = None)
-parser_ia.set_defaults(func = import_annotations)
+        parser_ia.add_argument("--{}".format(col.name), help = col.description, type = str, default = None)
+    parser_ia.set_defaults(func = import_annotations)
 
-parser_c = subparsers.add_parser('convert', description = "convert recordings to a given format")
-default_profile = RecordingProfile("default")
-parser_c.add_argument("source", help = "project path")
-parser_c.add_argument("--name", help = "profile name", required = True)
-parser_c.add_argument("--format", help = "audio format (e.g. {})".format(default_profile.format), required = True)
-parser_c.add_argument("--codec", help = "audio codec (e.g. {})".format(default_profile.codec), required = True)
-parser_c.add_argument("--sampling", help = "sampling frequency (e.g. {})".format(default_profile.sampling), required = True)
-parser_c.add_argument("--split", help = "split duration (e.g. 15:00:00)", required = False, default = None)
-parser_c.add_argument('--skip-existing', dest='skip_existing', required = False, default = False, action='store_true')
-parser_c.add_argument('--threads', help = "amount of threads running conversions in parallel (0 = uses all available cores)", required = False, default = 0, type = int)
-parser_c.set_defaults(func = convert)
+    parser_c = subparsers.add_parser('convert', description = "convert recordings to a given format")
+    default_profile = RecordingProfile("default")
+    parser_c.add_argument("source", help = "project path")
+    parser_c.add_argument("--name", help = "profile name", required = True)
+    parser_c.add_argument("--format", help = "audio format (e.g. {})".format(default_profile.format), required = True)
+    parser_c.add_argument("--codec", help = "audio codec (e.g. {})".format(default_profile.codec), required = True)
+    parser_c.add_argument("--sampling", help = "sampling frequency (e.g. {})".format(default_profile.sampling), required = True)
+    parser_c.add_argument("--split", help = "split duration (e.g. 15:00:00)", required = False, default = None)
+    parser_c.add_argument('--skip-existing', dest='skip_existing', required = False, default = False, action='store_true')
+    parser_c.add_argument('--threads', help = "amount of threads running conversions in parallel (0 = uses all available cores)", required = False, default = 0, type = int)
+    parser_c.set_defaults(func = convert)
 
-parser_id = subparsers.add_parser('import-data')
-parser_id.add_argument("dataset", help = "dataset to install. Should be a valid repository name at https://github.com/LAAC-LSCP. (e.g.: solomon-data)")
-parser_id.add_argument("--destination", help = "destination path", required = False, default = "")
-parser_id.add_argument("--storage-hostname", dest = "storage_hostname", help = "ssh storage hostname (e.g. 'foberon')", required = False, default = "")
-parser_id.set_defaults(func = import_data)
+    parser_id = subparsers.add_parser('import-data')
+    parser_id.add_argument("dataset", help = "dataset to install. Should be a valid repository name at https://github.com/LAAC-LSCP. (e.g.: solomon-data)")
+    parser_id.add_argument("--destination", help = "destination path", required = False, default = "")
+    parser_id.add_argument("--storage-hostname", dest = "storage_hostname", help = "ssh storage hostname (e.g. 'foberon')", required = False, default = "")
+    parser_id.set_defaults(func = import_data)
 
-parser_s = subparsers.add_parser('stats')
-parser_s.add_argument("source", help = "source data path")
-parser_s.add_argument("--stats", help = "stats to retrieve (comma-separated)", required = False, default = "")
-parser_s.set_defaults(func = stats)
+    parser_s = subparsers.add_parser('stats')
+    parser_s.add_argument("source", help = "source data path")
+    parser_s.add_argument("--stats", help = "stats to retrieve (comma-separated)", required = False, default = "")
+    parser_s.set_defaults(func = stats)
 
-args = parser.parse_args()
-args.func(args)
+    args = parser.parse_args()
+    args.func(args)
