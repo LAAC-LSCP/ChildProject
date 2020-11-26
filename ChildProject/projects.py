@@ -10,7 +10,7 @@ import re
 import shutil
 import subprocess
 
-from .tables import IndexTable, IndexColumn
+from .tables import IndexTable, IndexColumn, is_boolean
 from .utils import get_audio_duration
 
 class RecordingProfile:
