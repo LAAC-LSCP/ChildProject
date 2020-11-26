@@ -11,6 +11,7 @@ import shutil
 import subprocess
 
 from .tables import IndexTable, IndexColumn
+from .utils import get_audio_duration
 
 class RecordingProfile:
     def __init__(self, name, format = 'wav', codec = 'pcm_s16le', sampling = 16000,
@@ -153,6 +154,7 @@ class ChildProject:
         IndexColumn(name = 'start_time', description = 'local time in which recording was started in format 24-hour (H)H:MM; if minutes are unknown, use 00. Set as ‘NA’ if unknown.', required = True, datetime = '%H:%M'),
         IndexColumn(name = 'recording_device_type', description = 'lena, usb, olympus, babylogger (lowercase)', required = True, regex = '({})'.format('|'.join(['lena', 'usb', 'olympus', 'babylogger']))),
         IndexColumn(name = 'filename', description = 'the path to the file from the root of “recordings”), set to ‘NA’ if no valid recording available. It is unique (two recordings cannot point towards the same file).', required = True, filename = True, unique = True),
+        IndexColumn(name = 'duration', description = 'duration of the audio', regex = r'(\d+(\.\d+)?)'),
         IndexColumn(name = 'recording_device_id', description = 'unique ID of the recording device'),
         IndexColumn(name = 'experimenter', description = 'who collected the data (could be anonymized ID)'),
         IndexColumn(name = 'location_id', description = 'unique location ID -- can be specified at the level of the child (if children do not change locations)'),
@@ -268,33 +270,26 @@ class ChildProject:
             )
 
     def get_stats(self):
-        import sox
         stats = {}
-        recordings = self.recordings
+        recordings = self.recordings.merge(self.compute_recordings_duration(), left_on = 'filename', right_on = 'filename')
         recordings['exists'] = recordings['filename'].map(lambda f: os.path.exists(os.path.join(self.path, 'recordings', f)))
 
-        def get_audio_duration(filename):
-            if not os.path.exists(filename):
-                return 0
-
-            duration = 0
-            try:
-                duration = sox.file_info.duration(filename)
-            except:
-                pass
-
-            return duration
-
-        recordings['duration'] = recordings['filename'].map(lambda f:
-            get_audio_duration(os.path.join(self.path, 'recordings', f))
-        )
-        
         stats['total_recordings'] = recordings.shape[0]
         stats['total_existing_recordings'] = recordings[recordings['exists'] == True].shape[0]
         stats['audio_duration'] = recordings['duration'].sum()
         stats['total_children'] = self.children.shape[0]
 
         return stats
+
+    def compute_recordings_duration(self):
+        recordings = self.recordings[['filename']]
+
+        recordings['duration'] = recordings['filename'].map(lambda f:
+            get_audio_duration(os.path.join(self.path, 'recordings', f))
+        )
+
+        return recordings
+
 
     def convert_recordings(self, profile, skip_existing = False, threads = 0):
         if not isinstance(profile, RecordingProfile):
