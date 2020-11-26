@@ -9,6 +9,7 @@ addons:
   apt:
     packages:
       - ffmpeg
+      - sox
 install:
   - pip install -r requirements.txt
   - python setup.py install -f
