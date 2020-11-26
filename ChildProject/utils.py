@@ -1,3 +1,5 @@
+import os
+
 class Segment:
     def __init__(self, start, stop):
         self.start = start
@@ -33,3 +35,16 @@ def intersect_ranges(xs, ys):
                 y = next(ys)
         except StopIteration:
             return
+
+def get_audio_duration(filename):
+    import sox
+    if not os.path.exists(filename):
+        return 0
+
+    duration = 0
+    try:
+        duration = sox.file_info.duration(filename)
+    except:
+        pass
+
+    return duration

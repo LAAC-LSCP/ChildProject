@@ -163,6 +163,30 @@ def stats(args):
         if not args.stats or stat in args.stats:
             print("{}: {}".format(stat, stats[stat]))
 
+@subcommand([
+    arg("source", help = "source data path"),
+    arg("--force", help = "overwrite if column exists", action = 'store_true')
+])
+def compute_durations(args):
+    """creates a 'duration' column into metadata/recordings"""
+    project = ChildProject(args.source)
+
+    errors, warnings = project.validate_input_data()
+
+    if len(errors) > 0:
+        print("validation failed, {} error(s) occured".format(len(errors)), file = sys.stderr)
+        sys.exit(1)
+
+    if 'duration' in project.recordings.columns:
+        if not args.force:
+            print("duration exists, aborting")
+            return
+        
+        project.recordings.drop(columns = ['duration'], inplace = True)
+
+    recordings = project.recordings.merge(project.compute_recordings_duration(), left_on = 'filename', right_on = 'filename')
+    recordings.to_csv(os.path.join(project.path, 'metadata/recordings.csv'), index = False)
+
 def main():
     args = parser.parse_args()
     args.func(args)

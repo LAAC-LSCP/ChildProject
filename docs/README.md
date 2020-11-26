@@ -9,6 +9,7 @@
   - [Import annotations](#import-annotations)
     - [Single importation](#single-importation)
     - [Bulk importation](#bulk-importation)
+  - [Compute recordings duration](#compute-recordings-duration)
 
 ## Introduction
 
@@ -99,3 +100,10 @@ child-project import-annotations /path/to/dataset --annotations /path/to/datafra
 
 The input dataframe `/path/to/dataframe.csv` must have one entry per annotation to import, according to the format specified [here](http://laac-lscp.github.io/ChildRecordsData/FORMATTING.html#annotation-importation-input-format).
 
+### Compute recordings duration
+
+Compute recordings duration and store in into a column named 'duration' in the metadata.
+
+```
+child-project compute-durations [--force] /path/to/dataset
+```
