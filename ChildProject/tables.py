@@ -27,15 +27,21 @@ def read_dataframe(filename):
     df.index = df.index+2
     return df
 
+def is_boolean(x):
+    return x == 'NA' or int(x) in [0,1]
+
 class IndexColumn:
-    def __init__(self, name = "", description = "", required = False, regex = None,
-                 filename = False, datetime = None, unique = False, generated = False):
+    def __init__(self, name = "", description = "", required = False,
+                 regex = None, filename = False, datetime = None, function = None, choices = None,
+                 unique = False, generated = False):
         self.name = name
         self.description = description
         self.required = required
         self.filename = filename
         self.regex = regex
         self.datetime = datetime
+        self.function = function
+        self.choices = choices
         self.unique = unique
         self.generated = generated
 
@@ -93,6 +99,27 @@ class IndexTable:
 
                 if column_attr is None:
                     continue
+
+                if callable(column_attr.function):
+                    try:
+                        ok = column_attr.function(str(row[column_name])) == True
+                    except:
+                        ok = False
+
+                    if not ok:
+                        message = "'{}' does not pass callable test for column '{}' on line {}".format(row[column_name], column_name, line_number)
+                        if column_attr.required and str(row[column_name]) != 'NA':
+                                errors.append(message)
+                        elif column_attr.required or str(row[column_name]) != 'NA':
+                                warnings.append(message)
+
+                if column_attr.choices and str(row[column_name]) not in column_attr.choices:
+                    message = "'{}' is not a permitted value for column '{}' on line {}, should be any of [{}]".format(row[column_name], column_name, line_number, ",".join(column_attr.choices))
+                    if column_attr.required and str(row[column_name]) != 'NA':
+                            errors.append(message)
+                    elif column_attr.required or str(row[column_name]) != 'NA':
+                            warnings.append(message)
+
 
                 if column_attr.datetime:
                     try:

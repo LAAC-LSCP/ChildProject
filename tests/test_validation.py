@@ -14,9 +14,13 @@ def test_invalid_project():
     expected_errors = [
         "child_id '1' appears 2 times in lines [2,3], should appear once",
         "cannot find recording 'test_1_20200918.mp3'",
-        "'USB' does not match the format required for 'recording_device_type' on line 2, expected '(lena|usb|olympus|babylogger)'"
+        "'USB' is not a permitted value for column 'recording_device_type' on line 2, should be any of [lena,usb,olympus,babylogger]"
+    ]
+
+    expected_warnings = [
+        "'2' does not pass callable test for column 'noisy_setting' on line 2",
+        "file 'examples/invalid_raw_data/recordings/test_1_2020091.mp3' not indexed."
     ]
     
     assert sorted(expected_errors) == sorted(errors), "errors do not match expected errors"
-
-    
+    assert sorted(expected_warnings) == sorted(warnings), "warnings do not match expected warnings"

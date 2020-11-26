@@ -54,6 +54,8 @@ Located in the `metadata` folder. Can be named either `children.csv`, `children.
 | **{{column.name}}** | {{column.description}} | {{'**required**' if column.required else 'optional'}}
 {%- if column.datetime %} | `{{column.datetime}}` (date/time) |
 {%- elif column.regex %} | `{{column.regex}}` (regex) |
+{%- elif column.function %} | {{column.function.__name__}} (function) |
+{%- elif column.choices %} | {{column.choices|join(", ")}} |
 {%- elif column.filename %} | filename |
 {%- else %} | - |
 {%- endif %}
@@ -69,6 +71,8 @@ Located in the `metadata` folder.  Can be named either `recordings.csv`, `record
 | **{{column.name}}** | {{column.description}} | {{'**required**' if column.required else 'optional'}}
 {%- if column.datetime %} | `{{column.datetime}}` (date/time) |
 {%- elif column.regex %} | `{{column.regex}}` (regex) |
+{%- elif column.function %} | {{column.function.__name__}} (function) |
+{%- elif column.choices %} | {{column.choices|join(", ")}} |
 {%- elif column.filename %} | filename |
 {%- else %} | - |
 {%- endif %}
@@ -86,6 +90,8 @@ The package provides functions to convert any annotation into the following csv 
 | **{{column.name}}** | {{column.description}}
 {%- if column.datetime %} | `{{column.datetime}}` (date/time) |
 {%- elif column.regex %} | `{{column.regex}}` (regex) |
+{%- elif column.function %} | {{column.function.__name__}} (function) |
+{%- elif column.choices %} | {{column.choices|join(", ")}} |
 {%- elif column.filename %} | filename |
 {%- else %} | - |
 {%- endif %}
@@ -101,6 +107,8 @@ Annotations are indexed in one unique dataframe located at `/metadata/annotation
 | **{{column.name}}** | {{column.description}}
 {%- if column.datetime %} | `{{column.datetime}}` (date/time) |
 {%- elif column.regex %} | `{{column.regex}}` (regex) |
+{%- elif column.function %} | {{column.function.__name__}} (function) |
+{%- elif column.choices %} | {{column.choices|join(", ")}} |
 {%- elif column.filename %} | filename |
 {%- else %} | - |
 {%- endif %}
@@ -116,6 +124,8 @@ The annotations importation script and function take a dataframe of the followin
 | **{{column.name}}** | {{column.description}} | {{'**required**' if column.required else 'optional'}}
 {%- if column.datetime %} | `{{column.datetime}}` (date/time) |
 {%- elif column.regex %} | `{{column.regex}}` (regex) |
+{%- elif column.function %} | {{column.function.__name__}} (function) |
+{%- elif column.choices %} | {{column.choices|join(", ")}} |
 {%- elif column.filename %} | filename |
 {%- else %} | - |
 {%- endif %}
