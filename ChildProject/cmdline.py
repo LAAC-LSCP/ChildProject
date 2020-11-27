@@ -184,7 +184,9 @@ def compute_durations(args):
         
         project.recordings.drop(columns = ['duration'], inplace = True)
 
-    recordings = project.recordings.merge(project.compute_recordings_duration(), left_on = 'filename', right_on = 'filename')
+    durations = project.compute_recordings_duration().dropna()
+
+    recordings = project.recordings.merge(durations[durations['filename'] != 'NA'], how = 'left', left_on = 'filename', right_on = 'filename')
     recordings.to_csv(os.path.join(project.path, 'metadata/recordings.csv'), index = False)
 
 def main():
