@@ -44,7 +44,7 @@ If you are still having permission issues, consider using python virtual environ
 ### Quick way (using child-project)
 
 ```
-child-project import-data git@github.com:LAAC-LSCP/ChildRecordsData.git --destination namibia-data --storage-hostname foberon
+child-project import-data git@github.com:LAAC-LSCP/namibia-data.git --destination namibia-data --storage-hostname foberon
 ```
 
 ### Datalad way (using only datalad)
