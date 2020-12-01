@@ -26,7 +26,7 @@ def subcommand(args=[], parent = subparsers):
 def register_pipeline(subcommand, cls):
     _parser = subparsers.add_parser(subcommand, description = cls.__doc__)
     cls.setup_parser(_parser)
-    _parser.set_defaults(func = lambda x: cls().run(**vars(args)))
+    _parser.set_defaults(func = lambda args: cls().run(**vars(args)))
 
 @subcommand([
     arg("source", help = "project path"),
