@@ -2,6 +2,8 @@
 from ChildProject.projects import ChildProject, RecordingProfile    
 from ChildProject.annotations import AnnotationManager
 
+from ChildProject.pipelines import *
+
 import argparse
 import os
 import pandas as pd
@@ -20,6 +22,11 @@ def subcommand(args=[], parent = subparsers):
             parser.add_argument(*arg[0], **arg[1])
         parser.set_defaults(func=func)
     return decorator
+
+def register_pipeline(subcommand, cls):
+    _parser = subparsers.add_parser(subcommand, description = cls.__doc__)
+    cls.setup_parser(_parser)
+    _parser.set_defaults(func = lambda x: cls().run(**vars(args)))
 
 @subcommand([
     arg("source", help = "project path"),
@@ -190,5 +197,7 @@ def compute_durations(args):
     recordings.to_csv(os.path.join(project.path, 'metadata/recordings.csv'), index = False)
 
 def main():
+    register_pipeline('zooniverse', ZooniversePipeline)
+
     args = parser.parse_args()
     args.func(args)
