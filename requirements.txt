@@ -5,3 +5,4 @@ numpy
 pympi-ling
 sox
 datalad
+requests==2.21.0
