@@ -146,7 +146,7 @@ class ZooniversePipeline():
         self.chunks.index.name = 'index'
         self.chunks.to_csv(os.path.join(self.destination, 'chunks.csv'))
 
-    def upload_chunks(self, destination, project_slug, subject_set , zooniverse_login, zooniverse_pwd, batches = 0, **kwargs):
+    def upload_chunks(self, destination, project_slug, set_prefix, zooniverse_login, zooniverse_pwd, batches = 0, **kwargs):
         self.destination = destination 
 
         metadata_location = os.path.join(self.destination, 'chunks.csv')
@@ -166,7 +166,7 @@ class ZooniversePipeline():
 
             subject_set = SubjectSet()
             subject_set.links.project = zooniverse_project
-            subject_set.display_name = "{}_batch_{}".format(subject_set, batch)
+            subject_set.display_name = "{}_batch_{}".format(set_prefix, batch)
             subject_set.save()
             subjects = []
 
@@ -186,7 +186,7 @@ class ZooniversePipeline():
                 chunk['index'] = chunk_index
                 chunk['zooniverse_id'] = subject.id
                 chunk['project_slug'] = project_slug
-                chunk['subject_set'] = subject_set.display_name
+                chunk['subject_set'] = str(subject_set.display_name)
                 chunk['uploaded'] = True
                 subjects_metadata.append(chunk)
             
@@ -226,5 +226,5 @@ class ZooniversePipeline():
         parser_upload.add_argument('--zooniverse-login', help = 'zooniverse login', required = True)
         parser_upload.add_argument('--zooniverse-pwd', help = 'zooniverse password', required = True)
         parser_upload.add_argument('--project-slug', help = 'zooniverse project name', required = True)
-        parser_upload.add_argument('--subject-set', help = 'subject prefix', required = True)
+        parser_upload.add_argument('--set-prefix', help = 'subject prefix', required = True)
         parser_upload.add_argument('--batches', help = 'amount of batches to upload', required = False, type = int, default = 0)
