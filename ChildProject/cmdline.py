@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-from ChildProject.projects import ChildProject, RecordingProfile    
+from ChildProject.projects import ChildProject   
 from ChildProject.annotations import AnnotationManager
-
 from ChildProject.pipelines import *
 
 import argparse
@@ -112,44 +111,6 @@ def import_data(args):
 
     datalad.api.run_procedure(spec = cmd, dataset = ds)
 
-
-default_profile = RecordingProfile("default")    
-@subcommand([
-    arg("source", help = "project path"),
-    arg("--name", help = "profile name", required = True),
-    arg("--format", help = "audio format (e.g. {})".format(default_profile.format), required = True),
-    arg("--codec", help = "audio codec (e.g. {})".format(default_profile.codec), required = True),
-    arg("--sampling", help = "sampling frequency (e.g. {})".format(default_profile.sampling), required = True),
-    arg("--split", help = "split duration (e.g. 15:00:00)", required = False, default = None),
-    arg('--skip-existing', dest='skip_existing', required = False, default = False, action='store_true'),
-    arg('--threads', help = "amount of threads running conversions in parallel (0 = uses all available cores)", required = False, default = 0, type = int)
-])
-def convert(args):
-    """convert recordings to a given format"""
-    profile = RecordingProfile(
-        name = args.name,
-        format = args.format,
-        codec = args.codec,
-        sampling = args.sampling,
-        split = args.split
-    )
-
-    project = ChildProject(args.source)
-    results = project.convert_recordings(profile, skip_existing = args.skip_existing, threads = args.threads)
-
-    for error in project.errors:
-        print("error: {}".format(error), file = sys.stderr)
-
-    for warning in project.warnings:
-        print("warning: {}".format(warning))
-
-    if len(project.errors) > 0:
-        print("conversion failed, {} error(s) occured".format(len(project.errors)), file = sys.stderr)
-        print("cannot convert recordings", file = sys.stderr)
-        sys.exit(1)
-
-    print("recordings successfully converted to '{}'".format(os.path.join(project.path, 'converted_recordings', profile.name)))
-
 @subcommand([
     arg("source", help = "source data path"),
     arg("--stats", help = "stats to retrieve (comma-separated)", required = False, default = "")
@@ -198,6 +159,7 @@ def compute_durations(args):
 
 def main():
     register_pipeline('zooniverse', ZooniversePipeline)
+    register_pipeline('convert', ConversionPipeline)
 
     args = parser.parse_args()
     args.func(args)

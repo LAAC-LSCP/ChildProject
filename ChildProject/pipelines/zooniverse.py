@@ -13,6 +13,7 @@ from pydub import AudioSegment
 
 from ChildProject.projects import ChildProject
 from ChildProject.annotations import AnnotationManager
+from ChildProject.pipelines.pipeline import Pipeline
 
 def check_dur(dur, target):
     if dur % 0.5 == 0:
@@ -41,7 +42,7 @@ class Chunk():
             extension
         )
 
-class ZooniversePipeline():
+class ZooniversePipeline(Pipeline):
     def __init__(self):
         self.chunks = []
                 

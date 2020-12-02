@@ -1,4 +1,4 @@
-from ChildProject.projects import ChildProject, RecordingProfile
+from ChildProject.projects import ChildProject
 from ChildProject.annotations import AnnotationManager
 from ChildProject.tables import IndexTable
 import pandas as pd
