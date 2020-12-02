@@ -9,6 +9,7 @@
   - [Import annotations](#import-annotations)
     - [Single importation](#single-importation)
     - [Bulk importation](#bulk-importation)
+  - [Zooniverse](#zooniverse)
   - [Compute recordings duration](#compute-recordings-duration)
 
 ## Introduction
@@ -99,6 +100,10 @@ child-project import-annotations /path/to/dataset --annotations /path/to/datafra
 ```
 
 The input dataframe `/path/to/dataframe.csv` must have one entry per annotation to import, according to the format specified [here](http://laac-lscp.github.io/ChildRecordsData/FORMATTING.html#annotation-importation-input-format).
+
+### Zooniverse
+
+Find all the instructions on how-to use Zooniverse with child-project [here](http://laac-lscp.github.io/ChildRecordsData/ZOONIVERSE.html) are met.
 
 ### Compute recordings duration
 
