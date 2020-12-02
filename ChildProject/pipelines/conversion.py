@@ -120,7 +120,7 @@ def convert_recording(path, profile, skip_existing, row):
 
 class ConversionPipeline(Pipeline):
 
-    def run(self, path, name, format, codec, sampling, split = None, skip_existing = False, threads = 0):
+    def run(self, path, name, format, codec, sampling, split = None, skip_existing = False, threads = 0, **kwargs):
         profile = RecordingProfile(
             name,
             format = format,
@@ -160,7 +160,7 @@ class ConversionPipeline(Pipeline):
     @staticmethod
     def setup_parser(parser):
         default_profile = RecordingProfile(name = None)
-        parser.add_argument("source", help = "project path")
+        parser.add_argument("path", help = "project path")
         parser.add_argument("--name", help = "profile name", required = True)
         parser.add_argument("--format", help = "audio format (e.g. {})".format(default_profile.format), required = True)
         parser.add_argument("--codec", help = "audio codec (e.g. {})".format(default_profile.codec), required = True)
