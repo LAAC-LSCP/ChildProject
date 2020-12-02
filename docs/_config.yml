@@ -6,5 +6,6 @@ relative_links:
 include:
   - FORMATTING.md
   - PROJECTS.md
+  - ZOONIVERSE.md
 exclude: [templates]
 theme: jekyll-theme-cayman
