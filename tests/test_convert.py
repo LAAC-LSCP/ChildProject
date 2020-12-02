@@ -1,4 +1,5 @@
-from ChildProject.projects import ChildProject, RecordingProfile
+from ChildProject.projects import ChildProject
+from ChildProject.pipelines.conversion import ConversionPipeline
 import numpy as np
 import os
 import pandas
@@ -6,10 +7,17 @@ import pandas
 def test_convert():
     project = ChildProject("examples/valid_raw_data")
     project.import_data("output/convert")
+
+    profile = ConversionPipeline().run(
+        path = 'output/convert',
+        name = 'test',
+        format = 'wav',
+        codec = 'pcm_s16le',
+        sampling = 16000
+    )
+
     project = ChildProject("output/convert")
-    profile = project.convert_recordings(RecordingProfile(
-        name = 'test'
-    ))
+    project.read()
 
     recordings = project.recordings
     converted_recordings = profile.recordings

@@ -1,5 +1,10 @@
 from setuptools import setup, find_packages
 
+requires = {
+    'core': ['pandas', 'xlrd', 'jinja2', 'numpy', 'pympi-ling', 'sox', 'datalad'],
+    'zooniverse': ['panoptes_client', 'pydub']
+}
+
 setup(
     name='ChildProject',
     version='0.0.2',
@@ -9,7 +14,7 @@ setup(
     author_email='lucas.gautheron@gmail.com',
     license='unlicense',
     packages=find_packages(),
-    install_requires=['pandas', 'xlrd', 'jinja2', 'numpy', 'pympi-ling', 'sox', 'datalad'],
+    install_requires=requires['core'] + requires['zooniverse'],
     include_package_data=True,
     entry_points={
         'console_scripts': [
