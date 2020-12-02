@@ -103,7 +103,7 @@ The input dataframe `/path/to/dataframe.csv` must have one entry per annotation 
 
 ### Zooniverse
 
-Find all the instructions on how-to use Zooniverse with child-project [here](http://laac-lscp.github.io/ChildRecordsData/ZOONIVERSE.html) are met.
+Find all the instructions on how-to use Zooniverse together with child-project [here](http://laac-lscp.github.io/ChildRecordsData/ZOONIVERSE.html).
 
 ### Compute recordings duration
 
