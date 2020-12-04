@@ -1,3 +1,7 @@
+- [Chunk extraction](#chunk-extraction)
+- [Chunk upload](#chunk-upload)
+- [Classifications retrieval](#classifications-retrieval)
+
 ### Chunk extraction
 
 ```bash
