@@ -1,7 +1,7 @@
-#!/usr/bin/env python3
 import argparse
 import datetime
 import itertools
+import json
 import multiprocessing as mp
 import os
 import pandas as pd
@@ -203,17 +203,62 @@ class ZooniversePipeline(Pipeline):
             if batches > 0 and uploaded >= batches:
                 return
 
+    def retrieve_classifications(self, destination, project_id, zooniverse_login, zooniverse_pwd, **kwargs):
+        Panoptes.connect(username = zooniverse_login, password = zooniverse_pwd)
+        project = Project(project_id)
+
+        answers_translation_table = []
+        for workflow in project.links.workflows:
+            workflow_id = workflow.id
+            for task_id in workflow.tasks:
+                n = 0
+                for answer in workflow.tasks[task_id]['answers']:
+                    answers_translation_table.append({
+                        'workflow_id': str(workflow_id),
+                        'task_id': str(task_id),
+                        'answer_id': str(n),
+                        'answer': answer['label']
+                    })
+                    n += 1
+
+        answers_translation_table = pd.DataFrame(answers_translation_table)
+
+        classifications = []
+        for c in Classification.where(
+            scope = 'project',
+            page_size = 1000,
+            project_id = project_id
+        ):
+            classifications.append(c.raw)
+
+        classifications = pd.DataFrame(classifications)
+        classifications['user_id'] = classifications['links'].apply(lambda s: s['user'])
+        classifications['subject_id'] = classifications['links'].apply(lambda s: s['subjects'][0])
+        classifications['workflow_id'] = classifications['links'].apply(lambda s: s['workflow'])
+        classifications['task_id'] = classifications['annotations'].apply(lambda s: str(s[0]['task']))
+        classifications['answer_id'] = classifications['annotations'].apply(lambda s: str(s[0]['value']))
+
+        classifications = classifications[['id', 'user_id', 'subject_id', 'task_id', 'answer_id', 'workflow_id']]
+        classifications = classifications.merge(
+            answers_translation_table,
+            left_on = ['workflow_id', 'task_id', 'answer_id'],
+            right_on = ['workflow_id', 'task_id', 'answer_id']
+        )
+        classifications.set_index('id').to_csv(os.path.join(destination, 'classifications.csv'))
+
     def run(self, action, **kwargs):
         if action == 'extract-chunks':
             self.extract_chunks(**kwargs)
         elif action == 'upload-chunks':
             self.upload_chunks(**kwargs)
+        elif action == 'retrieve-classifications':
+            self.retrieve_classifications(**kwargs)
 
     @staticmethod
     def setup_parser(parser):
         subparsers = parser.add_subparsers(help = 'action', dest = 'action')
 
-        parser_extraction = subparsers.add_parser('extract-chunks', help = 'extract chunks')
+        parser_extraction = subparsers.add_parser('extract-chunks', help = 'extract chunks and store metadata in DESTINATION/chunks.csv')
         parser_extraction.add_argument('path', help = 'path to the dataset')
         parser_extraction.add_argument('--destination', help = 'destination', required = True)
         parser_extraction.add_argument('--sample-size', help = 'how many samples per recording', required = True, type = int)
@@ -222,10 +267,16 @@ class ZooniversePipeline(Pipeline):
         parser_extraction.add_argument('--batch-size', help = 'batch size', default = 1000, type = int)
         parser_extraction.add_argument('--threads', help = 'how many threads to run on', default = 0, type = int)
 
-        parser_upload = subparsers.add_parser('upload-chunks', help = 'upload chunks')
+        parser_upload = subparsers.add_parser('upload-chunks', help = 'upload chunks and updates DESTINATION/chunks.csv')
         parser_upload.add_argument('--destination', help = 'destination', required = True)
         parser_upload.add_argument('--zooniverse-login', help = 'zooniverse login', required = True)
         parser_upload.add_argument('--zooniverse-pwd', help = 'zooniverse password', required = True)
         parser_upload.add_argument('--project-slug', help = 'zooniverse project name', required = True)
         parser_upload.add_argument('--set-prefix', help = 'subject prefix', required = True)
         parser_upload.add_argument('--batches', help = 'amount of batches to upload', required = False, type = int, default = 0)
+
+        parser_retrieve = subparsers.add_parser('retrieve-classifications', help = 'retrieve classifications and save them into DESTINATION/classifications.csv')
+        parser_retrieve.add_argument('--destination', help = 'destination', required = True)
+        parser_retrieve.add_argument('--zooniverse-login', help = 'zooniverse login', required = True)
+        parser_retrieve.add_argument('--zooniverse-pwd', help = 'zooniverse password', required = True)
+        parser_retrieve.add_argument('--project-id', help = 'zooniverse project id', required = True)

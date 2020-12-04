@@ -1,3 +1,7 @@
+- [Chunk extraction](#chunk-extraction)
+- [Chunk upload](#chunk-upload)
+- [Classifications retrieval](#classifications-retrieval)
+
 ### Chunk extraction
 
 ```bash
@@ -105,5 +109,48 @@ Uploads as many batches of audio chunks as specified to Zooniverse, and updates 
     <td>batches</td>
     <td>how many batches to upload. it is recommended to upload less than 10.000 chunks per day, so 10 batches of 1000 by default. upload all batches if set to 0</td>
     <td>0</td>
+</tr>
+</table>
+
+### Classifications retrieval
+
+```bash
+child-project zooniverse retrieve-classifications [-h] --destination
+                                                         DESTINATION
+                                                         --zooniverse-login
+                                                         ZOONIVERSE_LOGIN
+                                                         --zooniverse-pwd
+                                                         ZOONIVERSE_PWD
+                                                         --project-id
+                                                         PROJECT_ID
+```
+
+Retrieve classifications and save them into `DESTINATION/classifications.csv`.
+
+<table>
+<tr>
+    <th>argument</th>
+    <th>description</th>
+    <th>default value</th>
+</tr>
+<tr>
+    <td>destination</td>
+    <td>where to find the output metadata and files.</td>
+    <td></td>
+</tr>
+<tr>
+    <td>project-id</td>
+    <td>Numerical zooniverse project id (e.g.: 10073)</td>
+    <td></td>
+</tr>
+<tr>
+    <td>zooniverse-login</td>
+    <td>zooniverse login</td>
+    <td></td>
+</tr>
+<tr>
+    <td>zooniverse-pwd</td>
+    <td>zooniverse password</td>
+    <td></td>
 </tr>
 </table>
