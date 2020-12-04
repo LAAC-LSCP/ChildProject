@@ -230,8 +230,6 @@ class ZooniversePipeline(Pipeline):
             project_id = project_id
         ):
             classifications.append(c.raw)
-            if len(classifications) > 2000:
-                break
 
         classifications = pd.DataFrame(classifications)
         classifications['subject_id'] = classifications['links'].apply(lambda s: s['user'])
