@@ -232,8 +232,8 @@ class ZooniversePipeline(Pipeline):
             classifications.append(c.raw)
 
         classifications = pd.DataFrame(classifications)
-        classifications['subject_id'] = classifications['links'].apply(lambda s: s['user'])
-        classifications['user_id'] = classifications['links'].apply(lambda s: s['subjects'][0])
+        classifications['user_id'] = classifications['links'].apply(lambda s: s['user'])
+        classifications['subject_id'] = classifications['links'].apply(lambda s: s['subjects'][0])
         classifications['workflow_id'] = classifications['links'].apply(lambda s: s['workflow'])
         classifications['task_id'] = classifications['annotations'].apply(lambda s: str(s[0]['task']))
         classifications['answer_id'] = classifications['annotations'].apply(lambda s: str(s[0]['value']))
