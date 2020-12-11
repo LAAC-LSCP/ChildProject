@@ -22,8 +22,8 @@ class AnnotationManager:
         IndexColumn(name = 'range_onset', description = 'covered range start time in seconds, measured since `time_seek`', regex = r"[0-9]{1,}(\.[0-9]{3})?", required = True),
         IndexColumn(name = 'range_offset', description = 'covered range end time in seconds, measured since `time_seek`', regex = r"[0-9]{1,}(\.[0-9]{3})?", required = True),
         IndexColumn(name = 'raw_filename', description = 'annotation input filename location (relative to raw_annotations/)', filename = True, required = True),
-        IndexColumn(name = 'format', description = 'input annotation format', choices = ['TextGrid', 'eaf', 'vtc_rttm'], required = True),
-        IndexColumn(name = 'filter', description = 'source file to filter in (for rttm only)', required = False),
+        IndexColumn(name = 'format', description = 'input annotation format', choices = ['TextGrid', 'eaf', 'vtc_rttm', 'alice'], required = True),
+        IndexColumn(name = 'filter', description = 'source file to filter in (for rttm and alice only)', required = False),
         IndexColumn(name = 'annotation_filename', description = 'output formatted annotation location (automatic column, don\'t specify)', filename = True, required = False, generated = True),
         IndexColumn(name = 'imported_at', description = 'importation date (automatic column, don\'t specify)', datetime = "%Y-%m-%d %H:%M:%S", required = False, generated = True),
         IndexColumn(name = 'error', description = 'error message in case the annotation could not be imported', required = False, generated = True)
@@ -40,7 +40,10 @@ class AnnotationManager:
         IndexColumn(name = 'lex_type', description = 'W if meaningful, 0 otherwise', choices = ['W', '0', 'NA'], required = True),
         IndexColumn(name = 'mwu_type', description = 'M if multiword, 1 if single word -- only filled if lex_type==W', choices = ['M', '1', 'NA'], required = True),
         IndexColumn(name = 'addresseee', description = 'T if target-child-directed, C if other-child-directed, A if adult-directed, U if uncertain or other', choices = ['T', 'C', 'A', 'U', 'NA'], required = True),
-        IndexColumn(name = 'transcription', description = 'orthographic transcription of the speach', required = True)
+        IndexColumn(name = 'transcription', description = 'orthographic transcription of the speach', required = True),
+        IndexColumn(name = 'phonemes', description = 'amount of phonemes', regex = r'(\d+(\.\d+)?)'),
+        IndexColumn(name = 'syllables', description = 'amount of syllables', regex = r'(\d+(\.\d+)?)'),
+        IndexColumn(name = 'words', description = 'amount of words', regex = r'(\d+(\.\d+)?)')
     ]
 
     SPEAKER_ID_TO_TYPE = {
@@ -165,7 +168,10 @@ class AnnotationManager:
                     'lex_type': 'NA',
                     'mwu_type': 'NA',
                     'addresseee': 'NA',
-                    'transcription': 'NA'
+                    'transcription': 'NA',
+                    'phonemes': 'NA',
+                    'syllables': 'NA',
+                    'words':'NA'
                 }
 
                 segments.append(segment)
@@ -199,7 +205,10 @@ class AnnotationManager:
                     'lex_type': 'NA',
                     'mwu_type': 'NA',
                     'addresseee': 'NA',
-                    'transcription': value if value != '0' else '0.'
+                    'transcription': value if value != '0' else '0.',
+                    'phonemes': 'NA',
+                    'syllables': 'NA',
+                    'words':'NA'
                 }
 
                 segments[aid] = segment
@@ -259,12 +268,44 @@ class AnnotationManager:
         df['lex_type'] = 'NA'
         df['mwu_type'] = 'NA'
         df['addresseee'] = 'NA'
-        df['transcription'] = 'NA'  
+        df['transcription'] = 'NA'
+        df['phonemes'] = 'NA'
+        df['syllables'] = 'NA'
+        df['words'] = 'NA'
 
         if source_file:
             df = df[df['file'] == source_file]
 
         df.drop(['type', 'file', 'chnl', 'tbeg', 'tdur', 'ortho', 'stype', 'name', 'conf', 'unk'], axis = 1, inplace = True)
+
+        return df
+
+    def load_alice(self, filename, source_file = None):
+        path = os.path.join(self.project.path, 'raw_annotations', filename)
+        df = pd.read_csv(
+            path,
+            sep = r"\s",
+            names = ['file', 'phonemes', 'syllables', 'words']
+        )
+        df['speaker_id'] = 'NA'
+        df['ling_type'] = 'NA'
+        df['speaker_type'] = 'NA'
+        df['vcm_type'] = 'NA'
+        df['lex_type'] = 'NA'
+        df['mwu_type'] = 'NA'
+        df['addresseee'] = 'NA'
+        df['transcription'] = 'NA'
+
+        matches = df['file'].str.extract(r"^(.*)_(?:0+)?([0-9]{1,})_(?:0+)?([0-9]{1,})\.wav$")
+        df['filename'] = matches[0]
+        df['segment_onset'] = matches[1].astype(float)/10000
+        df['segment_offset'] = matches[2].astype(float)/10000
+        df.to_csv('test.csv')
+
+        if source_file:
+            df = df[df['filename'].str.contains(source_file)]
+        
+        df.drop(columns = ['filename', 'file'], inplace = True)
 
         return df
 
@@ -284,6 +325,9 @@ class AnnotationManager:
             elif annotation_format == 'vtc_rttm':
                 filter = annotation['filter'] if 'filter' in annotation and not pd.isnull(annotation['filter']) else None
                 df = self.load_vtc_rttm(raw_filename, source_file = filter)
+            elif annotation_format == 'alice':
+                filter = annotation['filter'] if 'filter' in annotation and not pd.isnull(annotation['filter']) else None
+                df = self.load_alice(raw_filename, source_file = filter)
             else:
                 raise ValueError("file format '{}' unknown for '{}'".format(annotation_format, raw_filename))
         except:
