@@ -6,5 +6,6 @@ pympi-ling
 sox
 datalad
 requests==2.21.0
+chardet==3.0.2
 pydub
 panoptes_client
