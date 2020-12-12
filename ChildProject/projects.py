@@ -177,11 +177,12 @@ class ChildProject:
 
         return stats
 
-    def compute_recordings_duration(self):
+    def compute_recordings_duration(self, profile = None):
         recordings = self.recordings[['filename']]
 
         recordings['duration'] = recordings['filename'].map(lambda f:
-            get_audio_duration(os.path.join(self.path, 'recordings', f))
+            get_audio_duration(os.path.join(self.path, 'converted_recordings', profile, f)) if profile
+            else get_audio_duration(os.path.join(self.path, 'recordings', f))
         )
 
         return recordings

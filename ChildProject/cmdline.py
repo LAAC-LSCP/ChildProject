@@ -133,6 +133,7 @@ def stats(args):
 
 @subcommand([
     arg("source", help = "source data path"),
+    arg("--profile", help = "which audio profile to use", default = ""),
     arg("--force", help = "overwrite if column exists", action = 'store_true')
 ])
 def compute_durations(args):
@@ -152,7 +153,7 @@ def compute_durations(args):
         
         project.recordings.drop(columns = ['duration'], inplace = True)
 
-    durations = project.compute_recordings_duration().dropna()
+    durations = project.compute_recordings_duration(profile = args.profile).dropna()
 
     recordings = project.recordings.merge(durations[durations['filename'] != 'NA'], how = 'left', left_on = 'filename', right_on = 'filename')
     recordings.to_csv(os.path.join(project.path, 'metadata/recordings.csv'), index = False)
