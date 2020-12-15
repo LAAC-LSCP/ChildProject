@@ -12,11 +12,13 @@
 
 # Datasets structure
 
-Datasets must pass the [the validation routine](https://laac-lscp.github.io/ChildRecordsData/#validate-raw-data) with no error and as few warnings as possible before submission.
+ChildRecordsData assumes your data is structured in a specific way before it is imported. This structure is necessary to check, for instance, that there are no unreferenced files, and no referenced files that are actually missing. The data curator therefore needs to organize their data in a specific way (respecting the dataset tree, with all specified metadata files, and all specified columns within the metadata files) before their data can be imported.
+
+To be imported, datasets must pass the [the validation routine](https://laac-lscp.github.io/ChildRecordsData/#validate-raw-data) with no error. We also recommend you pay attention to the warnings, and try to sort as many of those out as possible before submission.
 
 ## Dataset tree
 
-All datasets should have this structure :
+All datasets should have this structure before import (so you need to organize your files into this structure):
 
 ```
 project
