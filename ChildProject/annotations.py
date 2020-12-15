@@ -394,18 +394,21 @@ class AnnotationManager:
     def merge_sets(self, left_set, right_set, left_columns, right_columns, output_set, columns = {}):
         assert left_set != right_set, "sets must differ"
         assert not (set(left_columns) & set (right_columns)), "left_columns and right_columns must be disjoint"
+        assert set(left_columns) | set (right_columns) == set([c.name for c in self.SEGMENTS_COLUMNS]) - set(['annotation_file', 'segment_onset', 'segment_offset']), "left_columns and right_columns are missing values"
 
         left_annotations = self.annotations[self.annotations['set'] == left_set]
         right_annotations = self.annotations[self.annotations['set'] == right_set]
 
         left_annotations, right_annotations = self.intersection(left_annotations, right_annotations)
+        left_annotations = left_annotations.reset_index(drop = True).rename_axis('interval').reset_index()
+        right_annotations = right_annotations.reset_index(drop = True).rename_axis('interval').reset_index()
 
-        annotations = left_annotations.rename_axis('interval').reset_index()
+        annotations = left_annotations.copy()
         annotations['format'] = ''
         annotations['annotation_filename'] = annotations.apply(
             lambda annotation: "{}/{}_{}_{}.csv".format(
                 output_set,
-                annotation['recording_filename'],
+                os.path.splitext(annotation['recording_filename'])[0],
                 annotation['time_seek'],
                 annotation['range_onset']
             )
@@ -416,30 +419,54 @@ class AnnotationManager:
 
         annotations['set'] = output_set
 
-        left_segments = self.get_segments(annotations)
-        right_segments = self.get_segments(right_annotations.rename_axis('interval').reset_index())
+        left_segments = self.get_segments(left_annotations)
+        left_segments['segment_onset'] = left_segments['segment_onset'] + left_segments['time_seek']
+        left_segments['segment_offset'] = left_segments['segment_offset'] + left_segments['time_seek']
+
+        right_segments = self.get_segments(right_annotations)
+        right_segments['segment_onset'] = right_segments['segment_onset'] + right_segments['time_seek']
+        right_segments['segment_offset'] = right_segments['segment_offset'] + right_segments['time_seek']
+
+        def timestamp_to_int(f):
+            return int(f*10000)
+
+        def int_to_timestamp(i):
+            return i/10000
+
+        left_segments['segment_onset'] = left_segments['segment_onset'].apply(timestamp_to_int)
+        left_segments['segment_offset'] = left_segments['segment_offset'].apply(timestamp_to_int)
+        right_segments['segment_onset'] = right_segments['segment_onset'].apply(timestamp_to_int)
+        right_segments['segment_offset'] = right_segments['segment_offset'].apply(timestamp_to_int)
 
         merge_columns = ['interval', 'segment_onset', 'segment_offset']
 
-        output_segments = left_segments[merge_columns + left_columns + ['annotation_file']].merge(
-            right_segments[merge_columns + right_columns],
+        output_segments = left_segments[merge_columns + left_columns + ['annotation_file', 'time_seek']].merge(
+            right_segments[merge_columns + right_columns + ['annotation_file']],
             how = 'left',
             left_on = merge_columns,
             right_on = merge_columns
         )
+        output_segments['segment_onset'] = output_segments['segment_onset'].apply(int_to_timestamp)
+        output_segments['segment_offset'] = output_segments['segment_offset'].apply(int_to_timestamp)
 
-        for interval in output_segments['interval'].tolist():
+        output_segments['segment_onset'] = output_segments['segment_onset'] - output_segments['time_seek']
+        output_segments['segment_offset'] = output_segments['segment_offset'] - output_segments['time_seek']
+
+        output_segments['annotation_file'] = output_segments['annotation_file_x'] + ',' + output_segments['annotation_file_y']
+        output_segments.drop(columns = ['annotation_file_x', 'annotation_file_y', 'time_seek'], inplace = True)
+
+        for interval, segments in output_segments.groupby('interval'):
             annotation_filename = annotations[annotations['interval'] == interval]['annotation_filename'].tolist()[0]
-            segments = output_segments[output_segments['interval'] == interval]
             segments['annotation_file'] = annotation_filename
 
             os.makedirs(os.path.dirname(os.path.join(self.project.path, 'annotations', annotation_filename)), exist_ok = True)
 
+            segments.drop(columns = list(set(segments.columns)-set([c.name for c in self.SEGMENTS_COLUMNS])), inplace = True)
             segments.to_csv(
                 os.path.join(self.project.path, 'annotations', annotation_filename)
             )
 
-        annotations.drop(list(set(annotations.columns)-set([c.name for c in self.INDEX_COLUMNS])), axis = 1, inplace = True)
+        annotations.drop(columns = list(set(annotations.columns)-set([c.name for c in self.INDEX_COLUMNS])), inplace = True)
         
         self.read()
         self.annotations = pd.concat([self.annotations, annotations], sort = False)
@@ -473,14 +500,10 @@ class AnnotationManager:
             a_ranges = a[['abs_range_onset', 'abs_range_offset']].sort_values(['abs_range_onset', 'abs_range_offset']).values.tolist()
             b_ranges = b[['abs_range_onset', 'abs_range_offset']].sort_values(['abs_range_onset', 'abs_range_offset']).values.tolist()
 
-            print(a_ranges, b_ranges)
-
             segments = list(intersect_ranges(
                 (Segment(onset, offset) for (onset, offset) in a_ranges),
                 (Segment(onset, offset) for (onset, offset) in b_ranges)
             ))
-
-            print(segments)
 
             a_out = []
             b_out = []
@@ -495,6 +518,9 @@ class AnnotationManager:
                 b_row['abs_range_onset'] = segment.start
                 b_row['abs_range_offset'] = segment.stop
                 b_out.append(b_row)
+
+            if not a_out or not b_out:
+                continue
 
             a_out = pd.DataFrame(a_out)
             b_out = pd.DataFrame(b_out)
