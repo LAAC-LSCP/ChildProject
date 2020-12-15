@@ -296,14 +296,13 @@ class AnnotationManager:
         df['addresseee'] = 'NA'
         df['transcription'] = 'NA'
 
+        if source_file:
+            df = df[df['file'].str.contains(source_file)]
+
         matches = df['file'].str.extract(r"^(.*)_(?:0+)?([0-9]{1,})_(?:0+)?([0-9]{1,})\.wav$")
         df['filename'] = matches[0]
         df['segment_onset'] = matches[1].astype(float)/10000
         df['segment_offset'] = matches[2].astype(float)/10000
-        df.to_csv('test.csv')
-
-        if source_file:
-            df = df[df['filename'].str.contains(source_file)]
         
         df.drop(columns = ['filename', 'file'], inplace = True)
 
@@ -390,6 +389,60 @@ class AnnotationManager:
             pass
 
         self.annotations = self.annotations[self.annotations['set'] != annotation_set]
+        self.annotations.to_csv(os.path.join(self.project.path, 'metadata/annotations.csv'), index = False)
+
+    def merge_sets(self, left_set, right_set, left_columns, right_columns, output_set, columns = {}):
+        assert left_set != right_set, "sets must differ"
+        assert not (set(left_columns) & set (right_columns)), "left_columns and right_columns must be disjoint"
+
+        left_annotations = self.annotations[self.annotations['set'] == left_set]
+        right_annotations = self.annotations[self.annotations['set'] == right_set]
+
+        left_annotations, right_annotations = self.intersection(left_annotations, right_annotations)
+
+        annotations = left_annotations.rename_axis('interval').reset_index()
+        annotations['format'] = ''
+        annotations['annotation_filename'] = annotations.apply(
+            lambda annotation: "{}/{}_{}_{}.csv".format(
+                output_set,
+                annotation['recording_filename'],
+                annotation['time_seek'],
+                annotation['range_onset']
+            )
+        , axis = 1)
+
+        for key in columns:
+            annotations[key] = columns[key]
+
+        annotations['set'] = output_set
+
+        left_segments = self.get_segments(annotations)
+        right_segments = self.get_segments(right_annotations.rename_axis('interval').reset_index())
+
+        merge_columns = ['interval', 'segment_onset', 'segment_offset']
+
+        output_segments = left_segments[merge_columns + left_columns + ['annotation_file']].merge(
+            right_segments[merge_columns + right_columns],
+            how = 'left',
+            left_on = merge_columns,
+            right_on = merge_columns
+        )
+
+        for interval in output_segments['interval'].tolist():
+            annotation_filename = annotations[annotations['interval'] == interval]['annotation_filename'].tolist()[0]
+            segments = output_segments[output_segments['interval'] == interval]
+            segments['annotation_file'] = annotation_filename
+
+            os.makedirs(os.path.dirname(os.path.join(self.project.path, 'annotations', annotation_filename)), exist_ok = True)
+
+            segments.to_csv(
+                os.path.join(self.project.path, 'annotations', annotation_filename)
+            )
+
+        annotations.drop(list(set(annotations.columns)-set([c.name for c in self.INDEX_COLUMNS])), axis = 1, inplace = True)
+        
+        self.read()
+        self.annotations = pd.concat([self.annotations, annotations], sort = False)
         self.annotations.to_csv(os.path.join(self.project.path, 'metadata/annotations.csv'), index = False)
 
     def get_segments(self, annotations):
