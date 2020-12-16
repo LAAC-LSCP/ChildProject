@@ -108,6 +108,22 @@ def merge_annotations(args):
     )
 
 @subcommand([
+    arg("source", help = "project path"),
+    arg("--set", help = "set to remove", required = True)
+])
+def remove_annotations(args):
+    project = ChildProject(args.source)
+    errors, warnings = project.validate_input_data(ignore_files = True)
+
+    if len(errors) > 0:
+        print("validation failed, {} error(s) occured".format(len(errors)), file = sys.stderr)
+        sys.exit(1)
+
+    am = AnnotationManager(project)
+    am.read()
+    am.remove_set(args.set)
+
+@subcommand([
     arg("dataset", help = "dataset to install. Should be a valid repository name at https://github.com/LAAC-LSCP. (e.g.: solomon-data)"),
     arg("--destination", help = "destination path", required = False, default = ""),
     arg("--storage-hostname", dest = "storage_hostname", help = "ssh storage hostname (e.g. 'foberon')", required = False, default = "")
