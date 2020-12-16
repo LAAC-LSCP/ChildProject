@@ -428,7 +428,7 @@ class AnnotationManager:
         right_segments['segment_offset'] = right_segments['segment_offset'] + right_segments['time_seek']
 
         def timestamp_to_int(f):
-            return int(f*10000)
+            return int(round(f*10000))
 
         def int_to_timestamp(i):
             return i/10000
@@ -455,10 +455,18 @@ class AnnotationManager:
         output_segments['annotation_file'] = output_segments['annotation_file_x'] + ',' + output_segments['annotation_file_y']
         output_segments.drop(columns = ['annotation_file_x', 'annotation_file_y', 'time_seek'], inplace = True)
 
+        annotations.drop(columns = 'raw_filename', inplace = True)
+        annotations = annotations.merge(
+            output_segments[['interval', 'annotation_file']].dropna().drop_duplicates(),
+            how = 'left',
+            left_on = 'interval',
+            right_on = 'interval'
+        )
+        annotations.rename(columns = {'annotation_file': 'raw_filename'}, inplace = True)
+        annotations['generated_at'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
         for interval, segments in output_segments.groupby('interval'):
             annotation_filename = annotations[annotations['interval'] == interval]['annotation_filename'].tolist()[0]
-            segments['annotation_file'] = annotation_filename
-
             os.makedirs(os.path.dirname(os.path.join(self.project.path, 'annotations', annotation_filename)), exist_ok = True)
 
             segments.drop(columns = list(set(segments.columns)-set([c.name for c in self.SEGMENTS_COLUMNS])), inplace = True)
