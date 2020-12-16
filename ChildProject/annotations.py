@@ -442,7 +442,7 @@ class AnnotationManager:
 
         output_segments = left_segments[merge_columns + left_columns + ['annotation_file', 'time_seek']].merge(
             right_segments[merge_columns + right_columns + ['annotation_file']],
-            how = 'left',
+            how = 'outer',
             left_on = merge_columns,
             right_on = merge_columns
         )
@@ -471,7 +471,8 @@ class AnnotationManager:
 
             segments.drop(columns = list(set(segments.columns)-set([c.name for c in self.SEGMENTS_COLUMNS])), inplace = True)
             segments.to_csv(
-                os.path.join(self.project.path, 'annotations', annotation_filename)
+                os.path.join(self.project.path, 'annotations', annotation_filename),
+                index = False
             )
 
         annotations.drop(columns = list(set(annotations.columns)-set([c.name for c in self.INDEX_COLUMNS])), inplace = True)

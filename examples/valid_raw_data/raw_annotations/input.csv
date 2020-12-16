@@ -1,7 +1,7 @@
-set,recording_filename,time_seek,raw_filename,range_onset,range_offset,format,filter,prefix
-textgrid,sound.wav,0,example.TextGrid,0,10,TextGrid,,
-eaf,sound.wav,0,example.eaf,0,300,eaf,,
-eaf_solis,sound.wav,0,example_solis.eaf,0,0,eaf,,
-vtc_rttm,sound.wav,0,example.rttm,1980,1990,vtc_rttm,namibie_aiku_20160714_1,
-alice,sound.wav,0,example_alice.txt,0,0,alice,namibie_aiku_20160714_1.wav,/scratch2/gvirlet/behive/benchmark/conda-processing/ALICE/tmp_data/short/
-metrics,sound.wav,0,example_metrics.rttm,0,0,vtc_rttm,tsimane2017_C01_20170706,
+set,recording_filename,time_seek,raw_filename,range_onset,range_offset,format,filter
+textgrid,sound.wav,0,example.TextGrid,0,10,TextGrid,
+eaf,sound.wav,0,example.eaf,0,300,eaf,
+eaf_solis,sound.wav,0,example_solis.eaf,0,0,eaf,
+vtc_rttm,sound.wav,0,example.rttm,1980,1990,vtc_rttm,namibie_aiku_20160714_1
+alice,sound.wav,0,example_alice.txt,1980,1990,alice,namibie_aiku_20160714_1
+metrics,sound.wav,0,example_metrics.rttm,0,0,vtc_rttm,tsimane2017_C01_20170706
