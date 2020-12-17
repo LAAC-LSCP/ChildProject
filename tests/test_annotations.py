@@ -55,7 +55,6 @@ def test_intersect(project):
 
     input_annotations = pd.read_csv('examples/valid_raw_data/raw_annotations/intersect.csv')
     am.import_annotations(input_annotations)
-    am.read()
 
     a, b = am.intersection(
         am.annotations[am.annotations['set'] == 'textgrid'],
@@ -71,6 +70,32 @@ def test_intersect(project):
         b.sort_index(axis = 1).sort_values(b.columns.tolist()).reset_index(drop = True).drop(columns=['imported_at']),
         pd.read_csv('tests/truth/intersect_b.csv').sort_index(axis = 1).sort_values(b.columns.tolist()).reset_index(drop = True).drop(columns=['imported_at'])
     )
+
+def test_merge(project):
+    am = AnnotationManager(project)
+
+    input_annotations = pd.read_csv('examples/valid_raw_data/raw_annotations/input.csv')
+    input_annotations = input_annotations[input_annotations['set'].isin(['vtc_rttm', 'alice'])]
+    am.import_annotations(input_annotations)
+    am.read()
+
+    am.read()
+    am.merge_sets(
+        left_set = 'vtc_rttm',
+        right_set = 'alice',
+        left_columns = ['speaker_id','ling_type','speaker_type','vcm_type','lex_type','mwu_type','addresseee','transcription'],
+        right_columns = ['phonemes','syllables','words'],
+        output_set = 'alice_vtc'
+    )
+    am.read()
+
+    segments = am.get_segments(am.annotations[am.annotations['set'] == 'alice_vtc'])
+    assert segments.shape == am.get_segments(am.annotations[am.annotations['set'] == 'vtc_rttm']).shape
+
+    adult_segments = segments[segments['speaker_type'].isin(['FEM', 'MAL'])].sort_values(['segment_onset', 'segment_offset']).reset_index(drop = True)
+    alice = am.get_segments(am.annotations[am.annotations['set'] == 'alice']).sort_values(['segment_onset', 'segment_offset']).reset_index(drop = True)
+    
+    pd.testing.assert_frame_equal(adult_segments[['phonemes', 'syllables', 'words']], alice[['phonemes', 'syllables', 'words']])
 
 def test_clipping(project):
     am = AnnotationManager(project)
