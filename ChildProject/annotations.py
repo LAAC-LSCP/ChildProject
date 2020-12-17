@@ -452,8 +452,7 @@ class AnnotationManager:
         output_segments['segment_onset'] = output_segments['segment_onset'] - output_segments['time_seek']
         output_segments['segment_offset'] = output_segments['segment_offset'] - output_segments['time_seek']
 
-        output_segments['annotation_file'] = output_segments['annotation_file_x'].fillna('') + ',' + output_segments['annotation_file_y'].fillna('')
-        output_segments.drop(columns = ['annotation_file_x', 'annotation_file_y', 'time_seek'], inplace = True)
+        output_segments['annotation_file'] = output_segments['annotation_file_x'] + ',' + output_segments['annotation_file_y']
 
         annotations.drop(columns = 'raw_filename', inplace = True)
         annotations = annotations.merge(
@@ -464,6 +463,9 @@ class AnnotationManager:
         )
         annotations.rename(columns = {'annotation_file': 'raw_filename'}, inplace = True)
         annotations['generated_at'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+        output_segments['annotation_file'] = output_segments['annotation_file_x'].fillna('') + ',' + output_segments['annotation_file_y'].fillna('')
+        output_segments.drop(columns = ['annotation_file_x', 'annotation_file_y', 'time_seek'], inplace = True)
 
         output_segments.fillna('NA', inplace = True)
 
