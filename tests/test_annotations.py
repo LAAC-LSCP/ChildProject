@@ -79,8 +79,6 @@ def test_merge(project):
     am.import_annotations(input_annotations)
     am.read()
 
-    print(am.get_segments(am.annotations))
-
     am.read()
     am.merge_sets(
         left_set = 'vtc_rttm',
@@ -92,15 +90,12 @@ def test_merge(project):
     am.read()
 
     segments = am.get_segments(am.annotations[am.annotations['set'] == 'alice_vtc'])
-
-    print(segments.columns)
-    print(am.get_segments(am.annotations[am.annotations['set'] == 'vtc_rttm']).columns)
-
     assert segments.shape == am.get_segments(am.annotations[am.annotations['set'] == 'vtc_rttm']).shape
 
-    adult_segments = segments[segments['speaker_type'].isin(['FEM', 'MAL'])]
-    truth = [{'phonemes': 26.26, 'syllables': 12.78, 'words': 8.83}]
-    assert adult_segments[['phonemes', 'syllables', 'words']].to_dict(orient = 'records') == truth
+    adult_segments = segments[segments['speaker_type'].isin(['FEM', 'MAL'])].sort_values(['segment_onset', 'segment_offset']).reset_index(drop = True)
+    alice = am.get_segments(am.annotations[am.annotations['set'] == 'alice']).sort_values(['segment_onset', 'segment_offset']).reset_index(drop = True)
+    
+    pd.testing.assert_frame_equal(adult_segments[['phonemes', 'syllables', 'words']], alice[['phonemes', 'syllables', 'words']])
 
 def test_clipping(project):
     am = AnnotationManager(project)
