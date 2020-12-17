@@ -49,7 +49,8 @@ def validate(args):
 
 @subcommand([
     arg("source", help = "project path"),
-    arg("--annotations", help = "path to input annotations index (csv)", default = "")
+    arg("--annotations", help = "path to input annotations index (csv)", default = ""),
+    arg("--threads", help = "amount of threads to run on", type = int, default = 0)
 ] + [
     arg("--{}".format(col.name), help = col.description, type = str, default = None)
     for col in AnnotationManager.INDEX_COLUMNS
@@ -71,7 +72,7 @@ def import_annotations(args):
         annotations = pd.DataFrame([{col.name: getattr(args, col.name) for col in AnnotationManager.INDEX_COLUMNS if not col.generated}])
 
     am = AnnotationManager(project)
-    am.import_annotations(annotations)
+    am.import_annotations(annotations, args.threads)
 
     errors, warnings = am.validate()
 
