@@ -8,6 +8,8 @@
     - [Multi-core audio conversion with slurm on a cluster](#multi-core-audio-conversion-with-slurm-on-a-cluster)
   - [Import annotations](#import-annotations)
     - [Single importation](#single-importation)
+  - [Merge annotation sets](#merge-annotation-sets)
+  - [Remove an annotation set](#remove-an-annotation-set)
     - [Bulk importation](#bulk-importation)
   - [Zooniverse](#zooniverse)
   - [Compute recordings duration](#compute-recordings-duration)
@@ -92,6 +94,19 @@ Annotations can be imported one by one or in bulk. Annotation importation does t
 ```
 child-project import-annotations /path/to/dataset --set eaf --recording_filename sound.wav --time_seek 0 --raw_filename example.eaf --range_onset 0 --range_offset 300 --format eaf
 ```
+
+### Merge annotation sets
+
+```
+child-project merge-annotations /path/to/dataset --left-set vtc --right-set alice --left-columns speaker_id,ling_type,speaker_type,vcm_type,lex_type,mwu_type,addresseee,transcription --right-columns phonemes,syllables,words --output-set alice_vtc
+```
+
+### Remove an annotation set
+
+```
+child-project remove-annotations /path/to/dataset --set vtc
+```
+
 
 #### Bulk importation
 
