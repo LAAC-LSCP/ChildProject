@@ -29,13 +29,19 @@ def register_pipeline(subcommand, cls):
 
 @subcommand([
     arg("source", help = "project path"),
-    arg('--ignore-files', dest='ignore_files', required = False, default = False, action = 'store_true')
+    arg('--ignore-files', dest='ignore_files', required = False, default = False, action = 'store_true'),
+    arg('--check-annotations', dest='check_annotations', required = False, default = False, action = 'store_true')
 ])
 def validate(args):
     """validate the consistency of the dataset returning detailed errors and warnings"""
 
     project = ChildProject(args.source)
-    errors, warnings = project.validate_input_data(args.ignore_files)
+    errors, warnings = project.validate(args.ignore_files)
+
+    if args.check_annotations:
+        am = AnnotationManager(project)
+        errors.extend(am.errors)
+        warnings.extend(am.warnings)
 
     for error in errors:
         print("error: {}".format(error), file = sys.stderr)
@@ -60,7 +66,7 @@ def import_annotations(args):
     """convert and import a set of annotations"""
 
     project = ChildProject(args.source)
-    errors, warnings = project.validate_input_data(ignore_files = True)
+    errors, warnings = project.validate(ignore_files = True)
 
     if len(errors) > 0:
         print("validation failed, {} error(s) occured".format(len(errors)), file = sys.stderr)
@@ -92,7 +98,7 @@ def import_annotations(args):
 ])
 def merge_annotations(args):
     project = ChildProject(args.source)
-    errors, warnings = project.validate_input_data(ignore_files = True)
+    errors, warnings = project.validate(ignore_files = True)
 
     if len(errors) > 0:
         print("validation failed, {} error(s) occured".format(len(errors)), file = sys.stderr)
@@ -114,7 +120,7 @@ def merge_annotations(args):
 ])
 def remove_annotations(args):
     project = ChildProject(args.source)
-    errors, warnings = project.validate_input_data(ignore_files = True)
+    errors, warnings = project.validate(ignore_files = True)
 
     if len(errors) > 0:
         print("validation failed, {} error(s) occured".format(len(errors)), file = sys.stderr)
@@ -161,7 +167,7 @@ def import_data(args):
 def stats(args):
     project = ChildProject(args.source)
 
-    errors, warnings = project.validate_input_data()
+    errors, warnings = project.validate()
 
     if len(errors) > 0:
         print("validation failed, {} error(s) occured".format(len(errors)), file = sys.stderr)
@@ -183,7 +189,7 @@ def compute_durations(args):
     """creates a 'duration' column into metadata/recordings"""
     project = ChildProject(args.source)
 
-    errors, warnings = project.validate_input_data()
+    errors, warnings = project.validate()
 
     if len(errors) > 0:
         print("validation failed, {} error(s) occured".format(len(errors)), file = sys.stderr)

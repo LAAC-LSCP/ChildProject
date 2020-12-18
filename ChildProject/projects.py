@@ -84,7 +84,7 @@ class ChildProject:
         self.children = self.ct.read(lookup_extensions = ['.csv', '.xls', '.xlsx'])
         self.recordings = self.rt.read(lookup_extensions = ['.csv', '.xls', '.xlsx'])
 
-    def validate_input_data(self, ignore_files = False):
+    def validate(self, ignore_files = False):
         self.errors = []
         self.warnings = []
 
@@ -150,7 +150,7 @@ class ChildProject:
         return self.errors, self.warnings
 
     def import_data(self, destination, follow_symlinks = True):
-        errors, warnings = self.validate_input_data()
+        errors, warnings = self.validate()
 
         if len(errors) > 0:
             raise Exception('cannot import data: validation failed')

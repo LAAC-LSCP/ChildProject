@@ -19,8 +19,8 @@ class AnnotationManager:
         IndexColumn(name = 'set', description = 'name of the annotation set (e.g. VTC, annotator1, etc.)', required = True),
         IndexColumn(name = 'recording_filename', description = 'recording filename as specified in the recordings index', required = True),
         IndexColumn(name = 'time_seek', description = 'reference time in seconds, e.g: 3600, or 3600.500. All times expressed in the annotations are relative to this time.', regex = r"[0-9]{1,}(\.[0-9]{3})?", required = True),
-        IndexColumn(name = 'range_onset', description = 'covered range start time in seconds, measured since `time_seek`', regex = r"[0-9]{1,}(\.[0-9]{3})?", required = True),
-        IndexColumn(name = 'range_offset', description = 'covered range end time in seconds, measured since `time_seek`', regex = r"[0-9]{1,}(\.[0-9]{3})?", required = True),
+        IndexColumn(name = 'range_onset', description = 'covered range start time in seconds, measured since `time_seek`', regex = r"(\d+(\.\d+)?)", required = True),
+        IndexColumn(name = 'range_offset', description = 'covered range end time in seconds, measured since `time_seek`', regex = r"(\d+(\.\d+)?)", required = True),
         IndexColumn(name = 'raw_filename', description = 'annotation input filename location (relative to raw_annotations/)', filename = True, required = True),
         IndexColumn(name = 'format', description = 'input annotation format', choices = ['TextGrid', 'eaf', 'vtc_rttm', 'alice'], required = True),
         IndexColumn(name = 'filter', description = 'source file to filter in (for rttm and alice only)', required = False),
@@ -108,7 +108,7 @@ class AnnotationManager:
         if not os.path.exists(index_path):
             open(index_path, 'w+').write(','.join([c.name for c in self.INDEX_COLUMNS]))
 
-        errors, warnings = self.read()
+        self.errors, self.warnings = self.read()
 
     def read(self):
         table = IndexTable('input', path = os.path.join(self.project.path, 'metadata/annotations.csv'), columns = self.INDEX_COLUMNS)
