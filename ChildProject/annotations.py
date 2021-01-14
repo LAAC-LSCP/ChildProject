@@ -1,11 +1,13 @@
 from collections import defaultdict
 import datetime
+from lxml import etree
 import multiprocessing as mp
 from numbers import Number
 import numpy as np
 import os
 import pandas as pd
 import pympi
+import re
 import shutil
 import sys
 import traceback
@@ -43,7 +45,11 @@ class AnnotationManager:
         IndexColumn(name = 'transcription', description = 'orthographic transcription of the speach', required = True),
         IndexColumn(name = 'phonemes', description = 'amount of phonemes', regex = r'(\d+(\.\d+)?)'),
         IndexColumn(name = 'syllables', description = 'amount of syllables', regex = r'(\d+(\.\d+)?)'),
-        IndexColumn(name = 'words', description = 'amount of words', regex = r'(\d+(\.\d+)?)')
+        IndexColumn(name = 'words', description = 'amount of words', regex = r'(\d+(\.\d+)?)'),
+        IndexColumn(name = 'lena_conversation_type', description = 'whether regarded as part as a pause or a conversation by LENA', choices = ['conversation', 'pause']),
+        IndexColumn(name = 'lena_conversation_number', description = 'number of the LENA pause/conversation the segment belongs to', regex = r"(\d+(\.\d+)?)"),
+        IndexColumn(name = 'utterances_count', description = 'utterrances count', regex = r"(\d+(\.\d+)?)"),
+        IndexColumn(name = 'utterances_length', description = 'utterrances length', regex = r"(\d+(\.\d+)?)")
     ]
 
     SPEAKER_ID_TO_TYPE = {
@@ -92,6 +98,25 @@ class AnnotationManager:
         'MAL':'MAL',
         'SPEECH': 'SPEECH'
     })
+
+    LENA_SPEAKER_TYPE_TRANSLATION = {
+        'CHN': 'CHI',
+        'CXN': 'OCH',
+        'FAN': 'FEM',
+        'MAN': 'MAL',
+        'OLN': 'OLN',
+        'TVN': 'TVN',
+        'NON': 'NON',
+        'SIL': 'SIL',
+        'FUZ': 'FUZ',
+        'TVF': 'TVF',
+        'CXF': 'CXF',
+        'NOF': 'NON',
+        'OLF': 'OLN',
+        'CHF': 'CHF',
+        'MAF': 'MAF',
+        'FAF': 'FEF'
+    }
 
 
     def __init__(self, project):
@@ -249,6 +274,66 @@ class AnnotationManager:
                     segment['vcm_type'] = value
 
         return pd.DataFrame(segments.values())
+
+    def load_its(self, filename):
+        path = os.path.join(self.project.path, 'raw_annotations', filename)
+        xml = etree.parse(path)
+
+        recordings = xml.xpath('/ITS/ProcessingUnit/Recording')
+        timestamp_pattern = re.compile(r"^P(?:T?)(\d+(\.\d+)?)S$")
+
+        def extract_from_regex(pattern, subject):
+            match = pattern.search(subject)
+            return match.group(1) if match else ''
+
+        segments = []
+
+        for recording in recordings:
+            segs = recording.xpath('//Segment')
+            for seg in segs:
+                parent = seg.getparent()
+
+                lena_conversation_number = parent.get('num')
+                lena_conversation_type = parent.tag.lower()
+
+                onset = extract_from_regex(timestamp_pattern, seg.get('startTime'))
+                offset = extract_from_regex(timestamp_pattern, seg.get('endTime'))
+
+                words = 0
+                for attr in ['femaleAdultWordCnt', 'maleAdultWordCnt']:
+                    words += float(seg.get(attr, 0))
+
+                utterances_count = 0
+                for attr in ['femaleAdultUttCnt', 'maleAdultUttCnt', 'childUttCnt']:
+                    utterances_count += float(seg.get(attr, 0))
+
+                utterances_length = 0
+                for attr in ['femaleAdultUttLen', 'maleAdultUttLen', 'childUttLen']:
+                    utterances_length += float(extract_from_regex(timestamp_pattern, seg.get(attr, 'P0S')))
+
+                segments.append({
+                    'segment_onset': onset,
+                    'segment_offset': offset,
+                    'speaker_id': 'NA',
+                    'ling_type': 'NA',
+                    'speaker_type': self.LENA_SPEAKER_TYPE_TRANSLATION[seg.get('spkr')],
+                    'vcm_type': 'NA',
+                    'lex_type': 'NA',
+                    'mwu_type': 'NA',
+                    'addresseee': 'NA',
+                    'transcription': 'NA',
+                    'phonemes': 'NA',
+                    'syllables': 'NA',
+                    'words': words,
+                    'lena_conversation_number': lena_conversation_number,
+                    'lena_conversation_type': lena_conversation_type,
+                    'utterances_count': utterances_count,
+                    'utterances_length': utterances_length
+                })
+                
+        df = pd.DataFrame(segments)
+        
+        return df
 
     def load_vtc_rttm(self, filename, source_file = None):
         path = os.path.join(self.project.path, 'raw_annotations', filename)

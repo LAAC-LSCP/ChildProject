@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 requires = {
-    'core': ['pandas', 'xlrd', 'jinja2', 'numpy', 'pympi-ling', 'sox', 'datalad'],
+    'core': ['pandas', 'xlrd', 'jinja2', 'numpy', 'pympi-ling', 'lxml', 'sox', 'datalad'],
     'zooniverse': ['panoptes_client', 'pydub']
 }
 

@@ -5,6 +5,7 @@ xlrd
 jinja2
 numpy
 pympi-ling
+lxml
 sox
 datalad
 pydub
