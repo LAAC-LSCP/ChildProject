@@ -1,8 +1,9 @@
-- [List of available projects](#list-of-available-projects)
-- [How to use datasets](#how-to-use-datasets)
+- [How to reuse extant datasets](#how-to-reuse-extant-datasets)
   - [How it works](#how-it-works)
   - [Installing datalad](#installing-datalad)
   - [Installing a dataset](#installing-a-dataset)
+    - [Setting up your ssh access to GitHub](#setting-up-your-ssh-access-to-github)
+    - [Setting up your ssh access to Oberon](#setting-up-your-ssh-access-to-oberon)
     - [Quick way (using child-project)](#quick-way-using-child-project)
     - [Datalad way (using only datalad)](#datalad-way-using-only-datalad)
   - [Downloading large files](#downloading-large-files)
@@ -10,15 +11,8 @@
   - [Contributing to a dataset](#contributing-to-a-dataset)
   - [Creating a new dataset](#creating-a-new-dataset)
 
-# List of available projects
 
-| Name | Authors | Location | Recordings | Audio length (hours) | Status |
-|------|---------|----------|------------|----------------------|--------|
-{% for project in projects -%}
-| **{{project.name}}** | {{project.authors}} | [{{project.location}}]({{project.location}}) | {{project.recordings}} | {{project.duration|round|int}} | {{project.status}} | 
-{% endfor %}
-
-# How to use datasets
+# How to reuse extant datasets
 
 Our datasets rely on [datalad](https://www.datalad.org/). Datalad allows the versioning and distribution of large datasets.
 Datalad relies on another tool called [git-annex](https://git-annex.branchable.com/), which itself is an extension of git providing support for large file versioning with a high flexibility. 
@@ -41,6 +35,40 @@ If you are still having permission issues, consider using python virtual environ
 
 ## Installing a dataset
 
+### Setting up your ssh access to GitHub
+
+This step shall only be done once for all.
+Since our datasets are partially hosted on GitHub private repositories, authentication is needed to access them. I highly recommend that you use SSH authentication, for security and simplicity. I will only provide instructions for SSH authentication, and leave HTTPS authentication to consenting adults. Here are the steps:
+
+1. Copy your SSH private key (usually located in `~/.ssh/id_rsa.pub`)
+2. Go to [GitHub.com > Settings > SSH and GPG Keys](https://github.com/settings/keys)
+3. Click on the green button 'New SSH key' and paste your public key where requested.
+
+### Setting up your ssh access to Oberon
+
+The actual content of the large files (e.g. recordings) is stored on the lab cluster (Oberon). Therefore, you need ssh access to the cluster to retrieve them.
+
+If you can already ssh into Oberon with an alias by doing `ssh foberon` or `ssh oberon` or similar, skip this step. Otherwise, follow these instructions to setup ssh properly:
+
+1. Add the following lines to your `~/.ssh/config` file:
+
+```
+Host frontal
+   Hostname frontal-ssh.ens.fr
+   User lgautheron
+
+Host foberon
+    Hostname 129.199.81.30
+    User lgautheron 
+    ProxyJump frontal
+
+Host *
+ForwardX11 yes
+UseKeychain yes
+```
+
+2. Try to SSH into oberon by typing `ssh foberon`. You will be prompted for your credentials.
+
 ### Quick way (using child-project)
 
 ```
@@ -62,12 +90,11 @@ cd namibia-data
 datalad run-procedure setup
 ```
 
-Otherwise, you need to specify the SSH alias for Oberon on your system. For me, it is `foberon` :
+Otherwise, you need to specify the SSH alias for Oberon on your system. If you followed the previous steps to setup your SSH access to Oberon, it should be `foberon` :
 
 ```
 datalad run-procedure setup foberon
 ```
-
 
 That's it ! Your dataset is ready to go. By default, large files do not get downloaded automatically. See the next section for help with downloading those files.
 
