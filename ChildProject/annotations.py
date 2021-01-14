@@ -19,11 +19,11 @@ class AnnotationManager:
         IndexColumn(name = 'set', description = 'name of the annotation set (e.g. VTC, annotator1, etc.)', required = True),
         IndexColumn(name = 'recording_filename', description = 'recording filename as specified in the recordings index', required = True),
         IndexColumn(name = 'time_seek', description = 'reference time in seconds, e.g: 3600, or 3600.500. All times expressed in the annotations are relative to this time.', regex = r"[0-9]{1,}(\.[0-9]{3})?", required = True),
-        IndexColumn(name = 'range_onset', description = 'covered range start time in seconds, measured since `time_seek`', regex = r"[0-9]{1,}(\.[0-9]{3})?", required = True),
-        IndexColumn(name = 'range_offset', description = 'covered range end time in seconds, measured since `time_seek`', regex = r"[0-9]{1,}(\.[0-9]{3})?", required = True),
+        IndexColumn(name = 'range_onset', description = 'covered range start time in seconds, measured since `time_seek`', regex = r"(\d+(\.\d+)?)", required = True),
+        IndexColumn(name = 'range_offset', description = 'covered range end time in seconds, measured since `time_seek`', regex = r"(\d+(\.\d+)?)", required = True),
         IndexColumn(name = 'raw_filename', description = 'annotation input filename location (relative to raw_annotations/)', filename = True, required = True),
-        IndexColumn(name = 'format', description = 'input annotation format', choices = ['TextGrid', 'eaf', 'vtc_rttm'], required = True),
-        IndexColumn(name = 'filter', description = 'source file to filter in (for rttm only)', required = False),
+        IndexColumn(name = 'format', description = 'input annotation format', choices = ['TextGrid', 'eaf', 'vtc_rttm', 'alice'], required = True),
+        IndexColumn(name = 'filter', description = 'source file to filter in (for rttm and alice only)', required = False),
         IndexColumn(name = 'annotation_filename', description = 'output formatted annotation location (automatic column, don\'t specify)', filename = True, required = False, generated = True),
         IndexColumn(name = 'imported_at', description = 'importation date (automatic column, don\'t specify)', datetime = "%Y-%m-%d %H:%M:%S", required = False, generated = True),
         IndexColumn(name = 'error', description = 'error message in case the annotation could not be imported', required = False, generated = True)
@@ -40,7 +40,10 @@ class AnnotationManager:
         IndexColumn(name = 'lex_type', description = 'W if meaningful, 0 otherwise', choices = ['W', '0', 'NA'], required = True),
         IndexColumn(name = 'mwu_type', description = 'M if multiword, 1 if single word -- only filled if lex_type==W', choices = ['M', '1', 'NA'], required = True),
         IndexColumn(name = 'addresseee', description = 'T if target-child-directed, C if other-child-directed, A if adult-directed, U if uncertain or other', choices = ['T', 'C', 'A', 'U', 'NA'], required = True),
-        IndexColumn(name = 'transcription', description = 'orthographic transcription of the speach', required = True)
+        IndexColumn(name = 'transcription', description = 'orthographic transcription of the speach', required = True),
+        IndexColumn(name = 'phonemes', description = 'amount of phonemes', regex = r'(\d+(\.\d+)?)'),
+        IndexColumn(name = 'syllables', description = 'amount of syllables', regex = r'(\d+(\.\d+)?)'),
+        IndexColumn(name = 'words', description = 'amount of words', regex = r'(\d+(\.\d+)?)')
     ]
 
     SPEAKER_ID_TO_TYPE = {
@@ -105,7 +108,7 @@ class AnnotationManager:
         if not os.path.exists(index_path):
             open(index_path, 'w+').write(','.join([c.name for c in self.INDEX_COLUMNS]))
 
-        errors, warnings = self.read()
+        self.errors, self.warnings = self.read()
 
     def read(self):
         table = IndexTable('input', path = os.path.join(self.project.path, 'metadata/annotations.csv'), columns = self.INDEX_COLUMNS)
@@ -165,7 +168,10 @@ class AnnotationManager:
                     'lex_type': 'NA',
                     'mwu_type': 'NA',
                     'addresseee': 'NA',
-                    'transcription': 'NA'
+                    'transcription': 'NA',
+                    'phonemes': 'NA',
+                    'syllables': 'NA',
+                    'words':'NA'
                 }
 
                 segments.append(segment)
@@ -199,7 +205,10 @@ class AnnotationManager:
                     'lex_type': 'NA',
                     'mwu_type': 'NA',
                     'addresseee': 'NA',
-                    'transcription': value if value != '0' else '0.'
+                    'transcription': value if value != '0' else '0.',
+                    'phonemes': 'NA',
+                    'syllables': 'NA',
+                    'words':'NA'
                 }
 
                 segments[aid] = segment
@@ -259,12 +268,43 @@ class AnnotationManager:
         df['lex_type'] = 'NA'
         df['mwu_type'] = 'NA'
         df['addresseee'] = 'NA'
-        df['transcription'] = 'NA'  
+        df['transcription'] = 'NA'
+        df['phonemes'] = 'NA'
+        df['syllables'] = 'NA'
+        df['words'] = 'NA'
 
         if source_file:
             df = df[df['file'] == source_file]
 
         df.drop(['type', 'file', 'chnl', 'tbeg', 'tdur', 'ortho', 'stype', 'name', 'conf', 'unk'], axis = 1, inplace = True)
+
+        return df
+
+    def load_alice(self, filename, source_file = None):
+        path = os.path.join(self.project.path, 'raw_annotations', filename)
+        df = pd.read_csv(
+            path,
+            sep = r"\s",
+            names = ['file', 'phonemes', 'syllables', 'words']
+        )
+        df['speaker_id'] = 'NA'
+        df['ling_type'] = 'NA'
+        df['speaker_type'] = 'NA'
+        df['vcm_type'] = 'NA'
+        df['lex_type'] = 'NA'
+        df['mwu_type'] = 'NA'
+        df['addresseee'] = 'NA'
+        df['transcription'] = 'NA'
+
+        if source_file:
+            df = df[df['file'].str.contains(source_file)]
+
+        matches = df['file'].str.extract(r"^(.*)_(?:0+)?([0-9]{1,})_(?:0+)?([0-9]{1,})\.wav$")
+        df['filename'] = matches[0]
+        df['segment_onset'] = matches[1].astype(float)/10000
+        df['segment_offset'] = matches[2].astype(float)/10000
+        
+        df.drop(columns = ['filename', 'file'], inplace = True)
 
         return df
 
@@ -284,6 +324,9 @@ class AnnotationManager:
             elif annotation_format == 'vtc_rttm':
                 filter = annotation['filter'] if 'filter' in annotation and not pd.isnull(annotation['filter']) else None
                 df = self.load_vtc_rttm(raw_filename, source_file = filter)
+            elif annotation_format == 'alice':
+                filter = annotation['filter'] if 'filter' in annotation and not pd.isnull(annotation['filter']) else None
+                df = self.load_alice(raw_filename, source_file = filter)
             else:
                 raise ValueError("file format '{}' unknown for '{}'".format(annotation_format, raw_filename))
         except:
@@ -317,14 +360,14 @@ class AnnotationManager:
 
         return annotation
 
-    def import_annotations(self, input):
+    def import_annotations(self, input, threads = -1):
         missing_recordings = input[~input['recording_filename'].isin(self.project.recordings['filename'].tolist())]
         missing_recordings = missing_recordings['recording_filename'].tolist()
 
         if len(missing_recordings) > 0:
             raise ValueError("cannot import annotations. the following recordings are incorrect:\n{}".format("\n".join(missing_recordings)))
 
-        pool = mp.Pool(processes = mp.cpu_count())
+        pool = mp.Pool(processes = threads if threads > 0 else mp.cpu_count())
         imported = pool.map(
             self.import_annotation,
             input.to_dict(orient = 'records')
@@ -346,6 +389,100 @@ class AnnotationManager:
             pass
 
         self.annotations = self.annotations[self.annotations['set'] != annotation_set]
+        self.annotations.to_csv(os.path.join(self.project.path, 'metadata/annotations.csv'), index = False)
+
+    def merge_sets(self, left_set, right_set, left_columns, right_columns, output_set, columns = {}):
+        assert left_set != right_set, "sets must differ"
+        assert not (set(left_columns) & set (right_columns)), "left_columns and right_columns must be disjoint"
+        assert set(left_columns) | set (right_columns) == set([c.name for c in self.SEGMENTS_COLUMNS]) - set(['annotation_file', 'segment_onset', 'segment_offset']), "left_columns and right_columns are missing values"
+
+        left_annotations = self.annotations[self.annotations['set'] == left_set]
+        right_annotations = self.annotations[self.annotations['set'] == right_set]
+
+        left_annotations, right_annotations = self.intersection(left_annotations, right_annotations)
+        left_annotations = left_annotations.reset_index(drop = True).rename_axis('interval').reset_index()
+        right_annotations = right_annotations.reset_index(drop = True).rename_axis('interval').reset_index()
+
+        annotations = left_annotations.copy()
+        annotations['format'] = ''
+        annotations['annotation_filename'] = annotations.apply(
+            lambda annotation: "{}/{}_{}_{}.csv".format(
+                output_set,
+                os.path.splitext(annotation['recording_filename'])[0],
+                annotation['time_seek'],
+                annotation['range_onset']
+            )
+        , axis = 1)
+
+        for key in columns:
+            annotations[key] = columns[key]
+
+        annotations['set'] = output_set
+
+        left_segments = self.get_segments(left_annotations)
+        left_segments['segment_onset'] = left_segments['segment_onset'] + left_segments['time_seek']
+        left_segments['segment_offset'] = left_segments['segment_offset'] + left_segments['time_seek']
+
+        right_segments = self.get_segments(right_annotations)
+        right_segments['segment_onset'] = right_segments['segment_onset'] + right_segments['time_seek']
+        right_segments['segment_offset'] = right_segments['segment_offset'] + right_segments['time_seek']
+
+        def timestamp_to_int(f):
+            return int(round(f*10000))
+
+        def int_to_timestamp(i):
+            return i/10000
+
+        left_segments['segment_onset'] = left_segments['segment_onset'].apply(timestamp_to_int)
+        left_segments['segment_offset'] = left_segments['segment_offset'].apply(timestamp_to_int)
+        right_segments['segment_onset'] = right_segments['segment_onset'].apply(timestamp_to_int)
+        right_segments['segment_offset'] = right_segments['segment_offset'].apply(timestamp_to_int)
+
+        merge_columns = ['interval', 'segment_onset', 'segment_offset']
+
+        output_segments = left_segments[merge_columns + left_columns + ['annotation_file', 'time_seek']].merge(
+            right_segments[merge_columns + right_columns + ['annotation_file']],
+            how = 'outer',
+            left_on = merge_columns,
+            right_on = merge_columns
+        )
+        output_segments['segment_onset'] = output_segments['segment_onset'].apply(int_to_timestamp)
+        output_segments['segment_offset'] = output_segments['segment_offset'].apply(int_to_timestamp)
+
+        output_segments['segment_onset'] = output_segments['segment_onset'] - output_segments['time_seek']
+        output_segments['segment_offset'] = output_segments['segment_offset'] - output_segments['time_seek']
+
+        output_segments['annotation_file'] = output_segments['annotation_file_x'] + ',' + output_segments['annotation_file_y']
+
+        annotations.drop(columns = 'raw_filename', inplace = True)
+        annotations = annotations.merge(
+            output_segments[['interval', 'annotation_file']].dropna().drop_duplicates(),
+            how = 'left',
+            left_on = 'interval',
+            right_on = 'interval'
+        )
+        annotations.rename(columns = {'annotation_file': 'raw_filename'}, inplace = True)
+        annotations['generated_at'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+        output_segments['annotation_file'] = output_segments['annotation_file_x'].fillna('') + ',' + output_segments['annotation_file_y'].fillna('')
+        output_segments.drop(columns = ['annotation_file_x', 'annotation_file_y', 'time_seek'], inplace = True)
+
+        output_segments.fillna('NA', inplace = True)
+
+        for interval, segments in output_segments.groupby('interval'):
+            annotation_filename = annotations[annotations['interval'] == interval]['annotation_filename'].tolist()[0]
+            os.makedirs(os.path.dirname(os.path.join(self.project.path, 'annotations', annotation_filename)), exist_ok = True)
+
+            segments.drop(columns = list(set(segments.columns)-set([c.name for c in self.SEGMENTS_COLUMNS])), inplace = True)
+            segments.to_csv(
+                os.path.join(self.project.path, 'annotations', annotation_filename),
+                index = False
+            )
+
+        annotations.drop(columns = list(set(annotations.columns)-set([c.name for c in self.INDEX_COLUMNS])), inplace = True)
+        
+        self.read()
+        self.annotations = pd.concat([self.annotations, annotations], sort = False)
         self.annotations.to_csv(os.path.join(self.project.path, 'metadata/annotations.csv'), index = False)
 
     def get_segments(self, annotations):
@@ -376,14 +513,10 @@ class AnnotationManager:
             a_ranges = a[['abs_range_onset', 'abs_range_offset']].sort_values(['abs_range_onset', 'abs_range_offset']).values.tolist()
             b_ranges = b[['abs_range_onset', 'abs_range_offset']].sort_values(['abs_range_onset', 'abs_range_offset']).values.tolist()
 
-            print(a_ranges, b_ranges)
-
             segments = list(intersect_ranges(
                 (Segment(onset, offset) for (onset, offset) in a_ranges),
                 (Segment(onset, offset) for (onset, offset) in b_ranges)
             ))
-
-            print(segments)
 
             a_out = []
             b_out = []
@@ -398,6 +531,9 @@ class AnnotationManager:
                 b_row['abs_range_onset'] = segment.start
                 b_row['abs_range_offset'] = segment.stop
                 b_out.append(b_row)
+
+            if not a_out or not b_out:
+                continue
 
             a_out = pd.DataFrame(a_out)
             b_out = pd.DataFrame(b_out)

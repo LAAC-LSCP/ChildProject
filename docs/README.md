@@ -106,8 +106,6 @@ We provide tools to:
 
 We provide detailed instructions [here](http://laac-lscp.github.io/ChildRecordsData/TOOLS.html).
 
-
-
 ## Missing and planned features
 
 - import of old-style LENA .its

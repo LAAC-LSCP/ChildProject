@@ -132,7 +132,7 @@ class ConversionPipeline(Pipeline):
 
         project = ChildProject(path)
 
-        errors, warnings = project.validate_input_data()
+        errors, warnings = project.validate()
         if len(errors) > 0:
             raise Exception('cannot convert: validation failed')
 

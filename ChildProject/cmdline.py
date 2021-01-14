@@ -29,13 +29,19 @@ def register_pipeline(subcommand, cls):
 
 @subcommand([
     arg("source", help = "project path"),
-    arg('--ignore-files', dest='ignore_files', required = False, default = False, action = 'store_true')
+    arg('--ignore-files', dest='ignore_files', required = False, default = False, action = 'store_true'),
+    arg('--check-annotations', dest='check_annotations', required = False, default = False, action = 'store_true')
 ])
 def validate(args):
     """validate the consistency of the dataset returning detailed errors and warnings"""
 
     project = ChildProject(args.source)
-    errors, warnings = project.validate_input_data(args.ignore_files)
+    errors, warnings = project.validate(args.ignore_files)
+
+    if args.check_annotations:
+        am = AnnotationManager(project)
+        errors.extend(am.errors)
+        warnings.extend(am.warnings)
 
     for error in errors:
         print("error: {}".format(error), file = sys.stderr)
@@ -49,7 +55,8 @@ def validate(args):
 
 @subcommand([
     arg("source", help = "project path"),
-    arg("--annotations", help = "path to input annotations index (csv)", default = "")
+    arg("--annotations", help = "path to input annotations index (csv)", default = ""),
+    arg("--threads", help = "amount of threads to run on", type = int, default = 0)
 ] + [
     arg("--{}".format(col.name), help = col.description, type = str, default = None)
     for col in AnnotationManager.INDEX_COLUMNS
@@ -59,7 +66,7 @@ def import_annotations(args):
     """convert and import a set of annotations"""
 
     project = ChildProject(args.source)
-    errors, warnings = project.validate_input_data()
+    errors, warnings = project.validate(ignore_files = True)
 
     if len(errors) > 0:
         print("validation failed, {} error(s) occured".format(len(errors)), file = sys.stderr)
@@ -71,7 +78,7 @@ def import_annotations(args):
         annotations = pd.DataFrame([{col.name: getattr(args, col.name) for col in AnnotationManager.INDEX_COLUMNS if not col.generated}])
 
     am = AnnotationManager(project)
-    am.import_annotations(annotations)
+    am.import_annotations(annotations, args.threads)
 
     errors, warnings = am.validate()
 
@@ -80,6 +87,48 @@ def import_annotations(args):
         print("\n".join(am.errors), file = sys.stderr)
         print("\n".join(errors), file = sys.stderr)
         print("\n".join(warnings))
+
+@subcommand([
+    arg("source", help = "project path"),
+    arg("--left-set", help = "left set", required = True),
+    arg("--right-set", help = "right set", required = True),
+    arg("--left-columns", help = "comma-separated columns to merge from the left set", required = True),
+    arg("--right-columns", help = "comma-separated columns to merge from the right set", required = True),
+    arg("--output-set", help = "name of the output set", required = True)
+])
+def merge_annotations(args):
+    project = ChildProject(args.source)
+    errors, warnings = project.validate(ignore_files = True)
+
+    if len(errors) > 0:
+        print("validation failed, {} error(s) occured".format(len(errors)), file = sys.stderr)
+        sys.exit(1)
+
+    am = AnnotationManager(project)
+    am.read()
+    am.merge_sets(
+        left_set = args.left_set,
+        right_set = args.right_set,
+        left_columns = args.left_columns.split(','),
+        right_columns = args.right_columns.split(','),
+        output_set = args.output_set
+    )
+
+@subcommand([
+    arg("source", help = "project path"),
+    arg("--set", help = "set to remove", required = True)
+])
+def remove_annotations(args):
+    project = ChildProject(args.source)
+    errors, warnings = project.validate(ignore_files = True)
+
+    if len(errors) > 0:
+        print("validation failed, {} error(s) occured".format(len(errors)), file = sys.stderr)
+        sys.exit(1)
+
+    am = AnnotationManager(project)
+    am.read()
+    am.remove_set(args.set)
 
 @subcommand([
     arg("dataset", help = "dataset to install. Should be a valid repository name at https://github.com/LAAC-LSCP. (e.g.: solomon-data)"),
@@ -118,7 +167,7 @@ def import_data(args):
 def stats(args):
     project = ChildProject(args.source)
 
-    errors, warnings = project.validate_input_data()
+    errors, warnings = project.validate()
 
     if len(errors) > 0:
         print("validation failed, {} error(s) occured".format(len(errors)), file = sys.stderr)
@@ -140,7 +189,7 @@ def compute_durations(args):
     """creates a 'duration' column into metadata/recordings"""
     project = ChildProject(args.source)
 
-    errors, warnings = project.validate_input_data()
+    errors, warnings = project.validate()
 
     if len(errors) > 0:
         print("validation failed, {} error(s) occured".format(len(errors)), file = sys.stderr)
