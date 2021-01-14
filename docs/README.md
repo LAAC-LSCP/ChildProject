@@ -1,16 +1,14 @@
 - [Introduction](#introduction)
-- [Dataset format and structure](#dataset-format-and-structure)
+  - [Dataset format and structure](#dataset-format-and-structure)
+  - [Available tools](#available-tools)
 - [Installation](#installation)
-- [Installing datasets](#installing-datasets)
-- [Working with the data](#working-with-the-data)
-  - [Validate raw data](#validate-raw-data)
-  - [Convert recordings](#convert-recordings)
-    - [Multi-core audio conversion with slurm on a cluster](#multi-core-audio-conversion-with-slurm-on-a-cluster)
-  - [Import annotations](#import-annotations)
-    - [Single importation](#single-importation)
-    - [Bulk importation](#bulk-importation)
-  - [Zooniverse](#zooniverse)
-  - [Compute recordings duration](#compute-recordings-duration)
+  - [Install our package via pip](#install-our-package-via-pip)
+  - [Install git-annex](#install-git-annex)
+- [Getting some data](#getting-some-data)
+  - [Extant datasets](#extant-datasets)
+- [Converting a dataset into ChildRecordsData format](#converting-a-dataset-into-childrecordsdata-format)
+- [Using our tools](#using-our-tools)
+- [Missing and planned features](#missing-and-planned-features)
 
 ## Introduction
 
@@ -54,7 +52,7 @@ In this context, we provide tools and a procedure to:
 
 You'll need to install our package and git-annex, following the instructions we provide next.
 
-### 1. Install our package via pip
+### Install our package via pip
   
 The package can be installed using pip :
 
@@ -72,7 +70,7 @@ source ~/ChildProjectVenv/bin/activate
 pip install git+https://github.com/LAAC-LSCP/ChildRecordsData.git
 ```
 
-### 2. Install git-annex
+### Install git-annex
 
 The package also requires git-annex in order to retrieve the datasets. It can be installed via `apt install git-annex` or `brew install git-annex`. It is encouraged to use a recent version of git-annex (8.2+).
 

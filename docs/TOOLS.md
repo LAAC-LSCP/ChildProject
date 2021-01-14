@@ -1,14 +1,12 @@
-- [List of available projects](#list-of-available-projects)
-- [How to use datasets](#how-to-use-datasets)
-  - [How it works](#how-it-works)
-  - [Installing datalad](#installing-datalad)
-  - [Installing a dataset](#installing-a-dataset)
-    - [Quick way (using child-project)](#quick-way-using-child-project)
-    - [Datalad way (using only datalad)](#datalad-way-using-only-datalad)
-  - [Downloading large files](#downloading-large-files)
-  - [Updating a dataset](#updating-a-dataset)
-  - [Contributing to a dataset](#contributing-to-a-dataset)
-  - [Creating a new dataset](#creating-a-new-dataset)
+- [Current tools](#current-tools)
+  - [Validate raw data](#validate-raw-data)
+  - [Convert recordings](#convert-recordings)
+    - [Multi-core audio conversion with slurm on a cluster](#multi-core-audio-conversion-with-slurm-on-a-cluster)
+  - [Compute recordings duration](#compute-recordings-duration)
+  - [Import annotations](#import-annotations)
+    - [Single importation](#single-importation)
+    - [Bulk importation](#bulk-importation)
+  - [Zooniverse](#zooniverse)
 
 
 # Current tools

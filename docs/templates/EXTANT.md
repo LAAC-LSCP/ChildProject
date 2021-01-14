@@ -1,14 +1,7 @@
-- [List of available projects](#list-of-available-projects)
-- [How to use datasets](#how-to-use-datasets)
-  - [How it works](#how-it-works)
-  - [Installing datalad](#installing-datalad)
-  - [Installing a dataset](#installing-a-dataset)
-    - [Quick way (using child-project)](#quick-way-using-child-project)
-    - [Datalad way (using only datalad)](#datalad-way-using-only-datalad)
-  - [Downloading large files](#downloading-large-files)
-  - [Updating a dataset](#updating-a-dataset)
-  - [Contributing to a dataset](#contributing-to-a-dataset)
-  - [Creating a new dataset](#creating-a-new-dataset)
+- [List of extant datasets](#list-of-extant-datasets)
+  - [Public data sets (TODO)](#public-data-sets-todo)
+  - [From the LAAC team](#from-the-laac-team)
+  - [Other private datasets](#other-private-datasets)
 
 
 # List of extant datasets

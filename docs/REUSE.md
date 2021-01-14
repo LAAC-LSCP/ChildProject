@@ -1,5 +1,4 @@
-- [List of available projects](#list-of-available-projects)
-- [How to use datasets](#how-to-use-datasets)
+- [How to reuse extant datasets](#how-to-reuse-extant-datasets)
   - [How it works](#how-it-works)
   - [Installing datalad](#installing-datalad)
   - [Installing a dataset](#installing-a-dataset)
