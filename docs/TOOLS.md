@@ -97,6 +97,4 @@ The input dataframe `/path/to/dataframe.csv` must have one entry per annotation 
 
 ## Zooniverse
 
-You can apply 
-
 Find all the instructions on how-to use Zooniverse together with child-project [here](http://laac-lscp.github.io/ChildRecordsData/ZOONIVERSE.html).
