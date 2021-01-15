@@ -40,7 +40,7 @@ If you are still having permission issues, consider using python virtual environ
 This step shall only be done once for all.
 Since our datasets are partially hosted on GitHub private repositories, authentication is needed to access them. I highly recommend that you use SSH authentication, for security and simplicity. I will only provide instructions for SSH authentication, and leave HTTPS authentication to consenting adults. Here are the steps:
 
-1. Copy your SSH private key (usually located in `~/.ssh/id_rsa.pub`)
+1. Copy your SSH public key (usually located in `~/.ssh/id_rsa.pub`)
 2. Go to [GitHub.com > Settings > SSH and GPG Keys](https://github.com/settings/keys)
 3. Click on the green button 'New SSH key' and paste your public key where requested.
 
@@ -50,17 +50,17 @@ The actual content of the large files (e.g. recordings) is stored on the lab clu
 
 If you can already ssh into Oberon with an alias by doing `ssh foberon` or `ssh oberon` or similar, skip this step. Otherwise, follow these instructions to setup ssh properly:
 
-1. Add the following lines to your `~/.ssh/config` file:
+1. Add the following lines to your `~/.ssh/config` file, replacing `<username>` by your actual username:
 
 ```
-Host frontal
-   Hostname frontal-ssh.ens.fr
-   User lgautheron
+Host flores
+   Hostname cognitive-ml.fr
+   User <username>
 
 Host foberon
-    Hostname 129.199.81.30
-    User lgautheron 
-    ProxyJump frontal
+   Hostname oberon
+   User <username>
+   ProxyJump flores
 
 Host *
 ForwardX11 yes
