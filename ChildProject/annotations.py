@@ -46,8 +46,8 @@ class AnnotationManager:
         IndexColumn(name = 'phonemes', description = 'amount of phonemes', regex = r'(\d+(\.\d+)?)'),
         IndexColumn(name = 'syllables', description = 'amount of syllables', regex = r'(\d+(\.\d+)?)'),
         IndexColumn(name = 'words', description = 'amount of words', regex = r'(\d+(\.\d+)?)'),
-        IndexColumn(name = 'lena_conversation_type', description = 'whether regarded as part as a pause or a conversation by LENA', choices = ['conversation', 'pause']),
-        IndexColumn(name = 'lena_conversation_number', description = 'number of the LENA pause/conversation the segment belongs to', regex = r"(\d+(\.\d+)?)"),
+        IndexColumn(name = 'lena_block_type', description = 'whether regarded as part as a pause or a conversation by LENA', choices = ['conversation', 'pause']),
+        IndexColumn(name = 'lena_block_number', description = 'number of the LENA pause/conversation the segment belongs to', regex = r"(\d+(\.\d+)?)"),
         IndexColumn(name = 'utterances_count', description = 'utterrances count', regex = r"(\d+(\.\d+)?)"),
         IndexColumn(name = 'utterances_length', description = 'utterrances length', regex = r"(\d+(\.\d+)?)")
     ]
@@ -293,8 +293,8 @@ class AnnotationManager:
             for seg in segs:
                 parent = seg.getparent()
 
-                lena_conversation_number = parent.get('num')
-                lena_conversation_type = parent.tag.lower()
+                lena_block_number = parent.get('num')
+                lena_block_type = parent.tag.lower()
 
                 onset = extract_from_regex(timestamp_pattern, seg.get('startTime'))
                 offset = extract_from_regex(timestamp_pattern, seg.get('endTime'))
@@ -325,8 +325,8 @@ class AnnotationManager:
                     'phonemes': 'NA',
                     'syllables': 'NA',
                     'words': words,
-                    'lena_conversation_number': lena_conversation_number,
-                    'lena_conversation_type': lena_conversation_type,
+                    'lena_block_number': lena_block_number,
+                    'lena_block_type': lena_block_type,
                     'utterances_count': utterances_count,
                     'utterances_length': utterances_length
                 })
