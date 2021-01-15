@@ -2,6 +2,9 @@
   - [Dataset format and structure](#dataset-format-and-structure)
   - [Available tools](#available-tools)
 - [Installation](#installation)
+  - [Install our package via pip](#install-our-package-via-pip)
+  - [Install git-annex](#install-git-annex)
+  - [Check the setup](#check-the-setup)
 - [Getting some data](#getting-some-data)
   - [Extant datasets](#extant-datasets)
 - [Converting a dataset into ChildRecordsData format](#converting-a-dataset-into-childrecordsdata-format)
@@ -50,7 +53,7 @@ In this context, we provide tools and a procedure to:
 
 You'll need to install our package and git-annex, following the instructions we provide next.
 
-1. Install our package via pip
+### Install our package via pip
   
 The package can be installed using pip :
 
@@ -76,11 +79,11 @@ source ~/ChildProjectVenv/bin/activate
 pip install git+https://github.com/LAAC-LSCP/ChildRecordsData.git
 ```
 
-2. Install git-annex
+### Install git-annex
 
 The package also requires git-annex in order to retrieve the datasets. It can be installed via `apt install git-annex` or `brew install git-annex`. It is encouraged to use a recent version of git-annex (8.2+).
 
-3. Check the setup
+### Check the setup
 
 You can check the setup by issuing the following commands :
 
