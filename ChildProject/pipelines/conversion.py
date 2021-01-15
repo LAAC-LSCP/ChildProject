@@ -69,31 +69,24 @@ def convert_recording(path, profile, skip_existing, row):
     success = skip
 
     if not skip:
-        split_args = []
+        args = [
+            'ffmpeg', '-y',
+            '-loglevel', 'error',
+            '-i', original_file,
+            '-ac', '1',
+            '-c:a', profile.codec,
+            '-ar', str(profile.sampling)
+        ]
+
         if profile.split:
-            split_args.append('-segment_time')
-            split_args.append(profile.split)
-            split_args.append('-f')
-            split_args.append('segment')
+            args.extend([
+                '-segment_time', profile.split, '-f', 'segment'
+            ])
 
-        proc = subprocess.Popen(
-            [
-                'ffmpeg', '-y',
-                '-loglevel', 'error',
-                '-i', original_file,
-                '-ac', '1',
-                '-c:a', profile.codec,
-                '-ar', str(profile.sampling)
-            ]
-            + split_args
-            + [
-                destination_file
-            ],
-            stdout = subprocess.DEVNULL,
-            stderr = subprocess.PIPE
-        )
+        args.append(destination_file)
+
+        proc = subprocess.Popen(args, stdout = subprocess.DEVNULL, stderr = subprocess.PIPE)
         (stdout, stderr) = proc.communicate()
-
         success = proc.returncode == 0
 
     if not success:

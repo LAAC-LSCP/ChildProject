@@ -3,7 +3,7 @@ chardet==3.0.4
 pandas
 xlrd
 jinja2
-numpy
+numpy>=1.16.5
 pympi-ling
 lxml
 sox

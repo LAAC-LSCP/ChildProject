@@ -24,8 +24,8 @@ open('docs/FORMATTING.md', 'w+').write(
     )
 )
 
-template = jinja2.Template(open('docs/templates/PROJECTS.md', 'r').read())
-open('docs/PROJECTS.md', 'w+').write(
+template = jinja2.Template(open('docs/templates/EXTANT.md', 'r').read())
+open('docs/EXTANT.md', 'w+').write(
     template.render(
         projects = projects
     )

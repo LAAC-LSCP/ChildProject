@@ -1,32 +1,58 @@
 - [Introduction](#introduction)
-- [Dataset format and structure](#dataset-format-and-structure)
+  - [Dataset format and structure](#dataset-format-and-structure)
+  - [Available tools](#available-tools)
 - [Installation](#installation)
-- [Installing datasets](#installing-datasets)
-- [Working with the data](#working-with-the-data)
-  - [Validate raw data](#validate-raw-data)
-  - [Convert recordings](#convert-recordings)
-    - [Multi-core audio conversion with slurm on a cluster](#multi-core-audio-conversion-with-slurm-on-a-cluster)
-  - [Import annotations](#import-annotations)
-    - [Single importation](#single-importation)
-  - [Merge annotation sets](#merge-annotation-sets)
-  - [Remove an annotation set](#remove-an-annotation-set)
-    - [Bulk importation](#bulk-importation)
-  - [Zooniverse](#zooniverse)
-  - [Compute recordings duration](#compute-recordings-duration)
+  - [Install our package via pip](#install-our-package-via-pip)
+  - [Install git-annex](#install-git-annex)
+- [Getting some data](#getting-some-data)
+  - [Extant datasets](#extant-datasets)
+- [Converting a dataset into ChildRecordsData format](#converting-a-dataset-into-childrecordsdata-format)
+- [Using our tools](#using-our-tools)
+- [Missing and planned features](#missing-and-planned-features)
 
 ## Introduction
 
-ChildRecordData provides specifications and tools for the storage and management of day-long recordings of children and their associated meta-data and annotations.
+Day-long (audio-)recordings of children are increasingly common, but there is no scientific standard formatting that can benefit the organization and analyses of such data. ChildRecordData provides standardizing specifications and tools for the storage and management of day-long recordings of children and their associated meta-data and annotations.
 
 ![structure](http://laac-lscp.github.io/ChildRecordsData/images/structure.png "File organization structure")
 
-## Dataset format and structure
+We assume that the data include three very different types:
 
-See the [formatting instructions and specifications](http://laac-lscp.github.io/ChildRecordsData/FORMATTING.html)
+1. Audio, of which we distinguish the raw audio extracted from the hardware; and a version that has been converted into a standardized format. These audios are the long-form ones. At the time being, we do not foresee including clips extracted from these long-form audios, and assume that any such process will generate some form of annotation that can then be re-cast temporally to the long-form audio.
+2. Annotations, of which we again distinguish raw and standardized versions. At present, we can import from Praat's textgrid, ELAN's eaf, and VTC's rttm format.
+3. Metadata corresponding to the children, recordings, and annotations, which will therefore also describe the converted recordings.
+
+ [formatting instructions and specifications](http://laac-lscp.github.io/ChildRecordsData/FORMATTING.html)
+
+
+### Dataset format and structure
+
+We provide instructions for setting up the metadata in [formatting instructions and specifications](http://laac-lscp.github.io/ChildRecordsData/FORMATTING.html). Read on for instructions on how to get or produce data in this format.
+
+### Available tools
+
+Day-long audiorecordings are often collected using a LENA recorder, and analyzed with the LENA software. However, open source alternatives to the LENA commercial environment are emerging, some of which are shown in the following figure.
+
+![structure](http://laac-lscp.github.io/ChildRecordsData/images/tools.png "Overview of some tools in the day-long recordings environment")
+
+For instance, alternative hardware includes the babylogger and any other light-weight recording device with enough battery and storage to record over several hours.
+
+Alternative automated analysis options include the [Voice Type Classifier](https://github.com/MarvinLvn/voice-type-classifier), which segments the audio into different talker types (key child, female adult, etc) and [ALICE](https://github.com/orasanen/ALICE), an automated linguistic unit counter.
+
+As for manual annotation options, [ELAN](https://archive.mpi.nl/tla/elan) can be used, for instance employing the [ACLEW DAS annotation scheme](https://osf.io/b2jep/). Assignment of annotation to individuals and evaluation can be done using [Seshat](https://github.com/bootphon/seshat). Finally, [Zooniverse](zooniverse.org) can be used to crowd-source certain aspects of the classification with the help of citizen scientists.
+
+In this context, we provide tools and a procedure to:
+
+- Validate raw data
+- Convert your raw recordings into a standardized format
+- Import raw annotations (from ELAN, Praat, csv, rttm from VTC and ALICE) into our standardized format
+- Add clips to an annotation pipeline in Zooniverse, and retrieve the ensuing annotations
 
 ## Installation
 
-1. Install the package via pip
+You'll need to install our package and git-annex, following the instructions we provide next.
+
+### Install our package via pip
   
 The package can be installed using pip :
 
@@ -44,86 +70,44 @@ source ~/ChildProjectVenv/bin/activate
 pip install git+https://github.com/LAAC-LSCP/ChildRecordsData.git
 ```
 
-2. Install git-annex
+### Install git-annex
 
 The package also requires git-annex in order to retrieve the datasets. It can be installed via `apt install git-annex` or `brew install git-annex`. It is encouraged to use a recent version of git-annex (8.2+).
 
-## Installing datasets
+## Getting some data
 
-The list of available datasets with instructions to download them can be found [here](http://laac-lscp.github.io/ChildRecordsData/PROJECTS.html).
+You can either have some data of your own that you would like to use the package on, or you may know of some datasets that are already in this format that you'd like to reuse.
 
-## Working with the data
+It may be easier to start with an extant dataset. Here is the list that we know exists. Please note that the large majority of these data are NOT public, and thus if you cannot retrieve them, this means you need to get in touch with the data managers.
 
-### Validate raw data
+### Extant datasets
 
-```
-child-project validate /path/to/dataset
-```
+Instructions to download extant datasets can be found [here](http://laac-lscp.github.io/ChildRecordsData/REUSE.html).
 
-Looks for errors and inconsistency in the metadata, or for missing audios. The validation will pass if the [formatting instructions](http://laac-lscp.github.io/ChildRecordsData/FORMATTING.html) are met.
-
-### Convert recordings
-
-```
-child-project convert /path/to/dataset --name=16kHz --format=wav --sampling=16000 --codec=pcm_s16le
-```
-
-Converts all recordings in a dataset to a given encoding. Converted audios are stored into `converted_recordings/$name`.
-
-With audio splitting every 15 hours :
-
-```
-child-project convert /path/to/dataset --name=16kHz --split=15:00:00 --format=wav --sampling=16000 --codec=pcm_s16le
-```
-
-#### Multi-core audio conversion with slurm on a cluster
-
-```
-sbatch --mem=64G --time=5:00:00 --cpus-per-task=4 --ntasks=1 -o namibia.txt child-project convert /path/to/dataset --name standard --format WAV --codec pcm_s16le --sampling 16000 --threads 4`
-```
-
-### Import annotations
-
-Annotations can be imported one by one or in bulk. Annotation importation does the following :
-
-1. Convert all input annotations from their original format (e.g. rttm, eaf, textgrid..) into the CSV format defined [here](https://laac-lscp.github.io/ChildRecordsData/FORMATTING.html#annotations-format) and stores them into `annotations/`.
-2. Registers them to the annotation index at `metadata/annotations.csv`
-
-#### Single importation
-
-```
-child-project import-annotations /path/to/dataset --set eaf --recording_filename sound.wav --time_seek 0 --raw_filename example.eaf --range_onset 0 --range_offset 300 --format eaf
-```
-
-### Merge annotation sets
-
-```
-child-project merge-annotations /path/to/dataset --left-set vtc --right-set alice --left-columns speaker_id,ling_type,speaker_type,vcm_type,lex_type,mwu_type,addresseee,transcription --right-columns phonemes,syllables,words --output-set alice_vtc
-```
-
-### Remove an annotation set
-
-```
-child-project remove-annotations /path/to/dataset --set vtc
-```
+The list of extant datasets can be found [here](http://laac-lscp.github.io/ChildRecordsData/EXTANT.html).
 
 
-#### Bulk importation
+## Converting a dataset into ChildRecordsData format
 
-```
-child-project import-annotations /path/to/dataset --annotations /path/to/dataframe.csv
-```
+If you have your own dataset, you can convert it into our format using these  
+[formatting instructions and specifications](http://laac-lscp.github.io/ChildRecordsData/FORMATTING.html)
 
-The input dataframe `/path/to/dataframe.csv` must have one entry per annotation to import, according to the format specified [here](http://laac-lscp.github.io/ChildRecordsData/FORMATTING.html#annotation-importation-input-format).
+Once you have done so, you can use the package's tools. 
 
-### Zooniverse
+## Using our tools
 
-Find all the instructions on how-to use Zooniverse together with child-project [here](http://laac-lscp.github.io/ChildRecordsData/ZOONIVERSE.html).
+We provide tools to:
 
-### Compute recordings duration
+- Validate raw data
+- Convert your raw recordings into a standardized format
+- Add recording duration to your metadata
+- Import raw annotations (from ELAN, Praat, csv, rttm) into our standardized format
+- Add clips to an annotation pipeline in Zooniverse, and retrieve the ensuing annotations
 
-Compute recordings duration and store in into a column named 'duration' in the metadata.
+We provide detailed instructions [here](http://laac-lscp.github.io/ChildRecordsData/TOOLS.html).
 
-```
-child-project compute-durations [--force] /path/to/dataset
-```
+## Missing and planned features
+
+- import of old-style LENA .its
+- import of new-style LENA .its
+- clarify link with R package
