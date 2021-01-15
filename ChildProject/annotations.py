@@ -479,7 +479,13 @@ class AnnotationManager:
     def merge_sets(self, left_set, right_set, left_columns, right_columns, output_set, columns = {}):
         assert left_set != right_set, "sets must differ"
         assert not (set(left_columns) & set (right_columns)), "left_columns and right_columns must be disjoint"
-        assert set(left_columns) | set (right_columns) == set([c.name for c in self.SEGMENTS_COLUMNS]) - set(['annotation_file', 'segment_onset', 'segment_offset']), "left_columns and right_columns are missing values"
+
+        union = set(left_columns) | set (right_columns)
+        all_columns = set([c.name for c in self.SEGMENTS_COLUMNS]) - set(['annotation_file', 'segment_onset', 'segment_offset'])
+        required_columns = set([c.name for c in self.SEGMENTS_COLUMNS if c.required]) - set(['annotation_file', 'segment_onset', 'segment_offset'])
+        assert union.issubset(all_columns), "left_columns and right_columns have unexpected values"
+        assert required_columns.issubset(union), "left_columns and right_columns have unexpected values"
+
 
         left_annotations = self.annotations[self.annotations['set'] == left_set]
         right_annotations = self.annotations[self.annotations['set'] == right_set]
