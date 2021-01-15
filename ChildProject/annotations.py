@@ -484,7 +484,7 @@ class AnnotationManager:
         all_columns = set([c.name for c in self.SEGMENTS_COLUMNS]) - set(['annotation_file', 'segment_onset', 'segment_offset'])
         required_columns = set([c.name for c in self.SEGMENTS_COLUMNS if c.required]) - set(['annotation_file', 'segment_onset', 'segment_offset'])
         assert union.issubset(all_columns), "left_columns and right_columns have unexpected values"
-        assert required_columns.issubset(union), "left_columns and right_columns have unexpected values"
+        assert required_columns.issubset(union), "left_columns and right_columns have missing values"
 
 
         left_annotations = self.annotations[self.annotations['set'] == left_set]
