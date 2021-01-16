@@ -46,8 +46,12 @@ class AnnotationManager:
         IndexColumn(name = 'phonemes', description = 'amount of phonemes', regex = r'(\d+(\.\d+)?)'),
         IndexColumn(name = 'syllables', description = 'amount of syllables', regex = r'(\d+(\.\d+)?)'),
         IndexColumn(name = 'words', description = 'amount of words', regex = r'(\d+(\.\d+)?)'),
-        IndexColumn(name = 'lena_block_type', description = 'whether regarded as part as a pause or a conversation by LENA', choices = ['conversation', 'pause']),
+        IndexColumn(name = 'lena_block_type', description = 'whether regarded as part as a pause or a conversation by LENA', choices = ['pause', 'CM', 'CIC', 'CIOCX', 'CIOCAX', 'AMF', 'AICF', 'AIOCF', 'AIOCCXF', 'AMM', 'AICM', 'AIOCM', 'AIOCCXM', 'XM', 'XIOCC', 'XIOCA', 'XIC', 'XIOCAC']),
         IndexColumn(name = 'lena_block_number', description = 'number of the LENA pause/conversation the segment belongs to', regex = r"(\d+(\.\d+)?)"),
+        IndexColumn(name = 'lena_conv_status', description = 'LENA conversation status', choices = ['BC', 'RC', 'EC']),
+        IndexColumn(name = 'lena_response_count', description = 'LENA turn count within block', regex = r"(\d+(\.\d+)?)"),
+        IndexColumn(name = 'lena_conv_floor_type', description = '(FI): Floor Initiation, (FH): Floor Holding', choices = ['FI', 'FH']),
+        IndexColumn(name = 'lena_conv_turn_type', description = 'LENA turn type', choices = ['TIFI', 'TIMI', 'TIFR', 'TIMR', 'TIFE', 'TIME', 'NT']),
         IndexColumn(name = 'utterances_count', description = 'utterrances count', regex = r"(\d+(\.\d+)?)"),
         IndexColumn(name = 'utterances_length', description = 'utterrances length', regex = r"(\d+(\.\d+)?)")
     ]
@@ -294,7 +298,17 @@ class AnnotationManager:
                 parent = seg.getparent()
 
                 lena_block_number = parent.get('num')
-                lena_block_type = parent.tag.lower()
+                lena_block_type = 'pause' if parent.tag.lower() == 'pause' else parent.get('type')
+
+                if not seg.get('conversationInfo'):
+                    conversation_info = ['NA'] * 7
+                else:
+                    conversation_info = seg.get('conversationInfo').split('|')[1:-1]
+                
+                lena_conv_status = conversation_info[0]
+                lena_response_count = conversation_info[3]
+                lena_conv_turn_type = conversation_info[5]
+                lena_conv_floor_type = conversation_info[6]
 
                 onset = extract_from_regex(timestamp_pattern, seg.get('startTime'))
                 offset = extract_from_regex(timestamp_pattern, seg.get('endTime'))
@@ -327,6 +341,10 @@ class AnnotationManager:
                     'words': words,
                     'lena_block_number': lena_block_number,
                     'lena_block_type': lena_block_type,
+                    'lena_conv_status': lena_conv_status,
+                    'lena_response_count': lena_response_count,
+                    'lena_conv_turn_type': lena_conv_turn_type,
+                    'lena_conv_floor_type': lena_conv_floor_type,
                     'utterances_count': utterances_count,
                     'utterances_length': utterances_length
                 })
