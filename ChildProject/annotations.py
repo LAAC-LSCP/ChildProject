@@ -334,6 +334,19 @@ class AnnotationManager:
                 utterances = seg.xpath('./UTT')
                 utterances = [utt.attrib for utt in utterances]
 
+                if not utterances:
+                    n = 1
+                    while 'startUtt{}'.format(n) in seg.attrib:
+                        start = 'startUtt{}'.format(n)
+                        end = 'endUtt{}'.format(n)
+                        utterances.append({
+                            start: seg.attrib[start],
+                            end: seg.attrib[end]
+                        })
+
+                        n = n + 1
+
+
                 segments.append({
                     'segment_onset': onset,
                     'segment_offset': offset,
