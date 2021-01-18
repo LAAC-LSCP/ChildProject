@@ -55,7 +55,8 @@ class AnnotationManager:
         IndexColumn(name = 'utterances_count', description = 'utterrances count', regex = r"(\d+(\.\d+)?)"),
         IndexColumn(name = 'utterances_length', description = 'utterrances length', regex = r"(\d+(\.\d+)?)"),
         IndexColumn(name = 'average_db', description = 'average dB level', regex = r"(?:-)(\d+(\.\d+)?)"),
-        IndexColumn(name = 'peak_db', description = 'peak dB level', regex = r"(?:-)(\d+(\.\d+)?)")
+        IndexColumn(name = 'peak_db', description = 'peak dB level', regex = r"(?:-)(\d+(\.\d+)?)"),
+        IndexColumn(name = 'utterrances', description = 'LENA utterrances details (json)')
     ]
 
     SPEAKER_ID_TO_TYPE = {
@@ -330,6 +331,9 @@ class AnnotationManager:
                 average_db = seg.get('average_dB', 0)
                 peak_db = seg.get('peak_dB', 0)
 
+                utterances = seg.xpath('./UTT')
+                utterances = [utt.attrib for utt in utterances]
+
                 segments.append({
                     'segment_onset': onset,
                     'segment_offset': offset,
@@ -353,7 +357,8 @@ class AnnotationManager:
                     'utterances_count': utterances_count,
                     'utterances_length': utterances_length,
                     'average_db': average_db,
-                    'peak_db': peak_db
+                    'peak_db': peak_db,
+                    'utterances': utterances
                 })
                 
         df = pd.DataFrame(segments)
