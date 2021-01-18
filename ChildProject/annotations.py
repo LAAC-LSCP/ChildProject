@@ -52,11 +52,11 @@ class AnnotationManager:
         IndexColumn(name = 'lena_response_count', description = 'LENA turn count within block', regex = r"(\d+(\.\d+)?)"),
         IndexColumn(name = 'lena_conv_floor_type', description = '(FI): Floor Initiation, (FH): Floor Holding', choices = ['FI', 'FH']),
         IndexColumn(name = 'lena_conv_turn_type', description = 'LENA turn type', choices = ['TIFI', 'TIMI', 'TIFR', 'TIMR', 'TIFE', 'TIME', 'NT']),
-        IndexColumn(name = 'utterances_count', description = 'utterrances count', regex = r"(\d+(\.\d+)?)"),
-        IndexColumn(name = 'utterances_length', description = 'utterrances length', regex = r"(\d+(\.\d+)?)"),
+        IndexColumn(name = 'utterances_count', description = 'utterances count', regex = r"(\d+(\.\d+)?)"),
+        IndexColumn(name = 'utterances_length', description = 'utterances length', regex = r"(\d+(\.\d+)?)"),
         IndexColumn(name = 'average_db', description = 'average dB level', regex = r"(?:-)(\d+(\.\d+)?)"),
         IndexColumn(name = 'peak_db', description = 'peak dB level', regex = r"(?:-)(\d+(\.\d+)?)"),
-        IndexColumn(name = 'utterrances', description = 'LENA utterrances details (json)')
+        IndexColumn(name = 'utterances', description = 'LENA utterances details (json)')
     ]
 
     SPEAKER_ID_TO_TYPE = {
