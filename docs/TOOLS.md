@@ -40,6 +40,7 @@ We typically run the following, to split long sound files every 15 hours, becaus
 child-project convert /path/to/dataset --name=16kHz --split=15:00:00 --format=wav --sampling=16000 --codec=pcm_s16le
 ```
 
+For multichannel audios, you can filter one channel with `--channel`.
 
 ### Multi-core audio conversion with slurm on a cluster
 

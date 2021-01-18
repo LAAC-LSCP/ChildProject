@@ -15,12 +15,13 @@ from ChildProject.pipelines.pipeline import Pipeline
 
 class RecordingProfile:
     def __init__(self, name, format = 'wav', codec = 'pcm_s16le', sampling = 16000,
-                 split = None, extra_flags = None):
+                 split = None, channel = -1, extra_flags = None):
 
         self.name = str(name)
         self.format = format
         self.codec = str(codec)
         self.sampling = int(sampling)
+        self.channel = int(channel)
         self.extra_flags = extra_flags
 
         if split is not None:
@@ -78,6 +79,11 @@ def convert_recording(path, profile, skip_existing, row):
             '-ar', str(profile.sampling)
         ]
 
+        if profile.channel >= 0:
+            args.extend([
+                '-map_channel', '0.0.{}'.format(profile.channel),
+            ])
+
         if profile.split:
             args.extend([
                 '-segment_time', profile.split, '-f', 'segment'
@@ -113,13 +119,14 @@ def convert_recording(path, profile, skip_existing, row):
 
 class ConversionPipeline(Pipeline):
 
-    def run(self, path, name, format, codec, sampling, split = None, skip_existing = False, threads = 0, **kwargs):
+    def run(self, path, name, format, codec, sampling, channel = -1, split = None, skip_existing = False, threads = 0, **kwargs):
         profile = RecordingProfile(
             name,
             format = format,
             codec = codec,
             sampling = sampling,
             split = split,
+            channel = channel,
             extra_flags = None
         )
 
@@ -159,5 +166,6 @@ class ConversionPipeline(Pipeline):
         parser.add_argument("--codec", help = "audio codec (e.g. {})".format(default_profile.codec), required = True)
         parser.add_argument("--sampling", help = "sampling frequency (e.g. {})".format(default_profile.sampling), required = True)
         parser.add_argument("--split", help = "split duration (e.g. 15:00:00)", required = False, default = None)
+        parser.add_argument("--channel", help = "if >= 0, sets which channel to keep", required = False, default = default_profile.channel, type = int)
         parser.add_argument('--skip-existing', dest='skip_existing', required = False, default = False, action='store_true')
         parser.add_argument('--threads', help = "amount of threads running conversions in parallel (0 = uses all available cores)", required = False, default = 0, type = int)
