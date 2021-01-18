@@ -53,7 +53,9 @@ class AnnotationManager:
         IndexColumn(name = 'lena_conv_floor_type', description = '(FI): Floor Initiation, (FH): Floor Holding', choices = ['FI', 'FH']),
         IndexColumn(name = 'lena_conv_turn_type', description = 'LENA turn type', choices = ['TIFI', 'TIMI', 'TIFR', 'TIMR', 'TIFE', 'TIME', 'NT']),
         IndexColumn(name = 'utterances_count', description = 'utterrances count', regex = r"(\d+(\.\d+)?)"),
-        IndexColumn(name = 'utterances_length', description = 'utterrances length', regex = r"(\d+(\.\d+)?)")
+        IndexColumn(name = 'utterances_length', description = 'utterrances length', regex = r"(\d+(\.\d+)?)"),
+        IndexColumn(name = 'average_db', description = 'average dB level', regex = r"(?:-)(\d+(\.\d+)?)"),
+        IndexColumn(name = 'peak_db', description = 'peak dB level', regex = r"(?:-)(\d+(\.\d+)?)")
     ]
 
     SPEAKER_ID_TO_TYPE = {
@@ -325,6 +327,9 @@ class AnnotationManager:
                 for attr in ['femaleAdultUttLen', 'maleAdultUttLen', 'childUttLen']:
                     utterances_length += float(extract_from_regex(timestamp_pattern, seg.get(attr, 'P0S')))
 
+                average_db = seg.get('average_dB', 0)
+                peak_db = seg.get('peak_dB', 0)
+
                 segments.append({
                     'segment_onset': onset,
                     'segment_offset': offset,
@@ -346,7 +351,9 @@ class AnnotationManager:
                     'lena_conv_turn_type': lena_conv_turn_type,
                     'lena_conv_floor_type': lena_conv_floor_type,
                     'utterances_count': utterances_count,
-                    'utterances_length': utterances_length
+                    'utterances_length': utterances_length,
+                    'average_db': average_db,
+                    'peak_db': peak_db
                 })
                 
         df = pd.DataFrame(segments)
