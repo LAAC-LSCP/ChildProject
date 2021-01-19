@@ -61,11 +61,13 @@ class ChildProject:
         IndexColumn(name = 'notes', description = 'free-style notes about individual recordings (avoid tabs and newlines)')
     ]
 
+    RAW_RECORDINGS = 'recordings/raw'
+    CONVERTED_RECORDINGS = 'recordings/converted'
+
     PROJECT_FOLDERS = [
-        'raw_annotations',
+        'recordings',
         'annotations',
         'metadata',
-        'converted_recordings',
         'doc',
         'scripts'
     ]
@@ -118,7 +120,7 @@ class ChildProject:
                 if column_attr is None:
                     continue
 
-                if column_attr.filename and row[column_name] != 'NA' and not os.path.exists(os.path.join(path, 'recordings', str(row[column_name]))):
+                if column_attr.filename and row[column_name] != 'NA' and not os.path.exists(os.path.join(path, self.RAW_RECORDINGS, str(row[column_name]))):
                     self.errors.append("cannot find recording '{}'".format(str(row[column_name])))
 
             # child id refers to an existing child in the children table
@@ -133,11 +135,11 @@ class ChildProject:
         ]
 
         indexed_files = [
-            os.path.abspath(os.path.join(path, 'recordings', str(f)))
+            os.path.abspath(os.path.join(path, self.RAW_RECORDINGS, str(f)))
             for f in pd.core.common.flatten(files)
         ]
 
-        recordings_files = glob.glob(os.path.join(path, 'recordings', '**/*.*'), recursive = True)
+        recordings_files = glob.glob(os.path.join(path, self.RAW_RECORDINGS, '**/*.*'), recursive = True)
 
         for rf in recordings_files:
             if len(os.path.splitext(rf)) > 1 and os.path.splitext(rf)[1] in ['.csv', '.xls', '.xlsx']:
@@ -168,7 +170,7 @@ class ChildProject:
     def get_stats(self):
         stats = {}
         recordings = self.recordings.merge(self.compute_recordings_duration(), left_on = 'filename', right_on = 'filename')
-        recordings['exists'] = recordings['filename'].map(lambda f: os.path.exists(os.path.join(self.path, 'recordings', f)))
+        recordings['exists'] = recordings['filename'].map(lambda f: os.path.exists(os.path.join(self.path, self.RAW_RECORDINGS, f)))
 
         stats['total_recordings'] = recordings.shape[0]
         stats['total_existing_recordings'] = recordings[recordings['exists'] == True].shape[0]
@@ -181,8 +183,8 @@ class ChildProject:
         recordings = self.recordings[['filename']]
 
         recordings['duration'] = recordings['filename'].map(lambda f:
-            get_audio_duration(os.path.join(self.path, 'converted_recordings', profile, f)) if profile
-            else get_audio_duration(os.path.join(self.path, 'recordings', f))
+            get_audio_duration(os.path.join(self.path, self.CONVERTED_RECORDINGS, profile, f)) if profile
+            else get_audio_duration(os.path.join(self.path, self.RAW_RECORDINGS, f))
         )
 
         return recordings

@@ -49,7 +49,7 @@ class ZooniversePipeline(Pipeline):
     def split_recording(self, segments):
         segments = segments.sample(self.sample_size).to_dict(orient = 'records')
 
-        source = os.path.join(self.project.path, 'recordings', segments[0]['recording_filename'])
+        source = os.path.join(self.project.path, ChildProject.RAW_RECORDINGS, segments[0]['recording_filename'])
         audio = AudioSegment.from_wav(source)
 
         for segment in segments:

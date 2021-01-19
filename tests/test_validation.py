@@ -19,7 +19,7 @@ def test_invalid_project():
 
     expected_warnings = [
         "'2' does not pass callable test for column 'noisy_setting' on line 2",
-        "file 'examples/invalid_raw_data/recordings/test_1_2020091.mp3' not indexed."
+        "file 'examples/invalid_raw_data/recordings/raw/test_1_2020091.mp3' not indexed."
     ]
     
     assert sorted(expected_errors) == sorted(errors), "errors do not match expected errors"
