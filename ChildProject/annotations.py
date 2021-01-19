@@ -56,7 +56,9 @@ class AnnotationManager:
         IndexColumn(name = 'utterances_length', description = 'utterances length', regex = r"(\d+(\.\d+)?)"),
         IndexColumn(name = 'average_db', description = 'average dB level', regex = r"(?:-)(\d+(\.\d+)?)"),
         IndexColumn(name = 'peak_db', description = 'peak dB level', regex = r"(?:-)(\d+(\.\d+)?)"),
-        IndexColumn(name = 'utterances', description = 'LENA utterances details (json)')
+        IndexColumn(name = 'child_cry_vfx_len', description = 'childCryVfxLen', regex = r"(?:-)(\d+(\.\d+)?)"),
+        IndexColumn(name = 'utterances', description = 'LENA utterances details (json)'),
+        IndexColumn(name = 'cries', description = 'cries (json)')
     ]
 
     SPEAKER_ID_TO_TYPE = {
@@ -346,6 +348,20 @@ class AnnotationManager:
 
                         n = n + 1
 
+                child_cry_vfx_len = float(extract_from_regex(timestamp_pattern, seg.get('childCryVfxLen', 'PT0S')))
+
+                cries = []
+                n = 1
+                while 'startCry{}'.format(n) in seg.attrib:
+                    start = 'startCry{}'.format(n)
+                    end = 'endCry{}'.format(n)
+                    utterances.append({
+                        start: seg.attrib[start],
+                        end: seg.attrib[end]
+                    })
+
+                    n = n + 1
+
 
                 segments.append({
                     'segment_onset': onset,
@@ -371,7 +387,9 @@ class AnnotationManager:
                     'utterances_length': utterances_length,
                     'average_db': average_db,
                     'peak_db': peak_db,
-                    'utterances': utterances
+                    'utterances': utterances,
+                    'child_cry_vfx_len': child_cry_vfx_len,
+                    'cries': cries
                 })
                 
         df = pd.DataFrame(segments)
