@@ -54,6 +54,7 @@ class AnnotationManager:
         IndexColumn(name = 'lena_conv_turn_type', description = 'LENA turn type', choices = ['TIFI', 'TIMI', 'TIFR', 'TIMR', 'TIFE', 'TIME', 'NT']),
         IndexColumn(name = 'utterances_count', description = 'utterances count', regex = r"(\d+(\.\d+)?)"),
         IndexColumn(name = 'utterances_length', description = 'utterances length', regex = r"(\d+(\.\d+)?)"),
+        IndexColumn(name = 'non_speech_length', description = 'non-speech length', regex = r"(\d+(\.\d+)?)"),
         IndexColumn(name = 'average_db', description = 'average dB level', regex = r"(?:-)(\d+(\.\d+)?)"),
         IndexColumn(name = 'peak_db', description = 'peak dB level', regex = r"(?:-)(\d+(\.\d+)?)"),
         IndexColumn(name = 'child_cry_vfx_len', description = 'childCryVfxLen', regex = r"(?:-)(\d+(\.\d+)?)"),
@@ -331,6 +332,10 @@ class AnnotationManager:
                 for attr in ['femaleAdultUttLen', 'maleAdultUttLen', 'childUttLen']:
                     utterances_length += float(extract_from_regex(timestamp_pattern, seg.get(attr, 'P0S')))
 
+                non_speech_length = 0
+                for attr in ['femaleAdultNonSpeechLen', 'maleAdultNonSpeechLen']:
+                    non_speech_length += float(extract_from_regex(timestamp_pattern, seg.get(attr, 'P0S')))
+
                 average_db = seg.get('average_dB', 0)
                 peak_db = seg.get('peak_dB', 0)
 
@@ -399,6 +404,7 @@ class AnnotationManager:
                     'average_db': average_db,
                     'peak_db': peak_db,
                     'utterances': utterances,
+                    'non_speech_length': non_speech_length,
                     'child_cry_vfx_len': child_cry_vfx_len,
                     'cries': cries,
                     'vfxs': vfxs
