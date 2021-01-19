@@ -36,7 +36,7 @@ class AnnotationManager:
         IndexColumn(name = 'segment_onset', description = 'segment start time in seconds', regex = r"(\d+(\.\d+)?)", required = True),
         IndexColumn(name = 'segment_offset', description = 'segment end time in seconds', regex = r"(\d+(\.\d+)?)", required = True),
         IndexColumn(name = 'speaker_id', description = 'identity of speaker in the annotation', required = True),
-        IndexColumn(name = 'speaker_type', description = 'class of speaker (FEM, MAL, CHI, OCH)', choices = ['FEM', 'MAL', 'CHI', 'OCH', 'SPEECH', 'NA'], required = True),
+        IndexColumn(name = 'speaker_type', description = 'class of speaker (FEM, MAL, CHI, OCH)', choices = ['FEM', 'MAL', 'CHI', 'OCH', 'SPEECH', 'TVF', 'FUZ', 'FEF', 'MAF', 'SIL', 'CXF', 'NON', 'OLF', 'CHN', 'NA'], required = True),
         IndexColumn(name = 'ling_type', description = '1 if the vocalization contains at least a vowel (ie canonical or non-canonical), 0 if crying or laughing', choices = ['1', '0', 'NA'], required = True),
         IndexColumn(name = 'vcm_type', description = 'vocal maturity defined as: C (canonical), N (non-canonical), Y (crying) L (laughing), J (junk)', choices = ['C', 'N', 'Y', 'L', 'J', 'NA'], required = True),
         IndexColumn(name = 'lex_type', description = 'W if meaningful, 0 otherwise', choices = ['W', '0', 'NA'], required = True),
@@ -378,7 +378,6 @@ class AnnotationManager:
                     })
                     n = n + 1
 
-
                 segments.append({
                     'segment_onset': onset,
                     'segment_offset': offset,
@@ -488,6 +487,8 @@ class AnnotationManager:
             elif annotation_format == 'vtc_rttm':
                 filter = annotation['filter'] if 'filter' in annotation and not pd.isnull(annotation['filter']) else None
                 df = self.load_vtc_rttm(raw_filename, source_file = filter)
+            elif annotation_format == 'its':
+                df = self.load_its(raw_filename)
             elif annotation_format == 'alice':
                 filter = annotation['filter'] if 'filter' in annotation and not pd.isnull(annotation['filter']) else None
                 df = self.load_alice(raw_filename, source_file = filter)
