@@ -8,8 +8,10 @@
     - [Datalad way (using only datalad)](#datalad-way-using-only-datalad)
   - [Downloading large files](#downloading-large-files)
   - [Updating a dataset](#updating-a-dataset)
-  - [Contributing to a dataset](#contributing-to-a-dataset)
-  - [Creating a new dataset](#creating-a-new-dataset)
+  - [Installing all our datasets at once](#installing-all-our-datasets-at-once)
+  - [Contributing](#contributing)
+    - [Pushing changes to a dataset](#pushing-changes-to-a-dataset)
+    - [Creating a new dataset](#creating-a-new-dataset)
 
 
 # How to reuse extant datasets
@@ -104,9 +106,26 @@ Files can be retrieved using `datalad get [path]`. For instance, `datalad get re
 
 ## Updating a dataset
 
-A dataset can be updated from the sources using `dataset update`.
+A dataset can be updated from the sources using `git pull` together with `dataset update`.
 
-## Contributing to a dataset
+
+## Installing all our datasets at once
+
+In order to install the superdataset, run the following commands :
+
+```
+datalad install -r git@github.com:LAAC-LSCP/datasets.git
+cd datasets
+datalad run-procedure setup <oberon_alias>
+```
+
+Make sure to replace `<oberon_alias>` with whatever alias you use to ssh into Oberon. If you have followed [our instructions](https://laac-lscp.github.io/ChildRecordsData/REUSE.html#setting-up-your-ssh-access-to-oberon), it should be `foberon`.
+
+You're good to go. You can download data from any dataset, e.g. by doing `datalad get solomon-data/annotations`.
+
+## Contributing
+
+### Pushing changes to a dataset
 
 You can save local changes to a dataset with `datalad save [path] -m "commit message"`. For instance :
 
@@ -120,7 +139,7 @@ These changes still have to be pushed, which can be done with :
 datalad publish --to scratch1 --transfer-data all
 ```
 
-## Creating a new dataset
+### Creating a new dataset
 
 This section is a work in progress.
 
