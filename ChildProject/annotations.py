@@ -58,7 +58,8 @@ class AnnotationManager:
         IndexColumn(name = 'peak_db', description = 'peak dB level', regex = r"(?:-)(\d+(\.\d+)?)"),
         IndexColumn(name = 'child_cry_vfx_len', description = 'childCryVfxLen', regex = r"(?:-)(\d+(\.\d+)?)"),
         IndexColumn(name = 'utterances', description = 'LENA utterances details (json)'),
-        IndexColumn(name = 'cries', description = 'cries (json)')
+        IndexColumn(name = 'cries', description = 'cries (json)'),
+        IndexColumn(name = 'vfxs', description = 'Vfx (json)')
     ]
 
     SPEAKER_ID_TO_TYPE = {
@@ -355,11 +356,21 @@ class AnnotationManager:
                 while 'startCry{}'.format(n) in seg.attrib:
                     start = 'startCry{}'.format(n)
                     end = 'endCry{}'.format(n)
-                    utterances.append({
+                    cries.append({
                         start: seg.attrib[start],
                         end: seg.attrib[end]
                     })
+                    n = n + 1
 
+                vfxs = []
+                n = 1
+                while 'startVfx{}'.format(n) in seg.attrib:
+                    start = 'startVfx{}'.format(n)
+                    end = 'endVfx{}'.format(n)
+                    vfxs.append({
+                        start: seg.attrib[start],
+                        end: seg.attrib[end]
+                    })
                     n = n + 1
 
 
@@ -389,7 +400,8 @@ class AnnotationManager:
                     'peak_db': peak_db,
                     'utterances': utterances,
                     'child_cry_vfx_len': child_cry_vfx_len,
-                    'cries': cries
+                    'cries': cries,
+                    'vfxs': vfxs
                 })
                 
         df = pd.DataFrame(segments)
