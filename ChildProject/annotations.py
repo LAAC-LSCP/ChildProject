@@ -380,7 +380,7 @@ class AnnotationManager:
         self.read()
 
         try:
-            shutil.rmtree(os.path.join(self.project.path, 'annotations', annotation_set))
+            shutil.rmtree(os.path.join(self.project.path, 'annotations/converted', annotation_set))
         except:
             pass
 
