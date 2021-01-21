@@ -121,7 +121,11 @@ class ChildProject:
                     continue
 
                 if column_attr.filename and row[column_name] != 'NA' and not os.path.exists(os.path.join(path, self.RAW_RECORDINGS, str(row[column_name]))):
-                    self.errors.append("cannot find recording '{}'".format(str(row[column_name])))
+                    message = "cannot find recording '{}'".format(str(row[column_name]))
+                    if column_attr.required:
+                        self.errors.append(message)
+                    else:
+                        self.warnings.append(message)
 
             # child id refers to an existing child in the children table
             if row['child_id'] not in self.children['child_id'].tolist():
