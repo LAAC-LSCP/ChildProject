@@ -4,10 +4,10 @@
     - [Multi-core audio conversion with slurm on a cluster](#multi-core-audio-conversion-with-slurm-on-a-cluster)
   - [Compute recordings duration](#compute-recordings-duration)
   - [Import annotations](#import-annotations)
-    - [Single importation](#single-importation)
+    - [Single file importation](#single-file-importation)
+    - [Bulk importation](#bulk-importation)
     - [Merge annotation sets](#merge-annotation-sets)
     - [Remove an annotation set](#remove-an-annotation-set)
-    - [Bulk importation](#bulk-importation)
   - [Zooniverse](#zooniverse)
 
 
@@ -26,7 +26,7 @@ child-project validate /path/to/dataset
 
 ## Convert recordings
 
-Converts all recordings in a dataset to a given encoding. Converted audios are stored into `converted_recordings/$name`.
+Converts all recordings in a dataset to a given encoding. Converted audios are stored into `recordings/converted/<profile-name>`.
 
 
 ```
@@ -64,13 +64,69 @@ Annotations can be imported one by one or in bulk. Annotation importation does t
 1. Convert all input annotations from their original format (e.g. rttm, eaf, textgrid..) into the CSV format defined [here](https://laac-lscp.github.io/ChildRecordsData/FORMATTING.html#annotations-format) and stores them into `annotations/`.
 2. Registers them to the annotation index at `metadata/annotations.csv`
 
-### Single importation
+### Single file importation
 
-Use this to import a single annotation file.
+Use `child-project import-annotations` to import a single annotation file.
+
+```bash
+usage: child-project import-annotations [-h] [--annotations ANNOTATIONS]
+                                        [--threads THREADS] [--set SET]
+                                        [--recording_filename RECORDING_FILENAME]
+                                        [--time_seek TIME_SEEK]
+                                        [--range_onset RANGE_ONSET]
+                                        [--range_offset RANGE_OFFSET]
+                                        [--raw_filename RAW_FILENAME]
+                                        [--format FORMAT] [--filter FILTER]
+                                        source
+
+convert and import a set of annotations
+
+positional arguments:
+  source                project path
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --annotations ANNOTATIONS
+                        path to input annotations index (csv)
+  --threads THREADS     amount of threads to run on
+  --set SET             name of the annotation set (e.g. VTC, annotator1,
+                        etc.)
+  --recording_filename RECORDING_FILENAME
+                        recording filename as specified in the recordings
+                        index
+  --time_seek TIME_SEEK
+                        reference time in seconds, e.g: 3600, or 3600.500. All
+                        times expressed in the annotations are relative to
+                        this time.
+  --range_onset RANGE_ONSET
+                        covered range start time in seconds, measured since
+                        `time_seek`
+  --range_offset RANGE_OFFSET
+                        covered range end time in seconds, measured since
+                        `time_seek`
+  --raw_filename RAW_FILENAME
+                        annotation input filename location, relative to
+                        `annotations/<set>/raw`
+  --format FORMAT       input annotation format
+  --filter FILTER       source file to filter in (for rttm and alice only)
+```
+
+
+Example:
 
 ```
 child-project import-annotations /path/to/dataset --set eaf --recording_filename sound.wav --time_seek 0 --raw_filename example.eaf --range_onset 0 --range_offset 300 --format eaf
 ```
+
+### Bulk importation
+
+Use this to do bulk importation of many annotation files.
+
+```
+child-project import-annotations /path/to/dataset --annotations /path/to/dataframe.csv
+```
+
+The input dataframe `/path/to/dataframe.csv` must have one entry per annotation to import, according to the format specified [here](http://laac-lscp.github.io/ChildRecordsData/FORMATTING.html#annotation-importation-input-format).
 
 ### Merge annotation sets
 
@@ -84,15 +140,6 @@ child-project merge-annotations /path/to/dataset --left-set vtc --right-set alic
 child-project remove-annotations /path/to/dataset --set vtc
 ```
 
-### Bulk importation
-
-Use this to do bulk importation of many annotation files.
-
-```
-child-project import-annotations /path/to/dataset --annotations /path/to/dataframe.csv
-```
-
-The input dataframe `/path/to/dataframe.csv` must have one entry per annotation to import, according to the format specified [here](http://laac-lscp.github.io/ChildRecordsData/FORMATTING.html#annotation-importation-input-format).
 
 
 ## Zooniverse

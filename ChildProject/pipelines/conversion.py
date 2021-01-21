@@ -48,13 +48,13 @@ def convert_recording(path, profile, skip_existing, row):
 
     original_file = os.path.join(
         path,
-        'recordings',
+        ChildProject.RAW_RECORDINGS,
         row['filename']
     )
 
     destination_file = os.path.join(
         path,
-        'converted_recordings',
+        ChildProject.CONVERTED_RECORDINGS,
         profile.name,
         os.path.splitext(row['filename'])[0] + '.%03d.' + profile.format if profile.split
         else os.path.splitext(row['filename'])[0] + '.' + profile.format
@@ -100,7 +100,7 @@ def convert_recording(path, profile, skip_existing, row):
         if profile.split:
             converted_files = [
                 os.path.basename(cf)
-                for cf in glob.glob(os.path.join(path, 'converted_recordings', profile.name, os.path.splitext(row['filename'])[0] + '.*.' + profile.format))
+                for cf in glob.glob(os.path.join(path, ChildProject.CONVERTED_RECORDINGS, profile.name, os.path.splitext(row['filename'])[0] + '.*.' + profile.format))
             ]
         else:
             converted_files = [os.path.splitext(row['filename'])[0] + '.' + profile.format]
@@ -130,7 +130,7 @@ class ConversionPipeline(Pipeline):
             raise Exception('cannot convert: validation failed')
 
         os.makedirs(
-            name = os.path.join(project.path, 'converted_recordings', profile.name),
+            name = os.path.join(project.path, ChildProject.CONVERTED_RECORDINGS, profile.name),
             exist_ok = True
         )
 
@@ -145,8 +145,8 @@ class ConversionPipeline(Pipeline):
         conversion_table = reduce(operator.concat, conversion_table)
         profile.recordings = pd.DataFrame(conversion_table)
 
-        profile.recordings.to_csv(os.path.join(project.path, 'converted_recordings', profile.name, 'recordings.csv'), index = False)
-        profile.to_csv(os.path.join(project.path, 'converted_recordings', profile.name, 'profile.csv'))
+        profile.recordings.to_csv(os.path.join(project.path, ChildProject.CONVERTED_RECORDINGS, profile.name, 'recordings.csv'), index = False)
+        profile.to_csv(os.path.join(project.path, ChildProject.CONVERTED_RECORDINGS, profile.name, 'profile.csv'))
 
         return profile
 

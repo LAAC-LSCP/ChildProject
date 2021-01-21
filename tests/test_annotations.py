@@ -1,6 +1,7 @@
 from ChildProject.projects import ChildProject
 from ChildProject.annotations import AnnotationManager
 from ChildProject.tables import IndexTable
+import glob
 import pandas as pd
 import numpy as np
 import os
@@ -19,13 +20,13 @@ def project(request):
     yield project
     
     os.remove("output/annotations/metadata/annotations.csv")
-    shutil.rmtree("output/annotations/annotations")
-    os.mkdir("output/annotations/annotations")
+    for raw_annotation in glob.glob("output/annotations/annotations/*.*/converted"):
+        shutil.rmtree(raw_annotation)
 
 def test_import(project):
     am = AnnotationManager(project)
 
-    input_annotations = pd.read_csv('examples/valid_raw_data/raw_annotations/input.csv')
+    input_annotations = pd.read_csv('examples/valid_raw_data/annotations/input.csv')
     am.import_annotations(input_annotations)
     am.read()
     
@@ -53,7 +54,7 @@ def test_import(project):
 def test_intersect(project):
     am = AnnotationManager(project)
 
-    input_annotations = pd.read_csv('examples/valid_raw_data/raw_annotations/intersect.csv')
+    input_annotations = pd.read_csv('examples/valid_raw_data/annotations/intersect.csv')
     am.import_annotations(input_annotations)
 
     a, b = am.intersection(
@@ -74,7 +75,7 @@ def test_intersect(project):
 def test_merge(project):
     am = AnnotationManager(project)
 
-    input_annotations = pd.read_csv('examples/valid_raw_data/raw_annotations/input.csv')
+    input_annotations = pd.read_csv('examples/valid_raw_data/annotations/input.csv')
     input_annotations = input_annotations[input_annotations['set'].isin(['vtc_rttm', 'alice'])]
     am.import_annotations(input_annotations)
     am.read()
@@ -100,7 +101,7 @@ def test_merge(project):
 def test_clipping(project):
     am = AnnotationManager(project)
 
-    input_annotations = pd.read_csv('examples/valid_raw_data/raw_annotations/input.csv')
+    input_annotations = pd.read_csv('examples/valid_raw_data/annotations/input.csv')
     am.import_annotations(input_annotations)
     am.read()
 
@@ -117,7 +118,7 @@ thresholds = [0, 0.5, 1]
 @pytest.mark.skipif(tuple(map(int, pd.__version__.split('.')[:2])) < (1,1), reason = "requires pandas>=1.1.0")
 def test_vc_stats(project, turntakingthresh):
     am = AnnotationManager(project)
-    am.import_annotations(pd.read_csv('examples/valid_raw_data/raw_annotations/input.csv'))
+    am.import_annotations(pd.read_csv('examples/valid_raw_data/annotations/input.csv'))
 
     raw_rttm = 'example_metrics.rttm'
     segments = am.annotations[am.annotations['raw_filename'] == raw_rttm]
