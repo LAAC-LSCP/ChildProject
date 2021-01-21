@@ -21,7 +21,7 @@ class AnnotationManager:
         IndexColumn(name = 'time_seek', description = 'reference time in seconds, e.g: 3600, or 3600.500. All times expressed in the annotations are relative to this time.', regex = r"[0-9]{1,}(\.[0-9]{3})?", required = True),
         IndexColumn(name = 'range_onset', description = 'covered range start time in seconds, measured since `time_seek`', regex = r"(\d+(\.\d+)?)", required = True),
         IndexColumn(name = 'range_offset', description = 'covered range end time in seconds, measured since `time_seek`', regex = r"(\d+(\.\d+)?)", required = True),
-        IndexColumn(name = 'raw_filename', description = 'annotation input filename location (relative to raw_annotations/)', filename = True, required = True),
+        IndexColumn(name = 'raw_filename', description = 'annotation input filename location, relative to `annotations/<set>/raw`', filename = True, required = True),
         IndexColumn(name = 'format', description = 'input annotation format', choices = ['TextGrid', 'eaf', 'vtc_rttm', 'alice'], required = True),
         IndexColumn(name = 'filter', description = 'source file to filter in (for rttm and alice only)', required = False),
         IndexColumn(name = 'annotation_filename', description = 'output formatted annotation location (automatic column, don\'t specify)', filename = True, required = False, generated = True),
@@ -30,7 +30,7 @@ class AnnotationManager:
     ]
 
     SEGMENTS_COLUMNS = [
-        IndexColumn(name = 'annotation_file', description = 'raw annotation path relative to /raw_annotations/', required = True),
+        IndexColumn(name = 'annotation_file', description = 'raw annotation path relative, relative to `annotations/<set>/raw`', required = True),
         IndexColumn(name = 'segment_onset', description = 'segment start time in seconds', regex = r"(\d+(\.\d+)?)", required = True),
         IndexColumn(name = 'segment_offset', description = 'segment end time in seconds', regex = r"(\d+(\.\d+)?)", required = True),
         IndexColumn(name = 'speaker_id', description = 'identity of speaker in the annotation', required = True),
@@ -135,8 +135,7 @@ class AnnotationManager:
         
 
     def load_textgrid(self, filename):
-        path = os.path.join(self.project.path, 'raw_annotations', filename)
-        textgrid = pympi.Praat.TextGrid(path)
+        textgrid = pympi.Praat.TextGrid(filename)
 
         def ling_type(s):
             s = str(s)
@@ -179,8 +178,7 @@ class AnnotationManager:
         return pd.DataFrame(segments)
 
     def load_eaf(self, filename):
-        path = os.path.join(self.project.path, 'raw_annotations', filename)
-        eaf = pympi.Elan.Eaf(path)
+        eaf = pympi.Elan.Eaf(filename)
 
         segments = {}
         
@@ -251,9 +249,8 @@ class AnnotationManager:
         return pd.DataFrame(segments.values())
 
     def load_vtc_rttm(self, filename, source_file = None):
-        path = os.path.join(self.project.path, 'raw_annotations', filename)
         rttm = pd.read_csv(
-            path,
+            filename,
             sep = " ",
             names = ['type', 'file', 'chnl', 'tbeg', 'tdur', 'ortho', 'stype', 'name', 'conf', 'unk']
         )
@@ -281,9 +278,8 @@ class AnnotationManager:
         return df
 
     def load_alice(self, filename, source_file = None):
-        path = os.path.join(self.project.path, 'raw_annotations', filename)
         df = pd.read_csv(
-            path,
+            filename,
             sep = r"\s",
             names = ['file', 'phonemes', 'syllables', 'words']
         )
@@ -310,28 +306,28 @@ class AnnotationManager:
 
     def import_annotation(self, annotation):
         source_recording = os.path.splitext(annotation['recording_filename'])[0]
-        output_filename = "{}/{}_{}_{}.csv".format(annotation['set'], source_recording, annotation['time_seek'], annotation['range_onset'])
+        output_filename = "{}/converted/{}_{}_{}.csv".format(annotation['set'], source_recording, annotation['time_seek'], annotation['range_onset'])
 
-        raw_filename = annotation['raw_filename']
+        path = os.path.join(self.project.path, 'annotations', annotation['set'], 'raw', annotation['raw_filename'])
         annotation_format = annotation['format']
 
         df = None
         try:
             if annotation_format == 'TextGrid':
-                df = self.load_textgrid(raw_filename)
+                df = self.load_textgrid(path)
             elif annotation_format == 'eaf':
-                df = self.load_eaf(raw_filename)
+                df = self.load_eaf(path)
             elif annotation_format == 'vtc_rttm':
                 filter = annotation['filter'] if 'filter' in annotation and not pd.isnull(annotation['filter']) else None
-                df = self.load_vtc_rttm(raw_filename, source_file = filter)
+                df = self.load_vtc_rttm(path, source_file = filter)
             elif annotation_format == 'alice':
                 filter = annotation['filter'] if 'filter' in annotation and not pd.isnull(annotation['filter']) else None
-                df = self.load_alice(raw_filename, source_file = filter)
+                df = self.load_alice(path, source_file = filter)
             else:
-                raise ValueError("file format '{}' unknown for '{}'".format(annotation_format, raw_filename))
+                raise ValueError("file format '{}' unknown for '{}'".format(annotation_format, path))
         except:
             annotation['error'] = traceback.format_exc()
-            print("an error occured while processing '{}'".format(raw_filename), file = sys.stderr)
+            print("an error occured while processing '{}'".format(path), file = sys.stderr)
             print(traceback.format_exc(), file = sys.stderr)
 
         if df is None or not isinstance(df, pd.DataFrame):
@@ -340,7 +336,7 @@ class AnnotationManager:
         if not df.shape[1]:
             df = pd.DataFrame(columns = [c.name for c in self.SEGMENTS_COLUMNS])
         
-        df['annotation_file'] = raw_filename
+        df['annotation_file'] = annotation['raw_filename']
         df['segment_onset'] = df['segment_onset'].astype(float)
         df['segment_offset'] = df['segment_offset'].astype(float)
 
@@ -384,7 +380,7 @@ class AnnotationManager:
         self.read()
 
         try:
-            shutil.rmtree(os.path.join(self.project.path, 'annotations', annotation_set))
+            shutil.rmtree(os.path.join(self.project.path, 'annotations/converted', annotation_set))
         except:
             pass
 
@@ -406,7 +402,7 @@ class AnnotationManager:
         annotations = left_annotations.copy()
         annotations['format'] = ''
         annotations['annotation_filename'] = annotations.apply(
-            lambda annotation: "{}/{}_{}_{}.csv".format(
+            lambda annotation: "{}/converted/{}_{}_{}.csv".format(
                 output_set,
                 os.path.splitext(annotation['recording_filename'])[0],
                 annotation['time_seek'],
