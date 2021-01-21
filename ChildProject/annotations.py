@@ -402,9 +402,8 @@ class AnnotationManager:
         annotations = left_annotations.copy()
         annotations['format'] = ''
         annotations['annotation_filename'] = annotations.apply(
-            lambda annotation: "{}/{}_{}_{}.csv".format(
+            lambda annotation: "{}/converted/{}_{}_{}.csv".format(
                 output_set,
-                'converted',
                 os.path.splitext(annotation['recording_filename'])[0],
                 annotation['time_seek'],
                 annotation['range_onset']
