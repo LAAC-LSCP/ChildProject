@@ -26,7 +26,7 @@ child-project validate /path/to/dataset
 
 ## Convert recordings
 
-Converts all recordings in a dataset to a given encoding. Converted audios are stored into `converted_recordings/$name`.
+Converts all recordings in a dataset to a given encoding. Converted audios are stored into `recordings/converted/<profile-name>`.
 
 
 ```
