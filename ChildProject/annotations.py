@@ -445,7 +445,8 @@ class AnnotationManager:
 
         os.makedirs(new_path, exist_ok = True)
 
-        shutil.move(os.path.join(current_path, 'raw'), os.path.join(new_path, 'raw'))
+        if os.path.exists(os.path.join(current_path, 'raw')):
+            shutil.move(os.path.join(current_path, 'raw'), os.path.join(new_path, 'raw'))
 
         if os.path.exists(os.path.join(current_path, 'converted')):
             shutil.move(os.path.join(current_path, 'converted'), os.path.join(new_path, 'converted'))
