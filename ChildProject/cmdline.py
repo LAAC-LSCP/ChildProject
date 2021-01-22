@@ -97,6 +97,7 @@ def import_annotations(args):
     arg("--output-set", help = "name of the output set", required = True)
 ])
 def merge_annotations(args):
+    """merge segments sharing identical onset and offset from two sets of annotations"""
     project = ChildProject(args.source)
     errors, warnings = project.validate(ignore_files = True)
 
@@ -120,6 +121,7 @@ def merge_annotations(args):
     arg("--recursive", help = "enable recursive mode", action = 'store_true'),
 ])
 def remove_annotations(args):
+    """remove converted annotations of a given set and their entries in the index"""
     project = ChildProject(args.source)
     errors, warnings = project.validate(ignore_files = True)
 
@@ -139,6 +141,8 @@ def remove_annotations(args):
     arg("--ignore-errors", help = "proceed despite errors", action = 'store_true')
 ])
 def rename_annotations(args):
+    """rename a set of annotations by moving the files and updating the index accordingly"""
+
     project = ChildProject(args.source)
     errors, warnings = project.validate(ignore_files = True)
 
@@ -185,6 +189,8 @@ def import_data(args):
     arg("--stats", help = "stats to retrieve (comma-separated)", required = False, default = "")
 ])
 def stats(args):
+    """print statistics about a given dataset"""
+    
     project = ChildProject(args.source)
 
     errors, warnings = project.validate()
