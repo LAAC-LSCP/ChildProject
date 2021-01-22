@@ -6,6 +6,7 @@ import numpy as np
 import os
 import pandas as pd
 import pympi
+import re
 import shutil
 import sys
 import traceback
@@ -378,14 +379,64 @@ class AnnotationManager:
 
     def remove_set(self, annotation_set):
         self.read()
+        path = os.path.join(self.project.path, 'annotations', annotation_set, 'converted')
 
         try:
-            shutil.rmtree(os.path.join(self.project.path, 'annotations/converted', annotation_set))
+            shutil.rmtree(path)
         except:
+            print("'{}' not found".format(path))
             pass
 
         self.annotations = self.annotations[self.annotations['set'] != annotation_set]
         self.annotations.to_csv(os.path.join(self.project.path, 'metadata/annotations.csv'), index = False)
+
+    def rename_set(self, annotation_set, new_set, recursive = False, ignore_errors = False):
+        self.read()
+
+        annotation_set = annotation_set.rstrip('/').rstrip("\\")
+        new_set = new_set.rstrip('/').rstrip("\\")
+
+        current_path = os.path.join(self.project.path, 'annotations', annotation_set)
+        new_path = os.path.join(self.project.path, 'annotations', new_set)
+
+        if not os.path.exists(current_path):
+            raise Exception("'{}' does not exists, aborting".format(current_path))
+
+        if os.path.exists(new_path):
+            raise Exception("'{}' already exists, aborting".format(new_path))
+
+        if self.annotations[self.annotations['set'] == annotation_set].shape[0] == 0 and not ignore_errors:
+            raise Exception("set '{}' have no indexed annotation, aborting. use --ignore_errors to force")
+
+        subsets = []
+        
+        if recursive:
+            candidates = list(set(os.listdir(current_path)) - {'raw', 'converted'})
+            for candidate in candidates:
+                if os.path.exists(os.path.join(current_path, candidate, 'raw')):
+                    subsets.append({
+                        'current': os.path.join(annotation_set, candidate),
+                        'new': os.path.join(new_set, candidate)
+                    })
+
+        for subset in subsets:
+            self.rename_set(
+                annotation_set = subset['current'],
+                new_set = subset['new'],
+                recursive = recursive,
+                ignore_errors = ignore_errors
+            )
+
+        os.makedirs(new_path, exist_ok = True)
+
+        shutil.move(os.path.join(current_path, 'raw'), os.path.join(new_path, 'raw'))
+        shutil.move(os.path.join(current_path, 'converted'), os.path.join(new_path, 'converted'))
+
+        self.annotations.loc[(self.annotations['set'] == annotation_set), 'annotation_filename'] = self.annotations.loc[(self.annotations['set'] == annotation_set), 'annotation_filename']\
+            .str.replace(r"^{}/".format(re.escape(annotation_set)), repl = os.path.join(new_set, ''), regex = True)
+        self.annotations.loc[(self.annotations['set'] == annotation_set), 'set'] = new_set  
+        self.annotations.to_csv(os.path.join(self.project.path, 'metadata/annotations.csv'), index = False)
+
 
     def merge_sets(self, left_set, right_set, left_columns, right_columns, output_set, columns = {}):
         assert left_set != right_set, "sets must differ"

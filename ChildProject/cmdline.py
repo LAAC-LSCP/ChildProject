@@ -131,6 +131,25 @@ def remove_annotations(args):
     am.remove_set(args.set)
 
 @subcommand([
+    arg("source", help = "project path"),
+    arg("--set", help = "set to rename", required = True),
+    arg("--new-set", help = "new name for the set", required = True),
+    arg("--recursive", help = "enable recursive mode", action = 'store_true'),
+    arg("--ignore-errors", help = "proceed despite errors", action = 'store_true')
+])
+def rename_annotations(args):
+    project = ChildProject(args.source)
+    errors, warnings = project.validate(ignore_files = True)
+
+    if len(errors) > 0:
+        print("validation failed, {} error(s) occured".format(len(errors)), file = sys.stderr)
+        sys.exit(1)
+
+    am = AnnotationManager(project)
+    am.read()
+    am.rename_set(args.set, args.new_set, recursive = args.recursive, ignore_errors = args.ignore_errors)
+
+@subcommand([
     arg("dataset", help = "dataset to install. Should be a valid repository name at https://github.com/LAAC-LSCP. (e.g.: solomon-data)"),
     arg("--destination", help = "destination path", required = False, default = ""),
     arg("--storage-hostname", dest = "storage_hostname", help = "ssh storage hostname (e.g. 'foberon')", required = False, default = "")
