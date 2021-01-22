@@ -165,6 +165,18 @@ child-project rename-annotations /path/to/dataset --set vtc --new-set vtc_1
 
 This will deleted converted annotations associated to a given set and remove them from the index.
 
+```bash
+usage: child-project remove-annotations [-h] --set SET [--recursive] source
+
+positional arguments:
+  source       project path
+
+optional arguments:
+  -h, --help   show this help message and exit
+  --set SET    set to remove
+  --recursive  enable recursive mode
+```
+
 ```
 child-project remove-annotations /path/to/dataset --set vtc
 ```

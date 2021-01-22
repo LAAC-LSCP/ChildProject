@@ -116,7 +116,8 @@ def merge_annotations(args):
 
 @subcommand([
     arg("source", help = "project path"),
-    arg("--set", help = "set to remove", required = True)
+    arg("--set", help = "set to remove", required = True),
+    arg("--recursive", help = "enable recursive mode", action = 'store_true'),
 ])
 def remove_annotations(args):
     project = ChildProject(args.source)
@@ -128,7 +129,7 @@ def remove_annotations(args):
 
     am = AnnotationManager(project)
     am.read()
-    am.remove_set(args.set)
+    am.remove_set(args.set, recursive = args.recursive)
 
 @subcommand([
     arg("source", help = "project path"),
