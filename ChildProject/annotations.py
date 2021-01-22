@@ -383,11 +383,10 @@ class AnnotationManager:
         path = os.path.join(self.project.path, 'annotations', annotation_set)
         candidates = list(set(os.listdir(path)) - {'raw', 'converted'})
         for candidate in candidates:
-            if os.path.exists(os.path.join(path, candidate, 'raw')):
-                subset = os.path.join(annotation_set, candidate)
-                subsets.append(subset)
-                if recursive:
-                    subsets.extend(self.get_subsets(subset))
+            subset = os.path.join(annotation_set, candidate)
+            subsets.append(subset)
+            if recursive and os.path.isdir(os.path.join(path, subset)):
+                subsets.extend(self.get_subsets(subset))
 
         return subsets
             
@@ -428,7 +427,7 @@ class AnnotationManager:
         if os.path.exists(new_path):
             raise Exception("'{}' already exists, aborting".format(new_path))
 
-        if self.annotations[self.annotations['set'] == annotation_set].shape[0] == 0 and not ignore_errors:
+        if self.annotations[self.annotations['set'] == annotation_set].shape[0] == 0 and not ignore_errors and not recursive:
             raise Exception("set '{}' have no indexed annotation, aborting. use --ignore_errors to force")
 
         subsets = []
