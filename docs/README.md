@@ -132,13 +132,11 @@ We provide tools to:
 - Validate raw data
 - Convert your raw recordings into a standardized format
 - Add recording duration to your metadata
-- Import raw annotations (from ELAN, Praat, csv, rttm) into our standardized format
+- Import raw annotations (from LENA, ELAN, Praat, csv, rttm) into our standardized format
 - Add clips to an annotation pipeline in Zooniverse, and retrieve the ensuing annotations
 
 We provide detailed instructions [here](http://laac-lscp.github.io/ChildRecordsData/TOOLS.html).
 
 ## Missing and planned features
 
-- import of old-style LENA .its
-- import of new-style LENA .its
 - clarify link with R package

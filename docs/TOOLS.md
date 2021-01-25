@@ -118,6 +118,8 @@ Example:
 child-project import-annotations /path/to/dataset --set eaf --recording_filename sound.wav --time_seek 0 --raw_filename example.eaf --range_onset 0 --range_offset 300 --format eaf
 ```
 
+Find more information about the allowed values for each parameter [here](http://laac-lscp.github.io/ChildRecordsData/FORMATTING.html#annotation-importation-input-format).
+
 ### Bulk importation
 
 Use this to do bulk importation of many annotation files.
