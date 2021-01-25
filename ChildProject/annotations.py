@@ -1,11 +1,13 @@
 from collections import defaultdict
 import datetime
+from lxml import etree
 import multiprocessing as mp
 from numbers import Number
 import numpy as np
 import os
 import pandas as pd
 import pympi
+import re
 import shutil
 import sys
 import traceback
@@ -22,7 +24,7 @@ class AnnotationManager:
         IndexColumn(name = 'range_onset', description = 'covered range start time in seconds, measured since `time_seek`', regex = r"(\d+(\.\d+)?)", required = True),
         IndexColumn(name = 'range_offset', description = 'covered range end time in seconds, measured since `time_seek`', regex = r"(\d+(\.\d+)?)", required = True),
         IndexColumn(name = 'raw_filename', description = 'annotation input filename location, relative to `annotations/<set>/raw`', filename = True, required = True),
-        IndexColumn(name = 'format', description = 'input annotation format', choices = ['TextGrid', 'eaf', 'vtc_rttm', 'alice'], required = True),
+        IndexColumn(name = 'format', description = 'input annotation format', choices = ['TextGrid', 'eaf', 'vtc_rttm', 'alice', 'its'], required = True),
         IndexColumn(name = 'filter', description = 'source file to filter in (for rttm and alice only)', required = False),
         IndexColumn(name = 'annotation_filename', description = 'output formatted annotation location (automatic column, don\'t specify)', filename = True, required = False, generated = True),
         IndexColumn(name = 'imported_at', description = 'importation date (automatic column, don\'t specify)', datetime = "%Y-%m-%d %H:%M:%S", required = False, generated = True),
@@ -34,7 +36,7 @@ class AnnotationManager:
         IndexColumn(name = 'segment_onset', description = 'segment start time in seconds', regex = r"(\d+(\.\d+)?)", required = True),
         IndexColumn(name = 'segment_offset', description = 'segment end time in seconds', regex = r"(\d+(\.\d+)?)", required = True),
         IndexColumn(name = 'speaker_id', description = 'identity of speaker in the annotation', required = True),
-        IndexColumn(name = 'speaker_type', description = 'class of speaker (FEM, MAL, CHI, OCH)', choices = ['FEM', 'MAL', 'CHI', 'OCH', 'SPEECH', 'NA'], required = True),
+        IndexColumn(name = 'speaker_type', description = 'class of speaker (FEM, MAL, CHI, OCH)', choices = ['FEM', 'MAL', 'CHI', 'OCH', 'SPEECH'] + ['TVN', 'TVF', 'FUZ', 'FEF', 'MAF', 'SIL', 'CXF', 'NON', 'OLN', 'OLF', 'CHF', 'NA'], required = True),
         IndexColumn(name = 'ling_type', description = '1 if the vocalization contains at least a vowel (ie canonical or non-canonical), 0 if crying or laughing', choices = ['1', '0', 'NA'], required = True),
         IndexColumn(name = 'vcm_type', description = 'vocal maturity defined as: C (canonical), N (non-canonical), Y (crying) L (laughing), J (junk)', choices = ['C', 'N', 'Y', 'L', 'J', 'NA'], required = True),
         IndexColumn(name = 'lex_type', description = 'W if meaningful, 0 otherwise', choices = ['W', '0', 'NA'], required = True),
@@ -43,7 +45,22 @@ class AnnotationManager:
         IndexColumn(name = 'transcription', description = 'orthographic transcription of the speach', required = True),
         IndexColumn(name = 'phonemes', description = 'amount of phonemes', regex = r'(\d+(\.\d+)?)'),
         IndexColumn(name = 'syllables', description = 'amount of syllables', regex = r'(\d+(\.\d+)?)'),
-        IndexColumn(name = 'words', description = 'amount of words', regex = r'(\d+(\.\d+)?)')
+        IndexColumn(name = 'words', description = 'amount of words', regex = r'(\d+(\.\d+)?)'),
+        IndexColumn(name = 'lena_block_type', description = 'whether regarded as part as a pause or a conversation by LENA', choices = ['pause', 'CM', 'CIC', 'CIOCX', 'CIOCAX', 'AMF', 'AICF', 'AIOCF', 'AIOCCXF', 'AMM', 'AICM', 'AIOCM', 'AIOCCXM', 'XM', 'XIOCC', 'XIOCA', 'XIC', 'XIOCAC']),
+        IndexColumn(name = 'lena_block_number', description = 'number of the LENA pause/conversation the segment belongs to', regex = r"(\d+(\.\d+)?)"),
+        IndexColumn(name = 'lena_conv_status', description = 'LENA conversation status', choices = ['BC', 'RC', 'EC']),
+        IndexColumn(name = 'lena_response_count', description = 'LENA turn count within block', regex = r"(\d+(\.\d+)?)"),
+        IndexColumn(name = 'lena_conv_floor_type', description = '(FI): Floor Initiation, (FH): Floor Holding', choices = ['FI', 'FH']),
+        IndexColumn(name = 'lena_conv_turn_type', description = 'LENA turn type', choices = ['TIFI', 'TIMI', 'TIFR', 'TIMR', 'TIFE', 'TIME', 'NT']),
+        IndexColumn(name = 'utterances_count', description = 'utterances count', regex = r"(\d+(\.\d+)?)"),
+        IndexColumn(name = 'utterances_length', description = 'utterances length', regex = r"(\d+(\.\d+)?)"),
+        IndexColumn(name = 'non_speech_length', description = 'non-speech length', regex = r"(\d+(\.\d+)?)"),
+        IndexColumn(name = 'average_db', description = 'average dB level', regex = r"(\-?)(\d+(\.\d+)?)"),
+        IndexColumn(name = 'peak_db', description = 'peak dB level', regex = r"(\-?)(\d+(\.\d+)?)"),
+        IndexColumn(name = 'child_cry_vfx_len', description = 'childCryVfxLen', regex = r"(\d+(\.\d+)?)"),
+        IndexColumn(name = 'utterances', description = 'LENA utterances details (json)'),
+        IndexColumn(name = 'cries', description = 'cries (json)'),
+        IndexColumn(name = 'vfxs', description = 'Vfx (json)')
     ]
 
     SPEAKER_ID_TO_TYPE = {
@@ -92,6 +109,25 @@ class AnnotationManager:
         'MAL':'MAL',
         'SPEECH': 'SPEECH'
     })
+
+    LENA_SPEAKER_TYPE_TRANSLATION = {
+        'CHN': 'CHI',
+        'CXN': 'OCH',
+        'FAN': 'FEM',
+        'MAN': 'MAL',
+        'OLN': 'OLN',
+        'TVN': 'TVN',
+        'NON': 'NON',
+        'SIL': 'SIL',
+        'FUZ': 'FUZ',
+        'TVF': 'TVF',
+        'CXF': 'CXF',
+        'NOF': 'NON',
+        'OLF': 'OLN',
+        'CHF': 'CHF',
+        'MAF': 'MAF',
+        'FAF': 'FEF'
+    }
 
 
     def __init__(self, project):
@@ -248,6 +284,132 @@ class AnnotationManager:
 
         return pd.DataFrame(segments.values())
 
+    def load_its(self, filename):
+        xml = etree.parse(filename)
+
+        recordings = xml.xpath('/ITS/ProcessingUnit/Recording')
+        timestamp_pattern = re.compile(r"^P(?:T?)(\d+(\.\d+)?)S$")
+
+        def extract_from_regex(pattern, subject):
+            match = pattern.search(subject)
+            return match.group(1) if match else ''
+
+        segments = []
+
+        for recording in recordings:
+            segs = recording.xpath('//Segment')
+            for seg in segs:
+                parent = seg.getparent()
+
+                lena_block_number = parent.get('num')
+                lena_block_type = 'pause' if parent.tag.lower() == 'pause' else parent.get('type')
+
+                if not seg.get('conversationInfo'):
+                    conversation_info = ['NA'] * 7
+                else:
+                    conversation_info = seg.get('conversationInfo').split('|')[1:-1]
+                
+                lena_conv_status = conversation_info[0]
+                lena_response_count = conversation_info[3]
+                lena_conv_turn_type = conversation_info[5]
+                lena_conv_floor_type = conversation_info[6]
+
+                onset = extract_from_regex(timestamp_pattern, seg.get('startTime'))
+                offset = extract_from_regex(timestamp_pattern, seg.get('endTime'))
+
+                words = 0
+                for attr in ['femaleAdultWordCnt', 'maleAdultWordCnt']:
+                    words += float(seg.get(attr, 0))
+
+                utterances_count = 0
+                for attr in ['femaleAdultUttCnt', 'maleAdultUttCnt', 'childUttCnt']:
+                    utterances_count += float(seg.get(attr, 0))
+
+                utterances_length = 0
+                for attr in ['femaleAdultUttLen', 'maleAdultUttLen', 'childUttLen']:
+                    utterances_length += float(extract_from_regex(timestamp_pattern, seg.get(attr, 'P0S')))
+
+                non_speech_length = 0
+                for attr in ['femaleAdultNonSpeechLen', 'maleAdultNonSpeechLen']:
+                    non_speech_length += float(extract_from_regex(timestamp_pattern, seg.get(attr, 'P0S')))
+
+                average_db = seg.get('average_dB', 0)
+                peak_db = seg.get('peak_dB', 0)
+
+                utterances = seg.xpath('./UTT')
+                utterances = [utt.attrib for utt in utterances]
+
+                if not utterances:
+                    n = 1
+                    while 'startUtt{}'.format(n) in seg.attrib:
+                        start = 'startUtt{}'.format(n)
+                        end = 'endUtt{}'.format(n)
+                        utterances.append({
+                            start: seg.attrib[start],
+                            end: seg.attrib[end]
+                        })
+
+                        n = n + 1
+
+                child_cry_vfx_len = float(extract_from_regex(timestamp_pattern, seg.get('childCryVfxLen', 'PT0S')))
+
+                cries = []
+                n = 1
+                while 'startCry{}'.format(n) in seg.attrib:
+                    start = 'startCry{}'.format(n)
+                    end = 'endCry{}'.format(n)
+                    cries.append({
+                        start: seg.attrib[start],
+                        end: seg.attrib[end]
+                    })
+                    n = n + 1
+
+                vfxs = []
+                n = 1
+                while 'startVfx{}'.format(n) in seg.attrib:
+                    start = 'startVfx{}'.format(n)
+                    end = 'endVfx{}'.format(n)
+                    vfxs.append({
+                        start: seg.attrib[start],
+                        end: seg.attrib[end]
+                    })
+                    n = n + 1
+
+                segments.append({
+                    'segment_onset': onset,
+                    'segment_offset': offset,
+                    'speaker_id': 'NA',
+                    'ling_type': 'NA',
+                    'speaker_type': self.LENA_SPEAKER_TYPE_TRANSLATION[seg.get('spkr')],
+                    'vcm_type': 'NA',
+                    'lex_type': 'NA',
+                    'mwu_type': 'NA',
+                    'addresseee': 'NA',
+                    'transcription': 'NA',
+                    'phonemes': 'NA',
+                    'syllables': 'NA',
+                    'words': words,
+                    'lena_block_number': lena_block_number,
+                    'lena_block_type': lena_block_type,
+                    'lena_conv_status': lena_conv_status,
+                    'lena_response_count': lena_response_count,
+                    'lena_conv_turn_type': lena_conv_turn_type,
+                    'lena_conv_floor_type': lena_conv_floor_type,
+                    'utterances_count': utterances_count,
+                    'utterances_length': utterances_length,
+                    'average_db': average_db,
+                    'peak_db': peak_db,
+                    'utterances': utterances,
+                    'non_speech_length': non_speech_length,
+                    'child_cry_vfx_len': child_cry_vfx_len,
+                    'cries': cries,
+                    'vfxs': vfxs
+                })
+                
+        df = pd.DataFrame(segments)
+        
+        return df
+
     def load_vtc_rttm(self, filename, source_file = None):
         rttm = pd.read_csv(
             filename,
@@ -320,6 +482,8 @@ class AnnotationManager:
             elif annotation_format == 'vtc_rttm':
                 filter = annotation['filter'] if 'filter' in annotation and not pd.isnull(annotation['filter']) else None
                 df = self.load_vtc_rttm(path, source_file = filter)
+            elif annotation_format == 'its':
+                df = self.load_its(path)
             elif annotation_format == 'alice':
                 filter = annotation['filter'] if 'filter' in annotation and not pd.isnull(annotation['filter']) else None
                 df = self.load_alice(path, source_file = filter)
@@ -390,7 +554,13 @@ class AnnotationManager:
     def merge_sets(self, left_set, right_set, left_columns, right_columns, output_set, columns = {}):
         assert left_set != right_set, "sets must differ"
         assert not (set(left_columns) & set (right_columns)), "left_columns and right_columns must be disjoint"
-        assert set(left_columns) | set (right_columns) == set([c.name for c in self.SEGMENTS_COLUMNS]) - set(['annotation_file', 'segment_onset', 'segment_offset']), "left_columns and right_columns are missing values"
+
+        union = set(left_columns) | set (right_columns)
+        all_columns = set([c.name for c in self.SEGMENTS_COLUMNS]) - set(['annotation_file', 'segment_onset', 'segment_offset'])
+        required_columns = set([c.name for c in self.SEGMENTS_COLUMNS if c.required]) - set(['annotation_file', 'segment_onset', 'segment_offset'])
+        assert union.issubset(all_columns), "left_columns and right_columns have unexpected values"
+        assert required_columns.issubset(union), "left_columns and right_columns have missing values"
+
 
         left_annotations = self.annotations[self.annotations['set'] == left_set]
         right_annotations = self.annotations[self.annotations['set'] == right_set]
