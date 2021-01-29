@@ -29,10 +29,14 @@ def check_dur(dur, target):
     return new_dur,remain
 
 class Chunk():
-    def __init__(self, recording, onset, offset):
+    def __init__(self, recording, onset, offset, segment_onset, segment_offset):
         self.recording = recording
         self.onset = onset
         self.offset = offset
+
+        self.segment_onset = segment_onset
+        self.segment_offset = segment_offset
+
 
     def getbasename(self, extension):
         return "{}_{}_{}.{}".format(
@@ -73,7 +77,7 @@ class ZooniversePipeline(Pipeline):
             chunks = []
 
             for interval in intervals:
-                chunk = Chunk(segment['recording_filename'], interval, interval + self.chunk_length)
+                chunk = Chunk(segment['recording_filename'], interval, interval + self.chunk_length, onset, offset)
                 chunk_audio = audio[chunk.onset:chunk.offset].fade_in(10).fade_out(10)
 
                 wav = os.path.join(self.destination, 'chunks', chunk.getbasename('wav'))
@@ -130,6 +134,8 @@ class ZooniversePipeline(Pipeline):
             'recording': c.recording,
             'onset': c.onset,
             'offset': c.offset,
+            'segment_onset': c.segment_onset,
+            'segment_offset': c.segment_offset,
             'wav': c.getbasename('wav'),
             'mp3': c.getbasename('mp3'),
             'speaker_type': target_speaker_type,
