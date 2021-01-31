@@ -1,4 +1,5 @@
 from setuptools import setup, find_packages
+import ChildProject
 
 requires = {
     'core': ['pandas', 'xlrd', 'jinja2', 'numpy>=1.16.5', 'pympi-ling', 'lxml', 'sox', 'datalad'],
@@ -7,7 +8,7 @@ requires = {
 
 setup(
     name='ChildProject',
-    version='0.0.2',
+    version = ChildProject.__version__,
     description='LAAC@LSCP',
     url='git@github.com:lucasgautheron/ChildRecordsData.git',
     author='Lucas',
