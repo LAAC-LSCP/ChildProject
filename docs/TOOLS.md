@@ -7,7 +7,8 @@
     - [Single file importation](#single-file-importation)
     - [Bulk importation](#bulk-importation)
     - [Merge annotation sets](#merge-annotation-sets)
-    - [Remove an annotation set](#remove-an-annotation-set)
+    - [Rename a set of annotations](#rename-a-set-of-annotations)
+    - [Remove a set of annotations](#remove-a-set-of-annotations)
   - [Zooniverse](#zooniverse)
 
 
@@ -136,13 +137,51 @@ The input dataframe `/path/to/dataframe.csv` must have one entry per annotation 
 child-project merge-annotations /path/to/dataset --left-set vtc --right-set alice --left-columns speaker_id,ling_type,speaker_type,vcm_type,lex_type,mwu_type,addresseee,transcription --right-columns phonemes,syllables,words --output-set alice_vtc
 ```
 
-### Remove an annotation set
+### Rename a set of annotations
+
+Rename a set of annotations. This will move the annotations themselves, and update the index (`metadata/annotations.csv`) accordingly.
+
+```bash
+usage: child-project rename-annotations [-h] --set SET --new-set NEW_SET
+                                        [--recursive] [--ignore-errors]
+                                        source
+
+positional arguments:
+  source             project path
+
+optional arguments:
+  -h, --help         show this help message and exit
+  --set SET          set to rename
+  --new-set NEW_SET  new name for the set
+  --recursive        enable recursive mode
+  --ignore-errors    proceed despite errors
+```
+
+Example:
+
+```
+child-project rename-annotations /path/to/dataset --set vtc --new-set vtc_1
+```
+
+### Remove a set of annotations
+
+This will deleted converted annotations associated to a given set and remove them from the index.
+
+```bash
+usage: child-project remove-annotations [-h] --set SET [--recursive] source
+
+positional arguments:
+  source       project path
+
+optional arguments:
+  -h, --help   show this help message and exit
+  --set SET    set to remove
+  --recursive  enable recursive mode
+```
 
 ```
 child-project remove-annotations /path/to/dataset --set vtc
 ```
-
-
 
 ## Zooniverse
 

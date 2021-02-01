@@ -113,6 +113,24 @@ def test_clipping(project):
     assert segments['segment_onset'].between(start, stop).all() and segments['segment_offset'].between(start, stop).all(), "segments not properly clipped"
     assert segments.shape[0] == 2, "got {} segments, expected 2".format(segments.shape[0])
 
+def test_rename(project):
+    am = AnnotationManager(project)
+
+    input_annotations = pd.read_csv('examples/valid_raw_data/annotations/input.csv')
+    am.import_annotations(input_annotations)
+    am.read()
+    its_count = am.annotations[am.annotations['set'] == 'new_its'].shape[0]
+
+    am.rename_set('new_its', 'renamed')
+    am.read()
+
+    errors, warnings = am.validate()
+    assert len(errors) == 0 and len(warnings) == 0, "malformed annotations detected"
+
+    assert am.annotations[am.annotations['set'] == 'new_its'].shape[0] == 0
+    assert am.annotations[am.annotations['set'] == 'renamed'].shape[0] == its_count
+
+
 thresholds = [0, 0.5, 1]
 @pytest.mark.parametrize('turntakingthresh', thresholds)
 @pytest.mark.skipif(tuple(map(int, pd.__version__.split('.')[:2])) < (1,1), reason = "requires pandas>=1.1.0")

@@ -97,6 +97,7 @@ def import_annotations(args):
     arg("--output-set", help = "name of the output set", required = True)
 ])
 def merge_annotations(args):
+    """merge segments sharing identical onset and offset from two sets of annotations"""
     project = ChildProject(args.source)
     errors, warnings = project.validate(ignore_files = True)
 
@@ -116,9 +117,11 @@ def merge_annotations(args):
 
 @subcommand([
     arg("source", help = "project path"),
-    arg("--set", help = "set to remove", required = True)
+    arg("--set", help = "set to remove", required = True),
+    arg("--recursive", help = "enable recursive mode", action = 'store_true'),
 ])
 def remove_annotations(args):
+    """remove converted annotations of a given set and their entries in the index"""
     project = ChildProject(args.source)
     errors, warnings = project.validate(ignore_files = True)
 
@@ -128,7 +131,28 @@ def remove_annotations(args):
 
     am = AnnotationManager(project)
     am.read()
-    am.remove_set(args.set)
+    am.remove_set(args.set, recursive = args.recursive)
+
+@subcommand([
+    arg("source", help = "project path"),
+    arg("--set", help = "set to rename", required = True),
+    arg("--new-set", help = "new name for the set", required = True),
+    arg("--recursive", help = "enable recursive mode", action = 'store_true'),
+    arg("--ignore-errors", help = "proceed despite errors", action = 'store_true')
+])
+def rename_annotations(args):
+    """rename a set of annotations by moving the files and updating the index accordingly"""
+
+    project = ChildProject(args.source)
+    errors, warnings = project.validate(ignore_files = True)
+
+    if len(errors) > 0:
+        print("validation failed, {} error(s) occured".format(len(errors)), file = sys.stderr)
+        sys.exit(1)
+
+    am = AnnotationManager(project)
+    am.read()
+    am.rename_set(args.set, args.new_set, recursive = args.recursive, ignore_errors = args.ignore_errors)
 
 @subcommand([
     arg("dataset", help = "dataset to install. Should be a valid repository name at https://github.com/LAAC-LSCP. (e.g.: solomon-data)"),
@@ -165,6 +189,8 @@ def import_data(args):
     arg("--stats", help = "stats to retrieve (comma-separated)", required = False, default = "")
 ])
 def stats(args):
+    """print statistics about a given dataset"""
+    
     project = ChildProject(args.source)
 
     errors, warnings = project.validate()
