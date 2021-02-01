@@ -44,13 +44,13 @@ def validate(args):
         warnings.extend(am.warnings)
 
     for error in errors:
-        print("error: {}".format(error), file = sys.stderr)
+        print("error: {}".format(error))
 
     for warning in warnings:
         print("warning: {}".format(warning))
 
     if len(errors) > 0:
-        print("validation failed, {} error(s) occured".format(len(errors)), file = sys.stderr)
+        print("validation failed, {} error(s) occured".format(len(errors)))
         sys.exit(1)
 
 @subcommand([
