@@ -44,8 +44,8 @@ As for manual annotation options, [ELAN](https://archive.mpi.nl/tla/elan) can be
 
 In this context, we provide tools and a procedure to:
 
-- Validate raw data
-- Convert your raw recordings into a standardized format
+- Validate datasets (making sure that metadata, recordings and annotations are in the right place and format)
+- Convert your raw recordings into the desired format
 - Import raw annotations (from ELAN, Praat, csv, rttm from VTC and ALICE) into our standardized format
 - Add clips to an annotation pipeline in Zooniverse, and retrieve the ensuing annotations
 
