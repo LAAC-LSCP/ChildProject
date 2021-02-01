@@ -92,7 +92,7 @@ class ZooniversePipeline(Pipeline):
 
             return chunks
 
-    def extract_chunks(self, id, destination, path, annotation_set = 'vtc',
+    def extract_chunks(self, keyword, destination, path, annotation_set = 'vtc',
         batch_size = 1000, target_speaker_type = ['CHI'], sample_size = 500, chunk_length = 500, threads = 0, batches = 0, **kwargs):
 
         assert 1000 % chunk_length == 0, 'chunk_length should divide 1000'
@@ -145,7 +145,7 @@ class ZooniversePipeline(Pipeline):
             'project_slug': '',
             'subject_set': '',
             'zooniverse_id': 0,
-            'export_id': id
+            'keyword': keyword
         } for c in self.chunks])
 
         # shuffle chunks so that they can't be joined back together
@@ -156,7 +156,7 @@ class ZooniversePipeline(Pipeline):
         self.chunks.to_csv(os.path.join(self.destination, 'chunks.csv'))
 
         parameters = [
-            ['export_id', id],
+            ['keyword', keyword],
             ['version', ChildProject.__version__],
             ['date_extracted', datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')],
             ['speaker_type', ','.join(target_speaker_type)],
@@ -283,7 +283,7 @@ class ZooniversePipeline(Pipeline):
 
         parser_extraction = subparsers.add_parser('extract-chunks', help = 'extract chunks and store metadata in DESTINATION/chunks.csv')
         parser_extraction.add_argument('path', help = 'path to the dataset')
-        parser_extraction.add_argument('--id', help = 'export id', required = True)
+        parser_extraction.add_argument('--keyword', help = 'export keyword', required = True)
         parser_extraction.add_argument('--destination', help = 'destination', required = True)
         parser_extraction.add_argument('--sample-size', help = 'how many samples per recording', required = True, type = int)
         parser_extraction.add_argument('--annotation-set', help = 'annotation set', default = 'vtc')
