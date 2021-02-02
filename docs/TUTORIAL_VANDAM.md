@@ -6,8 +6,8 @@
   - [Save the changes locally](#save-the-changes-locally)
   - [Publish the dataset](#publish-the-dataset)
     - [Where to publish my dataset ?](#where-to-publish-my-dataset-)
-    - [Publish on GitHub](#publish-on-github)
-    - [Publish on a SSH server](#publish-on-a-ssh-server)
+    - [Publish to a SSH server](#publish-to-a-ssh-server)
+    - [Publish to GitHub](#publish-to-github)
     - [Publish on S3](#publish-on-s3)
     - [Publish on OSF](#publish-on-osf)
 
@@ -216,16 +216,16 @@ It is necessary to use a platform or a combination of platforms that supports bo
     <td class="tg-7btt">Encryption</td>
   </tr>
   <tr>
-    <td class="tg-0pky">GitHub</td>
-    <td class="tg-0pky">Yes</td>
-    <td class="tg-0pky">No</td>
-    <td class="tg-0pky">No</td>
-  </tr>
-  <tr>
     <td class="tg-0pky">SSH server</td>
     <td class="tg-0pky">Yes</td>
     <td class="tg-0pky">Yes</td>
     <td class="tg-0pky">No ?</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky">GitHub</td>
+    <td class="tg-0pky">Yes</td>
+    <td class="tg-0pky">No</td>
+    <td class="tg-0pky">No</td>
   </tr>
   <tr>
     <td class="tg-0pky">Amazon S3</td>
@@ -242,7 +242,45 @@ It is necessary to use a platform or a combination of platforms that supports bo
 </tbody>
 </table>
 
-### Publish on GitHub
+### Publish to a SSH server
+
+If you have access to a SSH server with enough storage capacity, you can use it to store and share the dataset.
+This is done with the [datalad create-sibling](http://docs.datalad.org/en/stable/generated/man/datalad-create-sibling.html) command:
+
+```bash
+datalad create-sibling [-h] [-s [NAME]] [--target-dir PATH] [--target-url URL] [--target-pushurl URL] [--dataset DATASET] [-r] [-R LEVELS] [--existing MODE] [--shared {false|true|umask|group|all|world|everybody|0xxx}] [--group GROUP] [--ui {false|true|html_filename}] [--as-common-datasrc NAME] [--publish-by-default REFSPEC] [--publish-depends SIBLINGNAME] [--annex-wanted EXPR] [--annex-group EXPR] [--annex-groupwanted EXPR] [--inherit] [--since SINCE] [SSHURL]
+```
+
+For instance, you can create it (this is only to be done once) by issuing:
+
+
+```bash
+datalad create-sibling -s cluster --annex-wanted 'include=*' <ssh-server>:/remote/path/to/the/dataset
+```
+
+`cluster` is the name of the sibling, and `<ssh-server>:/remote/path/to/the/dataset` is the SSH url of its destination.
+`--annex-wanted 'include=*'` implies that all large files will be published to this sibling by default.
+
+Once the sibling has been created, the changes can be published:
+
+```bash
+datalad publish --to cluster
+```
+
+That's it! People can now get your data from:
+
+```bash
+datalad install <ssh-server>:/remote/path/to/the/dataset
+```
+
+If `--annex-wanted` had not been set to `'include=*'`, the large files (i.e. annexed files) would not be published unless you asked for it explicitly with the `--transfer-data` flag:
+
+```bash
+datalad publish --to cluster --transfer-data all
+```
+
+
+### Publish to GitHub
 
 You first need to create the repository, which can be done in a straightforward way from the command line with [datalad create-sibling-github](http://docs.datalad.org/en/stable/generated/man/datalad-create-sibling-github.html):
 
@@ -253,30 +291,28 @@ datalad create-sibling-github [-h] [--dataset DATASET] [-r] [-R LEVELS] [-s NAME
 For instance:
 
 ```
-datalad create-sibling-github -s origin --access-protocol ssh vandam-daylong-demo
+datalad create-sibling-github -s github --access-protocol ssh vandam-daylong-demo
 ```
 
-`origin` will be the local name of the sibling, and `vandam-daylong-demo` the name of the GitHub repository.
+`github` will be the local name of the sibling, and `vandam-daylong-demo` the name of the GitHub repository.
 Once the sibling has been created, you can publish the changes with [datalad publish](http://docs.datalad.org/en/stable/generated/man/datalad-publish.html):
 
 ```bash
-datalad publish --to origin --transfer-data all
+datalad publish --to github --transfer-data all
 ```
 
 The `--transfer-data all` flag attempts to upload annexed files as well. This will be ignored on GitHub, because GitHub does not support git-annex. However, it is good practice to use it anyway.
 
+You should get a repository identical to [this one](https://github.com/LAAC-LSCP/vandam-daylong-demo). 
 
-### Publish on a SSH server
-
-```bash
-datalad create-sibling -s cluster 
-```
-
+Now, let's assume you have already created a SSH sibling as well for your dataset, and that it is named `cluster`.
+You can make sure that all changes to `cluster` are published to `github` as well, by setting the `publish-depends` property of the github sibling:
 
 ```bash
-datalad create-sibling [-h] [-s [NAME]] [--target-dir PATH] [--target-url URL] [--target-pushurl URL] [--dataset DATASET] [-r] [-R LEVELS] [--existing MODE] [--shared {false|true|umask|group|all|world|everybody|0xxx}] [--group GROUP] [--ui {false|true|html_filename}] [--as-common-datasrc NAME] [--publish-by-default REFSPEC] [--publish-depends SIBLINGNAME] [--annex-wanted EXPR] [--annex-group EXPR] [--annex-groupwanted EXPR] [--inherit] [--since SINCE] [SSHURL]
+datalad siblings configure -s github --publish-depends cluster
 ```
 
+Now, `datalad publish --to cluster` will publish the changes to both `cluster` and `github`.
 
 ### Publish on S3
 
