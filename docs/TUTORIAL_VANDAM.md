@@ -180,13 +180,11 @@ recordings/converted/* annex.largefiles=((mimeencoding=binary))
 
 These rules will version all the files under `scripts/` and `metadata/`, as well as the text files inside of `recordings/converted/`. By default, the other files will be put in the annex.
 
-The changes can now be saved. This can be done with `datalad save` :
+The changes can now be saved. This can be done with `datalad save`. `datalad save` is equivalent to a combination of `git add` and `git commit` in one go. It decides, based on the rules in `.gitattributes`, whether to store files with git or git-annex.
 
 ```
 datalad save . -m "first commit"
 ```
-
-```datalad save``` is equivalent to a combination of `git add` and `git commit` in one go. 
 
 However, so far, your changes remain local, and your dataset still needs to be published into a *sibling* to be shared with others.
 
@@ -255,10 +253,10 @@ datalad create-sibling-github [-h] [--dataset DATASET] [-r] [-R LEVELS] [-s NAME
 For instance:
 
 ```
-datalad create-sibling-github -s origin --access-protocol ssh vandam-daylong-data
+datalad create-sibling-github -s origin --access-protocol ssh --github-login <github-username> vandam-daylong-data
 ```
 
-`origin` will be the name of the sibling.
+`origin` will be the local name of the sibling, and `vandam-daylong-data` the name of the GitHub repository.
 Once the sibling has been created, you can publish the changes:
 
 ```bash
