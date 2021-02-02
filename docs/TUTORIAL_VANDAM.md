@@ -4,6 +4,7 @@
   - [Gather and sort the files](#gather-and-sort-the-files)
   - [Create the metadata](#create-the-metadata)
   - [Save the changes locally](#save-the-changes-locally)
+  - [Processing](#processing)
   - [Publish the dataset](#publish-the-dataset)
     - [Where to publish my dataset ?](#where-to-publish-my-dataset-)
     - [Publish to a SSH server](#publish-to-a-ssh-server)
@@ -187,6 +188,26 @@ datalad save . -m "first commit"
 ```
 
 However, so far, your changes remain local, and your dataset still needs to be published into a *sibling* to be shared with others.
+
+## Processing
+
+```bash
+child-project compute-durations
+```
+
+```bash
+child-project import-annotations . --set its \
+  --recording_filename BN32_010007.mp3 \
+  --time_seek 0 \
+  --range_onset 0 \
+  --range_offset 50464.512 \
+  --raw_filename BN32_010007.its \
+  --format its
+```
+
+```bash
+datalad save . -m "its"
+```
 
 ## Publish the dataset
 
