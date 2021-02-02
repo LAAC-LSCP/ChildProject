@@ -180,7 +180,7 @@ recordings/converted/* annex.largefiles=((mimeencoding=binary))
 
 These rules will version all the files under `scripts/` and `metadata/`, as well as the text files inside of `recordings/converted/`. By default, the other files will be put in the annex.
 
-The changes can now be saved. This can be done with `datalad save`. `datalad save` is equivalent to a combination of `git add` and `git commit` in one go. It decides, based on the rules in `.gitattributes`, whether to store files with git or git-annex.
+The changes can now be saved. This can be done with [datalad save](http://docs.datalad.org/en/stable/generated/man/datalad-save.html). `datalad save` is equivalent to a combination of `git add` and `git commit` in one go. It decides, based on the rules in `.gitattributes`, whether to store files with git or git-annex.
 
 ```
 datalad save . -m "first commit"
@@ -244,7 +244,7 @@ It is necessary to use a platform or a combination of platforms that supports bo
 
 ### Publish on GitHub
 
-You first need to create the repository, which can be done in a straightforward way from the command line with `datalad create sibling`:
+You first need to create the repository, which can be done in a straightforward way from the command line with [datalad create-sibling-github](http://docs.datalad.org/en/stable/generated/man/datalad-create-sibling-github.html):
 
 ```bash
 datalad create-sibling-github [-h] [--dataset DATASET] [-r] [-R LEVELS] [-s NAME] [--existing MODE] [--github-login NAME] [--github-organization NAME] [--access-protocol {https|ssh}] [--publish-depends SIBLINGNAME] [--dryrun] REPONAME
@@ -253,11 +253,11 @@ datalad create-sibling-github [-h] [--dataset DATASET] [-r] [-R LEVELS] [-s NAME
 For instance:
 
 ```
-datalad create-sibling-github -s origin --access-protocol ssh --github-login <github-username> vandam-daylong-data
+datalad create-sibling-github -s origin --access-protocol ssh vandam-daylong-demo
 ```
 
-`origin` will be the local name of the sibling, and `vandam-daylong-data` the name of the GitHub repository.
-Once the sibling has been created, you can publish the changes:
+`origin` will be the local name of the sibling, and `vandam-daylong-demo` the name of the GitHub repository.
+Once the sibling has been created, you can publish the changes with [datalad publish](http://docs.datalad.org/en/stable/generated/man/datalad-publish.html):
 
 ```bash
 datalad publish --to origin --transfer-data all
@@ -267,6 +267,16 @@ The `--transfer-data all` flag attempts to upload annexed files as well. This wi
 
 
 ### Publish on a SSH server
+
+```bash
+datalad create-sibling -s cluster 
+```
+
+
+```bash
+datalad create-sibling [-h] [-s [NAME]] [--target-dir PATH] [--target-url URL] [--target-pushurl URL] [--dataset DATASET] [-r] [-R LEVELS] [--existing MODE] [--shared {false|true|umask|group|all|world|everybody|0xxx}] [--group GROUP] [--ui {false|true|html_filename}] [--as-common-datasrc NAME] [--publish-by-default REFSPEC] [--publish-depends SIBLINGNAME] [--annex-wanted EXPR] [--annex-group EXPR] [--annex-groupwanted EXPR] [--inherit] [--since SINCE] [SSHURL]
+```
+
 
 ### Publish on S3
 
