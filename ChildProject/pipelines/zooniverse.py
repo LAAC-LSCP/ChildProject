@@ -107,7 +107,8 @@ class ZooniversePipeline(Pipeline):
 
     def extract_chunks(self, algorithm, keyword, destination, path, annotation_set = 'vtc',
         batch_size = 1000, target_speaker_type = ['CHI'],
-        chunk_length = 500, threads = 0, batches = 0, **kwargs):
+        chunk_length = 500, threads = 0, batches = 0,
+        exclude_segments = [], **kwargs):
 
         parameters = locals()
         parameters = [[key, parameters[key]] for key in parameters if key != 'self']
@@ -301,6 +302,7 @@ class ZooniversePipeline(Pipeline):
         parser_extraction.add_argument('--keyword', help = 'export keyword', required = True)
         parser_extraction.add_argument('--destination', help = 'destination', required = True)
         parser_extraction.add_argument('--annotation-set', help = 'annotation set', default = 'vtc')
+        parser_extraction.add_argument('--exclude-segments', help = 'segments to exclude before sampling', nargs = '+', default = [])
         parser_extraction.add_argument('--target-speaker-type', help = 'speaker type to get chunks from', choices=['CHI', 'OCH', 'FEM', 'MAL'], nargs = '+', default = ['CHI'])
         parser_extraction.add_argument('--batch-size', help = 'batch size', default = 1000, type = int)
         parser_extraction.add_argument('--threads', help = 'how many threads to run on', default = 0, type = int)
