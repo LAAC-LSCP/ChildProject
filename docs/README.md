@@ -120,10 +120,10 @@ The list of extant datasets can be found [here](http://laac-lscp.github.io/Child
 
 ## Converting a dataset into ChildRecordsData format
 
-If you have your own dataset, you can convert it into our format using these  
-[formatting instructions and specifications](http://laac-lscp.github.io/ChildRecordsData/FORMATTING.html)
+If you have your own dataset, you can convert it into our format according to our 
+[specifications](http://laac-lscp.github.io/ChildRecordsData/FORMATTING.html). Once you have done so, you can use the package's tools. 
 
-Once you have done so, you can use the package's tools. 
+We provide a detailed tutorial to convert a dataset into our format and then publish it [here](http://laac-lscp.github.io/ChildRecordsData/TUTORIAL_VANDAM.html).
 
 ## Using our tools
 
