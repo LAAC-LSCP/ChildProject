@@ -50,7 +50,7 @@ class ZooniversePipeline(Pipeline):
         self.chunks = []
                 
     def split_recording(self, segments):
-        segments = segments.sample(self.sample_size).to_dict(orient = 'records')
+        segments = segments.to_dict(orient = 'records')
 
         source = os.path.join(self.project.path, ChildProject.projects.ChildProject.RAW_RECORDINGS, segments[0]['recording_filename'])
         audio = AudioSegment.from_wav(source)
@@ -99,9 +99,15 @@ class ZooniversePipeline(Pipeline):
 
             return chunks
 
-    def extract_chunks(self, keyword, destination, path, annotation_set = 'vtc',
-        batch_size = 1000, target_speaker_type = ['CHI'], sample_size = 500, chunk_length = 500,
-        threads = 0, batches = 0, **kwargs):
+    def random_sampling(self, segments, sample_size):
+        return segments.groupby('recording_filename').sample(sample_size)
+
+    def high_volubility_sampling(self, segments, window_length, window_count):
+        return segments
+
+    def extract_chunks(self, algorithm, keyword, destination, path, annotation_set = 'vtc',
+        batch_size = 1000, target_speaker_type = ['CHI'],
+        chunk_length = 500, threads = 0, batches = 0, **kwargs):
 
         parameters = locals()
         parameters = [[key, parameters[key]] for key in parameters if key != 'self']
@@ -112,20 +118,23 @@ class ZooniversePipeline(Pipeline):
         self.project = ChildProject.projects.ChildProject(path)
 
         batch_size = int(batch_size)
-        sample_size = int(sample_size)
         chunk_length = int(chunk_length)
         threads = int(threads)
 
-        self.sample_size = sample_size
         self.chunk_length = chunk_length
 
         am = ChildProject.annotations.AnnotationManager(self.project)
         self.annotations = am.annotations
         self.annotations = self.annotations[self.annotations['set'] == annotation_set]
         self.segments = am.get_segments(self.annotations)
-        
+
         if len(target_speaker_type):
             self.segments = self.segments[self.segments['speaker_type'].isin(target_speaker_type)]
+        
+        if algorithm == 'random':
+            self.segments = self.random_sampling(self.segments, int(kwargs['sample_size']))
+        elif algorithm == 'high-volubility':
+            self.segments = self.high_volubility_sampling(self.segments, float(kwargs['windows_length']), int(kwargs['windows_count']))
         
         self.segments['segment_onset'] = self.segments['segment_onset'] + self.segments['time_seek']
         self.segments['segment_offset'] = self.segments['segment_offset'] + self.segments['time_seek']
@@ -291,11 +300,18 @@ class ZooniversePipeline(Pipeline):
         parser_extraction.add_argument('path', help = 'path to the dataset')
         parser_extraction.add_argument('--keyword', help = 'export keyword', required = True)
         parser_extraction.add_argument('--destination', help = 'destination', required = True)
-        parser_extraction.add_argument('--sample-size', help = 'how many samples per recording', required = True, type = int)
         parser_extraction.add_argument('--annotation-set', help = 'annotation set', default = 'vtc')
-        parser_extraction.add_argument('--target-speaker-type', help = 'speaker type to get chunks from', choices=['CHI', 'OCH', 'FEM', 'MAL'], nargs = '+')
+        parser_extraction.add_argument('--target-speaker-type', help = 'speaker type to get chunks from', choices=['CHI', 'OCH', 'FEM', 'MAL'], nargs = '+', default = ['CHI'])
         parser_extraction.add_argument('--batch-size', help = 'batch size', default = 1000, type = int)
         parser_extraction.add_argument('--threads', help = 'how many threads to run on', default = 0, type = int)
+
+        extractors = parser_extraction.add_subparsers(help = 'algorithm', dest = 'algorithm')
+        parser_random = extractors.add_parser('random', help = 'random sampling')
+        parser_random.add_argument('--sample-size', help = 'how many samples per recording', required = True, type = int)
+
+        parser_high_volubility = extractors.add_parser('high-volubility', help = 'high-volubility targeted sampling')
+        parser_high_volubility.add_argument('--windows-length', help = 'window length (minutes)', required = True, type = float)
+        parser_high_volubility.add_argument('--windows-count', help = 'how many windows to be sampled', required = True, type = int)
 
         parser_upload = subparsers.add_parser('upload-chunks', help = 'upload chunks and updates DESTINATION/chunks.csv')
         parser_upload.add_argument('--destination', help = 'destination', required = True)
