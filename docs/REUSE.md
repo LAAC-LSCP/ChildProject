@@ -11,7 +11,6 @@
   - [Installing all our datasets at once](#installing-all-our-datasets-at-once)
   - [Contributing](#contributing)
     - [Pushing changes to a dataset](#pushing-changes-to-a-dataset)
-    - [Creating a new dataset](#creating-a-new-dataset)
 
 
 # How to reuse extant datasets
@@ -133,23 +132,10 @@ You can save local changes to a dataset with `datalad save [path] -m "commit mes
 datalad save raw_annotations/vtc -m "adding vtc rttms"
 ```
 
+`datalad save` is analoguous to a combination of `git add` and `git commit`.
+
 These changes still have to be pushed, which can be done with :
 
 ```
 datalad publish --to scratch1 --transfer-data all
-```
-
-### Creating a new dataset
-
-This section is a work in progress.
-
-```
-DATASETNAME = "tsimane2017-data"
-datalad create -c laac $DATASETNAME
-cd $DATASETNAME
-datalad create-sibling-github -s origin --github-organization LAAC-LSCP --access-protocol ssh $DATASETNAME
-datalad create-sibling -s scratch1 "/scratch1/data/laac_data/$DATASETNAME"
-echo "/scratch1/data/laac_data/$DATASETNAME" > .datalad/path
-datalad run-procedure setup
-datalad publish --to scratch1
 ```
