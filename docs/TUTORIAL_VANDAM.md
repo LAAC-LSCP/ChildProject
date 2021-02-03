@@ -321,7 +321,7 @@ datalad publish --to cluster --transfer-data all
 You first need to create the repository, which can be done in a straightforward way from the command line with [datalad create-sibling-github](http://docs.datalad.org/en/stable/generated/man/datalad-create-sibling-github.html):
 
 ```bash
-datalad create-sibling-github [-h] [--dataset DATASET] [-r] [-R LEVELS] [-s NAME] [--existing MODE] [--github-login NAME] [--github-organization NAME] [--access-protocol {https|ssh}] [--publish-depends SIBLINGNAME] [--dryrun] REPONAME
+datalad create-sibling-github [-h] [--dataset DATASET] [-r] [-R LEVELS] [-s NAME] [--existing MODE] [--github-login NAME] [--github-organization NAME] [--access-protocol {https|ssh}] [--publish-depends SIBLINGNAME] [--private] [--dryrun] REPONAME
 ```
 
 For instance:
