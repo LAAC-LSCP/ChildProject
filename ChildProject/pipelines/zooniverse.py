@@ -60,6 +60,9 @@ class ZooniversePipeline(Pipeline):
             offset = int(segment['segment_offset']*1000)
             difference = offset-onset
 
+            original_onset = onset
+            original_offset = offset
+
             if difference < 1000:
                 tgt = 1000-difference
                 onset = float(onset)-tgt/2
@@ -76,7 +79,11 @@ class ZooniversePipeline(Pipeline):
             chunks = []
 
             for interval in intervals:
-                chunk = Chunk(segment['recording_filename'], interval, interval + self.chunk_length, onset, offset)
+                chunk = Chunk(
+                    segment['recording_filename'],
+                    interval, interval + self.chunk_length,
+                    original_onset, original_offset
+                )
                 chunk_audio = audio[chunk.onset:chunk.offset].fade_in(10).fade_out(10)
 
                 wav = os.path.join(self.destination, 'chunks', chunk.getbasename('wav'))
