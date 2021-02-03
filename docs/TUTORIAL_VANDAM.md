@@ -45,6 +45,7 @@ mkdir metadata
 mkdir -p recordings/raw
 mkdir annotations
 mkdir extra
+touch extra/.gitignore # Make sure the directory is present even though it's empty
 ```
 
 Then, download the original data-set from HomeBank.
@@ -350,5 +351,51 @@ datalad siblings configure -s github --publish-depends cluster
 Now, `datalad publish --to cluster` will publish the changes to both `cluster` and `github`.
 
 ### Publish on S3
+
+You might not have access to a SSH server with enough storage capacity, or you might just not want to setup SSH keys to every user of your dataset. Fortunately, DataLad supports a [large number of storage providers](https://git-annex.branchable.com/special_remotes/) such as: Amazon S3, Dropbox, Google Cloud Storage, Microsoft Azure Blob Storage, as well as any FTP/SFTP server. Here, we will give instructions for Amazon S3. 
+
+Like other *git annex special remotes*, Amazon S3 will not support the git files, only the large files. But you can use it along with GitHub or GitLab.
+
+*For the sake of simplicity, we will not use encryption here, but git annex implements several [encryption schemes](https://git-annex.branchable.com/encryption/) which are easy to use.*
+
+First, store your AWS credentiels into your environment variables, like this:
+
+```bash
+export AWS_ACCESS_KEY_ID="08TJMT99S3511WOZEP91"
+export AWS_SECRET_ACCESS_KEY="s3kr1t"
+```
+
+You are now readyto create the s3 sibling. This is done directly through git-annex this time:
+
+```bash
+git annex initremote s3 chunk=100MiB type=S3 encryption=none datacenter=eu-west-3 embedcreds=no signature=v4
+```
+
+You can now publish the data with:
+
+```bash
+datalad publish --to s3 --transfer-data all
+```
+
+(Optional) You can set the S3 sibling to require that all large files should be stored on it:
+
+```bash
+datalad siblings configure -s s3 --annex-wanted 'include=*'
+```
+
+This will let DataLad publish all the large files automatically without setting `--transfer-data`:
+
+```bash
+datalad publish --to s3
+```
+
+Users will be able to get the data by issuing the following commands:
+
+```bash
+git annex enableremote s3
+datalad get *
+```
+
+With this configuration, they will need to setup their AWS credentials as you did. [But it is possible to configure the sibling so that the credentials are encrypted](https://git-annex.branchable.com/tips/using_Amazon_S3/) and stored in the repository, so all users with authorized private keys will be able to get the data without this step.
 
 ### Publish on OSF
