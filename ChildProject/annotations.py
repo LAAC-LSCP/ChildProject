@@ -156,13 +156,20 @@ class AnnotationManager:
         errors, warnings = [], []
 
         for annotation in self.annotations.to_dict(orient = 'records'):
+            print("validating {}...".format(annotation['annotation_filename']))
+
             segments = IndexTable(
                 'segments',
-                path = os.path.join(self.project.path, 'annotations', annotation['annotation_filename']),
+                path = os.path.join(self.project.path, 'annotations', str(annotation['annotation_filename'])),
                 columns = self.SEGMENTS_COLUMNS
             )
 
-            segments.read()
+            try:
+                segments.read()
+            except Exception as e:
+                errors.append(str(e))
+                continue
+
             res = segments.validate()
             errors += res[0]
             warnings += res[1]
