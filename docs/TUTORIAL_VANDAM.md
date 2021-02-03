@@ -389,9 +389,16 @@ This will let DataLad publish all the large files automatically without setting 
 datalad publish --to s3
 ```
 
-Users will be able to get the data by issuing the following commands:
+Let's assume your users will install the dataset from a GitHub repository. You should publish the information about the newly created S3 sibling on GitHub, which can be done with (provided you have set up your GitHub repository as described in the previous section):
 
 ```bash
+datalad publish --to github
+```
+
+Now, users will be able to get the data by issuing the following commands:
+
+```bash
+datalad install git@github.com:<your-username>/vandam-daylong-demo.git
 git annex enableremote s3
 datalad get *
 ```
