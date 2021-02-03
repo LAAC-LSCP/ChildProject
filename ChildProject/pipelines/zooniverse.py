@@ -166,7 +166,7 @@ class ZooniversePipeline(Pipeline):
         self.chunks.index.name = 'index'
         self.chunks.to_csv(os.path.join(self.destination, 'chunks.csv'))
 
-         parameters.extend([
+        parameters.extend([
             ['version', ChildProject.__version__],
             ['date_extracted', datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')]
         ])
