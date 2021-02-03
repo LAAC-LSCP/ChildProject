@@ -93,7 +93,11 @@ class ZooniversePipeline(Pipeline):
             return chunks
 
     def extract_chunks(self, keyword, destination, path, annotation_set = 'vtc',
-        batch_size = 1000, target_speaker_type = ['CHI'], sample_size = 500, chunk_length = 500, threads = 0, batches = 0, **kwargs):
+        batch_size = 1000, target_speaker_type = ['CHI'], sample_size = 500, chunk_length = 500,
+        threads = 0, batches = 0, **kwargs):
+
+        parameters = locals()
+        parameters = [[key, parameters[key]] for key in parameters if key != 'self']
 
         assert 1000 % chunk_length == 0, 'chunk_length should divide 1000'
 
@@ -155,15 +159,10 @@ class ZooniversePipeline(Pipeline):
         self.chunks.index.name = 'index'
         self.chunks.to_csv(os.path.join(self.destination, 'chunks.csv'))
 
-        parameters = [
-            ['keyword', keyword],
+         parameters.extend([
             ['version', ChildProject.__version__],
-            ['date_extracted', datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')],
-            ['speaker_type', ','.join(target_speaker_type)],
-            ['sample_size', sample_size],
-            ['chunk_length', chunk_length],
-            ['annotation_set', annotation_set]
-        ]
+            ['date_extracted', datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')]
+        ])
 
         pd.DataFrame(
             data = parameters,
