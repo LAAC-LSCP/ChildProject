@@ -191,9 +191,21 @@ However, so far, your changes remain local, and your dataset still needs to be p
 
 ## Processing
 
+You can do some processing on the dataset. For instance, you can compute the duration of the recording, and update the metadata with this information. This is easily done with:
+
 ```bash
 child-project compute-durations
 ```
+
+Now `metadata/recordings.csv` became:
+
+```bash
+$ cat metadata/recordings.csv 
+experiment,child_id,date_iso,start_time,recording_device_type,filename,duration
+vandam-daylong,1,2010-07-24,11:58,lena,BN32_010007.mp3,50464.512
+```
+
+You can also convert and index the its annotation:
 
 ```bash
 child-project import-annotations . --set its \
@@ -204,6 +216,8 @@ child-project import-annotations . --set its \
   --raw_filename BN32_010007.its \
   --format its
 ```
+
+And save the changes again:
 
 ```bash
 datalad save . -m "its"
