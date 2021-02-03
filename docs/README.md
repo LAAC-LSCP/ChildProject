@@ -10,6 +10,7 @@
 - [Converting a dataset into ChildRecordsData format](#converting-a-dataset-into-childrecordsdata-format)
 - [Using our tools](#using-our-tools)
 - [Missing and planned features](#missing-and-planned-features)
+- [Help-needed ?](#help-needed-)
 
 ## Introduction
 
@@ -142,3 +143,7 @@ We provide detailed instructions [here](http://laac-lscp.github.io/ChildRecordsD
 - import of old-style LENA .its
 - import of new-style LENA .its
 - clarify link with R package
+
+## Help-needed ?
+
+If you need more help than this documentation provides, feel free to ask your question [here](https://github.com/LAAC-LSCP/ChildRecordsData/issues/new?assignees=&labels=help+wanted%2C+question&template=question.md&title=).
