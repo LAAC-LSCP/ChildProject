@@ -575,7 +575,7 @@ class AnnotationManager:
         try:
             shutil.rmtree(path)
         except:
-            print("'{}' not found".format(path))
+            print("could not delete '{}', as it does not exist (yet?)".format(path))
             pass
 
         self.annotations = self.annotations[self.annotations['set'] != annotation_set]
