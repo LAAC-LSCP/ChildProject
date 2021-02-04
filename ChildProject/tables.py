@@ -64,6 +64,9 @@ class IndexTable:
 
         raise Exception("could not find table '{}'".format(self.path))
 
+    def msg(self, text):
+        return "{}: {}".format(self.path, text)
+
     def validate(self):
         errors, warnings = [], []
 
@@ -72,13 +75,13 @@ class IndexTable:
                 continue
 
             if rc.name not in self.df.columns:
-                errors.append("{} table is missing column '{}'".format(self.name, rc.name))
+                errors.append(self.msg("{} table is missing column '{}'".format(self.name, rc.name)))
 
             null = self.df[self.df[rc.name].isnull()].index.values.tolist()
             if len(null) > 0:
-                errors.append(
+                errors.append(self.msg(
                     """{} table has undefined values
-                    for column '{}' in lines: {}""".format(self.name, rc.name, ','.join([str(n) for n in null])))
+                    for column '{}' in lines: {}""".format(self.name, rc.name, ','.join([str(n) for n in null]))))
 
         unknown_columns = [
             c for c in self.df.columns
@@ -86,12 +89,12 @@ class IndexTable:
         ]
 
         if len(unknown_columns) > 0:
-            warnings.append("unknown column{} '{}' in {}, exepected columns are: {}".format(
+            warnings.append(self.msg("unknown column{} '{}' in {}, exepected columns are: {}".format(
                 's' if len(unknown_columns) > 1 else '',
                 ','.join(unknown_columns),
                 self.name,
                 ','.join([c.name for c in self.columns])
-            ))
+            )))
 
         for line_number, row in self.df.iterrows():
             for column_name in self.df.columns:
@@ -109,16 +112,16 @@ class IndexTable:
                     if not ok:
                         message = "'{}' does not pass callable test for column '{}' on line {}".format(row[column_name], column_name, line_number)
                         if column_attr.required and str(row[column_name]) != 'NA':
-                                errors.append(message)
+                                errors.append(self.msg(message))
                         elif column_attr.required or str(row[column_name]) != 'NA':
-                                warnings.append(message)
+                                warnings.append(self.msg(message))
 
                 if column_attr.choices and str(row[column_name]) not in column_attr.choices:
                     message = "'{}' is not a permitted value for column '{}' on line {}, should be any of [{}]".format(row[column_name], column_name, line_number, ",".join(column_attr.choices))
                     if column_attr.required and str(row[column_name]) != 'NA':
-                            errors.append(message)
+                            errors.append(self.msg(message))
                     elif column_attr.required or str(row[column_name]) != 'NA':
-                            warnings.append(message)
+                            warnings.append(self.msg(message))
 
 
                 if column_attr.datetime:
@@ -127,16 +130,16 @@ class IndexTable:
                     except:
                         message = "'{}' is not a proper date/time for column '{}' (expected {}) on line {}".format(row[column_name], column_name, column_attr.datetime, line_number)
                         if column_attr.required and str(row[column_name]) != 'NA':
-                            errors.append(message)
+                            errors.append(self.msg(message))
                         elif column_attr.required or str(row[column_name]) != 'NA':
-                            warnings.append(message)
+                            warnings.append(self.msg(message))
                 elif column_attr.regex:
                     if not re.fullmatch(column_attr.regex, str(row[column_name])):
                         message = "'{}' does not match the format required for '{}' on line {}, expected '{}'".format(row[column_name], column_name, line_number, column_attr.regex)
                         if column_attr.required and str(row[column_name]) != 'NA':
-                            errors.append(message)
+                            errors.append(self.msg(message))
                         elif column_attr.required or str(row[column_name]) != 'NA':
-                            warnings.append(message)
+                            warnings.append(self.msg(message))
 
         for c in self.columns:
             if not c.unique:
@@ -154,11 +157,11 @@ class IndexTable:
 
             duplicates = grouped[grouped['count'] > 1]
             for col, row in duplicates.iterrows():
-                errors.append("{} '{}' appears {} times in lines [{}], should appear once".format(
+                errors.append(self.msg("{} '{}' appears {} times in lines [{}], should appear once".format(
                     c.name,
                     col,
                     row['count'],
                     row['lines']
-                ))
+                )))
 
         return errors, warnings
