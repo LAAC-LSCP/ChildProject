@@ -291,10 +291,10 @@ class AnnotationManager:
 
         return pd.DataFrame(segments.values())
 
-    def load_its(self, filename):
+    def load_its(self, filename, recording_num = None):
         xml = etree.parse(filename)
 
-        recordings = xml.xpath('/ITS/ProcessingUnit/Recording')
+        recordings = xml.xpath('/ITS/ProcessingUnit/Recording' + ('[@num="{}"]'.format(recording_num) if recording_num else ''))
         timestamp_pattern = re.compile(r"^P(?:T?)(\d+(\.\d+)?)S$")
 
         def extract_from_regex(pattern, subject):
@@ -304,7 +304,7 @@ class AnnotationManager:
         segments = []
 
         for recording in recordings:
-            segs = recording.xpath('//Segment')
+            segs = recording.xpath('./Pause/Segment|./Conversation/Segment')
             for seg in segs:
                 parent = seg.getparent()
 
@@ -481,18 +481,17 @@ class AnnotationManager:
         annotation_format = annotation['format']
 
         df = None
+        filter = annotation['filter'] if 'filter' in annotation and not pd.isnull(annotation['filter']) else None
         try:
             if annotation_format == 'TextGrid':
                 df = self.load_textgrid(path)
             elif annotation_format == 'eaf':
                 df = self.load_eaf(path)
             elif annotation_format == 'vtc_rttm':
-                filter = annotation['filter'] if 'filter' in annotation and not pd.isnull(annotation['filter']) else None
                 df = self.load_vtc_rttm(path, source_file = filter)
             elif annotation_format == 'its':
-                df = self.load_its(path)
+                df = self.load_its(path, recording_num = filter)
             elif annotation_format == 'alice':
-                filter = annotation['filter'] if 'filter' in annotation and not pd.isnull(annotation['filter']) else None
                 df = self.load_alice(path, source_file = filter)
             else:
                 raise ValueError("file format '{}' unknown for '{}'".format(annotation_format, path))
