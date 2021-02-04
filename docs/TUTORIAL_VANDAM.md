@@ -406,3 +406,48 @@ datalad get *
 With this configuration, they will need to setup their AWS credentials as you did. [But it is possible to configure the sibling so that the credentials are encrypted](https://git-annex.branchable.com/tips/using_Amazon_S3/) and stored in the repository, so all users with authorized private keys will be able to get the data without this step.
 
 ### Publish on OSF
+
+DataLad has an [extension](http://docs.datalad.org/projects/osf/en/latest/generated/man/datalad-create-sibling-osf.html) to publish data on the [Open Science Framework](https://osf.io/).
+
+This extension supports the following modes:
+
+|   **Mode**   | **datalad install** | **large files** | **history** | **older files** | **human-readable project** |
+|:------------:|:-------------------:|:---------------:|:-----------:|:---------------:|----------------------------|
+| `annex`      |         Yes         |       Yes       |     Yes     |       Yes       |             No             |
+| `export`     |         Yes         |       Yes       |     Yes     |        No       |             Yes            |
+| `gitonly`    |         Yes         |        No       |     Yes     |        No       |             No             |
+| `exportonly` |          No         |       Yes       |      No     |       Yes       |             Yes            |
+
+The first step is to install the extension: 
+
+```
+pip install datalad-osf --upgrade
+```
+
+We decide to use the `export` mode - but you can decide which best suits your needs from the table above. We can now create the sibling:
+
+```
+datalad create-sibling-osf --title "VanDam Demo" \
+  --mode export \
+  -s osf \
+  --category data \
+  --tag reproducibility \
+  --public
+```
+
+You will be prompted your credentials in the process, which will require access tokens to be created [from your osf.io account](https://osf.io/settings/tokens). 
+
+And finally we can push the data. This is done in two steps: 
+
+ 1. publishing the .git files so people can clone the dataset directly from OSF
+
+```
+datalad push --to osf
+```
+
+ 2. exporting a human-readable snapshot of the files to OSF
+
+```
+git-annex export HEAD --to osf-storage
+```
+
