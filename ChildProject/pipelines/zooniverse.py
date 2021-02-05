@@ -11,8 +11,7 @@ import sys
 
 from pydub import AudioSegment
 
-from ChildProject.projects import ChildProject
-from ChildProject.annotations import AnnotationManager
+import ChildProject
 from ChildProject.pipelines.pipeline import Pipeline
 
 def check_dur(dur, target):
@@ -53,13 +52,16 @@ class ZooniversePipeline(Pipeline):
     def split_recording(self, segments):
         segments = segments.sample(self.sample_size).to_dict(orient = 'records')
 
-        source = os.path.join(self.project.path, ChildProject.RAW_RECORDINGS, segments[0]['recording_filename'])
+        source = os.path.join(self.project.path, ChildProject.projects.ChildProject.RAW_RECORDINGS, segments[0]['recording_filename'])
         audio = AudioSegment.from_wav(source)
 
         for segment in segments:
             onset = int(segment['segment_onset']*1000)
             offset = int(segment['segment_offset']*1000)
             difference = offset-onset
+
+            original_onset = onset
+            original_offset = offset
 
             if difference < 1000:
                 tgt = 1000-difference
@@ -77,7 +79,11 @@ class ZooniversePipeline(Pipeline):
             chunks = []
 
             for interval in intervals:
-                chunk = Chunk(segment['recording_filename'], interval, interval + self.chunk_length, onset, offset)
+                chunk = Chunk(
+                    segment['recording_filename'],
+                    interval, interval + self.chunk_length,
+                    original_onset, original_offset
+                )
                 chunk_audio = audio[chunk.onset:chunk.offset].fade_in(10).fade_out(10)
 
                 wav = os.path.join(self.destination, 'chunks', chunk.getbasename('wav'))
@@ -93,14 +99,17 @@ class ZooniversePipeline(Pipeline):
 
             return chunks
 
-    def extract_chunks(self, destination, path, annotation_set = 'vtc',
-        batch_size = 1000, target_speaker_type = 'CHI', sample_size = 500, chunk_length = 500, threads = 0, batches = 0, **kwargs):
+    def extract_chunks(self, keyword, destination, path, annotation_set = 'vtc',
+        batch_size = 1000, target_speaker_type = ['CHI'], sample_size = 500, chunk_length = 500,
+        threads = 0, batches = 0, **kwargs):
+
+        parameters = locals()
+        parameters = [[key, parameters[key]] for key in parameters if key != 'self']
 
         assert 1000 % chunk_length == 0, 'chunk_length should divide 1000'
 
-
         self.destination = destination
-        self.project = ChildProject(path)
+        self.project = ChildProject.projects.ChildProject(path)
 
         batch_size = int(batch_size)
         sample_size = int(sample_size)
@@ -110,11 +119,14 @@ class ZooniversePipeline(Pipeline):
         self.sample_size = sample_size
         self.chunk_length = chunk_length
 
-        am = AnnotationManager(self.project)
+        am = ChildProject.annotations.AnnotationManager(self.project)
         self.annotations = am.annotations
         self.annotations = self.annotations[self.annotations['set'] == annotation_set]
         self.segments = am.get_segments(self.annotations)
-        self.segments = self.segments[self.segments['speaker_type'] == target_speaker_type]
+        
+        if len(target_speaker_type):
+            self.segments = self.segments[self.segments['speaker_type'].isin(target_speaker_type)]
+        
         self.segments['segment_onset'] = self.segments['segment_onset'] + self.segments['time_seek']
         self.segments['segment_offset'] = self.segments['segment_offset'] + self.segments['time_seek']
 
@@ -138,12 +150,13 @@ class ZooniversePipeline(Pipeline):
             'segment_offset': c.segment_offset,
             'wav': c.getbasename('wav'),
             'mp3': c.getbasename('mp3'),
-            'speaker_type': target_speaker_type,
+            'speaker_type': ','.join(target_speaker_type),
             'date_extracted': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'uploaded': False,
             'project_slug': '',
             'subject_set': '',
-            'zooniverse_id': 0
+            'zooniverse_id': 0,
+            'keyword': keyword
         } for c in self.chunks])
 
         # shuffle chunks so that they can't be joined back together
@@ -152,6 +165,16 @@ class ZooniversePipeline(Pipeline):
         self.chunks['batch'] = self.chunks.index.map(lambda x: int(x/batch_size))
         self.chunks.index.name = 'index'
         self.chunks.to_csv(os.path.join(self.destination, 'chunks.csv'))
+
+        parameters.extend([
+            ['version', ChildProject.__version__],
+            ['date_extracted', datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')]
+        ])
+
+        pd.DataFrame(
+            data = parameters,
+            columns = ['param', 'value']
+        ).to_csv(os.path.join(self.destination, 'settings.csv'), index = False)
 
     def upload_chunks(self, destination, project_slug, set_prefix, zooniverse_login, zooniverse_pwd, batches = 0, **kwargs):
         self.destination = destination 
@@ -266,10 +289,11 @@ class ZooniversePipeline(Pipeline):
 
         parser_extraction = subparsers.add_parser('extract-chunks', help = 'extract chunks and store metadata in DESTINATION/chunks.csv')
         parser_extraction.add_argument('path', help = 'path to the dataset')
+        parser_extraction.add_argument('--keyword', help = 'export keyword', required = True)
         parser_extraction.add_argument('--destination', help = 'destination', required = True)
         parser_extraction.add_argument('--sample-size', help = 'how many samples per recording', required = True, type = int)
         parser_extraction.add_argument('--annotation-set', help = 'annotation set', default = 'vtc')
-        parser_extraction.add_argument('--target-speaker-type', help = 'speaker type to get chunks from', default = 'CHI', choices=['CHI', 'OCH', 'FEM', 'MAL'])
+        parser_extraction.add_argument('--target-speaker-type', help = 'speaker type to get chunks from', choices=['CHI', 'OCH', 'FEM', 'MAL'], nargs = '+')
         parser_extraction.add_argument('--batch-size', help = 'batch size', default = 1000, type = int)
         parser_extraction.add_argument('--threads', help = 'how many threads to run on', default = 0, type = int)
 
