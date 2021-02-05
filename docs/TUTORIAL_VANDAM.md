@@ -9,6 +9,7 @@
     - [Where to publish my dataset ?](#where-to-publish-my-dataset-)
     - [Publish to a SSH server](#publish-to-a-ssh-server)
     - [Publish to GitHub](#publish-to-github)
+      - [GitHub + SSH mirror to store the large files](#github--ssh-mirror-to-store-the-large-files)
     - [Publish on S3](#publish-on-s3)
     - [Publish on OSF](#publish-on-osf)
 
@@ -195,7 +196,7 @@ However, so far, your changes remain local, and your dataset still needs to be p
 You can do some processing on the dataset. For instance, you can compute the duration of the recording, and update the metadata with this information. This is easily done with:
 
 ```bash
-child-project compute-durations
+child-project compute-durations .datalad publish --to cluster
 ```
 
 Now `metadata/recordings.csv` became:
@@ -327,28 +328,48 @@ datalad create-sibling-github [-h] [--dataset DATASET] [-r] [-R LEVELS] [-s NAME
 For instance:
 
 ```
-datalad create-sibling-github -s github --access-protocol ssh vandam-daylong-demo
+datalad create-sibling-github -s origin --access-protocol ssh vandam-daylong-demo
 ```
 
-`github` will be the local name of the sibling, and `vandam-daylong-demo` the name of the GitHub repository.
+`origin` will be the local name of the sibling, and `vandam-daylong-demo` the name of the GitHub repository.
 Once the sibling has been created, you can publish the changes with [datalad publish](http://docs.datalad.org/en/stable/generated/man/datalad-publish.html):
 
 ```bash
-datalad publish --to github --transfer-data all
+datalad publish --to origin
 ```
-
-The `--transfer-data all` flag attempts to upload annexed files as well. This will be ignored on GitHub, because GitHub does not support git-annex. However, it is good practice to use it anyway.
 
 You should get a repository identical to [this one](https://github.com/LAAC-LSCP/vandam-daylong-demo). 
 
-Now, let's assume you have already created a SSH sibling as well for your dataset, and that it is named `cluster`.
-You can make sure that all changes to `cluster` are published to `github` as well, by setting the `publish-depends` property of the github sibling:
+Users can now install your dataset from GitHub:
 
-```bash
-datalad siblings configure -s github --publish-depends cluster
+```
+datalad install https://github.com/LAAC-LSCP/vandam-daylong-demo.git
 ```
 
-Now, `datalad publish --to cluster` will publish the changes to both `cluster` and `github`.
+PS: we recommand that you do `git push --set-upstream origin` to set upstream to the GitHub sibling. Users who install your dataset will not need to do this. 
+
+#### GitHub + SSH mirror to store the large files
+
+Now, let's assume you have already created a SSH sibling as well for your dataset, and that it is named `cluster`.
+You can make sure that all changes to `github` are published to `cluster` as well, by setting the `publish-depends` property of the github sibling:
+
+```bash
+datalad siblings configure -s origin --publish-depends cluster
+```
+
+Now, `datalad publish --to origin` will publish the changes to both `cluster` and `github`.
+
+However, when the users install your dataset from GitHub, they will not have access to the `cluster` sibling unless you make it available to them, with the following instructions:
+
+
+```bash
+git annex 
+git annex initremote cluster type=git location=ssh://oberon/home/lgautheron/vandam-cluster autoenable=true
+git annex enableremote cluster
+git remote add origin git@github.com:LAAC-LSCP/vandam-daylong-demo.git
+```
+
+
 
 ### Publish on S3
 
