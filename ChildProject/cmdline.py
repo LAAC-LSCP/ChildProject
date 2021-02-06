@@ -40,8 +40,13 @@ def validate(args):
 
     if args.check_annotations:
         am = AnnotationManager(project)
+        
         errors.extend(am.errors)
         warnings.extend(am.warnings)
+
+        annotations_errors, annotations_warnings = am.validate()
+        errors.extend(annotations_errors)
+        warnings.extend(annotations_warnings)
 
     for error in errors:
         print("error: {}".format(error))
@@ -52,6 +57,8 @@ def validate(args):
     if len(errors) > 0:
         print("validation failed, {} error(s) occured".format(len(errors)))
         sys.exit(1)
+
+    print("validation successfully completed with {} warning(s).".format(len(warnings)))
 
 @subcommand([
     arg("source", help = "project path"),

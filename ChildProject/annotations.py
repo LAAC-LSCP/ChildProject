@@ -20,7 +20,7 @@ class AnnotationManager:
     INDEX_COLUMNS = [
         IndexColumn(name = 'set', description = 'name of the annotation set (e.g. VTC, annotator1, etc.)', required = True),
         IndexColumn(name = 'recording_filename', description = 'recording filename as specified in the recordings index', required = True),
-        IndexColumn(name = 'time_seek', description = 'reference time in seconds, e.g: 3600, or 3600.500. All times expressed in the annotations are relative to this time.', regex = r"[0-9]{1,}(\.[0-9]{3})?", required = True),
+        IndexColumn(name = 'time_seek', description = 'reference time in seconds, e.g: 3600, or 3600.500. All times expressed in the annotations are relative to this time.', regex = r"(\-?)(\d+(\.\d+)?)", required = True),
         IndexColumn(name = 'range_onset', description = 'covered range start time in seconds, measured since `time_seek`', regex = r"(\d+(\.\d+)?)", required = True),
         IndexColumn(name = 'range_offset', description = 'covered range end time in seconds, measured since `time_seek`', regex = r"(\d+(\.\d+)?)", required = True),
         IndexColumn(name = 'raw_filename', description = 'annotation input filename location, relative to `annotations/<set>/raw`', filename = True, required = True),
@@ -156,13 +156,20 @@ class AnnotationManager:
         errors, warnings = [], []
 
         for annotation in self.annotations.to_dict(orient = 'records'):
+            print("validating {}...".format(annotation['annotation_filename']))
+
             segments = IndexTable(
                 'segments',
-                path = os.path.join(self.project.path, 'annotations', annotation['annotation_filename']),
+                path = os.path.join(self.project.path, 'annotations', str(annotation['annotation_filename'])),
                 columns = self.SEGMENTS_COLUMNS
             )
 
-            segments.read()
+            try:
+                segments.read()
+            except Exception as e:
+                errors.append(str(e))
+                continue
+
             res = segments.validate()
             errors += res[0]
             warnings += res[1]
@@ -284,10 +291,10 @@ class AnnotationManager:
 
         return pd.DataFrame(segments.values())
 
-    def load_its(self, filename):
+    def load_its(self, filename, recording_num = None):
         xml = etree.parse(filename)
 
-        recordings = xml.xpath('/ITS/ProcessingUnit/Recording')
+        recordings = xml.xpath('/ITS/ProcessingUnit/Recording' + ('[@num="{}"]'.format(recording_num) if recording_num else ''))
         timestamp_pattern = re.compile(r"^P(?:T?)(\d+(\.\d+)?)S$")
 
         def extract_from_regex(pattern, subject):
@@ -297,7 +304,7 @@ class AnnotationManager:
         segments = []
 
         for recording in recordings:
-            segs = recording.xpath('//Segment')
+            segs = recording.xpath('./Pause/Segment|./Conversation/Segment')
             for seg in segs:
                 parent = seg.getparent()
 
@@ -474,18 +481,17 @@ class AnnotationManager:
         annotation_format = annotation['format']
 
         df = None
+        filter = annotation['filter'] if 'filter' in annotation and not pd.isnull(annotation['filter']) else None
         try:
             if annotation_format == 'TextGrid':
                 df = self.load_textgrid(path)
             elif annotation_format == 'eaf':
                 df = self.load_eaf(path)
             elif annotation_format == 'vtc_rttm':
-                filter = annotation['filter'] if 'filter' in annotation and not pd.isnull(annotation['filter']) else None
                 df = self.load_vtc_rttm(path, source_file = filter)
             elif annotation_format == 'its':
-                df = self.load_its(path)
+                df = self.load_its(path, recording_num = filter)
             elif annotation_format == 'alice':
-                filter = annotation['filter'] if 'filter' in annotation and not pd.isnull(annotation['filter']) else None
                 df = self.load_alice(path, source_file = filter)
             else:
                 raise ValueError("file format '{}' unknown for '{}'".format(annotation_format, path))
@@ -569,7 +575,7 @@ class AnnotationManager:
         try:
             shutil.rmtree(path)
         except:
-            print("'{}' not found".format(path))
+            print("could not delete '{}', as it does not exist (yet?)".format(path))
             pass
 
         self.annotations = self.annotations[self.annotations['set'] != annotation_set]
