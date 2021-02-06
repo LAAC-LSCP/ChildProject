@@ -8,6 +8,7 @@ import os
 import pandas as pd
 import pympi
 import re
+from functools import reduce
 import shutil
 import sys
 import traceback
@@ -152,30 +153,35 @@ class AnnotationManager:
         errors, warnings = table.validate()
         return errors, warnings
 
-    def validate(self):
+    def validate_annotation(self, annotation):
+        print("validating {}...".format(annotation['annotation_filename']))
+
+        segments = IndexTable(
+            'segments',
+            path = os.path.join(self.project.path, 'annotations', str(annotation['annotation_filename'])),
+            columns = self.SEGMENTS_COLUMNS
+        )
+
+        try:
+            segments.read()
+        except Exception as e:
+            return [str(e)], []
+
+        return segments.validate()
+
+    def validate(self, annotations = None, threads = -1):
+        if not isinstance(annotations, pd.DataFrame):
+            annotations = self.annotations
+
         errors, warnings = [], []
 
-        for annotation in self.annotations.to_dict(orient = 'records'):
-            print("validating {}...".format(annotation['annotation_filename']))
+        pool = mp.Pool(processes = threads if threads > 0 else mp.cpu_count())
+        res = pool.map(self.validate_annotation, annotations.to_dict(orient = 'records'))
 
-            segments = IndexTable(
-                'segments',
-                path = os.path.join(self.project.path, 'annotations', str(annotation['annotation_filename'])),
-                columns = self.SEGMENTS_COLUMNS
-            )
-
-            try:
-                segments.read()
-            except Exception as e:
-                errors.append(str(e))
-                continue
-
-            res = segments.validate()
-            errors += res[0]
-            warnings += res[1]
+        errors = reduce(lambda x,y: x+y[0], res, [])
+        warnings = reduce(lambda x,y: x+y[1], res, [])
 
         return errors, warnings
-        
 
     def load_textgrid(self, filename):
         textgrid = pympi.Praat.TextGrid(filename)
@@ -545,6 +551,8 @@ class AnnotationManager:
         self.read()
         self.annotations = pd.concat([self.annotations, imported], sort = False)
         self.annotations.to_csv(os.path.join(self.project.path, 'metadata/annotations.csv'), index = False)
+
+        return imported
 
     def get_subsets(self, annotation_set, recursive = False):
         subsets = []
