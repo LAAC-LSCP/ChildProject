@@ -1,5 +1,5 @@
 - [Current tools](#current-tools)
-  - [Validate raw data](#validate-raw-data)
+  - [Data validation](#data-validation)
   - [Convert recordings](#convert-recordings)
     - [Multi-core audio conversion with slurm on a cluster](#multi-core-audio-conversion-with-slurm-on-a-cluster)
   - [Compute recordings duration](#compute-recordings-duration)
@@ -14,11 +14,32 @@
 
 # Current tools
 
-## Validate raw data
+## Data validation
 
 This is typically done (repeatedly!) in the process of importing your data into our format for the first time, but you should also do this whenever you make a change to the dataset.
 
 Looks for errors and inconsistency in the metadata, or for missing audios. The validation will pass if the [formatting instructions](http://laac-lscp.github.io/ChildRecordsData/FORMATTING.html) are met.
+
+```bash
+$ child-project validate --help
+usage: child-project validate [-h] [--ignore-files] [--check-annotations]
+                              [--threads THREADS]
+                              source
+
+validate the consistency of the dataset returning detailed errors and warnings
+
+positional arguments:
+  source               project path
+
+optional arguments:
+  -h, --help           show this help message and exit
+  --ignore-files       ignore missing audio files
+  --check-annotations  check all imported annotations for errors
+  --threads THREADS    amount of threads to run on (only applies to --check-
+                       annotations)
+```
+
+Example:
 
 ```
 child-project validate /path/to/dataset
