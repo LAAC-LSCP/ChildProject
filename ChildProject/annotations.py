@@ -169,11 +169,14 @@ class AnnotationManager:
 
         return segments.validate()
 
-    def validate(self, threads = -1):
+    def validate(self, annotations = None, threads = -1):
+        if not isinstance(annotations, pd.DataFrame):
+            annotations = self.annotations
+
         errors, warnings = [], []
 
         pool = mp.Pool(processes = threads if threads > 0 else mp.cpu_count())
-        res = pool.map(self.validate_annotation, self.annotations.to_dict(orient = 'records'))
+        res = pool.map(self.validate_annotation, annotations.to_dict(orient = 'records'))
 
         errors = reduce(lambda x,y: x+y[0], res, [])
         warnings = reduce(lambda x,y: x+y[1], res, [])
@@ -548,6 +551,8 @@ class AnnotationManager:
         self.read()
         self.annotations = pd.concat([self.annotations, imported], sort = False)
         self.annotations.to_csv(os.path.join(self.project.path, 'metadata/annotations.csv'), index = False)
+
+        return imported
 
     def get_subsets(self, annotation_set, recursive = False):
         subsets = []

@@ -45,7 +45,7 @@ def validate(args):
         errors.extend(am.errors)
         warnings.extend(am.warnings)
 
-        annotations_errors, annotations_warnings = am.validate(args.threads)
+        annotations_errors, annotations_warnings = am.validate(threads = args.threads)
         errors.extend(annotations_errors)
         warnings.extend(annotations_warnings)
 
@@ -86,9 +86,9 @@ def import_annotations(args):
         annotations = pd.DataFrame([{col.name: getattr(args, col.name) for col in AnnotationManager.INDEX_COLUMNS if not col.generated}])
 
     am = AnnotationManager(project)
-    am.import_annotations(annotations, args.threads)
+    imported = am.import_annotations(annotations, args.threads)
 
-    errors, warnings = am.validate(args.threads)
+    errors, warnings = am.validate(annotations = imported, threads = args.threads)
 
     if len(am.errors) > 0:
         print("importation completed with {} errors and {} warnings".format(len(am.errors)+len(errors), len(warnings)), file = sys.stderr)
