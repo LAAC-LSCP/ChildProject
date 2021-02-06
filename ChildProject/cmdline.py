@@ -30,7 +30,8 @@ def register_pipeline(subcommand, cls):
 @subcommand([
     arg("source", help = "project path"),
     arg('--ignore-files', dest='ignore_files', required = False, default = False, action = 'store_true'),
-    arg('--check-annotations', dest='check_annotations', required = False, default = False, action = 'store_true')
+    arg('--check-annotations', dest='check_annotations', required = False, default = False, action = 'store_true'),
+    arg("--threads", help = "amount of threads to run on", type = int, default = 0)
 ])
 def validate(args):
     """validate the consistency of the dataset returning detailed errors and warnings"""
@@ -44,7 +45,7 @@ def validate(args):
         errors.extend(am.errors)
         warnings.extend(am.warnings)
 
-        annotations_errors, annotations_warnings = am.validate()
+        annotations_errors, annotations_warnings = am.validate(args.threads)
         errors.extend(annotations_errors)
         warnings.extend(annotations_warnings)
 
@@ -87,7 +88,7 @@ def import_annotations(args):
     am = AnnotationManager(project)
     am.import_annotations(annotations, args.threads)
 
-    errors, warnings = am.validate()
+    errors, warnings = am.validate(args.threads)
 
     if len(am.errors) > 0:
         print("importation completed with {} errors and {} warnings".format(len(am.errors)+len(errors), len(warnings)), file = sys.stderr)
