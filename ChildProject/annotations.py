@@ -450,7 +450,8 @@ class AnnotationManager:
         df = pd.read_csv(
             filename,
             sep = r"\s",
-            names = ['file', 'phonemes', 'syllables', 'words']
+            names = ['file', 'phonemes', 'syllables', 'words'],
+            engine = 'python'
         )
         df['speaker_id'] = 'NA'
         df['ling_type'] = 'NA'
