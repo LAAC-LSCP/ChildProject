@@ -29,8 +29,9 @@ def register_pipeline(subcommand, cls):
 
 @subcommand([
     arg("source", help = "project path"),
-    arg('--ignore-files', dest='ignore_files', required = False, default = False, action = 'store_true'),
-    arg('--check-annotations', dest='check_annotations', required = False, default = False, action = 'store_true')
+    arg('--ignore-files', help = 'ignore missing audio files', dest='ignore_files', required = False, default = False, action = 'store_true'),
+    arg('--check-annotations', help = 'check all imported annotations for errors',  dest='check_annotations', required = False, default = False, action = 'store_true'),
+    arg("--threads", help = "amount of threads to run on (only applies to --check-annotations)", type = int, default = 0)
 ])
 def validate(args):
     """validate the consistency of the dataset returning detailed errors and warnings"""
@@ -44,7 +45,7 @@ def validate(args):
         errors.extend(am.errors)
         warnings.extend(am.warnings)
 
-        annotations_errors, annotations_warnings = am.validate()
+        annotations_errors, annotations_warnings = am.validate(threads = args.threads)
         errors.extend(annotations_errors)
         warnings.extend(annotations_warnings)
 
@@ -85,9 +86,9 @@ def import_annotations(args):
         annotations = pd.DataFrame([{col.name: getattr(args, col.name) for col in AnnotationManager.INDEX_COLUMNS if not col.generated}])
 
     am = AnnotationManager(project)
-    am.import_annotations(annotations, args.threads)
+    imported = am.import_annotations(annotations, args.threads)
 
-    errors, warnings = am.validate()
+    errors, warnings = am.validate(annotations = imported, threads = args.threads)
 
     if len(am.errors) > 0:
         print("importation completed with {} errors and {} warnings".format(len(am.errors)+len(errors), len(warnings)), file = sys.stderr)
