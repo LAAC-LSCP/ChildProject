@@ -131,7 +131,7 @@ class AnnotationManager:
     }
 
 
-    def __init__(self, project):
+    def __init__(self, project: ChildProject):
         self.project = project
         self.annotations = None
         self.errors = []
@@ -147,13 +147,13 @@ class AnnotationManager:
 
         self.errors, self.warnings = self.read()
 
-    def read(self):
+    def read(self) -> tuple:
         table = IndexTable('input', path = os.path.join(self.project.path, 'metadata/annotations.csv'), columns = self.INDEX_COLUMNS)
         self.annotations = table.read()
         errors, warnings = table.validate()
         return errors, warnings
 
-    def validate_annotation(self, annotation):
+    def validate_annotation(self, annotation: dict) -> tuple:
         print("validating {}...".format(annotation['annotation_filename']))
 
         segments = IndexTable(
@@ -169,7 +169,7 @@ class AnnotationManager:
 
         return segments.validate()
 
-    def validate(self, annotations = None, threads = -1):
+    def validate(self, annotations: pd.DataFrame = None, threads: int = -1) -> tuple:
         if not isinstance(annotations, pd.DataFrame):
             annotations = self.annotations
 
@@ -183,7 +183,7 @@ class AnnotationManager:
 
         return errors, warnings
 
-    def load_textgrid(self, filename):
+    def load_textgrid(self, filename: str) -> pd.DataFrame:
         textgrid = pympi.Praat.TextGrid(filename)
 
         def ling_type(s):
@@ -226,7 +226,7 @@ class AnnotationManager:
 
         return pd.DataFrame(segments)
 
-    def load_eaf(self, filename):
+    def load_eaf(self, filename: str) -> pd.DataFrame:
         eaf = pympi.Elan.Eaf(filename)
 
         segments = {}
@@ -297,7 +297,7 @@ class AnnotationManager:
 
         return pd.DataFrame(segments.values())
 
-    def load_its(self, filename, recording_num = None):
+    def load_its(self, filename: str, recording_num: int = None) -> pd.DataFrame:
         xml = etree.parse(filename)
 
         recordings = xml.xpath('/ITS/ProcessingUnit/Recording' + ('[@num="{}"]'.format(recording_num) if recording_num else ''))
@@ -423,7 +423,7 @@ class AnnotationManager:
         
         return df
 
-    def load_vtc_rttm(self, filename, source_file = None):
+    def load_vtc_rttm(self, filename: str, source_file: str = '') -> pd.DataFrame:
         rttm = pd.read_csv(
             filename,
             sep = " ",
@@ -452,7 +452,7 @@ class AnnotationManager:
 
         return df
 
-    def load_alice(self, filename, source_file = None):
+    def load_alice(self, filename: str, source_file: str = '') -> pd.DataFrame:
         df = pd.read_csv(
             filename,
             sep = r"\s",
@@ -479,7 +479,7 @@ class AnnotationManager:
 
         return df
 
-    def import_annotation(self, annotation):
+    def import_annotation(self, annotation: dict) -> dict:
         source_recording = os.path.splitext(annotation['recording_filename'])[0]
         output_filename = "{}/converted/{}_{}_{}.csv".format(annotation['set'], source_recording, annotation['time_seek'], annotation['range_onset'])
 
@@ -532,7 +532,7 @@ class AnnotationManager:
 
         return annotation
 
-    def import_annotations(self, input, threads = -1):
+    def import_annotations(self, input: pd.DataFrame, threads: int = -1) -> pd.DataFrame:
         missing_recordings = input[~input['recording_filename'].isin(self.project.recordings['filename'].tolist())]
         missing_recordings = missing_recordings['recording_filename'].tolist()
 
@@ -554,7 +554,7 @@ class AnnotationManager:
 
         return imported
 
-    def get_subsets(self, annotation_set, recursive = False):
+    def get_subsets(self, annotation_set: str, recursive: bool = False) -> list:
         subsets = []
 
         path = os.path.join(self.project.path, 'annotations', annotation_set)
@@ -568,7 +568,7 @@ class AnnotationManager:
         return subsets
             
 
-    def remove_set(self, annotation_set, recursive = False):
+    def remove_set(self, annotation_set: str, recursive: bool = False):
         self.read()
 
         subsets = []
@@ -589,7 +589,7 @@ class AnnotationManager:
         self.annotations = self.annotations[self.annotations['set'] != annotation_set]
         self.annotations.to_csv(os.path.join(self.project.path, 'metadata/annotations.csv'), index = False)
 
-    def rename_set(self, annotation_set, new_set, recursive = False, ignore_errors = False):
+    def rename_set(self, annotation_set: str, new_set: str, recursive: bool = False, ignore_errors: bool = False):
         self.read()
 
         annotation_set = annotation_set.rstrip('/').rstrip("\\")
@@ -634,7 +634,7 @@ class AnnotationManager:
         self.annotations.to_csv(os.path.join(self.project.path, 'metadata/annotations.csv'), index = False)
 
 
-    def merge_sets(self, left_set, right_set, left_columns, right_columns, output_set, columns = {}):
+    def merge_sets(self, left_set: str, right_set: str, left_columns: list, right_columns: list, output_set: str, columns: dict = {}):
         assert left_set != right_set, "sets must differ"
         assert not (set(left_columns) & set (right_columns)), "left_columns and right_columns must be disjoint"
 
@@ -734,7 +734,7 @@ class AnnotationManager:
         self.annotations = pd.concat([self.annotations, annotations], sort = False)
         self.annotations.to_csv(os.path.join(self.project.path, 'metadata/annotations.csv'), index = False)
 
-    def get_segments(self, annotations):
+    def get_segments(self, annotations: pd.DataFrame) -> pd.DataFrame:
         annotations = annotations.dropna(subset = ['annotation_filename'])
 
         segments = pd.concat([
@@ -744,7 +744,7 @@ class AnnotationManager:
 
         return segments.merge(annotations, how = 'left', left_on = 'annotation_filename', right_on = 'annotation_filename')
 
-    def intersection(self, left, right):
+    def intersection(self, left: pd.DataFrame, right: pd.DataFrame) -> tuple:
         recordings = set(left['recording_filename'].unique()) & set(right['recording_filename'].unique())
         recordings = list(recordings)
 
@@ -799,14 +799,14 @@ class AnnotationManager:
 
         return pd.concat(a_stack), pd.concat(b_stack)
 
-    def clip_segments(self, segments, start, stop):
+    def clip_segments(self, segments: pd.DataFrame, start: float, stop: float) -> pd.DataFrame:
         segments['segment_onset'].clip(lower = start, upper = stop, inplace = True)
         segments['segment_offset'].clip(lower = start, upper = stop, inplace = True)
 
         segments = segments[~np.isclose(segments['segment_offset']-segments['segment_onset'], 0)]
         return segments
 
-    def get_vc_stats(self, segments, turntakingthresh = 1):
+    def get_vc_stats(self, segments: pd.DataFrame, turntakingthresh: float = 1):
         segments = segments.sort_values(['segment_onset', 'segment_offset'])
         segments = segments[segments['speaker_type'] != 'SPEECH']
         segments['duration'] = segments['segment_offset']-segments['segment_onset']

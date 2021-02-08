@@ -72,7 +72,7 @@ class ChildProject:
         'scripts'
     ]
 
-    def __init__(self, path):
+    def __init__(self, path: str):
         self.path = path
         self.errors = []
         self.warnings = []
@@ -86,7 +86,7 @@ class ChildProject:
         self.children = self.ct.read(lookup_extensions = ['.csv', '.xls', '.xlsx'])
         self.recordings = self.rt.read(lookup_extensions = ['.csv', '.xls', '.xlsx'])
 
-    def validate(self, ignore_files = False):
+    def validate(self, ignore_files: bool = False) -> tuple:
         self.errors = []
         self.warnings = []
 
@@ -155,7 +155,7 @@ class ChildProject:
 
         return self.errors, self.warnings
 
-    def import_data(self, destination, follow_symlinks = True):
+    def import_data(self, destination: str, follow_symlinks: bool = True):
         errors, warnings = self.validate()
 
         if len(errors) > 0:
@@ -171,7 +171,7 @@ class ChildProject:
                 exist_ok = True
             )
 
-    def get_stats(self):
+    def get_stats(self) -> dict:
         stats = {}
         recordings = self.recordings.merge(self.compute_recordings_duration(), left_on = 'filename', right_on = 'filename')
         recordings['exists'] = recordings['filename'].map(lambda f: os.path.exists(os.path.join(self.path, self.RAW_RECORDINGS, f)))
@@ -183,7 +183,7 @@ class ChildProject:
 
         return stats
 
-    def compute_recordings_duration(self, profile = None):
+    def compute_recordings_duration(self, profile: str = None) -> pd.DataFrame:
         recordings = self.recordings[['filename']]
 
         recordings['duration'] = recordings['filename'].map(lambda f:
