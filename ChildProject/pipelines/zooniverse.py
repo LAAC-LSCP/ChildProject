@@ -150,8 +150,9 @@ class ZooniversePipeline(Pipeline):
     def __init__(self):
         self.chunks = []
                 
-    def split_recording(self, segments):
+    def split_recording(self, segments: pd.DataFrame) -> list:
         segments = segments.to_dict(orient = 'records')
+        chunks = []
 
         source = os.path.join(self.project.path, ChildProject.projects.ChildProject.RAW_RECORDINGS, segments[0]['recording_filename'])
         audio = AudioSegment.from_wav(source)
@@ -177,7 +178,6 @@ class ZooniversePipeline(Pipeline):
             offset = int(offset)
 
             intervals = range(onset, offset, self.chunk_length) 
-            chunks = []
 
             for interval in intervals:
                 chunk = Chunk(
@@ -198,7 +198,7 @@ class ZooniversePipeline(Pipeline):
 
                 chunks.append(chunk)
 
-            return chunks
+        return chunks
 
     def extract_chunks(self, sampler, keyword, destination, path, annotation_set = 'vtc',
         batch_size = 1000, target_speaker_type = [],
