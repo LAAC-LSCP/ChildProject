@@ -33,6 +33,8 @@ class Sampler(ABC):
     def __init__(self, project):
         self.project = project
         self.segments = pd.DataFrame()
+        self.annotation_set = ''
+        self.target_speaker_type = []
 
     @abstractmethod
     def sample(self):
@@ -42,14 +44,14 @@ class Sampler(ABC):
     def add_parser(parsers):
         pass
 
-    def retrieve_segments(self, annotation_set, target_speaker_type):
+    def retrieve_segments(self):
         am = ChildProject.annotations.AnnotationManager(self.project)
         annotations = am.annotations
-        annotations = annotations[annotations['set'] == annotation_set]
+        annotations = annotations[annotations['set'] == self.annotation_set]
         self.segments = am.get_segments(annotations)
 
-        if len(target_speaker_type):
-            self.segments = self.segments[self.segments['speaker_type'].isin(target_speaker_type)]
+        if len(self.target_speaker_type):
+            self.segments = self.segments[self.segments['speaker_type'].isin(self.target_speaker_type)]
         
     def assert_valid(self):
         require_columns = ['recording_filename', 'segment_onset', 'segment_offset']
@@ -59,8 +61,12 @@ class Sampler(ABC):
             raise Exception("custom segments are missing the following columns: {}".format(','.join(missing_columns)))
 
 class CustomSampler(Sampler):
-    def sample(self, segments):
-        self.segments = pd.read_csv(segments)
+    def __init__(self, project: ChildProject.projects.ChildProject, segments_path: str):
+        super().__init__(project)
+        self.segments_path = segments_path
+
+    def sample(self: str):
+        self.segments = pd.read_csv(self.segments_path)
 
         if 'time_seek' not in self.segments.columns:
                 self.segments['time_seek'] = 0
@@ -73,9 +79,20 @@ class CustomSampler(Sampler):
         parser.add_argument('segments', help = 'path to selected segments datafame')
 
 class RandomSampler(Sampler):
-    def sample(self, annotation_set, target_speaker_type, sample_size):
-        self.retrieve_segments(annotation_set, target_speaker_type)
-        self.segments = self.segments.groupby('recording_filename').sample(sample_size)
+    def __init__(self,
+        project: ChildProject.projects.ChildProject,
+        annotation_set: str,
+        target_speaker_type: list,
+        sample_size: int):
+
+        super().__init__(project)
+        self.annotation_set = annotation_set
+        self.target_speaker_type = target_speaker_type
+        self.sample_size = sample_size
+
+    def sample(self):
+        self.retrieve_segments()
+        self.segments = self.segments.groupby('recording_filename').sample(self.sample_size)
         return self.segments
 
     @staticmethod
@@ -86,8 +103,21 @@ class RandomSampler(Sampler):
         parser.add_argument('--sample-size', help = 'how many samples per recording', required = True, type = int)
 
 class HighVolubilitySampler(Sampler):
-    def sample(self, annotation_set, target_speaker_type, windows_length, windows_count):
-        self.retrieve_segments(annotation_set, target_speaker_type)
+    def __init__(self,
+        project: ChildProject.projects.ChildProject,
+        annotation_set: str,
+        target_speaker_type: list,
+        windows_length: float,
+        windows_count: int):
+
+        super().__init__(project)
+        self.annotation_set = annotation_set
+        self.target_speaker_type = target_speaker_type
+        self.windows_length = windows_length
+        self.windows_count = windows_count
+
+    def sample(self):
+        self.retrieve_segments()
         return self.segments
 
     @staticmethod
@@ -194,24 +224,15 @@ class ZooniversePipeline(Pipeline):
 
         splr = None
         if sampler == 'custom':
-            splr = CustomSampler(self.project)
-            splr.sample(
-                segments
-            )
+            splr = CustomSampler(self.project, segments)
         elif sampler == 'random':
-            splr = RandomSampler(self.project)
-            splr.sample(
-                annotation_set, target_speaker_type, sample_size
-            )
+            splr = RandomSampler(self.project, annotation_set, target_speaker_type, sample_size)
         elif sampler == 'high-volubility':
-            splr = HighVolubilitySampler(self.project)
-            splr.sample(
-                annotation_set, target_speaker_type, windows_length, windows_count
-            )
-
+            splr = HighVolubilitySampler(self.project, annotation_set, target_speaker_type, windows_length, windows_count)
         if not splr:
             raise Exception("not matching sampler found")
 
+        splr.sample()
         splr.assert_valid()
         self.segments = splr.segments
 
