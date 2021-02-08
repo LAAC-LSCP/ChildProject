@@ -80,11 +80,11 @@ class ChildProject:
         self.recordings = None
     
     def read(self):
-        self.ct = IndexTable('children', os.path.join(self.path, 'metadata/children'), self.CHILDREN_COLUMNS)
-        self.rt = IndexTable('recordings', os.path.join(self.path, 'metadata/recordings'), self.RECORDINGS_COLUMNS)
+        self.ct = IndexTable('children', os.path.join(self.path, 'metadata/children.csv'), self.CHILDREN_COLUMNS)
+        self.rt = IndexTable('recordings', os.path.join(self.path, 'metadata/recordings.csv'), self.RECORDINGS_COLUMNS)
 
-        self.children = self.ct.read(lookup_extensions = ['.csv', '.xls', '.xlsx'])
-        self.recordings = self.rt.read(lookup_extensions = ['.csv', '.xls', '.xlsx'])
+        self.children = self.ct.read()
+        self.recordings = self.rt.read()
 
     def validate(self, ignore_files = False):
         self.errors = []

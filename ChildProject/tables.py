@@ -5,8 +5,6 @@ import datetime
 import numpy as np
 
 def read_dataframe(filename):
-    extension = os.path.splitext(filename)[1]
-
     pd_flags = {
         'keep_default_na': False,
         'na_values': ['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN',
@@ -17,14 +15,9 @@ def read_dataframe(filename):
         'index_col': False
     }
 
-    if extension == '.csv':
-        df = pd.read_csv(filename, **pd_flags)
-    elif extension == '.xls' or extension == '.xlsx':
-        df = pd.read_excel(filename, **pd_flags)
-    else:
-        raise Exception('table format not supported ({})'.format(extension))
-
+    df = pd.read_csv(filename, **pd_flags)
     df.index = df.index+2
+
     return df
 
 def is_boolean(x):
@@ -52,17 +45,9 @@ class IndexTable:
         self.columns = columns
         self.df = None
     
-    def read(self, lookup_extensions = None):
-        if lookup_extensions is None:
-            self.df = read_dataframe(self.path)
-            return self.df
-        else:
-            for extension in lookup_extensions:
-                if os.path.exists(self.path + extension):
-                    self.df = read_dataframe(self.path + extension)
-                    return self.df
-
-        raise Exception("could not find table '{}'".format(self.path))
+    def read(self):
+        self.df = read_dataframe(self.path)
+        return self.df
 
     def msg(self, text):
         return "{}: {}".format(self.path, text)
