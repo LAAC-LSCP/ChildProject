@@ -157,6 +157,8 @@ class ZooniversePipeline(Pipeline):
         source = os.path.join(self.project.path, ChildProject.projects.ChildProject.RAW_RECORDINGS, segments[0]['recording_filename'])
         audio = AudioSegment.from_wav(source)
 
+        print("extracting chunks from {}...".format(source))
+
         for segment in segments:
             onset = int(segment['segment_onset']*1000)
             offset = int(segment['segment_offset']*1000)
