@@ -4,22 +4,6 @@ import re
 import datetime
 import numpy as np
 
-def read_dataframe(filename):
-    pd_flags = {
-        'keep_default_na': False,
-        'na_values': ['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN',
-                    '#N/A N/A', '#N/A', 'N/A', 'n/a', '', '#NA',
-                    'NULL', 'null', 'NaN', '-NaN', 'nan',
-                    '-nan', ''],
-        'parse_dates': False,
-        'index_col': False
-    }
-
-    df = pd.read_csv(filename, **pd_flags)
-    df.index = df.index+2
-
-    return df
-
 def is_boolean(x):
     return x == 'NA' or int(x) in [0,1]
 
@@ -46,7 +30,18 @@ class IndexTable:
         self.df = None
     
     def read(self):
-        self.df = read_dataframe(self.path)
+        pd_flags = {
+            'keep_default_na': False,
+            'na_values': ['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN',
+                        '#N/A N/A', '#N/A', 'N/A', 'n/a', '', '#NA',
+                        'NULL', 'null', 'NaN', '-NaN', 'nan',
+                        '-nan', ''],
+            'parse_dates': False,
+            'index_col': False
+        }
+
+        self.df = pd.read_csv(self.path, **pd_flags)
+        self.df.index = self.df.index+2
         return self.df
 
     def msg(self, text):
