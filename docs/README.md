@@ -8,6 +8,7 @@
 - [Getting some data](#getting-some-data)
   - [Extant datasets](#extant-datasets)
 - [Converting a dataset into ChildRecordsData format](#converting-a-dataset-into-childrecordsdata-format)
+- [Cheatsheet](#cheatsheet)
 - [Using our tools](#using-our-tools)
 - [Missing and planned features](#missing-and-planned-features)
 - [Help-needed ?](#help-needed-)
@@ -114,7 +115,7 @@ It may be easier to start with an extant dataset. Here is the list that we know 
 
 ### Extant datasets
 
-Instructions to download extant datasets can be found [here](http://laac-lscp.github.io/ChildRecordsData/REUSE.html).
+Instructions to download extant datasets can be found [here](http://laac-lscp.github.io/ChildRecordsData/TUTORIAL_REUSE.html).
 
 The list of extant datasets can be found [here](http://laac-lscp.github.io/ChildRecordsData/EXTANT.html).
 
@@ -125,6 +126,10 @@ If you have your own dataset, you can convert it into our format according to ou
 [specifications](http://laac-lscp.github.io/ChildRecordsData/FORMATTING.html). Once you have done so, you can use the package's tools. 
 
 We provide a detailed tutorial to convert a dataset into our format and then publish it [here](http://laac-lscp.github.io/ChildRecordsData/TUTORIAL_VANDAM.html).
+
+## Cheatsheet
+
+We provid a [cheatsheet](http://laac-lscp.github.io/ChildRecordsData/CHEATSHEET.html) for the most common tasks.
 
 ## Using our tools
 
