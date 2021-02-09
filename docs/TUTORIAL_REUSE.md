@@ -1,4 +1,4 @@
-- [How to reuse extant datasets](#how-to-reuse-extant-datasets)
+- [How to reuse extant LAAC datasets](#how-to-reuse-extant-laac-datasets)
   - [How it works](#how-it-works)
   - [Installing datalad](#installing-datalad)
   - [Installing a dataset](#installing-a-dataset)
@@ -13,7 +13,7 @@
     - [Pushing changes to a dataset](#pushing-changes-to-a-dataset)
 
 
-# How to reuse extant datasets
+# How to reuse extant LAAC datasets
 
 Our datasets rely on [datalad](https://www.datalad.org/). Datalad allows the versioning and distribution of large datasets.
 Datalad relies on another tool called [git-annex](https://git-annex.branchable.com/), which itself is an extension of git providing support for large file versioning with a high flexibility. 
@@ -21,7 +21,7 @@ Datalad relies on another tool called [git-annex](https://git-annex.branchable.c
 ## How it works
 
 Our dataset are distributed on two "siblings". Siblings are analogous to git and git-annex remotes.
-The github remote doesn't include large files, only pointers refering to them. The large files are stored in a sibling hosted on the /scratch1 partition available through Oberon.
+The github remote doesn't include large files, only pointers refering to them. The large files are stored in a sibling hosted on Oberon
 
 ![structure](http://laac-lscp.github.io/ChildRecordsData/images/infrastructure.png "Dataset infrastructure")
 
@@ -137,5 +137,5 @@ datalad save raw_annotations/vtc -m "adding vtc rttms"
 These changes still have to be pushed, which can be done with :
 
 ```
-datalad publish --to scratch1 --transfer-data all
+datalad push --to cluster --data anything
 ```
