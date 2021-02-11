@@ -1,4 +1,3 @@
-from abc import ABC, abstractmethod
 import argparse
 import datetime
 import itertools
@@ -28,105 +27,6 @@ def check_dur(dur, target):
             new_dur = float(closest_int)+0.5
     remain = float(new_dur-dur)
     return new_dur,remain
-
-class Sampler(ABC):
-    def __init__(self, project):
-        self.project = project
-        self.segments = pd.DataFrame()
-        self.annotation_set = ''
-        self.target_speaker_type = []
-
-    @abstractmethod
-    def sample(self):
-        pass
-
-    @staticmethod
-    def add_parser(parsers):
-        pass
-
-    def retrieve_segments(self):
-        am = ChildProject.annotations.AnnotationManager(self.project)
-        annotations = am.annotations
-        annotations = annotations[annotations['set'] == self.annotation_set]
-        self.segments = am.get_segments(annotations)
-
-        if len(self.target_speaker_type):
-            self.segments = self.segments[self.segments['speaker_type'].isin(self.target_speaker_type)]
-        
-    def assert_valid(self):
-        require_columns = ['recording_filename', 'segment_onset', 'segment_offset']
-        missing_columns = list(set(require_columns) - set(self.segments.columns))
-
-        if missing_columns:
-            raise Exception("custom segments are missing the following columns: {}".format(','.join(missing_columns)))
-
-class CustomSampler(Sampler):
-    def __init__(self, project: ChildProject.projects.ChildProject, segments_path: str):
-        super().__init__(project)
-        self.segments_path = segments_path
-
-    def sample(self: str):
-        self.segments = pd.read_csv(self.segments_path)
-
-        if 'time_seek' not in self.segments.columns:
-                self.segments['time_seek'] = 0
-
-        return self.segments
-
-    @staticmethod
-    def add_parser(samplers):
-        parser = samplers.add_parser('custom', help = 'custom sampling')
-        parser.add_argument('segments', help = 'path to selected segments datafame')
-
-class RandomSampler(Sampler):
-    def __init__(self,
-        project: ChildProject.projects.ChildProject,
-        annotation_set: str,
-        target_speaker_type: list,
-        sample_size: int):
-
-        super().__init__(project)
-        self.annotation_set = annotation_set
-        self.target_speaker_type = target_speaker_type
-        self.sample_size = sample_size
-
-    def sample(self):
-        self.retrieve_segments()
-        self.segments = self.segments.groupby('recording_filename').sample(self.sample_size)
-        return self.segments
-
-    @staticmethod
-    def add_parser(samplers):
-        parser = samplers.add_parser('random', help = 'random sampling')
-        parser.add_argument('--annotation-set', help = 'annotation set', default = 'vtc')
-        parser.add_argument('--target-speaker-type', help = 'speaker type to get chunks from', choices=['CHI', 'OCH', 'FEM', 'MAL'], nargs = '+', default = ['CHI'])
-        parser.add_argument('--sample-size', help = 'how many samples per recording', required = True, type = int)
-
-class HighVolubilitySampler(Sampler):
-    def __init__(self,
-        project: ChildProject.projects.ChildProject,
-        annotation_set: str,
-        target_speaker_type: list,
-        windows_length: float,
-        windows_count: int):
-
-        super().__init__(project)
-        self.annotation_set = annotation_set
-        self.target_speaker_type = target_speaker_type
-        self.windows_length = windows_length
-        self.windows_count = windows_count
-
-    def sample(self):
-        self.retrieve_segments()
-        return self.segments
-
-    @staticmethod
-    def add_parser(samplers):
-        parser = samplers.add_parser('high-volubility', help = 'high-volubility targeted sampling')
-        parser.add_argument('--annotation-set', help = 'annotation set', default = 'vtc')
-        parser.add_argument('--target-speaker-type', help = 'speaker type to get chunks from', choices=['CHI', 'OCH', 'FEM', 'MAL'], nargs = '+', default = ['CHI'])
-        parser.add_argument('--windows-length', help = 'window length (minutes)', required = True, type = float)
-        parser.add_argument('--windows-count', help = 'how many windows to be sampled', required = True, type = int)
 
 class Chunk():
     def __init__(self, recording, onset, offset, segment_onset, segment_offset):
@@ -202,12 +102,10 @@ class ZooniversePipeline(Pipeline):
 
         return chunks
 
-    def extract_chunks(self, sampler, keyword, destination, path, annotation_set = 'vtc',
-        batch_size = 1000, target_speaker_type = [],
+    def extract_chunks(self, keyword, destination, path, annotation_set = 'vtc',
+        batch_size = 1000,
         chunk_length = 500, threads = 0, batches = 0,
         segments = None,
-        sample_size = 1000,
-        windows_length = 10, windows_count = 100,
         exclude_segments = [], **kwargs):
 
         parameters = locals()
@@ -224,27 +122,13 @@ class ZooniversePipeline(Pipeline):
 
         self.chunk_length = chunk_length
 
-        splr = None
-        if sampler == 'custom':
-            splr = CustomSampler(self.project, segments)
-        elif sampler == 'random':
-            splr = RandomSampler(self.project, annotation_set, target_speaker_type, sample_size)
-        elif sampler == 'high-volubility':
-            splr = HighVolubilitySampler(self.project, annotation_set, target_speaker_type, windows_length, windows_count)
-        if not splr:
-            raise Exception("not matching sampler found")
-
-        splr.sample()
-        splr.assert_valid()
-        self.segments = splr.segments
-
-        self.segments['segment_onset'] = self.segments['segment_onset'] + self.segments['time_seek']
-        self.segments['segment_offset'] = self.segments['segment_offset'] + self.segments['time_seek']
-
         destination_path = os.path.join(destination, 'chunks')
         os.makedirs(destination_path, exist_ok = True)
         if os.listdir(destination_path):
             raise ValueError("destination '{}' is not empty, please choose another destination.".format(destination_path))
+
+        self.segments = pd.read_csv(segments)
+        shutil.copyfile(segments, os.path.join(self.destination, 'segments.csv'))
 
         segments = []
         for _recording, _segments in self.segments.groupby('recording_filename'):
@@ -285,10 +169,6 @@ class ZooniversePipeline(Pipeline):
             data = parameters,
             columns = ['param', 'value']
         ).to_csv(os.path.join(self.destination, 'parameters.csv'), index = False)
-
-        if sampler == 'custom':
-            shutil.copyfile(segments, os.path.join(self.destination, 'segments.csv'))
-
 
     def upload_chunks(self, destination, project_id, set_prefix, zooniverse_login, zooniverse_pwd, batches = 0, **kwargs):
         self.destination = destination 
@@ -404,15 +284,11 @@ class ZooniversePipeline(Pipeline):
         parser_extraction = subparsers.add_parser('extract-chunks', help = 'extract chunks to DESTINATION, proving all associate metadata in the same directory')
         parser_extraction.add_argument('path', help = 'path to the dataset')
         parser_extraction.add_argument('--keyword', help = 'export keyword', required = True)
+        parser_extraction.add_argument('--segments', help = 'path to the input segments dataframe', required = True)
         parser_extraction.add_argument('--destination', help = 'destination', required = True)
         parser_extraction.add_argument('--exclude-segments', help = 'segments to exclude before sampling', nargs = '+', default = [])
         parser_extraction.add_argument('--batch-size', help = 'batch size', default = 1000, type = int)
         parser_extraction.add_argument('--threads', help = 'how many threads to run on', default = 0, type = int)
-
-        samplers = parser_extraction.add_subparsers(help = 'sampler', dest = 'sampler')
-        CustomSampler.add_parser(samplers)
-        RandomSampler.add_parser(samplers)
-        HighVolubilitySampler.add_parser(samplers)
 
         parser_upload = subparsers.add_parser('upload-chunks', help = 'upload chunks and updates DESTINATION/chunks.csv')
         parser_upload.add_argument('--destination', help = 'destination', required = True)
