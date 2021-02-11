@@ -196,7 +196,7 @@ However, so far, your changes remain local, and your dataset still needs to be p
 You can do some processing on the dataset. For instance, you can compute the duration of the recording, and update the metadata with this information. This is easily done with:
 
 ```bash
-child-project compute-durations .datalad publish --to cluster
+child-project compute-durations .
 ```
 
 Now `metadata/recordings.csv` became:
@@ -301,7 +301,7 @@ datalad create-sibling -s cluster --annex-wanted 'include=*' <ssh-server>:/remot
 Once the sibling has been created, the changes can be published:
 
 ```bash
-datalad publish --to cluster
+datalad push --to cluster
 ```
 
 That's it! People can now get your data from:
@@ -310,10 +310,10 @@ That's it! People can now get your data from:
 datalad install <ssh-server>:/remote/path/to/the/dataset
 ```
 
-If `--annex-wanted` had not been set to `'include=*'`, the large files (i.e. annexed files) would not be published unless you asked for it explicitly with the `--transfer-data` flag:
+If `--annex-wanted` had not been set to `'include=*'`, the large files (i.e. annexed files) would not be published unless you asked for it explicitly with the `--data` flag:
 
 ```bash
-datalad publish --to cluster --transfer-data all
+datalad push --to cluster --data anything
 ```
 
 
@@ -332,10 +332,10 @@ datalad create-sibling-github -s origin --access-protocol ssh vandam-daylong-dem
 ```
 
 `origin` will be the local name of the sibling, and `vandam-daylong-demo` the name of the GitHub repository.
-Once the sibling has been created, you can publish the changes with [datalad publish](http://docs.datalad.org/en/stable/generated/man/datalad-publish.html):
+Once the sibling has been created, you can publish the changes with [datalad push](http://docs.datalad.org/en/stable/generated/man/datalad-push.html):
 
 ```bash
-datalad publish --to origin
+datalad push --to origin
 ```
 
 You should get a repository identical to [this one](https://github.com/LAAC-LSCP/vandam-daylong-demo). 
@@ -357,7 +357,7 @@ You can make sure that all changes to `github` are published to `cluster` as wel
 datalad siblings configure -s origin --publish-depends cluster
 ```
 
-Now, `datalad publish --to origin` will publish the changes to both `cluster` and `github`.
+Now, `datalad push --to origin` will publish the changes to both `cluster` and `github`.
 
 However, when the users install your dataset from GitHub, they will not have access to the `cluster` sibling unless you make it available to them, with the following instructions:
 
@@ -395,7 +395,7 @@ git annex initremote s3 chunk=100MiB type=S3 encryption=none datacenter=eu-west-
 You can now publish the data with:
 
 ```bash
-datalad publish --to s3 --transfer-data all
+datalad push --to s3 --data anything
 ```
 
 (Optional) You can set the S3 sibling to require that all large files should be stored on it:
@@ -404,16 +404,16 @@ datalad publish --to s3 --transfer-data all
 datalad siblings configure -s s3 --annex-wanted 'include=*'
 ```
 
-This will let DataLad publish all the large files automatically without setting `--transfer-data`:
+This will let DataLad publish all the large files automatically without setting `--data`:
 
 ```bash
-datalad publish --to s3
+datalad push --to s3
 ```
 
 Let's assume your users will install the dataset from a GitHub repository. You should publish the information about the newly created S3 sibling on GitHub, which can be done with (provided you have set up your GitHub repository as described in the previous section):
 
 ```bash
-datalad publish --to github
+datalad push --to github
 ```
 
 Now, users will be able to get the data by issuing the following commands:
