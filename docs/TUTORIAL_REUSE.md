@@ -1,4 +1,4 @@
-- [How to reuse extant datasets](#how-to-reuse-extant-datasets)
+- [How to reuse extant LAAC datasets](#how-to-reuse-extant-laac-datasets)
   - [How it works](#how-it-works)
   - [Installing datalad](#installing-datalad)
   - [Installing a dataset](#installing-a-dataset)
@@ -8,11 +8,12 @@
     - [Datalad way (using only datalad)](#datalad-way-using-only-datalad)
   - [Downloading large files](#downloading-large-files)
   - [Updating a dataset](#updating-a-dataset)
-  - [Contributing to a dataset](#contributing-to-a-dataset)
-  - [Creating a new dataset](#creating-a-new-dataset)
+  - [Installing all our datasets at once](#installing-all-our-datasets-at-once)
+  - [Contributing](#contributing)
+    - [Pushing changes to a dataset](#pushing-changes-to-a-dataset)
 
 
-# How to reuse extant datasets
+# How to reuse extant LAAC datasets
 
 Our datasets rely on [datalad](https://www.datalad.org/). Datalad allows the versioning and distribution of large datasets.
 Datalad relies on another tool called [git-annex](https://git-annex.branchable.com/), which itself is an extension of git providing support for large file versioning with a high flexibility. 
@@ -20,7 +21,7 @@ Datalad relies on another tool called [git-annex](https://git-annex.branchable.c
 ## How it works
 
 Our dataset are distributed on two "siblings". Siblings are analogous to git and git-annex remotes.
-The github remote doesn't include large files, only pointers refering to them. The large files are stored in a sibling hosted on the /scratch1 partition available through Oberon.
+The github remote doesn't include large files, only pointers refering to them. The large files are stored in a sibling hosted on Oberon
 
 ![structure](http://laac-lscp.github.io/ChildRecordsData/images/infrastructure.png "Dataset infrastructure")
 
@@ -104,9 +105,26 @@ Files can be retrieved using `datalad get [path]`. For instance, `datalad get re
 
 ## Updating a dataset
 
-A dataset can be updated from the sources using `dataset update`.
+A dataset can be updated from the sources using `git pull` together with `dataset update`.
 
-## Contributing to a dataset
+
+## Installing all our datasets at once
+
+In order to install the superdataset, run the following commands :
+
+```
+datalad install -r git@github.com:LAAC-LSCP/datasets.git
+cd datasets
+datalad run-procedure setup <oberon_alias>
+```
+
+Make sure to replace `<oberon_alias>` with whatever alias you use to ssh into Oberon. If you have followed [our instructions](https://laac-lscp.github.io/ChildRecordsData/REUSE.html#setting-up-your-ssh-access-to-oberon), it should be `foberon`.
+
+You're good to go. You can download data from any dataset, e.g. by doing `datalad get solomon-data/annotations`.
+
+## Contributing
+
+### Pushing changes to a dataset
 
 You can save local changes to a dataset with `datalad save [path] -m "commit message"`. For instance :
 
@@ -114,23 +132,10 @@ You can save local changes to a dataset with `datalad save [path] -m "commit mes
 datalad save raw_annotations/vtc -m "adding vtc rttms"
 ```
 
+`datalad save` is analoguous to a combination of `git add` and `git commit`.
+
 These changes still have to be pushed, which can be done with :
 
 ```
-datalad publish --to scratch1 --transfer-data all
-```
-
-## Creating a new dataset
-
-This section is a work in progress.
-
-```
-DATASETNAME = "tsimane2017-data"
-datalad create -c laac $DATASETNAME
-cd $DATASETNAME
-datalad create-sibling-github -s origin --github-organization LAAC-LSCP --access-protocol ssh $DATASETNAME
-datalad create-sibling -s scratch1 "/scratch1/data/laac_data/$DATASETNAME"
-echo "/scratch1/data/laac_data/$DATASETNAME" > .datalad/path
-datalad run-procedure setup
-datalad publish --to scratch1
+datalad push --to cluster --data anything
 ```
