@@ -359,16 +359,15 @@ datalad siblings configure -s origin --publish-depends cluster
 
 Now, `datalad push --to origin` will publish the changes to both `cluster` and `github`.
 
-However, when the users install your dataset from GitHub, they will not have access to the `cluster` sibling unless you make it available to them, with the following instructions:
+However, when the users install your dataset from GitHub, they will not have access to the `cluster` sibling unless you make it available to them, which can be done this way :
 
 
 ```bash
 git annex 
-git annex initremote cluster type=git location=ssh://oberon/home/lgautheron/vandam-cluster autoenable=true
+git annex initremote cluster type=git location=ssh://cluster.com/path/to/the/repository autoenable=true
 git annex enableremote cluster
 git remote add origin git@github.com:LAAC-LSCP/vandam-daylong-demo.git
 ```
-
 
 
 ### Publish on S3
