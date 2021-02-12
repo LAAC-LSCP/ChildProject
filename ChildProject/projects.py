@@ -4,7 +4,6 @@ import numpy as np
 import os
 import pandas as pd
 import re
-import shutil
 import subprocess
 
 from .tables import IndexTable, IndexColumn, is_boolean
@@ -154,22 +153,6 @@ class ChildProject:
                 self.warnings.append("file '{}' not indexed.".format(rf))
 
         return self.errors, self.warnings
-
-    def import_data(self, destination, follow_symlinks = True):
-        errors, warnings = self.validate()
-
-        if len(errors) > 0:
-            raise Exception('cannot import data: validation failed')
-
-        # perform copy
-        shutil.copytree(src = self.path, dst = destination, symlinks = follow_symlinks)
-
-        # create folders
-        for folder in self.PROJECT_FOLDERS:
-            os.makedirs(
-                name = os.path.join(destination, folder),
-                exist_ok = True
-            )
 
     def get_stats(self):
         stats = {}

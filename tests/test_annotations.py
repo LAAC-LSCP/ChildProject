@@ -13,8 +13,7 @@ import sys
 @pytest.fixture(scope='function')
 def project(request):
     if not os.path.exists("output/annotations"):
-        project = ChildProject("examples/valid_raw_data")
-        project.import_data("output/annotations")
+        shutil.copytree(src = "examples/valid_raw_data", dst = "output/annotations")
 
     project = ChildProject("output/annotations")
     yield project
