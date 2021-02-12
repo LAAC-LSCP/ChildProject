@@ -4,6 +4,7 @@ pandas
 xlrd
 jinja2
 numpy>=1.16.5
+scipy
 pympi-ling
 lxml
 sox
