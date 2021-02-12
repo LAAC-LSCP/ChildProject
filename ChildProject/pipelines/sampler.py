@@ -86,12 +86,12 @@ from pydub import AudioSegment
 class EnergyDetection(Sampler):
     def __init__(self,
         project: ChildProject.projects.ChildProject,
-        windows_length,
-        windows_spacing,
-        windows_count,
-        threshold = None,
-        lowpass = -1,
-        initial_segments = None
+        windows_length: float,
+        windows_spacing: float,
+        windows_count: int,
+        threshold: float = None,
+        lowpass_freq: int = -1,
+        initial_segments: str = None
         ):
 
         super().__init__(project)
@@ -99,23 +99,23 @@ class EnergyDetection(Sampler):
         self.windows_count = windows_count
         self.windows_spacing = windows_spacing
         self.threshold = threshold
-        self.lowpass = lowpass
+        self.lowpass_freq = lowpass_freq
         self.initial_segments_path = initial_segments
 
-    def compute_energy_loudness(self, chunk, sampling_frequency):
+    def compute_energy_loudness(self, chunk, sampling_frequency: int):
         chunk_fft = fft([x/(2**15 - 1) for x in chunk.get_array_of_samples()])
 
-        if self.lowpass > 0:
-            chunk_fft = chunk_fft[:int(len(chunk)*self.lowpass/sampling_frequency)]
+        if self.lowpass_freq > 0:
+            chunk_fft = chunk_fft[:int(len(chunk)*self.lowpass_freq/sampling_frequency)]
         
         return np.sum(np.abs(chunk_fft)**2)/len(chunk)
 
     def get_recording_windows(self, profile, recording):
         audio = AudioSegment.from_wav(os.path.join(self.project.path, ChildProject.projects.ChildProject.RAW_RECORDINGS, recording['filename']))
         duration = audio.duration_seconds
-        frequency = audio.frame_rate
+        frequency = int(audio.frame_rate)
 
-        windows_starts = (1000*np.arange(self.windows_spacing, duration, self.windows_spacing)).astype(int)
+        windows_starts = (1000*np.arange(self.windows_spacing, duration - self.windows_length, self.windows_spacing)).astype(int)
         windows = []
 
         for start in windows_starts:
@@ -140,7 +140,7 @@ class EnergyDetection(Sampler):
             windows = windows.sample(self.windows_count)
             segments.extend(windows.to_dict(orient = 'records'))
 
-        self.segments = pd.DataFrame(segments)            
+        self.segments = pd.DataFrame(segments)     
 
     @staticmethod
     def add_parser(samplers):
@@ -148,6 +148,8 @@ class EnergyDetection(Sampler):
         parser.add_argument('--windows-length', help = 'length of each window (in seconds)', required = True, type = float)
         parser.add_argument('--windows-spacing', help = 'spacing between windows (in seconds)', required = True, type = float)
         parser.add_argument('--windows-count', help = 'how many windows so sample from', required = True, type = int)
+        parser.add_argument('--lowpass-freq', help = 'lowpass frequency cutoff to apply before calculating each window\'s energy. (in Hz). ignored if <= 0.', default = -1, type = int)
+
             
 
 class HighVolubilitySampler(Sampler):
