@@ -79,6 +79,37 @@ class RandomVocalizationSampler(Sampler):
         parser.add_argument('--target-speaker-type', help = 'speaker type to get chunks from', choices=['CHI', 'OCH', 'FEM', 'MAL'], nargs = '+', default = ['CHI'])
         parser.add_argument('--sample-size', help = 'how many samples per recording', required = True, type = int)
 
+import numpy as np
+import scipy.fft
+from pydub import AudioSegment
+
+class EnergyActivityDetection(Sampler):
+    def __init__(self,
+        project: ChildProject.projects.ChildProject,
+        threshold,
+        lowpass = -1
+        ):
+
+        super().__init__(project)
+        self.threshold = threshold
+        self.lowpass = lowpass
+
+    def compute_energy_loudness(self, chunk, sampling_frequency):
+        fft = scipy.fft(chunk)
+
+        if self.lowpass > 0:
+            fft = fft[:int(len(chunk)*self.lowpass/sampling_frequency)]
+        
+        return np.sum(np.abs(fft)**2)/len(chunk)
+
+    def get_recording_chunks(self, profile, recording):
+        audio = AudioSegment.from_wav(recording['filename'])
+        duration = audio.duration_seconds()
+
+    def sample(self):
+        pass
+            
+
 class HighVolubilitySampler(Sampler):
     def __init__(self,
         project: ChildProject.projects.ChildProject,
