@@ -83,7 +83,7 @@ import numpy as np
 from scipy.fft import fft
 from pydub import AudioSegment
 
-class EnergyDetection(Sampler):
+class EnergyDetectionSampler(Sampler):
     def __init__(self,
         project: ChildProject.projects.ChildProject,
         windows_length: float,
@@ -192,7 +192,7 @@ class SamplerPipeline(Pipeline):
         elif sampler == 'high-volubility':
             splr = HighVolubilitySampler(self.project, **kwargs)
         elif sampler == 'energy-detection':
-            splr = EnergyDetection(self.project, **kwargs)
+            splr = EnergyDetectionSampler(self.project, **kwargs)
 
         if splr is None:
             raise Exception('invalid sampler')
@@ -214,6 +214,6 @@ class SamplerPipeline(Pipeline):
         #CustomSampler.add_parser(samplers)
         RandomVocalizationSampler.add_parser(samplers)
         HighVolubilitySampler.add_parser(samplers)
-        EnergyDetection.add_parser(samplers)
+        EnergyDetectionSampler.add_parser(samplers)
 
         parser.add_argument('destination', help = 'segments destination')
