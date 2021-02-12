@@ -108,7 +108,7 @@ class EnergyDetection(Sampler):
         if self.lowpass_freq > 0:
             chunk_fft = chunk_fft[:int(len(chunk)*self.lowpass_freq/sampling_frequency)]
         
-        return np.sum(np.abs(chunk_fft)**2)/len(chunk)
+        return np.sum(np.abs(chunk_fft)**2)/len(chunk_fft)
 
     def get_recording_windows(self, profile, recording):
         audio = AudioSegment.from_wav(os.path.join(self.project.path, ChildProject.projects.ChildProject.RAW_RECORDINGS, recording['filename']))
