@@ -80,34 +80,74 @@ class RandomVocalizationSampler(Sampler):
         parser.add_argument('--sample-size', help = 'how many samples per recording', required = True, type = int)
 
 import numpy as np
-import scipy.fft
+from scipy.fft import fft
 from pydub import AudioSegment
 
-class EnergyActivityDetection(Sampler):
+class EnergyDetection(Sampler):
     def __init__(self,
         project: ChildProject.projects.ChildProject,
-        threshold,
-        lowpass = -1
+        windows_length,
+        windows_spacing,
+        windows_count,
+        threshold = None,
+        lowpass = -1,
+        initial_segments = None
         ):
 
         super().__init__(project)
+        self.windows_length = windows_length
+        self.windows_count = windows_count
+        self.windows_spacing = windows_spacing
         self.threshold = threshold
         self.lowpass = lowpass
+        self.initial_segments_path = initial_segments
 
     def compute_energy_loudness(self, chunk, sampling_frequency):
-        fft = scipy.fft(chunk)
+        chunk_fft = fft([x/(2**15 - 1) for x in chunk.get_array_of_samples()])
 
         if self.lowpass > 0:
-            fft = fft[:int(len(chunk)*self.lowpass/sampling_frequency)]
+            chunk_fft = chunk_fft[:int(len(chunk)*self.lowpass/sampling_frequency)]
         
-        return np.sum(np.abs(fft)**2)/len(chunk)
+        return np.sum(np.abs(chunk_fft)**2)/len(chunk)
 
-    def get_recording_chunks(self, profile, recording):
-        audio = AudioSegment.from_wav(recording['filename'])
-        duration = audio.duration_seconds()
+    def get_recording_windows(self, profile, recording):
+        audio = AudioSegment.from_wav(os.path.join(self.project.path, ChildProject.projects.ChildProject.RAW_RECORDINGS, recording['filename']))
+        duration = audio.duration_seconds
+        frequency = audio.frame_rate
+
+        windows_starts = (1000*np.arange(self.windows_spacing, duration, self.windows_spacing)).astype(int)
+        windows = []
+
+        for start in windows_starts:
+            energy = self.compute_energy_loudness(audio[start:start+int(1000*self.windows_length)], frequency)
+
+            windows.append({
+                'segment_onset': start/1000,
+                'segment_offset': start/1000+self.windows_length,
+                'recording_filename': recording['filename'],
+                'energy': energy
+            })
+
+        return windows
+        
 
     def sample(self):
-        pass
+        segments = []
+        for recording in self.project.recordings.to_dict(orient = 'records'):
+            windows = pd.DataFrame(self.get_recording_windows('', recording))
+            threshold = windows['energy'].quantile(0.1)
+            windows = windows[windows['energy'] >= threshold]
+            windows = windows.sample(self.windows_count)
+            segments.extend(windows.to_dict(orient = 'records'))
+
+        self.segments = pd.DataFrame(segments)            
+
+    @staticmethod
+    def add_parser(samplers):
+        parser = samplers.add_parser('energy-detection', help = 'energy based activity detection')
+        parser.add_argument('--windows-length', help = 'length of each window (in seconds)', required = True, type = float)
+        parser.add_argument('--windows-spacing', help = 'spacing between windows (in seconds)', required = True, type = float)
+        parser.add_argument('--windows-count', help = 'how many windows so sample from', required = True, type = int)
             
 
 class HighVolubilitySampler(Sampler):
@@ -142,12 +182,15 @@ class SamplerPipeline(Pipeline):
 
     def run(self, path, destination, sampler, func = None, **kwargs):
         self.project = ChildProject.projects.ChildProject(path)
+        self.project.read()
 
         splr = None
         if sampler == 'random-vocalizations':
             splr = RandomVocalizationSampler(self.project, **kwargs)
         elif sampler == 'high-volubility':
             splr = HighVolubilitySampler(self.project, **kwargs)
+        elif sampler == 'energy-detection':
+            splr = EnergyDetection(self.project, **kwargs)
 
         if splr is None:
             raise Exception('invalid sampler')
@@ -156,8 +199,9 @@ class SamplerPipeline(Pipeline):
         splr.assert_valid()
         self.segments = splr.segments
 
-        self.segments['segment_onset'] = self.segments['segment_onset'] + self.segments['time_seek']
-        self.segments['segment_offset'] = self.segments['segment_offset'] + self.segments['time_seek']
+        if 'time_seek' in self.segments.columns:
+            self.segments['segment_onset'] = self.segments['segment_onset'] + self.segments['time_seek']
+            self.segments['segment_offset'] = self.segments['segment_offset'] + self.segments['time_seek']
 
         self.segments[self.segments.columns & {'recording_filename', 'segment_onset', 'segment_offset'}].to_csv(destination, index = False)
 
@@ -168,4 +212,6 @@ class SamplerPipeline(Pipeline):
         #CustomSampler.add_parser(samplers)
         RandomVocalizationSampler.add_parser(samplers)
         HighVolubilitySampler.add_parser(samplers)
+        EnergyDetection.add_parser(samplers)
+
         parser.add_argument('destination', help = 'segments destination')
