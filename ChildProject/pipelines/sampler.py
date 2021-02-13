@@ -138,7 +138,7 @@ class EnergyDetectionSampler(Sampler):
         segments = []
         for recording in self.project.recordings.to_dict(orient = 'records'):
             windows = pd.DataFrame(self.get_recording_windows('', recording))
-            threshold = windows['energy'].quantile(0.1)
+            threshold = windows['energy'].quantile(0.8)
             windows = windows[windows['energy'] >= threshold]
             windows = windows.sample(self.windows_count)
             segments.extend(windows.to_dict(orient = 'records'))
