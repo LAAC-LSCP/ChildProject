@@ -103,7 +103,7 @@ class EnergyDetectionSampler(Sampler):
         self.initial_segments_path = initial_segments
 
     def compute_energy_loudness(self, chunk, sampling_frequency: int):
-        chunk_fft = np.fft.fft([x/(2**15 - 1) for x in chunk.get_array_of_samples()])
+        chunk_fft = np.fft.fft([x/(2**15 - 1) for x in chunk])
 
         freq = np.fft.fftfreq(len(chunk_fft), 1/sampling_frequency)
 
@@ -116,13 +116,18 @@ class EnergyDetectionSampler(Sampler):
         recording_path = os.path.join(self.project.path, ChildProject.projects.ChildProject.RAW_RECORDINGS, recording['filename'])
         audio = AudioSegment.from_wav(recording_path)
         duration = audio.duration_seconds
+        channels = audio.channels
         frequency = int(audio.frame_rate)
 
         windows_starts = (1000*np.arange(self.windows_spacing, duration - self.windows_length, self.windows_spacing)).astype(int)
         windows = []
 
         for start in windows_starts:
-            energy = self.compute_energy_loudness(audio[start:start+int(1000*self.windows_length)], frequency)
+            energy = 0
+            chunk = audio[start:start+int(1000*self.windows_length)].get_array_of_samples()
+            
+            for channel in range(channels):
+                energy += self.compute_energy_loudness(chunk[channel::channels], frequency)
 
             windows.append({
                 'segment_onset': start/1000,
