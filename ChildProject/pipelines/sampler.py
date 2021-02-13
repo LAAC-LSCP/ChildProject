@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 import argparse
+import multiprocessing as mp
 import os
 import pandas as pd
 
@@ -80,7 +81,6 @@ class RandomVocalizationSampler(Sampler):
         parser.add_argument('--sample-size', help = 'how many samples per recording', required = True, type = int)
 
 import numpy as np
-from scipy.fft import fft
 from pydub import AudioSegment
 
 class EnergyDetectionSampler(Sampler):
@@ -103,15 +103,18 @@ class EnergyDetectionSampler(Sampler):
         self.initial_segments_path = initial_segments
 
     def compute_energy_loudness(self, chunk, sampling_frequency: int):
-        chunk_fft = fft([x/(2**15 - 1) for x in chunk.get_array_of_samples()])
+        chunk_fft = np.fft.fft([x/(2**15 - 1) for x in chunk.get_array_of_samples()])
+
+        freq = np.fft.fftfreq(len(chunk_fft), 1/sampling_frequency)
 
         if self.lowpass_freq > 0:
-            chunk_fft = chunk_fft[:int(len(chunk)*self.lowpass_freq/sampling_frequency)]
+            chunk_fft = chunk_fft[(freq < self.lowpass_freq)]
         
         return np.sum(np.abs(chunk_fft)**2)/len(chunk_fft)
 
     def get_recording_windows(self, profile, recording):
-        audio = AudioSegment.from_wav(os.path.join(self.project.path, ChildProject.projects.ChildProject.RAW_RECORDINGS, recording['filename']))
+        recording_path = os.path.join(self.project.path, ChildProject.projects.ChildProject.RAW_RECORDINGS, recording['filename'])
+        audio = AudioSegment.from_wav(recording_path)
         duration = audio.duration_seconds
         frequency = int(audio.frame_rate)
 
