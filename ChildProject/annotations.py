@@ -8,10 +8,11 @@ import os
 import pandas as pd
 import pympi
 import re
-from functools import reduce
+from functools import reduce, partial
 import shutil
 import sys
 import traceback
+from typing import Callable
 
 from .projects import ChildProject
 from .tables import IndexTable, IndexColumn
@@ -479,7 +480,7 @@ class AnnotationManager:
 
         return df
 
-    def import_annotation(self, annotation):
+    def import_annotation(self, import_function: Callable[[str], pd.DataFrame], annotation):
         source_recording = os.path.splitext(annotation['recording_filename'])[0]
         output_filename = "{}/converted/{}_{}_{}.csv".format(annotation['set'], source_recording, annotation['time_seek'], annotation['range_onset'])
 
@@ -488,8 +489,11 @@ class AnnotationManager:
 
         df = None
         filter = annotation['filter'] if 'filter' in annotation and not pd.isnull(annotation['filter']) else None
+
         try:
-            if annotation_format == 'TextGrid':
+            if callable(import_function):
+                df = import_function(path)
+            elif annotation_format == 'TextGrid':
                 df = self.load_textgrid(path)
             elif annotation_format == 'eaf':
                 df = self.load_eaf(path)
@@ -532,7 +536,7 @@ class AnnotationManager:
 
         return annotation
 
-    def import_annotations(self, input, threads = -1):
+    def import_annotations(self, input: pd.DataFrame, threads: int = -1, import_function: Callable[[str], pd.DataFrame] = None):
         missing_recordings = input[~input['recording_filename'].isin(self.project.recordings['filename'].tolist())]
         missing_recordings = missing_recordings['recording_filename'].tolist()
 
@@ -541,7 +545,7 @@ class AnnotationManager:
 
         pool = mp.Pool(processes = threads if threads > 0 else mp.cpu_count())
         imported = pool.map(
-            self.import_annotation,
+            partial(self.import_annotation, import_function),
             input.to_dict(orient = 'records')
         )
 
