@@ -1,15 +1,14 @@
 - [List of extant datasets](#list-of-extant-datasets)
-  - [Public data sets (TODO)](#public-data-sets-todo)
+  - [Public data sets](#public-data-sets)
   - [From the LAAC team](#from-the-laac-team)
   - [Other private datasets](#other-private-datasets)
 
 
 # List of extant datasets
 
-## Public data sets (TODO)
+## Public data sets
 
-We have prepared a public data set for testing purposes which is based on the [VanDam Public Daylong HomeBank Corpus](https://homebank.talkbank.org/access/Public/VanDam-Daylong.html); VanDam, Mark (2018). VanDam Public Daylong HomeBank Corpus. doi:10.21415/T5388S.
-
+We have prepared a [public dataset](https://github.com/LAAC-LSCP/vandam-daylong-demo) for testing purposes which is based on the [VanDam Public Daylong HomeBank Corpus](https://homebank.talkbank.org/access/Public/VanDam-Daylong.html); VanDam, Mark (2018). VanDam Public Daylong HomeBank Corpus. doi:10.21415/T5388S.
 
 
 ## From the [LAAC team](https://lscp.dec.ens.fr/en/research/teams-lscp/language-acquisition-across-cultures)
