@@ -1,4 +1,15 @@
+<<<<<<< HEAD
 
+=======
+- [Cheatsheet](#cheatsheet)
+  - [DataLad cheatsheet](#datalad-cheatsheet)
+    - [Installing a dataset](#installing-a-dataset)
+    - [Getting data](#getting-data)
+    - [Getting updates](#getting-updates)
+    - [Saving changes](#saving-changes)
+    - [Publishing changes](#publishing-changes)
+  - [ChildProject cheatsheet](#childproject-cheatsheet)
+>>>>>>> docs-improvements
 
 # Cheatsheet
 
