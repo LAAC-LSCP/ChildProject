@@ -244,6 +244,7 @@ def compute_durations(args):
 def main():
     register_pipeline('zooniverse', ZooniversePipeline)
     register_pipeline('convert', ConversionPipeline)
+    register_pipeline('anonymize', AnonymizationPipeline)
 
     args = parser.parse_args()
     args.func(args)
