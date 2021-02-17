@@ -49,6 +49,7 @@ In this context, we provide tools and a procedure to:
 - Validate datasets (making sure that metadata, recordings and annotations are in the right place and format)
 - Convert your raw recordings into the desired format
 - Import raw annotations (from ELAN, Praat, csv, rttm from VTC and ALICE) into our standardized format
+- Draw audio samples to annotate, based on a set of selection algorithms.
 - Add clips to an annotation pipeline in Zooniverse, and retrieve the ensuing annotations
 
 ## Installation
@@ -135,11 +136,12 @@ We provid a [cheatsheet](http://laac-lscp.github.io/ChildRecordsData/CHEATSHEET.
 
 We provide tools to:
 
-- Validate raw data
+- Validate datasets (making sure that metadata, recordings and annotations are in the right place and format)
 - Convert your raw recordings into a standardized format
-- Add recording duration to your metadata
 - Import raw annotations (from LENA, ELAN, Praat, csv, rttm) into our standardized format
+- Draw audio samples to annotate, based on a set of selection algorithms.
 - Add clips to an annotation pipeline in Zooniverse, and retrieve the ensuing annotations
+- Add recording duration to your metadata
 
 We provide detailed instructions [here](http://laac-lscp.github.io/ChildRecordsData/TOOLS.html).
 

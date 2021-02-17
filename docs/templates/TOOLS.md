@@ -9,6 +9,7 @@
     - [Merge annotation sets](#merge-annotation-sets)
     - [Rename a set of annotations](#rename-a-set-of-annotations)
     - [Remove a set of annotations](#remove-a-set-of-annotations)
+  - [Samplers](#samplers)
   - [Zooniverse](#zooniverse)
 
 
@@ -120,6 +121,11 @@ This will deleted converted annotations associated to a given set and remove the
 ```
 child-project remove-annotations /path/to/dataset --set vtc
 ```
+
+## Samplers
+
+Find all the instructions on how-to use our sampling algorithms [here](http://laac-lscp.github.io/ChildRecordsData/SAMPLERS.html).
+
 
 ## Zooniverse
 
