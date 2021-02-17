@@ -54,7 +54,9 @@ class AnonymizationPipeline(Pipeline):
         }
     }
 
-    def run(self, path, input_set, output_set, replacements_json_dict = '', **kwargs):
+    def run(self, path: str, input_set: str, output_set: str, replacements_json_dict: str = '', **kwargs):
+        """Anonymize a set of its annotations (`input_set`) and saves it as `output_set`."""
+        
         project = ChildProject(path)
         project.read()
 
