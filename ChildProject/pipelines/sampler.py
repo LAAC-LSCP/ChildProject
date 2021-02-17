@@ -158,8 +158,8 @@ class EnergyDetectionSampler(Sampler):
         parser = samplers.add_parser('energy-detection', help = 'energy based activity detection')
         parser.add_argument('--windows-length', help = 'length of each window (in seconds)', required = True, type = float)
         parser.add_argument('--windows-spacing', help = 'spacing between windows (in seconds)', required = True, type = float)
-        parser.add_argument('--windows-count', help = 'how many windows so sample from', required = True, type = int)
-        parser.add_argument('--threshold', help = 'lowest energy quantile to sample from. default is 0.8 (i.e., sample from the 20% windows with the highest energy).', default = 0.8, type = float)
+        parser.add_argument('--windows-count', help = 'how many windows to sample from', required = True, type = int)
+        parser.add_argument('--threshold', help = 'lowest energy quantile to sample from. default is 0.8 (i.e., sample from the 20%% windows with the highest energy).', default = 0.8, type = float)
         parser.add_argument('--low-freq', help = 'remove all frequencies below low-freq before calculating each window\'s energy. (in Hz)', default = 0, type = int)
         parser.add_argument('--high-freq', help = 'remove all frequencies above high-freq before calculating each window\'s energy. (in Hz)', default = 100000, type = int)
 
