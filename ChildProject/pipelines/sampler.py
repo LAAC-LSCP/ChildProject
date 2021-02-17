@@ -90,7 +90,8 @@ class EnergyDetectionSampler(Sampler):
         windows_spacing: float,
         windows_count: int,
         threshold: float = None,
-        lowpass_freq: int = -1,
+        low_freq: int = 0,
+        high_freq: int = 100000,
         initial_segments: str = None
         ):
 
@@ -99,18 +100,20 @@ class EnergyDetectionSampler(Sampler):
         self.windows_count = windows_count
         self.windows_spacing = windows_spacing
         self.threshold = threshold
-        self.lowpass_freq = lowpass_freq
+        self.low_freq = low_freq
+        self.high_freq = high_freq
         self.initial_segments_path = initial_segments
 
     def compute_energy_loudness(self, chunk, sampling_frequency: int):
-        chunk_fft = np.fft.fft([x/(2**15 - 1) for x in chunk])
+        chunk = np.array([x/(2**15 - 1) for x in chunk])
 
-        freq = np.fft.fftfreq(len(chunk_fft), 1/sampling_frequency)
-
-        if self.lowpass_freq > 0:
-            chunk_fft = chunk_fft[(freq < self.lowpass_freq)]
-        
-        return np.sum(np.abs(chunk_fft)**2)/len(chunk_fft)
+        if self.low_freq > 0 or self.high_freq < 100000:
+            chunk_fft = np.fft.fft(chunk)
+            freq = np.fft.fftfreq(len(chunk_fft), 1/sampling_frequency)
+            chunk_fft = chunk_fft[(freq > self.low_freq) & (freq < self.high_freq)]
+            return np.sum(np.abs(chunk_fft)**2)/len(chunk)
+        else:
+            return np.sum(chunk**2)
 
     def get_recording_windows(self, profile, recording):
         recording_path = os.path.join(self.project.path, ChildProject.projects.ChildProject.RAW_RECORDINGS, recording['filename'])
@@ -156,7 +159,8 @@ class EnergyDetectionSampler(Sampler):
         parser.add_argument('--windows-length', help = 'length of each window (in seconds)', required = True, type = float)
         parser.add_argument('--windows-spacing', help = 'spacing between windows (in seconds)', required = True, type = float)
         parser.add_argument('--windows-count', help = 'how many windows so sample from', required = True, type = int)
-        parser.add_argument('--lowpass-freq', help = 'lowpass frequency cutoff to apply before calculating each window\'s energy. (in Hz). ignored if <= 0.', default = -1, type = int)
+        parser.add_argument('--low-freq', help = 'remove all frequencies below low-freq before calculating each window\'s energy. (in Hz)', default = 0, type = int)
+        parser.add_argument('--high-freq', help = 'remove all frequencies above high-freq before calculating each window\'s energy. (in Hz)', default = 100000, type = int)
 
             
 
