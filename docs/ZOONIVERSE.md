@@ -1,6 +1,7 @@
-- [Chunk extraction](#chunk-extraction)
-- [Chunk upload](#chunk-upload)
-- [Classifications retrieval](#classifications-retrieval)
+- [Introduction](#introduction)
+  - [Chunk extraction](#chunk-extraction)
+  - [Chunk upload](#chunk-upload)
+  - [Classifications retrieval](#classifications-retrieval)
 
 ## Introduction
 
@@ -22,13 +23,18 @@ You can also use this code and your own knowledge to set up a new project of you
 ### Chunk extraction
 
 ```bash
-child-project zooniverse extract-chunks [-h] --destination DESTINATION
-                                    --sample-size SAMPLE_SIZE
-                                    [--annotation-set ANNOTATION_SET]
-                                    [--target-speaker-type {CHI,OCH,FEM,MAL}]
-                                    [--batch-size BATCH_SIZE]
-                                    [--threads THREADS]
-                                    path
+$ child-project zooniverse extract-chunks --help
+usage: child-project zooniverse extract-chunks [-h] --keyword KEYWORD
+                                               --destination DESTINATION
+                                               [--annotation-set ANNOTATION_SET]
+                                               [--target-speaker-type {CHI,OCH,FEM,MAL} [{CHI,OCH,FEM,MAL} ...]]
+                                               [--batch-size BATCH_SIZE]
+                                               [--threads THREADS]
+                                               path
+                                               
+                                               algorithm {random,high-volubility}
+                                               ...
+
 ```
 
 If it does not exist, DESTINATION is created.
@@ -44,6 +50,11 @@ Metadata is stored in a file named `DESTINATION/chunks.csv`.
 <tr>
     <td>path</td>
     <td>path to the dataset</td>
+    <td></td>
+</tr>
+<tr>
+    <td>algorithm</td>
+    <td>sampling algorithm (`random`, `high-volubility`)</td>
     <td></td>
 </tr>
 <tr>
@@ -77,6 +88,31 @@ Metadata is stored in a file named `DESTINATION/chunks.csv`.
     <td>0</td>
 </tr>
 </table>
+
+Examples:
+
+```bash
+child-project zooniverse extract-chunks \ 
+    --keyword test \
+    --annotation-set vtc_rttm \
+    --target-speaker-type FEM MAL \
+    --destination . \
+    ~/data/solomon-data \
+    random \
+    --sample-size 100
+```
+
+```bash
+child-project zooniverse extract-chunks \ 
+    --keyword test \
+    --annotation-set vtc_rttm \
+    --target-speaker-type FEM MAL \
+    --destination . \
+    ~/data/solomon-data \
+    high-volubility \
+    --windows-length 10
+    --windows-count 10
+```
 
 ### Chunk upload
 

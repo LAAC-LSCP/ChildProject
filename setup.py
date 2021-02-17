@@ -3,6 +3,7 @@ import ChildProject
 
 requires = {
     'core': ['pandas', 'xlrd', 'jinja2', 'numpy>=1.16.5', 'pympi-ling', 'lxml', 'sox', 'datalad', 'requests<2.25.0'],
+    'samplers': [],
     'zooniverse': ['panoptes_client', 'pydub']
 }
 
@@ -15,7 +16,7 @@ setup(
     author_email='lucas.gautheron@gmail.com',
     license='unlicense',
     packages=find_packages(),
-    install_requires=requires['core'] + requires['zooniverse'],
+    install_requires=requires['core'] + requires['samplers'] + requires['zooniverse'],
     include_package_data=True,
     entry_points={
         'console_scripts': [
