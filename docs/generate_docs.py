@@ -5,7 +5,12 @@ import time
 import subprocess
 
 def cli_doc(command_string):
-    out = subprocess.Popen(command_string, stdout = subprocess.PIPE, shell = True).communicate()[0]
+    proc = subprocess.Popen(command_string, stdout = subprocess.PIPE, stderr = None, shell = True)
+    out = proc.communicate()[0]
+
+    if proc.returncode != 0:
+        raise Exception("cli_doc('{}') returned non-zero status code.".format(command_string))
+
     return "```bash\n$ {}\n{}```".format(command_string, out.decode("utf-8"))
 
 # recursively get the sum of durations of each audio in the current directory :
