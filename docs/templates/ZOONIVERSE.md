@@ -28,24 +28,7 @@ You can also use this code and your own knowledge to set up a new project of you
 
 ### Chunk extraction
 
-<<<<<<< HEAD:docs/ZOONIVERSE.md
-```bash
-$ child-project zooniverse extract-chunks --help
-usage: child-project zooniverse extract-chunks [-h] --keyword KEYWORD
-                                               --destination DESTINATION
-                                               [--annotation-set ANNOTATION_SET]
-                                               [--target-speaker-type {CHI,OCH,FEM,MAL} [{CHI,OCH,FEM,MAL} ...]]
-                                               [--batch-size BATCH_SIZE]
-                                               [--threads THREADS]
-                                               path
-                                               
-                                               algorithm {random,high-volubility}
-                                               ...
-
-```
-=======
 {{cli_doc('child-project zooniverse extract-chunks --help')}}
->>>>>>> documentation/auto-cli-doc:docs/templates/ZOONIVERSE.md
 
 If it does not exist, DESTINATION is created.
 Audio chunks are saved in wav and mp3 in `DESTINATION/chunks`.
