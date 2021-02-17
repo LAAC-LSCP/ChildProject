@@ -2,6 +2,16 @@ from ChildProject.projects import ChildProject
 from ChildProject.annotations import AnnotationManager
 import jinja2
 import time
+import subprocess
+
+def cli_doc(command_string):
+    proc = subprocess.Popen(command_string, stdout = subprocess.PIPE, stderr = None, shell = True)
+    out = proc.communicate()[0]
+
+    if proc.returncode != 0:
+        raise Exception("cli_doc('{}') returned non-zero status code.".format(command_string))
+
+    return "```bash\n$ {}\n{}```".format(command_string, out.decode("utf-8"))
 
 # recursively get the sum of durations of each audio in the current directory :
 # find . -type f -execdir soxi -D {} \; | awk '{s+=$1} END {printf "%.0f", s}'
@@ -28,5 +38,19 @@ template = jinja2.Template(open('docs/templates/EXTANT.md', 'r').read())
 open('docs/EXTANT.md', 'w+').write(
     template.render(
         projects = projects
+    )
+)
+
+template = jinja2.Template(open('docs/templates/TOOLS.md', 'r').read())
+open('docs/TOOLS.md', 'w+').write(
+    template.render(
+        cli_doc = cli_doc
+    )
+)
+
+template = jinja2.Template(open('docs/templates/ZOONIVERSE.md', 'r').read())
+open('docs/ZOONIVERSE.md', 'w+').write(
+    template.render(
+        cli_doc = cli_doc
     )
 )

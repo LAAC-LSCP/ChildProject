@@ -20,24 +20,7 @@ This is typically done (repeatedly!) in the process of importing your data into 
 
 Looks for errors and inconsistency in the metadata, or for missing audios. The validation will pass if the [formatting instructions](http://laac-lscp.github.io/ChildRecordsData/FORMATTING.html) are met.
 
-```bash
-$ child-project validate --help
-usage: child-project validate [-h] [--ignore-files] [--check-annotations]
-                              [--threads THREADS]
-                              source
-
-validate the consistency of the dataset returning detailed errors and warnings
-
-positional arguments:
-  source               project path
-
-optional arguments:
-  -h, --help           show this help message and exit
-  --ignore-files       ignore missing audio files
-  --check-annotations  check all imported annotations for errors
-  --threads THREADS    amount of threads to run on (only applies to --check-
-                       annotations)
-```
+{{cli_doc('child-project validate --help')}}
 
 Example:
 
@@ -45,16 +28,17 @@ Example:
 child-project validate /path/to/dataset
 ```
 
-
 ## Convert recordings
 
 Converts all recordings in a dataset to a given encoding. Converted audios are stored into `recordings/converted/<profile-name>`.
 
+{{cli_doc('child-project convert --help')}}
+
+Example:
 
 ```
 child-project convert /path/to/dataset --name=16kHz --format=wav --sampling=16000 --codec=pcm_s16le
 ```
-
 
 We typically run the following, to split long sound files every 15 hours, because the software we use for human annotation (ELAN, Praat) works better with audio that is maximally 15h long:
 
@@ -75,9 +59,8 @@ sbatch --mem=64G --time=5:00:00 --cpus-per-task=4 --ntasks=1 -o namibia.txt chil
 
 Compute recordings duration and store in into a column named 'duration' in the metadata.
 
-```
-child-project compute-durations [--force] /path/to/dataset
-```
+{{cli_doc('child-project compute-durations --help')}}
+
 
 ## Import annotations
 
@@ -90,49 +73,7 @@ Annotations can be imported one by one or in bulk. Annotation importation does t
 
 Use `child-project import-annotations` to import a single annotation file.
 
-```bash
-usage: child-project import-annotations [-h] [--annotations ANNOTATIONS]
-                                        [--threads THREADS] [--set SET]
-                                        [--recording_filename RECORDING_FILENAME]
-                                        [--time_seek TIME_SEEK]
-                                        [--range_onset RANGE_ONSET]
-                                        [--range_offset RANGE_OFFSET]
-                                        [--raw_filename RAW_FILENAME]
-                                        [--format FORMAT] [--filter FILTER]
-                                        source
-
-convert and import a set of annotations
-
-positional arguments:
-  source                project path
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --annotations ANNOTATIONS
-                        path to input annotations index (csv)
-  --threads THREADS     amount of threads to run on
-  --set SET             name of the annotation set (e.g. VTC, annotator1,
-                        etc.)
-  --recording_filename RECORDING_FILENAME
-                        recording filename as specified in the recordings
-                        index
-  --time_seek TIME_SEEK
-                        reference time in seconds, e.g: 3600, or 3600.500. All
-                        times expressed in the annotations are relative to
-                        this time.
-  --range_onset RANGE_ONSET
-                        covered range start time in seconds, measured since
-                        `time_seek`
-  --range_offset RANGE_OFFSET
-                        covered range end time in seconds, measured since
-                        `time_seek`
-  --raw_filename RAW_FILENAME
-                        annotation input filename location, relative to
-                        `annotations/<set>/raw`
-  --format FORMAT       input annotation format
-  --filter FILTER       source file to filter in (for rttm and alice only)
-```
-
+{{cli_doc('child-project import-annotations --help')}}
 
 Example:
 
@@ -162,21 +103,7 @@ child-project merge-annotations /path/to/dataset --left-set vtc --right-set alic
 
 Rename a set of annotations. This will move the annotations themselves, and update the index (`metadata/annotations.csv`) accordingly.
 
-```bash
-usage: child-project rename-annotations [-h] --set SET --new-set NEW_SET
-                                        [--recursive] [--ignore-errors]
-                                        source
-
-positional arguments:
-  source             project path
-
-optional arguments:
-  -h, --help         show this help message and exit
-  --set SET          set to rename
-  --new-set NEW_SET  new name for the set
-  --recursive        enable recursive mode
-  --ignore-errors    proceed despite errors
-```
+{{cli_doc('child-project rename-annotations --help')}}
 
 Example:
 
@@ -188,17 +115,7 @@ child-project rename-annotations /path/to/dataset --set vtc --new-set vtc_1
 
 This will deleted converted annotations associated to a given set and remove them from the index.
 
-```bash
-usage: child-project remove-annotations [-h] --set SET [--recursive] source
-
-positional arguments:
-  source       project path
-
-optional arguments:
-  -h, --help   show this help message and exit
-  --set SET    set to remove
-  --recursive  enable recursive mode
-```
+{{cli_doc('child-project remove-annotations --help')}}
 
 ```
 child-project remove-annotations /path/to/dataset --set vtc

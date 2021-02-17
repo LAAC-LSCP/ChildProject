@@ -1,6 +1,8 @@
-- [Chunk extraction](#chunk-extraction)
-- [Chunk upload](#chunk-upload)
-- [Classifications retrieval](#classifications-retrieval)
+- [Introduction](#introduction)
+  - [Overview](#overview)
+  - [Chunk extraction](#chunk-extraction)
+  - [Chunk upload](#chunk-upload)
+  - [Classifications retrieval](#classifications-retrieval)
 
 ## Introduction
 
@@ -19,17 +21,14 @@ If you would like your data labeled with this project, here is what you'd need t
 
 You can also use this code and your own knowledge to set up a new project of your own. 
 
+### Overview
+
+{{cli_doc('child-project zooniverse --help')}}
+
+
 ### Chunk extraction
 
-```bash
-child-project zooniverse extract-chunks [-h] --destination DESTINATION
-                                    --sample-size SAMPLE_SIZE
-                                    [--annotation-set ANNOTATION_SET]
-                                    [--target-speaker-type {CHI,OCH,FEM,MAL}]
-                                    [--batch-size BATCH_SIZE]
-                                    [--threads THREADS]
-                                    path
-```
+{{cli_doc('child-project zooniverse extract-chunks --help')}}
 
 If it does not exist, DESTINATION is created.
 Audio chunks are saved in wav and mp3 in `DESTINATION/chunks`.
@@ -80,14 +79,7 @@ Metadata is stored in a file named `DESTINATION/chunks.csv`.
 
 ### Chunk upload
 
-
-```bash
-child-project zooniverse upload-chunks [-h] --destination DESTINATION
-                                   --zooniverse-login ZOONIVERSE_LOGIN
-                                   --zooniverse-pwd ZOONIVERSE_PWD
-                                   --project-slug PROJECT_SLUG --set-prefix
-                                   SET_PREFIX [--batches BATCHES]
-```
+{{cli_doc('child-project zooniverse upload-chunks --help')}}
 
 Uploads as many batches of audio chunks as specified to Zooniverse, and updates `chunks.csv` accordingly.
 
@@ -131,16 +123,7 @@ Uploads as many batches of audio chunks as specified to Zooniverse, and updates 
 
 ### Classifications retrieval
 
-```bash
-child-project zooniverse retrieve-classifications [-h] --destination
-                                                         DESTINATION
-                                                         --zooniverse-login
-                                                         ZOONIVERSE_LOGIN
-                                                         --zooniverse-pwd
-                                                         ZOONIVERSE_PWD
-                                                         --project-id
-                                                         PROJECT_ID
-```
+{{cli_doc('child-project zooniverse retrieve-classifications --help')}}
 
 Retrieve classifications and save them into `DESTINATION/classifications.csv`.
 
