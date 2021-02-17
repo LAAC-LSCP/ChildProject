@@ -1,4 +1,5 @@
 - [Introduction](#introduction)
+  - [Overview](#overview)
   - [Chunk extraction](#chunk-extraction)
   - [Chunk upload](#chunk-upload)
   - [Classifications retrieval](#classifications-retrieval)
@@ -20,8 +21,14 @@ If you would like your data labeled with this project, here is what you'd need t
 
 You can also use this code and your own knowledge to set up a new project of your own. 
 
+### Overview
+
+{{cli_doc('child-project zooniverse --help')}}
+
+
 ### Chunk extraction
 
+<<<<<<< HEAD:docs/ZOONIVERSE.md
 ```bash
 $ child-project zooniverse extract-chunks --help
 usage: child-project zooniverse extract-chunks [-h] --keyword KEYWORD
@@ -36,6 +43,9 @@ usage: child-project zooniverse extract-chunks [-h] --keyword KEYWORD
                                                ...
 
 ```
+=======
+{{cli_doc('child-project zooniverse extract-chunks --help')}}
+>>>>>>> documentation/auto-cli-doc:docs/templates/ZOONIVERSE.md
 
 If it does not exist, DESTINATION is created.
 Audio chunks are saved in wav and mp3 in `DESTINATION/chunks`.
@@ -116,14 +126,7 @@ child-project zooniverse extract-chunks \
 
 ### Chunk upload
 
-
-```bash
-child-project zooniverse upload-chunks [-h] --destination DESTINATION
-                                   --zooniverse-login ZOONIVERSE_LOGIN
-                                   --zooniverse-pwd ZOONIVERSE_PWD
-                                   --project-slug PROJECT_SLUG --set-prefix
-                                   SET_PREFIX [--batches BATCHES]
-```
+{{cli_doc('child-project zooniverse upload-chunks --help')}}
 
 Uploads as many batches of audio chunks as specified to Zooniverse, and updates `chunks.csv` accordingly.
 
@@ -167,16 +170,7 @@ Uploads as many batches of audio chunks as specified to Zooniverse, and updates 
 
 ### Classifications retrieval
 
-```bash
-child-project zooniverse retrieve-classifications [-h] --destination
-                                                         DESTINATION
-                                                         --zooniverse-login
-                                                         ZOONIVERSE_LOGIN
-                                                         --zooniverse-pwd
-                                                         ZOONIVERSE_PWD
-                                                         --project-id
-                                                         PROJECT_ID
-```
+{{cli_doc('child-project zooniverse retrieve-classifications --help')}}
 
 Retrieve classifications and save them into `DESTINATION/classifications.csv`.
 
