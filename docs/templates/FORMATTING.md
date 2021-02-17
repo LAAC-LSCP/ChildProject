@@ -52,7 +52,7 @@ The children and recordings notebooks should be formatted according to the stand
 
 ### children notebook
 
-Located in the `metadata` folder. Can be named either `children.csv`, `children.xls` or `children.xslx`.
+The children dataframe needs to be saved at `metadata/children.csv`.
 
 | Name | Description | Required ? | Format |
 |------|-------------|------------|--------|
@@ -69,7 +69,7 @@ Located in the `metadata` folder. Can be named either `children.csv`, `children.
 
 ### recording notebook
 
-Located in the `metadata` folder.  Can be named either `recordings.csv`, `recordings.xls` or `recordings.xslx`.
+The recordings dataframe needs to be saved at `metadata/recordings.csv`.
 
 | Name | Description | Required ? | Format |
 |------|-------------|------------|--------|

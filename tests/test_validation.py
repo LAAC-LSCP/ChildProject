@@ -12,13 +12,13 @@ def test_invalid_project():
     errors, warnings = project.validate()
     
     expected_errors = [
-        "examples/invalid_raw_data/metadata/children: child_id '1' appears 2 times in lines [2,3], should appear once",
+        "examples/invalid_raw_data/metadata/children.csv: child_id '1' appears 2 times in lines [2,3], should appear once",
         "cannot find recording 'test_1_20200918.mp3'",
-        "examples/invalid_raw_data/metadata/recordings: 'USB' is not a permitted value for column 'recording_device_type' on line 2, should be any of [lena,usb,olympus,babylogger]"
+        "examples/invalid_raw_data/metadata/recordings.csv: 'USB' is not a permitted value for column 'recording_device_type' on line 2, should be any of [lena,usb,olympus,babylogger]"
     ]
 
     expected_warnings = [
-        "examples/invalid_raw_data/metadata/recordings: '2' does not pass callable test for column 'noisy_setting' on line 2",
+        "examples/invalid_raw_data/metadata/recordings.csv: '2' does not pass callable test for column 'noisy_setting' on line 2",
         "file 'examples/invalid_raw_data/recordings/raw/test_1_2020091.mp3' not indexed."
     ]
     

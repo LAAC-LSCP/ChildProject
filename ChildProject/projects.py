@@ -4,7 +4,6 @@ import numpy as np
 import os
 import pandas as pd
 import re
-import shutil
 import subprocess
 
 from .tables import IndexTable, IndexColumn, is_boolean
@@ -48,6 +47,8 @@ class ChildProject:
         IndexColumn(name = 'recording_device_type', description = 'lena, usb, olympus, babylogger (lowercase)', required = True, choices = ['lena', 'usb', 'olympus', 'babylogger']),
         IndexColumn(name = 'filename', description = 'the path to the file from the root of “recordings”), set to ‘NA’ if no valid recording available. It is unique (two recordings cannot point towards the same file).', required = True, filename = True, unique = True),
         IndexColumn(name = 'duration', description = 'duration of the audio', regex = r'(\d+(\.\d+)?)'),
+        IndexColumn(name = 'session_id', description = 'identifier of the recording session.'),
+        IndexColumn(name = 'session_offset', description = 'offset (in seconds) of the recording with respect to other recordings that are part of the same session. Each recording session is identified by their `session_id`.', regex = r'(\d+(\.\d+)?)'),
         IndexColumn(name = 'recording_device_id', description = 'unique ID of the recording device'),
         IndexColumn(name = 'experimenter', description = 'who collected the data (could be anonymized ID)'),
         IndexColumn(name = 'location_id', description = 'unique location ID -- can be specified at the level of the child (if children do not change locations)'),
@@ -80,11 +81,11 @@ class ChildProject:
         self.recordings = None
     
     def read(self):
-        self.ct = IndexTable('children', os.path.join(self.path, 'metadata/children'), self.CHILDREN_COLUMNS)
-        self.rt = IndexTable('recordings', os.path.join(self.path, 'metadata/recordings'), self.RECORDINGS_COLUMNS)
+        self.ct = IndexTable('children', os.path.join(self.path, 'metadata/children.csv'), self.CHILDREN_COLUMNS)
+        self.rt = IndexTable('recordings', os.path.join(self.path, 'metadata/recordings.csv'), self.RECORDINGS_COLUMNS)
 
-        self.children = self.ct.read(lookup_extensions = ['.csv', '.xls', '.xlsx'])
-        self.recordings = self.rt.read(lookup_extensions = ['.csv', '.xls', '.xlsx'])
+        self.children = self.ct.read()
+        self.recordings = self.rt.read()
 
     def validate(self, ignore_files = False):
         self.errors = []
@@ -154,22 +155,6 @@ class ChildProject:
                 self.warnings.append("file '{}' not indexed.".format(rf))
 
         return self.errors, self.warnings
-
-    def import_data(self, destination, follow_symlinks = True):
-        errors, warnings = self.validate()
-
-        if len(errors) > 0:
-            raise Exception('cannot import data: validation failed')
-
-        # perform copy
-        shutil.copytree(src = self.path, dst = destination, symlinks = follow_symlinks)
-
-        # create folders
-        for folder in self.PROJECT_FOLDERS:
-            os.makedirs(
-                name = os.path.join(destination, folder),
-                exist_ok = True
-            )
 
     def get_stats(self):
         stats = {}

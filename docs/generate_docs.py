@@ -2,6 +2,21 @@ from ChildProject.projects import ChildProject
 from ChildProject.annotations import AnnotationManager
 import jinja2
 import time
+import subprocess
+
+def cli_doc(command_string):
+    proc = subprocess.Popen(command_string, stdout = subprocess.PIPE, stderr = None, shell = True)
+    out = proc.communicate()[0]
+
+    if proc.returncode != 0:
+        raise Exception("cli_doc('{}') returned non-zero status code.".format(command_string))
+
+    return "```bash\n$ {}\n{}```".format(command_string, out.decode("utf-8"))
+
+def generate_from_template(name, **kwargs):
+    template = jinja2.Template(open('docs/templates/{}'.format(name), 'r').read())
+    open('docs/{}'.format(name), 'w+').write(template.render(**kwargs))
+
 
 # recursively get the sum of durations of each audio in the current directory :
 # find . -type f -execdir soxi -D {} \; | awk '{s+=$1} END {printf "%.0f", s}'
@@ -13,20 +28,16 @@ projects = [
     {'name': 'Vanuatu', 'status': 'raw', 'authors': "", 'location': '/scratch1/projects/ac_lacie01/STRUCTURE/raw/vanuatu', 'recordings': 53, 'duration': 1040709/3600}
 ]
 
-template = jinja2.Template(open('docs/templates/FORMATTING.md', 'r').read())
-open('docs/FORMATTING.md', 'w+').write(
-    template.render(
-        children = ChildProject.CHILDREN_COLUMNS,
-        recordings = ChildProject.RECORDINGS_COLUMNS,
-        input_annotations = [c for c in AnnotationManager.INDEX_COLUMNS if not c.generated],
-        annotation_segments = AnnotationManager.SEGMENTS_COLUMNS,
-        annotations = [c for c in AnnotationManager.INDEX_COLUMNS if (c.generated or c.required)]
-    )
+generate_from_template(
+    'FORMATTING.md',
+    children = ChildProject.CHILDREN_COLUMNS,
+    recordings = ChildProject.RECORDINGS_COLUMNS,
+    input_annotations = [c for c in AnnotationManager.INDEX_COLUMNS if not c.generated],
+    annotation_segments = AnnotationManager.SEGMENTS_COLUMNS,
+    annotations = [c for c in AnnotationManager.INDEX_COLUMNS if (c.generated or c.required)]
 )
 
-template = jinja2.Template(open('docs/templates/EXTANT.md', 'r').read())
-open('docs/EXTANT.md', 'w+').write(
-    template.render(
-        projects = projects
-    )
-)
+generate_from_template('EXTANT.md', projects = projects)
+generate_from_template('TOOLS.md', cli_doc = cli_doc)
+generate_from_template('ZOONIVERSE.md', cli_doc = cli_doc)
+generate_from_template('SAMPLERS.md', cli_doc = cli_doc)
