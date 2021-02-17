@@ -3,10 +3,10 @@ from ChildProject.pipelines.conversion import ConversionPipeline
 import numpy as np
 import os
 import pandas
+import shutil
 
 def test_convert():
-    project = ChildProject("examples/valid_raw_data")
-    project.import_data("output/convert")
+    shutil.copytree(src = "examples/valid_raw_data", dst = "output/convert")
 
     profile = ConversionPipeline().run(
         path = 'output/convert',

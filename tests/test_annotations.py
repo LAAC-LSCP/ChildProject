@@ -13,8 +13,7 @@ import sys
 @pytest.fixture(scope='function')
 def project(request):
     if not os.path.exists("output/annotations"):
-        project = ChildProject("examples/valid_raw_data")
-        project.import_data("output/annotations")
+        shutil.copytree(src = "examples/valid_raw_data", dst = "output/annotations")
 
     project = ChildProject("output/annotations")
     yield project
@@ -130,6 +129,47 @@ def test_rename(project):
     assert am.annotations[am.annotations['set'] == 'new_its'].shape[0] == 0
     assert am.annotations[am.annotations['set'] == 'renamed'].shape[0] == its_count
 
+def custom_function(filename):
+    df = pd.read_csv(
+        filename,
+        sep = " ",
+        names = ['type', 'file', 'chnl', 'tbeg', 'tdur', 'ortho', 'stype', 'name', 'conf', 'unk']
+    )
+
+    df['segment_onset'] = df['tbeg'].astype(float)
+    df['segment_offset'] = (df['tbeg']+df['tdur']).astype(float)
+    df['speaker_id'] = 'NA'
+    df['ling_type'] = 'NA'
+    df['speaker_type'] = df['name'].map(AnnotationManager.VTC_SPEAKER_TYPE_TRANSLATION)
+    df['vcm_type'] = 'NA'
+    df['lex_type'] = 'NA'
+    df['mwu_type'] = 'NA'
+    df['addresseee'] = 'NA'
+    df['transcription'] = 'NA'
+    df['phonemes'] = 'NA'
+    df['syllables'] = 'NA'
+    df['words'] = 'NA'
+
+    df.drop(['type', 'file', 'chnl', 'tbeg', 'tdur', 'ortho', 'stype', 'name', 'conf', 'unk'], axis = 1, inplace = True)
+    return df
+
+def test_custom_importation(project):
+    am = AnnotationManager(project)
+    input = pd.DataFrame([{
+        'set': 'vtc_rttm',
+        'range_onset': 0,
+        'range_offset': 4,
+        'recording_filename': 'sound.wav',
+        'time_seek': 0,
+        'raw_filename': 'example.rttm',
+        'format': 'custom'
+    }])
+
+    am.import_annotations(input, import_function =  custom_function)
+    am.read()
+
+    errors, warnings = am.validate()
+    assert len(errors) == 0
 
 thresholds = [0, 0.5, 1]
 @pytest.mark.parametrize('turntakingthresh', thresholds)
