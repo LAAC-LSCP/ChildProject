@@ -137,5 +137,5 @@ datalad save raw_annotations/vtc -m "adding vtc rttms"
 These changes still have to be pushed, which can be done with :
 
 ```
-datalad push --to cluster --data anything
+datalad push
 ```

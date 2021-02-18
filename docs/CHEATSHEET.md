@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-
-=======
 - [Cheatsheet](#cheatsheet)
   - [DataLad cheatsheet](#datalad-cheatsheet)
     - [Installing a dataset](#installing-a-dataset)
@@ -9,7 +6,6 @@
     - [Saving changes](#saving-changes)
     - [Publishing changes](#publishing-changes)
   - [ChildProject cheatsheet](#childproject-cheatsheet)
->>>>>>> docs-improvements
 
 # Cheatsheet
 
