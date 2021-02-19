@@ -105,8 +105,6 @@ class EnergyDetectionSampler(Sampler):
         self.initial_segments_path = initial_segments
 
     def compute_energy_loudness(self, chunk, sampling_frequency: int):
-        chunk = np.array([x/(2**15 - 1) for x in chunk])
-
         if self.low_freq > 0 or self.high_freq < 100000:
             chunk_fft = np.fft.fft(chunk)
             freq = np.fft.fftfreq(len(chunk_fft), 1/sampling_frequency)
@@ -121,6 +119,7 @@ class EnergyDetectionSampler(Sampler):
         duration = audio.duration_seconds
         channels = audio.channels
         frequency = int(audio.frame_rate)
+        max_value = 256**(int(audio.sample_width))/2-1
 
         windows_starts = (1000*np.arange(self.windows_spacing, duration - self.windows_length, self.windows_spacing)).astype(int)
         windows = []
@@ -130,7 +129,9 @@ class EnergyDetectionSampler(Sampler):
             chunk = audio[start:start+int(1000*self.windows_length)].get_array_of_samples()
             
             for channel in range(channels):
-                energy += self.compute_energy_loudness(chunk[channel::channels], frequency)
+                data = chunk[channel::channels]
+                data = np.array([x/max_value for x in data])
+                energy += self.compute_energy_loudness(data, frequency)
 
             windows.append({
                 'segment_onset': start/1000,
