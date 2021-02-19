@@ -359,8 +359,8 @@ class AnnotationManager:
                         start = 'startUtt{}'.format(n)
                         end = 'endUtt{}'.format(n)
                         utterances.append({
-                            start: seg.attrib[start],
-                            end: seg.attrib[end]
+                            'start': float(extract_from_regex(timestamp_pattern, seg.attrib[start])),
+                            'end': float(extract_from_regex(timestamp_pattern, seg.attrib[end]))
                         })
 
                         n = n + 1
@@ -373,8 +373,8 @@ class AnnotationManager:
                     start = 'startCry{}'.format(n)
                     end = 'endCry{}'.format(n)
                     cries.append({
-                        start: seg.attrib[start],
-                        end: seg.attrib[end]
+                        'start': float(extract_from_regex(timestamp_pattern, seg.attrib[start])),
+                        'end': float(extract_from_regex(timestamp_pattern, seg.attrib[end]))
                     })
                     n = n + 1
 
@@ -384,8 +384,8 @@ class AnnotationManager:
                     start = 'startVfx{}'.format(n)
                     end = 'endVfx{}'.format(n)
                     vfxs.append({
-                        start: seg.attrib[start],
-                        end: seg.attrib[end]
+                        'start': float(extract_from_regex(timestamp_pattern, seg.attrib[start])),
+                        'end': float(extract_from_regex(timestamp_pattern, seg.attrib[end]))
                     })
                     n = n + 1
 
