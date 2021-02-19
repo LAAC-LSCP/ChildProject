@@ -351,7 +351,7 @@ class AnnotationManager:
                 peak_db = seg.get('peak_dB', 0)
 
                 utterances = seg.xpath('./UTT')
-                utterances = [utt.attrib for utt in utterances]
+                utterances = [dict(utt.attrib) for utt in utterances]
 
                 if not utterances:
                     n = 1
@@ -359,12 +359,18 @@ class AnnotationManager:
                         start = 'startUtt{}'.format(n)
                         end = 'endUtt{}'.format(n)
                         utterances.append({
-                            'start': float(extract_from_regex(timestamp_pattern, seg.attrib[start])),
-                            'end': float(extract_from_regex(timestamp_pattern, seg.attrib[end]))
+                            start: seg.attrib[start],
+                            end: seg.attrib[end]
                         })
-
                         n = n + 1
 
+                for utterance in utterances:
+                    for c in utterance.keys():
+                        if 'startUtt' in c:
+                            utterance['start'] = float(extract_from_regex(timestamp_pattern, utterance.pop(c)))
+                        elif 'endUtt' in c:
+                            utterance['end'] = float(extract_from_regex(timestamp_pattern, utterance.pop(c)))
+                
                 child_cry_vfx_len = float(extract_from_regex(timestamp_pattern, seg.get('childCryVfxLen', 'PT0S')))
 
                 cries = []
