@@ -365,7 +365,7 @@ class AnnotationManager:
                         n = n + 1
 
                 for utterance in utterances:
-                    for c in utterance.keys():
+                    for c in list(utterance.keys()):
                         if 'startUtt' in c:
                             utterance['start'] = float(extract_from_regex(timestamp_pattern, utterance.pop(c)))
                         elif 'endUtt' in c:
