@@ -10,6 +10,16 @@ from .tables import IndexTable, IndexColumn, is_boolean
 from .utils import get_audio_duration
 
 class ChildProject:
+    """This class is a representation of a ChildRecords dataset.
+
+    :param path: path to the root of the dataset.
+    :type path: str
+    :param recordings: pandas dataframe representation of this dataset metadata/recordings.csv 
+    :type recordings: class:`pd.DataFrame`
+    :param children: pandas dataframe representation of this dataset metadata/children.csv 
+    :type children: class:`pd.DataFrame`
+    """
+
     REQUIRED_DIRECTORIES = [
         'recordings',
         'extra'
@@ -74,6 +84,11 @@ class ChildProject:
     ]
 
     def __init__(self, path):
+        """Constructor
+
+        :param path: path to the root of the dataset.
+        :type path: str
+        """
         self.path = path
         self.errors = []
         self.warnings = []
@@ -81,6 +96,8 @@ class ChildProject:
         self.recordings = None
     
     def read(self):
+        """Read the metadata
+        """
         self.ct = IndexTable('children', os.path.join(self.path, 'metadata/children.csv'), self.CHILDREN_COLUMNS)
         self.rt = IndexTable('recordings', os.path.join(self.path, 'metadata/recordings.csv'), self.RECORDINGS_COLUMNS)
 
@@ -88,6 +105,13 @@ class ChildProject:
         self.recordings = self.rt.read()
 
     def validate(self, ignore_files = False):
+        """Validate a dataset, returning all errors and warnings.
+
+        :param ignore_files: if True, no errors will be returned for missing recordings.
+        :type ignore_files: bool, optional
+        :return: A tuple containing the list of errors, and the list of warnings.
+        :rtype: a tuple of two lists
+        """
         self.errors = []
         self.warnings = []
 
