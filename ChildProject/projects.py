@@ -83,7 +83,7 @@ class ChildProject:
         'scripts'
     ]
 
-    def __init__(self, path):
+    def __init__(self, path: str):
         """Constructor
 
         :param path: path to the root of the dataset.
@@ -104,7 +104,7 @@ class ChildProject:
         self.children = self.ct.read()
         self.recordings = self.rt.read()
 
-    def validate(self, ignore_files = False):
+    def validate(self, ignore_files: bool = False) -> tuple:
         """Validate a dataset, returning all errors and warnings.
 
         :param ignore_files: if True, no errors will be returned for missing recordings.
@@ -180,7 +180,7 @@ class ChildProject:
 
         return self.errors, self.warnings
 
-    def get_stats(self):
+    def get_stats(self) -> dict:
         stats = {}
         recordings = self.recordings.merge(self.compute_recordings_duration(), left_on = 'filename', right_on = 'filename')
         recordings['exists'] = recordings['filename'].map(lambda f: os.path.exists(os.path.join(self.path, self.RAW_RECORDINGS, f)))
@@ -192,7 +192,7 @@ class ChildProject:
 
         return stats
 
-    def compute_recordings_duration(self, profile = None):
+    def compute_recordings_duration(self, profile: str = None) -> pd.DataFrame:
         recordings = self.recordings[['filename']]
 
         recordings['duration'] = recordings['filename'].map(lambda f:
