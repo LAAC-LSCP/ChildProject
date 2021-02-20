@@ -10,3 +10,4 @@ sox
 datalad
 pydub
 panoptes_client
+sphinx

@@ -16,7 +16,7 @@ install:
 script:
   - rm -rf output/
   - pytest
-  - python docs/generate_docs.py
+  - cd docs; make clean; make html
 deploy:
   provider: pages
   skip_cleanup: true
@@ -25,5 +25,5 @@ deploy:
   target_branch: docs
   local_dir: docs
   on:
-    branch: master
+    branch: documentation/migration
     condition: $(python -c 'import sys; print(".".join(map(str, sys.version_info[:2])))') = "3.8"

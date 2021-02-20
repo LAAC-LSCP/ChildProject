@@ -193,6 +193,13 @@ class ChildProject:
         return stats
 
     def compute_recordings_duration(self, profile: str = None) -> pd.DataFrame:
+        """[summary]
+
+        :param profile: name of the profile of recordings to compute the duration from. If None, raw recordings are used. defaults to None
+        :type profile: str, optional
+        :return: dataframe of the recordings, with an additional/updated duration columns.
+        :rtype: pd.DataFrame
+        """
         recordings = self.recordings[['filename']]
 
         recordings['duration'] = recordings['filename'].map(lambda f:
