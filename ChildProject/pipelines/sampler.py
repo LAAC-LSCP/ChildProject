@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 import argparse
+import datetime
 import multiprocessing as mp
 import os
 import pandas as pd
@@ -36,7 +37,7 @@ class Sampler(ABC):
         missing_columns = list(set(require_columns) - set(self.segments.columns))
 
         if missing_columns:
-            raise Exception("custom segments are missing the following columns: {}".format(','.join(missing_columns)))
+            raise Exception("custom segments are missing the following columns: {}".format(','.join(missing_columns)))        
 
 class CustomSampler(Sampler):
     def __init__(self, project: ChildProject.projects.ChildProject, segments_path: str):
@@ -197,6 +198,10 @@ class SamplerPipeline(Pipeline):
         self.segments = []
 
     def run(self, path, destination, sampler, func = None, **kwargs):
+        parameters = locals()
+        parameters = [[key, parameters[key]] for key in parameters if key not in ['self', 'kwargs']]
+        parameters.extend([[key, kwargs[key]] for key in kwargs])
+
         self.project = ChildProject.projects.ChildProject(path)
         self.project.read()
 
@@ -219,7 +224,16 @@ class SamplerPipeline(Pipeline):
             self.segments['segment_onset'] = self.segments['segment_onset'] + self.segments['time_seek']
             self.segments['segment_offset'] = self.segments['segment_offset'] + self.segments['time_seek']
 
-        self.segments[self.segments.columns & {'recording_filename', 'segment_onset', 'segment_offset'}].to_csv(destination, index = False)
+        self.segments[self.segments.columns & {'recording_filename', 'segment_onset', 'segment_offset'}].to_csv(os.path.join(destination, 'segments.csv'), index = False)
+
+        parameters.extend([
+            ['version', ChildProject.__version__],
+            ['date_sampled', datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')]
+        ])
+        pd.DataFrame(
+            data = parameters,
+            columns = ['param', 'value']
+        ).to_csv(os.path.join(destination, 'parameters.csv'), index = False)
 
     @staticmethod
     def setup_parser(parser):
