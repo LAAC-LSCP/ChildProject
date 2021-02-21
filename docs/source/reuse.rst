@@ -41,7 +41,7 @@ git and git-annex remotes. The github remote doesn’t include large
 files, only pointers refering to them. The large files are stored in a
 sibling hosted on Oberon
 
-.. figure:: http://laac-lscp.github.io/ChildRecordsData/images/infrastructure.png
+.. figure:: images/infrastructure.png
    :alt: Dataset infrastructure
 
    structure

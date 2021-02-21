@@ -8,7 +8,7 @@ standardizing specifications and tools for the storage and management of
 day-long recordings of children and their associated meta-data and
 annotations.
 
-.. figure:: http://laac-lscp.github.io/ChildRecordsData/images/structure.png
+.. figure:: images/structure.png
    :alt: File organization structure
 
    structure
@@ -36,7 +36,7 @@ analyzed with the LENA software. However, open source alternatives to
 the LENA commercial environment are emerging, some of which are shown in
 the following figure.
 
-.. figure:: http://laac-lscp.github.io/ChildRecordsData/images/tools.png
+.. figure:: images/tools.png
    :alt: Overview of some tools in the day-long recordings environment
 
    structure

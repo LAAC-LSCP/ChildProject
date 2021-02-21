@@ -30,7 +30,7 @@ standardizing specifications and tools for the storage and management of
 day-long recordings of children and their associated meta-data and
 annotations.
 
-.. figure:: http://laac-lscp.github.io/ChildRecordsData/images/structure.png
+.. figure:: images/structure.png
    :alt: File organization structure
 
    structure
