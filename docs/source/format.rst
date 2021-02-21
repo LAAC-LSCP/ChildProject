@@ -1,5 +1,7 @@
 
 
+.. _format:
+
 Datasets structure
 ==================
 
@@ -11,8 +13,8 @@ their data in a specific way (respecting the dataset tree, with all
 specified metadata files, and all specified columns within the metadata
 files) before their data can be imported.
 
-To be imported, datasets must pass the `the validation
-routine <https://laac-lscp.github.io/ChildRecordsData/#validate-raw-data>`__
+To be imported, datasets must pass the the validation
+routine (see :ref:`tools-data-validation`).
 with no error. We also recommend you pay attention to the warnings, and
 try to sort as many of those out as possible before submission.
 
@@ -49,6 +51,8 @@ organize your files into this structure):
 
 The children and recordings notebooks should be formatted according to
 the standards detailed right below.
+
+.. _format-metadata:
 
 Metadata
 --------
@@ -90,6 +94,8 @@ Annotations are indexed in one unique dataframe located at
 
 .. index-table:: Annotations metadata
    :header: annotations
+
+.. _format-input-annotations:
 
 Annotation importation input format
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

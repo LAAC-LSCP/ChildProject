@@ -21,9 +21,8 @@ segments LENA labeled as being key child in Zooniverse
 If you would like your data labeled with this project, here is what
 you’d need to do. 1. Get in touch with us, so we know you are
 interested! 2. Have someone trustworthy & with some coding skills
-(henceforth, the RA) create a database using the `formatting
-instructions and
-specifications <http://laac-lscp.github.io/ChildRecordsData/FORMATTING.html>`__.
+(henceforth, the RA) create a database using the formatting instructions
+(see :ref:`format`).
 4. Have the RA create an account on Zooniverse (top right of
 zooniverse.org) for them and yourself, & provide us with both handles.
 The RA should first update the team section to add you (have ready a

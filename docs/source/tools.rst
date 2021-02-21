@@ -16,6 +16,8 @@ Basic tools
    -  `Rename a set of annotations <#rename-a-set-of-annotations>`__
    -  `Remove a set of annotations <#remove-a-set-of-annotations>`__
 
+.. _tools-data-validation:
+
 Data validation
 ---------------
 
@@ -24,9 +26,8 @@ data into our format for the first time, but you should also do this
 whenever you make a change to the dataset.
 
 Looks for errors and inconsistency in the metadata, or for missing
-audios. The validation will pass if the `formatting
-instructions <http://laac-lscp.github.io/ChildRecordsData/FORMATTING.html>`__
-are met.
+audios. The validation will pass if formatting instructions are met
+(see :ref:`format`).
 
 .. clidoc::
 
@@ -92,8 +93,7 @@ Annotations can be imported one by one or in bulk. Annotation
 importation does the following :
 
 1. Convert all input annotations from their original format (e.g. rttm,
-   eaf, textgrid..) into the CSV format defined
-   `here <https://laac-lscp.github.io/ChildRecordsData/FORMATTING.html#annotations-format>`__
+   eaf, textgrid..) into the CSV format defined at :ref:`format-input-annotations`
    and stores them into ``annotations/``.
 2. Registers them to the annotation index at
    ``metadata/annotations.csv``
@@ -114,8 +114,7 @@ Example:
 
    child-project import-annotations /path/to/dataset --set eaf --recording_filename sound.wav --time_seek 0 --raw_filename example.eaf --range_onset 0 --range_offset 300 --format eaf
 
-Find more information about the allowed values for each parameter
-`here <http://laac-lscp.github.io/ChildRecordsData/FORMATTING.html#annotation-importation-input-format>`__.
+Find more information about the allowed values for each parameter, see :ref:`format-input-annotations`.
 
 Bulk importation
 ~~~~~~~~~~~~~~~~
@@ -127,8 +126,7 @@ Use this to do bulk importation of many annotation files.
    child-project import-annotations /path/to/dataset --annotations /path/to/dataframe.csv
 
 The input dataframe ``/path/to/dataframe.csv`` must have one entry per
-annotation to import, according to the format specified
-`here <http://laac-lscp.github.io/ChildRecordsData/FORMATTING.html#annotation-importation-input-format>`__.
+annotation to import, according to the format specified at :ref:`format-input-annotations`.
 
 Merge annotation sets
 ~~~~~~~~~~~~~~~~~~~~~

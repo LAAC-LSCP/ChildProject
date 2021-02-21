@@ -141,9 +141,8 @@ dataset:
    Exception: could not find table './metadata/children'
 
 The validation fails, because the metadata is missing. We need to store
-the metadata about the children and the recordings according as
-specified in the
-`documentation <https://laac-lscp.github.io/ChildRecordsData/FORMATTING.html#metadata>`__.
+the metadata about the children and the recordings in a way that meets
+the specifications (see :ref:`format-metadata`).
 
 Create the metadata
 -------------------
