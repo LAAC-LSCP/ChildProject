@@ -185,7 +185,7 @@ You can save local changes to a dataset with
 
 ::
 
-   datalad save raw_annotations/vtc -m "adding vtc rttms"
+   datalad save annotations/vtc/raw -m "adding vtc rttms"
 
 ``datalad save`` is analoguous to a combination of ``git add`` and
 ``git commit``.
