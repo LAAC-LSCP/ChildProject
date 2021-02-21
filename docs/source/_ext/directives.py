@@ -75,6 +75,7 @@ class IndexTable(CSVTable):
             df.append(df_entry)
 
         self.options['file'] = '{}.csv'.format(array)
+        self.options['header-rows'] = 1
         pd.DataFrame(df).to_csv(os.path.join('source', self.options['file']), index = False)
 
 

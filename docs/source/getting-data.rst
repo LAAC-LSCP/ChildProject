@@ -27,6 +27,7 @@ From the `LAAC team <https://lscp.dec.ens.fr/en/research/teams-lscp/language-acq
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. csv-table:: List of LAAC datasets
+    :header-rows: 1
     :file: tables/datasets.csv
 
 Other private datasets
