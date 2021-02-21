@@ -8,11 +8,7 @@ from sphinx.directives.code import CodeBlock
 from ChildProject.projects import ChildProject
 from ChildProject.annotations import AnnotationManager
 
-import os
-import pandas as pd
-from functools import reduce
 import subprocess
-import textwrap
 
 # I think this is a sort of hack (smart hack, but a hack nonetheless !)
 # and that it should not be done this way
@@ -31,6 +27,14 @@ class CliDoc(CodeBlock):
             self.arguments = ['bash']
 
         self.content = ["\n$ {}\n{}".format(command_string, out.decode("utf-8"))]
+
+from functools import reduce
+import os
+import pandas as pd
+import textwrap
+
+def wrap(s, width):
+    return reduce(lambda x,y: x+"\n| {}".format(y), textwrap.wrap(s, width = width), '')
 
 class IndexTable(CSVTable):
     def __init__(self, *args, **kwargs):
@@ -56,7 +60,7 @@ class IndexTable(CSVTable):
         for column in table:
             df_entry = {
                 'Name': column.name,
-                'Description': reduce(lambda x,y: x+"\n| {}".format(y), textwrap.wrap(column.description, width = 50), ''),
+                'Description': wrap(column.description, 50),
                 'Required?': '**required**' if column.required else 'optional'
             }
 
@@ -68,7 +72,7 @@ class IndexTable(CSVTable):
             elif column.function:
                 df_entry['Format'] = column.function.__name__
             elif column.choices:
-                df_entry['Format'] = ", ".join(column.choices)
+                df_entry['Format'] = wrap(", ".join(column.choices), 10)
             elif column.filename:
                 df_entry['Format'] = column.filename
 
@@ -76,6 +80,7 @@ class IndexTable(CSVTable):
 
         self.options['file'] = '{}.csv'.format(array)
         self.options['header-rows'] = 1
+        self.options['widths'] = [20, 50, 10, 20]
         pd.DataFrame(df).to_csv(os.path.join('source', self.options['file']), index = False)
 
 
