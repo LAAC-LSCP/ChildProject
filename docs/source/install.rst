@@ -48,20 +48,10 @@ Check the setup
 
 You can check the setup by issuing the following commands :
 
-::
+.. clidoc::
 
-    $ datalad --version
-    datalad 0.13.7
+   datalad --version
 
-::
+.. clidoc::
 
-    $ child-project --help
-    usage: child-project [-h]
-                         {validate,import-annotations,merge-annotations,remove-annotations,import-data,stats,compute-durations,zooniverse,convert}
-                         ...
-
-    positional arguments:
-      {validate,import-annotations,merge-annotations,remove-annotations,import-data,stats,compute-durations,zooniverse,convert}
-
-    optional arguments:
-      -h, --help            show this help message and exit
+   child-project --help
