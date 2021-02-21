@@ -12,10 +12,7 @@ How to reuse extant LAAC datasets
          GitHub <#setting-up-your-ssh-access-to-github>`__
       -  `Setting up your ssh access to
          Oberon <#setting-up-your-ssh-access-to-oberon>`__
-      -  `Quick way (using
-         child-project) <#quick-way-using-child-project>`__
-      -  `Datalad way (using only
-         datalad) <#datalad-way-using-only-datalad>`__
+      -  `Cloning the dataset <#datalad-way-using-only-datalad>`__
 
    -  `Downloading large files <#downloading-large-files>`__
    -  `Updating a dataset <#updating-a-dataset>`__
@@ -39,12 +36,12 @@ How it works
 Our dataset are distributed on two “siblings”. Siblings are analogous to
 git and git-annex remotes. The github remote doesn’t include large
 files, only pointers refering to them. The large files are stored in a
-sibling hosted on Oberon
+sibling hosted on Oberon, our lab cluster:
 
 .. figure:: images/infrastructure.png
    :alt: Dataset infrastructure
 
-   structure
+   LAAC datasets storage infrastructure
 
 Installing datalad
 ------------------
@@ -115,15 +112,9 @@ follow these instructions to setup ssh properly:
 2. Try to SSH into oberon by typing ``ssh foberon``. You will be
    prompted for your credentials.
 
-Quick way (using child-project)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Cloning the dataset
+~~~~~~~~~~~~~~~~~
 
-::
-
-   child-project import-data git@github.com:LAAC-LSCP/namibia-data.git --destination namibia-data --storage-hostname foberon
-
-Datalad way (using only datalad)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 1. The first step is to clone the dataset from github, for instance :
 

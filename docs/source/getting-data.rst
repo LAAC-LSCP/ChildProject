@@ -26,49 +26,8 @@ doi:10.21415/T5388S.
 From the `LAAC team <https://lscp.dec.ens.fr/en/research/teams-lscp/language-acquisition-across-cultures>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-+-----------+-----------+-----------+-----------+-----------+-----------+
-| Name      | Authors   | Location  | Recording | Audio     | Status    |
-|           |           |           | s         | length    |           |
-|           |           |           |           | (hours)   |           |
-+===========+===========+===========+===========+===========+===========+
-| **Namibia | Gandhi    | https://g | 113       | 1449      | ready     |
-| **        |           | ithub.com |           |           |           |
-|           |           | /LAAC-LSC |           |           |           |
-|           |           | P/namibia |           |           |           |
-|           |           | -data     |           |           |           |
-+-----------+-----------+-----------+-----------+-----------+-----------+
-| **Solomon | Sarah     | https://g | 388       | 5954      | ready     |
-| **        |           | ithub.com |           |           |           |
-|           |           | /LAAC-LSC |           |           |           |
-|           |           | P/solomon |           |           |           |
-|           |           | -data     |           |           |           |
-+-----------+-----------+-----------+-----------+-----------+-----------+
-| **Tsimane |           | https://g | 41        | 556       | validatio |
-| 2017**    |           | ithub.com |           |           | n         |
-|           |           | /LAAC-LSC |           |           |           |
-|           |           | P/tsimane |           |           |           |
-|           |           | 2017-data |           |           |           |
-+-----------+-----------+-----------+-----------+-----------+-----------+
-| **png     |           | https://g | 51        | 760       | ready     |
-| 2019**    |           | ithub.com |           |           |           |
-|           |           | /LAAC-LSC |           |           |           |
-|           |           | P/png2019 |           |           |           |
-|           |           | -data     |           |           |           |
-+-----------+-----------+-----------+-----------+-----------+-----------+
-| **Vanuatu |           | `/scratch | 53        | 289       | raw       |
-| **        |           | 1/project |           |           |           |
-|           |           | s/ac_laci |           |           |           |
-|           |           | e01/STRUC |           |           |           |
-|           |           | TURE/raw/ |           |           |           |
-|           |           | vanuatu < |           |           |           |
-|           |           | /scratch1 |           |           |           |
-|           |           | /projects |           |           |           |
-|           |           | /ac_lacie |           |           |           |
-|           |           | 01/STRUCT |           |           |           |
-|           |           | URE/raw/v |           |           |           |
-|           |           | anuatu>`_ |           |           |           |
-|           |           | _         |           |           |           |
-+-----------+-----------+-----------+-----------+-----------+-----------+
+.. csv-table:: List of LAAC datasets
+    :file: tables/datasets.csv
 
 Other private datasets
 ~~~~~~~~~~~~~~~~~~~~~~
