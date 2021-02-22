@@ -698,7 +698,7 @@ class AnnotationManager:
         self.annotations.to_csv(os.path.join(self.project.path, 'metadata/annotations.csv'), index = False)
 
 
-    def merge_sets(self, left_set: str, right_set: str, left_columns: list, right_columns: list, output_set: str):
+    def merge_sets(self, left_set: str, right_set: str, left_columns: list, right_columns: list, output_set: str, columns: dict = {}):
         """Merge columns from ``left_set`` and ``right_set`` annotations, 
         for all matching segments, into a new set of annotations named
         ``output_set``.
