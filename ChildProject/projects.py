@@ -10,6 +10,17 @@ from .tables import IndexTable, IndexColumn, is_boolean
 from .utils import get_audio_duration
 
 class ChildProject:
+    """This class is a representation of a ChildRecords dataset.
+
+    Attributes:
+        :param path: path to the root of the dataset.
+        :type path: str
+        :param recordings: pandas dataframe representation of this dataset metadata/recordings.csv 
+        :type recordings: class:`pd.DataFrame`
+        :param children: pandas dataframe representation of this dataset metadata/children.csv 
+        :type children: class:`pd.DataFrame`
+    """
+
     REQUIRED_DIRECTORIES = [
         'recordings',
         'extra'
@@ -36,7 +47,7 @@ class ChildProject:
         IndexColumn(name = 'n_of_siblings', description = 'amount of siblings', regex = r'(\d+(\.\d+)?)', required = False),
         IndexColumn(name = 'household_size', description = 'number of people living in the household (adults+children)', regex = r'(\d+(\.\d+)?)', required = False),
         IndexColumn(name = 'dob_criterion', description = "determines whether the date of birth is known exactly or extrapolated e.g. from the age. Dates of birth are assumed to be known exactly if this column is NA or unspecified.", choices = ['extrapolated', 'exact'], required = False),
-        IndexColumn(name = 'dob_accuracy', description = "date of birth accuracy", choices = ['extact', 'week', 'month', 'year', 'other'])
+        IndexColumn(name = 'dob_accuracy', description = "date of birth accuracy", choices = ['exact', 'week', 'month', 'year', 'other'])
     ]
 
     RECORDINGS_COLUMNS = [
@@ -73,7 +84,12 @@ class ChildProject:
         'scripts'
     ]
 
-    def __init__(self, path):
+    def __init__(self, path: str):
+        """Constructor
+
+        :param path: path to the root of the dataset.
+        :type path: str
+        """
         self.path = path
         self.errors = []
         self.warnings = []
@@ -81,13 +97,22 @@ class ChildProject:
         self.recordings = None
     
     def read(self):
+        """Read the metadata
+        """
         self.ct = IndexTable('children', os.path.join(self.path, 'metadata/children.csv'), self.CHILDREN_COLUMNS)
         self.rt = IndexTable('recordings', os.path.join(self.path, 'metadata/recordings.csv'), self.RECORDINGS_COLUMNS)
 
         self.children = self.ct.read()
         self.recordings = self.rt.read()
 
-    def validate(self, ignore_files = False):
+    def validate(self, ignore_files: bool = False) -> tuple:
+        """Validate a dataset, returning all errors and warnings.
+
+        :param ignore_files: if True, no errors will be returned for missing recordings.
+        :type ignore_files: bool, optional
+        :return: A tuple containing the list of errors, and the list of warnings.
+        :rtype: a tuple of two lists
+        """
         self.errors = []
         self.warnings = []
 
@@ -156,7 +181,12 @@ class ChildProject:
 
         return self.errors, self.warnings
 
-    def get_stats(self):
+    def get_stats(self) -> dict:
+        """return statistics extracted from the dataset
+
+        :return: A dictionary with various statistics (total_recordings, total_children, audio_duration, etc.)
+        :rtype: dict
+        """
         stats = {}
         recordings = self.recordings.merge(self.compute_recordings_duration(), left_on = 'filename', right_on = 'filename')
         recordings['exists'] = recordings['filename'].map(lambda f: os.path.exists(os.path.join(self.path, self.RAW_RECORDINGS, f)))
@@ -168,7 +198,14 @@ class ChildProject:
 
         return stats
 
-    def compute_recordings_duration(self, profile = None):
+    def compute_recordings_duration(self, profile: str = None) -> pd.DataFrame:
+        """[summary]
+
+        :param profile: name of the profile of recordings to compute the duration from. If None, raw recordings are used. defaults to None
+        :type profile: str, optional
+        :return: dataframe of the recordings, with an additional/updated duration columns.
+        :rtype: pd.DataFrame
+        """
         recordings = self.recordings[['filename']]
 
         recordings['duration'] = recordings['filename'].map(lambda f:

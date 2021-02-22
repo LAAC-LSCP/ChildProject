@@ -16,14 +16,14 @@ install:
 script:
   - rm -rf output/
   - pytest
-  - python docs/generate_docs.py
+  - cd docs; make clean; make html; touch build/html/.nojekyll
 deploy:
   provider: pages
   skip_cleanup: true
   github_token: $GITHUB_TOKEN
   keep_history: true
   target_branch: docs
-  local_dir: docs
+  local_dir: docs/build/html
   on:
     branch: master
     condition: $(python -c 'import sys; print(".".join(map(str, sys.version_info[:2])))') = "3.8"
