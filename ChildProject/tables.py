@@ -56,6 +56,7 @@ class IndexTable:
 
             if rc.name not in self.df.columns:
                 errors.append(self.msg("{} table is missing column '{}'".format(self.name, rc.name)))
+                continue
 
             null = self.df[self.df[rc.name].isnull()].index.values.tolist()
             if len(null) > 0:
