@@ -11,7 +11,8 @@ annotations.
 .. figure:: images/structure.png
    :alt: File organization structure
 
-   structure
+   File organization structure
+
 We assume that the data include three very different types:
 
 1. Audio, of which we distinguish the raw audio extracted from the
@@ -39,7 +40,8 @@ the following figure.
 .. figure:: images/tools.png
    :alt: Overview of some tools in the day-long recordings environment
 
-   structure
+   Overview of some tools in the day-long recordings environment
+
 For instance, alternative hardware includes the babylogger and any other
 light-weight recording device with enough battery and storage to record
 over several hours.

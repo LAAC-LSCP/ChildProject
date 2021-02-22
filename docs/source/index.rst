@@ -38,12 +38,12 @@ Command-line tools
    zooniverse
    cheatsheet
 
-Reference
-=========
+Package reference
+=================
 
 .. toctree::
    :maxdepth: 2
-   :caption: References
+   :caption: Package reference
 
    modules
 

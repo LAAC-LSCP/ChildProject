@@ -113,7 +113,7 @@ follow these instructions to setup ssh properly:
    prompted for your credentials.
 
 Cloning the dataset
-~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
 
 
 1. The first step is to clone the dataset from github, for instance :

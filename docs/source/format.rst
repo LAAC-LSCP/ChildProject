@@ -80,7 +80,7 @@ Annotations
 .. _format-annotations-segments:
 
 Annotations format
-~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
 
 The package provides functions to convert any annotation into the
 following csv format, with one row per segment :
