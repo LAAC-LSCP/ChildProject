@@ -1,0 +1,52 @@
+.. ChildRecordsData documentation master file, created by
+   sphinx-quickstart on Sat Feb 20 21:27:49 2021.
+   You can adapt this file completely to your liking, but it should at least
+   contain the root `toctree` directive.
+
+Welcome to ChildRecordsData's documentation!
+============================================
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Getting-started
+
+   introduction
+   install
+   getting-data
+   format
+
+
+Tutorials
+==================
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Tutorials
+
+   reuse
+   vandam
+
+
+Command-line tools
+==================
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Command-line tools
+
+   tools
+   zooniverse
+   cheatsheet
+
+Package reference
+=================
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Package reference
+
+   modules
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`

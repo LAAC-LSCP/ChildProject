@@ -63,10 +63,16 @@ def validate(args):
 
 @subcommand([
     arg("source", help = "project path"),
-    arg("--annotations", help = "path to input annotations index (csv)", default = ""),
+    arg("--annotations", help = "path to input annotations dataframe (csv) [only for bulk importation]", default = ""),
     arg("--threads", help = "amount of threads to run on", type = int, default = 0)
 ] + [
-    arg("--{}".format(col.name), help = col.description, type = str, default = None)
+    arg(
+        "--{}".format(col.name),
+        help = col.description,
+        type = str,
+        default = None,
+        choices = col.choices if col.choices else None
+    )
     for col in AnnotationManager.INDEX_COLUMNS
     if not col.generated
 ])

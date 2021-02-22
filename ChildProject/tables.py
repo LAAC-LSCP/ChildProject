@@ -22,6 +22,13 @@ class IndexColumn:
         self.unique = unique
         self.generated = generated
 
+    def __str__(self):
+        return 'IndexColumn(name = {})'.format(self.name)
+
+    def __repr__(self):
+        return 'IndexColumn(name = {})'.format(self.name)
+
+
 class IndexTable:
     def __init__(self, name, path = None, columns = []):
         self.name = name
