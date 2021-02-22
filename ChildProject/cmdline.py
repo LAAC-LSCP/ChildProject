@@ -63,7 +63,7 @@ def validate(args):
 
 @subcommand([
     arg("source", help = "project path"),
-    arg("--annotations", help = "path to input annotations index (csv)", default = ""),
+    arg("--annotations", help = "path to input annotations dataframe (csv) [only for bulk importation]", default = ""),
     arg("--threads", help = "amount of threads to run on", type = int, default = 0)
 ] + [
     arg(
