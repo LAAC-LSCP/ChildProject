@@ -8,16 +8,23 @@ import os
 import pandas as pd
 import pympi
 import re
-from functools import reduce
+from functools import reduce, partial
 import shutil
 import sys
 import traceback
+from typing import Callable
 
 from .projects import ChildProject
 from .tables import IndexTable, IndexColumn
 from .utils import Segment, intersect_ranges
 
 class AnnotationManager:
+    """Manage annotations of a dataset. 
+
+    Attributes:
+        :param project: :class:`ChildProject.projects.ChildProject` instance of the target dataset.
+        :type project: :class:`ChildProject.projects.ChildProject`
+    """
     INDEX_COLUMNS = [
         IndexColumn(name = 'set', description = 'name of the annotation set (e.g. VTC, annotator1, etc.)', required = True),
         IndexColumn(name = 'recording_filename', description = 'recording filename as specified in the recordings index', required = True),
@@ -131,7 +138,12 @@ class AnnotationManager:
     }
 
 
-    def __init__(self, project):
+    def __init__(self, project: ChildProject):
+        """AnnotationManager constructor
+
+        :param project: :class:`ChildProject` instance of the target dataset.
+        :type project: :class:`ChildProject`
+        """
         self.project = project
         self.annotations = None
         self.errors = []
@@ -147,13 +159,13 @@ class AnnotationManager:
 
         self.errors, self.warnings = self.read()
 
-    def read(self):
+    def read(self) -> tuple:
         table = IndexTable('input', path = os.path.join(self.project.path, 'metadata/annotations.csv'), columns = self.INDEX_COLUMNS)
         self.annotations = table.read()
         errors, warnings = table.validate()
         return errors, warnings
 
-    def validate_annotation(self, annotation):
+    def validate_annotation(self, annotation: dict) -> tuple:
         print("validating {}...".format(annotation['annotation_filename']))
 
         segments = IndexTable(
@@ -169,7 +181,7 @@ class AnnotationManager:
 
         return segments.validate()
 
-    def validate(self, annotations = None, threads = -1):
+    def validate(self, annotations: pd.DataFrame = None, threads: int = -1) -> tuple:
         if not isinstance(annotations, pd.DataFrame):
             annotations = self.annotations
 
@@ -183,7 +195,7 @@ class AnnotationManager:
 
         return errors, warnings
 
-    def load_textgrid(self, filename):
+    def load_textgrid(self, filename: str) -> pd.DataFrame:
         textgrid = pympi.Praat.TextGrid(filename)
 
         def ling_type(s):
@@ -226,7 +238,7 @@ class AnnotationManager:
 
         return pd.DataFrame(segments)
 
-    def load_eaf(self, filename):
+    def load_eaf(self, filename: str) -> pd.DataFrame:
         eaf = pympi.Elan.Eaf(filename)
 
         segments = {}
@@ -297,7 +309,7 @@ class AnnotationManager:
 
         return pd.DataFrame(segments.values())
 
-    def load_its(self, filename, recording_num = None):
+    def load_its(self, filename: str, recording_num: int = None) -> pd.DataFrame:
         xml = etree.parse(filename)
 
         recordings = xml.xpath('/ITS/ProcessingUnit/Recording' + ('[@num="{}"]'.format(recording_num) if recording_num else ''))
@@ -350,7 +362,7 @@ class AnnotationManager:
                 peak_db = seg.get('peak_dB', 0)
 
                 utterances = seg.xpath('./UTT')
-                utterances = [utt.attrib for utt in utterances]
+                utterances = [dict(utt.attrib) for utt in utterances]
 
                 if not utterances:
                     n = 1
@@ -361,9 +373,15 @@ class AnnotationManager:
                             start: seg.attrib[start],
                             end: seg.attrib[end]
                         })
-
                         n = n + 1
 
+                for utterance in utterances:
+                    for c in list(utterance.keys()):
+                        if 'startUtt' in c:
+                            utterance['start'] = float(extract_from_regex(timestamp_pattern, utterance.pop(c)))
+                        elif 'endUtt' in c:
+                            utterance['end'] = float(extract_from_regex(timestamp_pattern, utterance.pop(c)))
+                
                 child_cry_vfx_len = float(extract_from_regex(timestamp_pattern, seg.get('childCryVfxLen', 'PT0S')))
 
                 cries = []
@@ -372,8 +390,8 @@ class AnnotationManager:
                     start = 'startCry{}'.format(n)
                     end = 'endCry{}'.format(n)
                     cries.append({
-                        start: seg.attrib[start],
-                        end: seg.attrib[end]
+                        'start': float(extract_from_regex(timestamp_pattern, seg.attrib[start])),
+                        'end': float(extract_from_regex(timestamp_pattern, seg.attrib[end]))
                     })
                     n = n + 1
 
@@ -383,8 +401,8 @@ class AnnotationManager:
                     start = 'startVfx{}'.format(n)
                     end = 'endVfx{}'.format(n)
                     vfxs.append({
-                        start: seg.attrib[start],
-                        end: seg.attrib[end]
+                        'start': float(extract_from_regex(timestamp_pattern, seg.attrib[start])),
+                        'end': float(extract_from_regex(timestamp_pattern, seg.attrib[end]))
                     })
                     n = n + 1
 
@@ -423,7 +441,7 @@ class AnnotationManager:
         
         return df
 
-    def load_vtc_rttm(self, filename, source_file = None):
+    def load_vtc_rttm(self, filename: str, source_file: str = '') -> pd.DataFrame:
         rttm = pd.read_csv(
             filename,
             sep = " ",
@@ -452,7 +470,7 @@ class AnnotationManager:
 
         return df
 
-    def load_alice(self, filename, source_file = None):
+    def load_alice(self, filename: str, source_file: str = '') -> pd.DataFrame:
         df = pd.read_csv(
             filename,
             sep = r"\s",
@@ -479,7 +497,10 @@ class AnnotationManager:
 
         return df
 
-    def import_annotation(self, annotation):
+
+    def import_annotation(self, import_function: Callable[[str], pd.DataFrame], annotation: dict):
+        """import and convert ``annotation``. This function should not be called outside of this class.
+        """
         source_recording = os.path.splitext(annotation['recording_filename'])[0]
         output_filename = "{}/converted/{}_{}_{}.csv".format(annotation['set'], source_recording, annotation['time_seek'], annotation['range_onset'])
 
@@ -488,8 +509,11 @@ class AnnotationManager:
 
         df = None
         filter = annotation['filter'] if 'filter' in annotation and not pd.isnull(annotation['filter']) else None
+
         try:
-            if annotation_format == 'TextGrid':
+            if callable(import_function):
+                df = import_function(path)
+            elif annotation_format == 'TextGrid':
                 df = self.load_textgrid(path)
             elif annotation_format == 'eaf':
                 df = self.load_eaf(path)
@@ -532,7 +556,18 @@ class AnnotationManager:
 
         return annotation
 
-    def import_annotations(self, input, threads = -1):
+    def import_annotations(self, input: pd.DataFrame, threads: int = -1, import_function: Callable[[str], pd.DataFrame] = None) -> pd.DataFrame:
+        """Import and convert annotations.
+
+        :param input: dataframe of all annotations to import, as described in :ref:`format-input-annotations`.
+        :type input: pd.DataFrame
+        :param threads: If > 1, conversions will be run on ``threads`` threads, defaults to -1
+        :type threads: int, optional
+        :param import_function: If specified, the custom ``import_function`` function will be used to convert all ``input`` annotations, defaults to None
+        :type import_function: Callable[[str], pd.DataFrame], optional
+        :return: dataframe of imported annotations, as in :ref:`format-annotations`.
+        :rtype: pd.DataFrame
+        """
         missing_recordings = input[~input['recording_filename'].isin(self.project.recordings['filename'].tolist())]
         missing_recordings = missing_recordings['recording_filename'].tolist()
 
@@ -541,7 +576,7 @@ class AnnotationManager:
 
         pool = mp.Pool(processes = threads if threads > 0 else mp.cpu_count())
         imported = pool.map(
-            self.import_annotation,
+            partial(self.import_annotation, import_function),
             input.to_dict(orient = 'records')
         )
 
@@ -554,7 +589,16 @@ class AnnotationManager:
 
         return imported
 
-    def get_subsets(self, annotation_set, recursive = False):
+    def get_subsets(self, annotation_set: str, recursive: bool = False) -> list:
+        """Retrieve the list of subsets belonging to a given set of annotations.
+
+        :param annotation_set: input set
+        :type annotation_set: str
+        :param recursive: If True, get subsets recursively, defaults to False
+        :type recursive: bool, optional
+        :return: the list of subsets names
+        :rtype: list
+        """
         subsets = []
 
         path = os.path.join(self.project.path, 'annotations', annotation_set)
@@ -568,7 +612,15 @@ class AnnotationManager:
         return subsets
             
 
-    def remove_set(self, annotation_set, recursive = False):
+    def remove_set(self, annotation_set: str, recursive: bool = False):
+        """Remove a set of annotations, deleting every file and removing
+        them from the index.
+
+        :param annotation_set: set of annotations to remove
+        :type annotation_set: str
+        :param recursive: remove subsets as well, defaults to False
+        :type recursive: bool, optional
+        """
         self.read()
 
         subsets = []
@@ -589,7 +641,19 @@ class AnnotationManager:
         self.annotations = self.annotations[self.annotations['set'] != annotation_set]
         self.annotations.to_csv(os.path.join(self.project.path, 'metadata/annotations.csv'), index = False)
 
-    def rename_set(self, annotation_set, new_set, recursive = False, ignore_errors = False):
+    def rename_set(self, annotation_set: str, new_set: str, recursive: bool = False, ignore_errors: bool = False):
+        """Rename a set of annotations, moving all related files
+        and updating the index accordingly.
+
+        :param annotation_set: name of the set to rename
+        :type annotation_set: str
+        :param new_set: new set name
+        :type new_set: str
+        :param recursive: rename subsets as well, defaults to False
+        :type recursive: bool, optional
+        :param ignore_errors: If True, keep going even if unindexed files are detected, defaults to False
+        :type ignore_errors: bool, optional
+        """
         self.read()
 
         annotation_set = annotation_set.rstrip('/').rstrip("\\")
@@ -634,7 +698,24 @@ class AnnotationManager:
         self.annotations.to_csv(os.path.join(self.project.path, 'metadata/annotations.csv'), index = False)
 
 
-    def merge_sets(self, left_set, right_set, left_columns, right_columns, output_set, columns = {}):
+    def merge_sets(self, left_set: str, right_set: str, left_columns: list, right_columns: list, output_set: str, columns: dict = {}):
+        """Merge columns from ``left_set`` and ``right_set`` annotations, 
+        for all matching segments, into a new set of annotations named
+        ``output_set``.
+
+        :param left_set: Left set of annotations.
+        :type left_set: str
+        :param right_set: Right set of annotations.
+        :type right_set: str
+        :param left_columns: Columns which values will be based on the left set.
+        :type left_columns: list
+        :param right_columns: Columns which values will be based on the right set.
+        :type right_columns: list
+        :param output_set: Name of the output annotations set.
+        :type output_set: str
+        :return: [description]
+        :rtype: [type]
+        """
         assert left_set != right_set, "sets must differ"
         assert not (set(left_columns) & set (right_columns)), "left_columns and right_columns must be disjoint"
 
@@ -734,7 +815,14 @@ class AnnotationManager:
         self.annotations = pd.concat([self.annotations, annotations], sort = False)
         self.annotations.to_csv(os.path.join(self.project.path, 'metadata/annotations.csv'), index = False)
 
-    def get_segments(self, annotations):
+    def get_segments(self, annotations: pd.DataFrame) -> pd.DataFrame:
+        """get all segments associated to the annotations referenced in ``annotations``.
+
+        :param annotations: dataframe of annotations, according to :ref:`format-annotations`
+        :type annotations: pd.DataFrame
+        :return: dataframe of all the segments merged (as specified in :ref:`format-annotations-segments`), merged with ``annotations``. 
+        :rtype: pd.DataFrame
+        """
         annotations = annotations.dropna(subset = ['annotation_filename'])
 
         segments = pd.concat([
@@ -744,7 +832,19 @@ class AnnotationManager:
 
         return segments.merge(annotations, how = 'left', left_on = 'annotation_filename', right_on = 'annotation_filename')
 
-    def intersection(self, left, right):
+    def intersection(self, left: pd.DataFrame, right: pd.DataFrame) -> tuple:
+        """Compute the intersection of all ``left`` and ``right`` annotations,
+        based on their ``recording_filename``, ``time_seek``, ``range_onset`` and ``range_offset``
+        attributes. (Only these columns are required, but more can be passed and they
+        will be preserved).
+
+        :param left: dataframe of annotations, according to :ref:`format-annotations`
+        :type left: pd.DataFrame
+        :param right: dataframe of annotations, according to :ref:`format-annotations`
+        :type right: pd.DataFrame
+        :return: dataframe of annotations, according to :ref:`format-annotations`
+        :rtype: tuple
+        """
         recordings = set(left['recording_filename'].unique()) & set(right['recording_filename'].unique())
         recordings = list(recordings)
 
@@ -799,14 +899,26 @@ class AnnotationManager:
 
         return pd.concat(a_stack), pd.concat(b_stack)
 
-    def clip_segments(self, segments, start, stop):
+    def clip_segments(self, segments: pd.DataFrame, start: float, stop: float) -> pd.DataFrame:
+        """Clip all segments onsets and offsets within ``start`` and ``stop``.
+        Segments outside of the range [``start``,``stop``] will be removed.
+
+        :param segments: Dataframe of the segments to clip
+        :type segments: pd.DataFrame
+        :param start: range start
+        :type start: float
+        :param stop: range end
+        :type stop: float
+        :return: Dataframe of the clipped segments
+        :rtype: pd.DataFrame
+        """
         segments['segment_onset'].clip(lower = start, upper = stop, inplace = True)
         segments['segment_offset'].clip(lower = start, upper = stop, inplace = True)
 
         segments = segments[~np.isclose(segments['segment_offset']-segments['segment_onset'], 0)]
         return segments
 
-    def get_vc_stats(self, segments, turntakingthresh = 1):
+    def get_vc_stats(self, segments: pd.DataFrame, turntakingthresh: float = 1):
         segments = segments.sort_values(['segment_onset', 'segment_offset'])
         segments = segments[segments['speaker_type'] != 'SPEECH']
         segments['duration'] = segments['segment_offset']-segments['segment_onset']

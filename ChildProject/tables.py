@@ -4,29 +4,6 @@ import re
 import datetime
 import numpy as np
 
-def read_dataframe(filename):
-    extension = os.path.splitext(filename)[1]
-
-    pd_flags = {
-        'keep_default_na': False,
-        'na_values': ['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN',
-                    '#N/A N/A', '#N/A', 'N/A', 'n/a', '', '#NA',
-                    'NULL', 'null', 'NaN', '-NaN', 'nan',
-                    '-nan', ''],
-        'parse_dates': False,
-        'index_col': False
-    }
-
-    if extension == '.csv':
-        df = pd.read_csv(filename, **pd_flags)
-    elif extension == '.xls' or extension == '.xlsx':
-        df = pd.read_excel(filename, **pd_flags)
-    else:
-        raise Exception('table format not supported ({})'.format(extension))
-
-    df.index = df.index+2
-    return df
-
 def is_boolean(x):
     return x == 'NA' or int(x) in [0,1]
 
@@ -45,6 +22,13 @@ class IndexColumn:
         self.unique = unique
         self.generated = generated
 
+    def __str__(self):
+        return 'IndexColumn(name = {})'.format(self.name)
+
+    def __repr__(self):
+        return 'IndexColumn(name = {})'.format(self.name)
+
+
 class IndexTable:
     def __init__(self, name, path = None, columns = []):
         self.name = name
@@ -52,17 +36,20 @@ class IndexTable:
         self.columns = columns
         self.df = None
     
-    def read(self, lookup_extensions = None):
-        if lookup_extensions is None:
-            self.df = read_dataframe(self.path)
-            return self.df
-        else:
-            for extension in lookup_extensions:
-                if os.path.exists(self.path + extension):
-                    self.df = read_dataframe(self.path + extension)
-                    return self.df
+    def read(self):
+        pd_flags = {
+            'keep_default_na': False,
+            'na_values': ['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN',
+                        '#N/A N/A', '#N/A', 'N/A', 'n/a', '', '#NA',
+                        'NULL', 'null', 'NaN', '-NaN', 'nan',
+                        '-nan', ''],
+            'parse_dates': False,
+            'index_col': False
+        }
 
-        raise Exception("could not find table '{}'".format(self.path))
+        self.df = pd.read_csv(self.path, **pd_flags)
+        self.df.index = self.df.index+2
+        return self.df
 
     def msg(self, text):
         return "{}: {}".format(self.path, text)
@@ -76,6 +63,7 @@ class IndexTable:
 
             if rc.name not in self.df.columns:
                 errors.append(self.msg("{} table is missing column '{}'".format(self.name, rc.name)))
+                continue
 
             null = self.df[self.df[rc.name].isnull()].index.values.tolist()
             if len(null) > 0:
