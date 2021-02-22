@@ -15,20 +15,12 @@ Welcome to ChildRecordsData's documentation!
    getting-data
    format
 
-
-Tutorials
-==================
-
 .. toctree::
    :maxdepth: 2
    :caption: Tutorials
 
    reuse
    vandam
-
-
-Command-line tools
-==================
 
 .. toctree::
    :maxdepth: 2
@@ -37,9 +29,6 @@ Command-line tools
    tools
    zooniverse
    cheatsheet
-
-Package reference
-=================
 
 .. toctree::
    :maxdepth: 2

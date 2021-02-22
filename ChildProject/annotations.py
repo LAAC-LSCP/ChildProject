@@ -568,11 +568,12 @@ class AnnotationManager:
         :return: dataframe of imported annotations, as in :ref:`format-annotations`.
         :rtype: pd.DataFrame
         """
+        
         missing_recordings = input[~input['recording_filename'].isin(self.project.recordings['filename'].tolist())]
         missing_recordings = missing_recordings['recording_filename'].tolist()
 
         if len(missing_recordings) > 0:
-            raise ValueError("cannot import annotations. the following recordings are incorrect:\n{}".format("\n".join(missing_recordings)))
+            raise ValueError("cannot import annotations, because the following recordings are not referenced in the metadata:\n{}".format("\n".join(missing_recordings)))
 
         pool = mp.Pool(processes = threads if threads > 0 else mp.cpu_count())
         imported = pool.map(
