@@ -77,6 +77,8 @@ The recordings dataframe needs to be saved at
 Annotations
 -----------
 
+.. _format-annotations-segments:
+
 Annotations format
 ~~~~~~~~~~~~~~~~~
 
@@ -85,6 +87,8 @@ following csv format, with one row per segment :
 
 .. index-table:: Annotations format
    :header: annotation_segments
+
+.. _format-annotations:
 
 Annotations index
 ~~~~~~~~~~~~~~~~~

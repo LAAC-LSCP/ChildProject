@@ -12,12 +12,13 @@ from .utils import get_audio_duration
 class ChildProject:
     """This class is a representation of a ChildRecords dataset.
 
-    :param path: path to the root of the dataset.
-    :type path: str
-    :param recordings: pandas dataframe representation of this dataset metadata/recordings.csv 
-    :type recordings: class:`pd.DataFrame`
-    :param children: pandas dataframe representation of this dataset metadata/children.csv 
-    :type children: class:`pd.DataFrame`
+    Attributes:
+        :param path: path to the root of the dataset.
+        :type path: str
+        :param recordings: pandas dataframe representation of this dataset metadata/recordings.csv 
+        :type recordings: class:`pd.DataFrame`
+        :param children: pandas dataframe representation of this dataset metadata/children.csv 
+        :type children: class:`pd.DataFrame`
     """
 
     REQUIRED_DIRECTORIES = [
@@ -181,6 +182,11 @@ class ChildProject:
         return self.errors, self.warnings
 
     def get_stats(self) -> dict:
+        """return statistics extracted from the dataset
+
+        :return: A dictionary with various statistics (total_recordings, total_children, audio_duration, etc.)
+        :rtype: dict
+        """
         stats = {}
         recordings = self.recordings.merge(self.compute_recordings_duration(), left_on = 'filename', right_on = 'filename')
         recordings['exists'] = recordings['filename'].map(lambda f: os.path.exists(os.path.join(self.path, self.RAW_RECORDINGS, f)))

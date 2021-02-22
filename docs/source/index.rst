@@ -38,6 +38,15 @@ Command-line tools
    zooniverse
    cheatsheet
 
+Reference
+=========
+
+.. toctree::
+   :maxdepth: 2
+   :caption: References
+
+   modules
+
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`

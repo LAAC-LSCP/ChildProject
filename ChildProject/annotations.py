@@ -19,6 +19,12 @@ from .tables import IndexTable, IndexColumn
 from .utils import Segment, intersect_ranges
 
 class AnnotationManager:
+    """Manage annotations of a dataset. 
+
+    Attributes:
+        :param project: :class:`ChildProject.projects.ChildProject` instance of the target dataset.
+        :type project: :class:`ChildProject.projects.ChildProject`
+    """
     INDEX_COLUMNS = [
         IndexColumn(name = 'set', description = 'name of the annotation set (e.g. VTC, annotator1, etc.)', required = True),
         IndexColumn(name = 'recording_filename', description = 'recording filename as specified in the recordings index', required = True),
@@ -133,6 +139,11 @@ class AnnotationManager:
 
 
     def __init__(self, project: ChildProject):
+        """AnnotationManager constructor
+
+        :param project: :class:`ChildProject` instance of the target dataset.
+        :type project: :class:`ChildProject`
+        """
         self.project = project
         self.annotations = None
         self.errors = []
@@ -488,6 +499,8 @@ class AnnotationManager:
 
 
     def import_annotation(self, import_function: Callable[[str], pd.DataFrame], annotation: dict):
+        """import and convert ``annotation``. This function should not be called outside of this class.
+        """
         source_recording = os.path.splitext(annotation['recording_filename'])[0]
         output_filename = "{}/converted/{}_{}_{}.csv".format(annotation['set'], source_recording, annotation['time_seek'], annotation['range_onset'])
 
@@ -544,6 +557,17 @@ class AnnotationManager:
         return annotation
 
     def import_annotations(self, input: pd.DataFrame, threads: int = -1, import_function: Callable[[str], pd.DataFrame] = None) -> pd.DataFrame:
+        """Import and convert annotations.
+
+        :param input: dataframe of all annotations to import, as described in :ref:`format-input-annotations`.
+        :type input: pd.DataFrame
+        :param threads: If > 1, conversions will be run on ``threads`` threads, defaults to -1
+        :type threads: int, optional
+        :param import_function: If specified, the custom ``import_function`` function will be used to convert all ``input`` annotations, defaults to None
+        :type import_function: Callable[[str], pd.DataFrame], optional
+        :return: dataframe of imported annotations, as in :ref:`format-annotations`.
+        :rtype: pd.DataFrame
+        """
         missing_recordings = input[~input['recording_filename'].isin(self.project.recordings['filename'].tolist())]
         missing_recordings = missing_recordings['recording_filename'].tolist()
 
@@ -566,6 +590,15 @@ class AnnotationManager:
         return imported
 
     def get_subsets(self, annotation_set: str, recursive: bool = False) -> list:
+        """Retrieve the list of subsets belonging to a given set of annotations.
+
+        :param annotation_set: input set
+        :type annotation_set: str
+        :param recursive: If True, get subsets recursively, defaults to False
+        :type recursive: bool, optional
+        :return: the list of subsets names
+        :rtype: list
+        """
         subsets = []
 
         path = os.path.join(self.project.path, 'annotations', annotation_set)
@@ -580,6 +613,14 @@ class AnnotationManager:
             
 
     def remove_set(self, annotation_set: str, recursive: bool = False):
+        """Remove a set of annotations, deleting every file and removing
+        them from the index.
+
+        :param annotation_set: set of annotations to remove
+        :type annotation_set: str
+        :param recursive: remove subsets as well, defaults to False
+        :type recursive: bool, optional
+        """
         self.read()
 
         subsets = []
@@ -601,6 +642,18 @@ class AnnotationManager:
         self.annotations.to_csv(os.path.join(self.project.path, 'metadata/annotations.csv'), index = False)
 
     def rename_set(self, annotation_set: str, new_set: str, recursive: bool = False, ignore_errors: bool = False):
+        """Rename a set of annotations, moving all related files
+        and updating the index accordingly.
+
+        :param annotation_set: name of the set to rename
+        :type annotation_set: str
+        :param new_set: new set name
+        :type new_set: str
+        :param recursive: rename subsets as well, defaults to False
+        :type recursive: bool, optional
+        :param ignore_errors: If True, keep going even if unindexed files are detected, defaults to False
+        :type ignore_errors: bool, optional
+        """
         self.read()
 
         annotation_set = annotation_set.rstrip('/').rstrip("\\")
@@ -645,7 +698,24 @@ class AnnotationManager:
         self.annotations.to_csv(os.path.join(self.project.path, 'metadata/annotations.csv'), index = False)
 
 
-    def merge_sets(self, left_set: str, right_set: str, left_columns: list, right_columns: list, output_set: str, columns: dict = {}):
+    def merge_sets(self, left_set: str, right_set: str, left_columns: list, right_columns: list, output_set: str):
+        """Merge columns from ``left_set`` and ``right_set`` annotations, 
+        for all matching segments, into a new set of annotations named
+        ``output_set``.
+
+        :param left_set: Left set of annotations.
+        :type left_set: str
+        :param right_set: Right set of annotations.
+        :type right_set: str
+        :param left_columns: Columns which values will be based on the left set.
+        :type left_columns: list
+        :param right_columns: Columns which values will be based on the right set.
+        :type right_columns: list
+        :param output_set: Name of the output annotations set.
+        :type output_set: str
+        :return: [description]
+        :rtype: [type]
+        """
         assert left_set != right_set, "sets must differ"
         assert not (set(left_columns) & set (right_columns)), "left_columns and right_columns must be disjoint"
 
@@ -746,6 +816,13 @@ class AnnotationManager:
         self.annotations.to_csv(os.path.join(self.project.path, 'metadata/annotations.csv'), index = False)
 
     def get_segments(self, annotations: pd.DataFrame) -> pd.DataFrame:
+        """get all segments associated to the annotations referenced in ``annotations``.
+
+        :param annotations: dataframe of annotations, according to :ref:`format-annotations`
+        :type annotations: pd.DataFrame
+        :return: dataframe of all the segments merged (as specified in :ref:`format-annotations-segments`), merged with ``annotations``. 
+        :rtype: pd.DataFrame
+        """
         annotations = annotations.dropna(subset = ['annotation_filename'])
 
         segments = pd.concat([
@@ -756,6 +833,18 @@ class AnnotationManager:
         return segments.merge(annotations, how = 'left', left_on = 'annotation_filename', right_on = 'annotation_filename')
 
     def intersection(self, left: pd.DataFrame, right: pd.DataFrame) -> tuple:
+        """Compute the intersection of all ``left`` and ``right`` annotations,
+        based on their ``recording_filename``, ``time_seek``, ``range_onset`` and ``range_offset``
+        attributes. (Only these columns are required, but more can be passed and they
+        will be preserved).
+
+        :param left: dataframe of annotations, according to :ref:`format-annotations`
+        :type left: pd.DataFrame
+        :param right: dataframe of annotations, according to :ref:`format-annotations`
+        :type right: pd.DataFrame
+        :return: dataframe of annotations, according to :ref:`format-annotations`
+        :rtype: tuple
+        """
         recordings = set(left['recording_filename'].unique()) & set(right['recording_filename'].unique())
         recordings = list(recordings)
 
@@ -811,6 +900,18 @@ class AnnotationManager:
         return pd.concat(a_stack), pd.concat(b_stack)
 
     def clip_segments(self, segments: pd.DataFrame, start: float, stop: float) -> pd.DataFrame:
+        """Clip all segments onsets and offsets within ``start`` and ``stop``.
+        Segments outside of the range [``start``,``stop``] will be removed.
+
+        :param segments: Dataframe of the segments to clip
+        :type segments: pd.DataFrame
+        :param start: range start
+        :type start: float
+        :param stop: range end
+        :type stop: float
+        :return: Dataframe of the clipped segments
+        :rtype: pd.DataFrame
+        """
         segments['segment_onset'].clip(lower = start, upper = stop, inplace = True)
         segments['segment_offset'].clip(lower = start, upper = stop, inplace = True)
 
