@@ -46,7 +46,7 @@ class ChildProject:
         IndexColumn(name = 'n_of_siblings', description = 'amount of siblings', regex = r'(\d+(\.\d+)?)', required = False),
         IndexColumn(name = 'household_size', description = 'number of people living in the household (adults+children)', regex = r'(\d+(\.\d+)?)', required = False),
         IndexColumn(name = 'dob_criterion', description = "determines whether the date of birth is known exactly or extrapolated e.g. from the age. Dates of birth are assumed to be known exactly if this column is NA or unspecified.", choices = ['extrapolated', 'exact'], required = False),
-        IndexColumn(name = 'dob_accuracy', description = "date of birth accuracy", choices = ['extact', 'week', 'month', 'year', 'other'])
+        IndexColumn(name = 'dob_accuracy', description = "date of birth accuracy", choices = ['exact', 'week', 'month', 'year', 'other'])
     ]
 
     RECORDINGS_COLUMNS = [
