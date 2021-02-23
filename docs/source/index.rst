@@ -27,6 +27,7 @@ Welcome to ChildRecordsData's documentation!
    :caption: Command-line tools
 
    tools
+   samplers
    zooniverse
    cheatsheet
 

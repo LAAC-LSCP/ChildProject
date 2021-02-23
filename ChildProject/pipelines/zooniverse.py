@@ -6,6 +6,7 @@ import multiprocessing as mp
 import os
 import pandas as pd
 from panoptes_client import Panoptes, Project, Subject, SubjectSet, Classification
+import shutil
 import subprocess
 import sys
 
@@ -49,11 +50,14 @@ class ZooniversePipeline(Pipeline):
     def __init__(self):
         self.chunks = []
                 
-    def split_recording(self, segments):
-        segments = segments.sample(self.sample_size).to_dict(orient = 'records')
+    def split_recording(self, segments: pd.DataFrame) -> list:
+        segments = segments.to_dict(orient = 'records')
+        chunks = []
 
         source = os.path.join(self.project.path, ChildProject.projects.ChildProject.RAW_RECORDINGS, segments[0]['recording_filename'])
         audio = AudioSegment.from_wav(source)
+
+        print("extracting chunks from {}...".format(source))
 
         for segment in segments:
             onset = int(segment['segment_onset']*1000)
@@ -76,7 +80,6 @@ class ZooniversePipeline(Pipeline):
             offset = int(offset)
 
             intervals = range(onset, offset, self.chunk_length) 
-            chunks = []
 
             for interval in intervals:
                 chunk = Chunk(
@@ -97,11 +100,13 @@ class ZooniversePipeline(Pipeline):
 
                 chunks.append(chunk)
 
-            return chunks
+        return chunks
 
     def extract_chunks(self, keyword, destination, path, annotation_set = 'vtc',
-        batch_size = 1000, target_speaker_type = ['CHI'], sample_size = 500, chunk_length = 500,
-        threads = 0, batches = 0, **kwargs):
+        batch_size = 1000,
+        chunk_length = 500, threads = 0, batches = 0,
+        segments = None,
+        exclude_segments = [], **kwargs):
 
         parameters = locals()
         parameters = [[key, parameters[key]] for key in parameters if key != 'self']
@@ -112,28 +117,18 @@ class ZooniversePipeline(Pipeline):
         self.project = ChildProject.projects.ChildProject(path)
 
         batch_size = int(batch_size)
-        sample_size = int(sample_size)
         chunk_length = int(chunk_length)
         threads = int(threads)
 
-        self.sample_size = sample_size
         self.chunk_length = chunk_length
-
-        am = ChildProject.annotations.AnnotationManager(self.project)
-        self.annotations = am.annotations
-        self.annotations = self.annotations[self.annotations['set'] == annotation_set]
-        self.segments = am.get_segments(self.annotations)
-        
-        if len(target_speaker_type):
-            self.segments = self.segments[self.segments['speaker_type'].isin(target_speaker_type)]
-        
-        self.segments['segment_onset'] = self.segments['segment_onset'] + self.segments['time_seek']
-        self.segments['segment_offset'] = self.segments['segment_offset'] + self.segments['time_seek']
 
         destination_path = os.path.join(destination, 'chunks')
         os.makedirs(destination_path, exist_ok = True)
         if os.listdir(destination_path):
             raise ValueError("destination '{}' is not empty, please choose another destination.".format(destination_path))
+
+        self.segments = pd.read_csv(segments)
+        shutil.copyfile(segments, os.path.join(self.destination, 'segments.csv'))
 
         segments = []
         for _recording, _segments in self.segments.groupby('recording_filename'):
@@ -150,10 +145,9 @@ class ZooniversePipeline(Pipeline):
             'segment_offset': c.segment_offset,
             'wav': c.getbasename('wav'),
             'mp3': c.getbasename('mp3'),
-            'speaker_type': ','.join(target_speaker_type),
             'date_extracted': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'uploaded': False,
-            'project_slug': '',
+            'project_id': '',
             'subject_set': '',
             'zooniverse_id': 0,
             'keyword': keyword
@@ -174,9 +168,9 @@ class ZooniversePipeline(Pipeline):
         pd.DataFrame(
             data = parameters,
             columns = ['param', 'value']
-        ).to_csv(os.path.join(self.destination, 'settings.csv'), index = False)
+        ).to_csv(os.path.join(self.destination, 'parameters.csv'), index = False)
 
-    def upload_chunks(self, destination, project_slug, set_prefix, zooniverse_login, zooniverse_pwd, batches = 0, **kwargs):
+    def upload_chunks(self, destination, project_id, set_prefix, zooniverse_login, zooniverse_pwd, batches = 0, **kwargs):
         self.destination = destination 
 
         metadata_location = os.path.join(self.destination, 'chunks.csv')
@@ -186,7 +180,7 @@ class ZooniversePipeline(Pipeline):
             raise Exception("cannot read chunk metadata in {}. Check the --destination parameter, and make sure you have extracted chunks before.".format(metadata_location))
 
         Panoptes.connect(username = zooniverse_login, password = zooniverse_pwd)
-        zooniverse_project = Project.find(slug = project_slug)
+        zooniverse_project = Project(project_id)
 
         subjects_metadata = []
         uploaded = 0
@@ -215,7 +209,7 @@ class ZooniversePipeline(Pipeline):
 
                 chunk['index'] = chunk_index
                 chunk['zooniverse_id'] = subject.id
-                chunk['project_slug'] = project_slug
+                chunk['project_id'] = project_id
                 chunk['subject_set'] = str(subject_set.display_name)
                 chunk['uploaded'] = True
                 subjects_metadata.append(chunk)
@@ -287,13 +281,12 @@ class ZooniversePipeline(Pipeline):
     def setup_parser(parser):
         subparsers = parser.add_subparsers(help = 'action', dest = 'action')
 
-        parser_extraction = subparsers.add_parser('extract-chunks', help = 'extract chunks and store metadata in DESTINATION/chunks.csv')
+        parser_extraction = subparsers.add_parser('extract-chunks', help = 'extract chunks to DESTINATION, proving all associate metadata in the same directory')
         parser_extraction.add_argument('path', help = 'path to the dataset')
         parser_extraction.add_argument('--keyword', help = 'export keyword', required = True)
+        parser_extraction.add_argument('--segments', help = 'path to the input segments dataframe', required = True)
         parser_extraction.add_argument('--destination', help = 'destination', required = True)
-        parser_extraction.add_argument('--sample-size', help = 'how many samples per recording', required = True, type = int)
-        parser_extraction.add_argument('--annotation-set', help = 'annotation set', default = 'vtc')
-        parser_extraction.add_argument('--target-speaker-type', help = 'speaker type to get chunks from', choices=['CHI', 'OCH', 'FEM', 'MAL'], nargs = '+')
+        parser_extraction.add_argument('--exclude-segments', help = 'segments to exclude before sampling', nargs = '+', default = [])
         parser_extraction.add_argument('--batch-size', help = 'batch size', default = 1000, type = int)
         parser_extraction.add_argument('--threads', help = 'how many threads to run on', default = 0, type = int)
 
@@ -301,7 +294,7 @@ class ZooniversePipeline(Pipeline):
         parser_upload.add_argument('--destination', help = 'destination', required = True)
         parser_upload.add_argument('--zooniverse-login', help = 'zooniverse login', required = True)
         parser_upload.add_argument('--zooniverse-pwd', help = 'zooniverse password', required = True)
-        parser_upload.add_argument('--project-slug', help = 'zooniverse project name', required = True)
+        parser_upload.add_argument('--project-id', help = 'zooniverse project id', required = True)
         parser_upload.add_argument('--set-prefix', help = 'subject prefix', required = True)
         parser_upload.add_argument('--batches', help = 'amount of batches to upload', required = False, type = int, default = 0)
 
