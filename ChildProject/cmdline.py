@@ -23,7 +23,7 @@ def subcommand(args=[], parent = subparsers):
     return decorator
 
 def register_pipeline(subcommand, cls):
-    _parser = subparsers.add_parser(subcommand, description = cls.__doc__)
+    _parser = subparsers.add_parser(subcommand, description = cls.run.__doc__)
     cls.setup_parser(_parser)
     _parser.set_defaults(func = lambda args: cls().run(**vars(args)))
 
@@ -250,6 +250,7 @@ def compute_durations(args):
 def main():
     register_pipeline('zooniverse', ZooniversePipeline)
     register_pipeline('convert', ConversionPipeline)
+    register_pipeline('anonymize', AnonymizationPipeline)
 
     args = parser.parse_args()
     args.func(args)
