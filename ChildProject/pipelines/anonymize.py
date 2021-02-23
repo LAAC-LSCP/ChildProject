@@ -10,6 +10,8 @@ from ChildProject.annotations import AnnotationManager
 from ChildProject.pipelines.pipeline import Pipeline
 
 class AnonymizationPipeline(Pipeline):
+    """Anonymize a set of its annotations (`input_set`) and saves it as `output_set`."""
+    
     DEFAULT_REPLACEMENTS = {
         "PrimaryChild": {
             "DOB": "1000-01-01"

@@ -1,23 +1,6 @@
 Basic tools
 ===========
 
--  `Data validation <#data-validation>`__
--  `Convert recordings <#convert-recordings>`__
-
-   -  `Multi-core audio conversion with slurm on a
-      cluster <#multi-core-audio-conversion-with-slurm-on-a-cluster>`__
-
--  `Compute recordings duration <#compute-recordings-duration>`__
--  `Import annotations <#import-annotations>`__
-
-   -  `Single file importation <#single-file-importation>`__
-   -  `Bulk importation <#bulk-importation>`__
-   -  `Merge annotation sets <#merge-annotation-sets>`__
-   -  `Rename a set of annotations <#rename-a-set-of-annotations>`__
-   -  `Remove a set of annotations <#remove-a-set-of-annotations>`__
-
-.. _tools-data-validation:
-
 Data validation
 ---------------
 
@@ -86,8 +69,14 @@ in the metadata.
 
    child-project compute-durations /path/to/dataset --help
 
-Import annotations
-------------------
+Managing annotations
+--------------------
+
+Importation
+~~~~~~~~~~~
+
+Single file importation
+^^^^^^^^^^^^^^^^^^^^^^^
 
 Annotations can be imported one by one or in bulk. Annotation
 importation does the following :
@@ -98,8 +87,7 @@ importation does the following :
 2. Registers them to the annotation index at
    ``metadata/annotations.csv``
 
-Single file importation
-~~~~~~~~~~~~~~~~~~~~~~~
+
 
 Use ``child-project import-annotations`` to import a single annotation
 file.
@@ -126,7 +114,7 @@ Find more information about the allowed values for each parameter, see :ref:`for
 .. _tools-annotations-bulk-importation:
 
 Bulk importation
-~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^
 
 Use this to do bulk importation of many annotation files.
 
@@ -167,6 +155,21 @@ remove them from the index.
 ::
 
    child-project remove-annotations /path/to/dataset --set vtc
+
+ITS annotations anonymization
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+LENA .its files might contain information that can help recover the identity of the participants, which may be undesired.
+This command anonymizes .its files, based on a routine by `HomeBank
+<https://github.com/HomeBankCode/ITS_annonymizer>`_.
+
+.. clidoc::
+
+   child-project anonymize /path/to/dataset --help
+
+::
+
+   child-project anonymize /path/to/dataset --input-set lena --output-set lena/anonymous
 
 Merge annotation sets
 ~~~~~~~~~~~~~~~~~~~~~
