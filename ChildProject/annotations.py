@@ -698,42 +698,10 @@ class AnnotationManager:
 
         self.annotations.to_csv(os.path.join(self.project.path, 'metadata/annotations.csv'), index = False)
 
-
-    def merge_sets(self, left_set: str, right_set: str, left_columns: list, right_columns: list, output_set: str, columns: dict = {}):
-        """Merge columns from ``left_set`` and ``right_set`` annotations, 
-        for all matching segments, into a new set of annotations named
-        ``output_set``.
-
-        :param left_set: Left set of annotations.
-        :type left_set: str
-        :param right_set: Right set of annotations.
-        :type right_set: str
-        :param left_columns: Columns which values will be based on the left set.
-        :type left_columns: list
-        :param right_columns: Columns which values will be based on the right set.
-        :type right_columns: list
-        :param output_set: Name of the output annotations set.
-        :type output_set: str
-        :return: [description]
-        :rtype: [type]
-        """
-        assert left_set != right_set, "sets must differ"
-        assert not (set(left_columns) & set (right_columns)), "left_columns and right_columns must be disjoint"
-
-        union = set(left_columns) | set (right_columns)
-        all_columns = set([c.name for c in self.SEGMENTS_COLUMNS]) - set(['annotation_file', 'segment_onset', 'segment_offset'])
-        required_columns = set([c.name for c in self.SEGMENTS_COLUMNS if c.required]) - set(['annotation_file', 'segment_onset', 'segment_offset'])
-        assert union.issubset(all_columns), "left_columns and right_columns have unexpected values"
-        assert required_columns.issubset(union), "left_columns and right_columns have missing values"
-
-
-        left_annotations = self.annotations[self.annotations['set'] == left_set]
-        right_annotations = self.annotations[self.annotations['set'] == right_set]
-
-        left_annotations, right_annotations = self.intersection(left_annotations, right_annotations)
-        left_annotations = left_annotations.reset_index(drop = True).rename_axis('interval').reset_index()
-        right_annotations = right_annotations.reset_index(drop = True).rename_axis('interval').reset_index()
-
+    def merge_annotations(self, left_columns, right_columns, columns, output_set, input):
+        left_annotations = input['left_annotations']
+        right_annotations = input['right_annotations']
+        
         annotations = left_annotations.copy()
         annotations['format'] = ''
         annotations['annotation_filename'] = annotations.apply(
@@ -749,6 +717,12 @@ class AnnotationManager:
             annotations[key] = columns[key]
 
         annotations['set'] = output_set
+
+        if not all([os.path.exists(os.path.join(self.project.path, 'annotations', f)) for f in left_annotations['annotation_filename'].tolist()]):
+            return pd.DataFrame()
+
+        if not all([os.path.exists(os.path.join(self.project.path, 'annotations', f)) for f in right_annotations['annotation_filename'].tolist()]):
+            return pd.DataFrame()
 
         left_segments = self.get_segments(left_annotations)
         left_segments['segment_onset'] = left_segments['segment_onset'] + left_segments['time_seek']
@@ -810,6 +784,60 @@ class AnnotationManager:
                 index = False
             )
 
+        return annotations
+
+    def merge_sets(self, left_set: str, right_set: str,
+        left_columns: list, right_columns: list,
+        output_set: str, columns: dict = {},
+        threads = -1
+    ):
+        """Merge columns from ``left_set`` and ``right_set`` annotations, 
+        for all matching segments, into a new set of annotations named
+        ``output_set``.
+
+        :param left_set: Left set of annotations.
+        :type left_set: str
+        :param right_set: Right set of annotations.
+        :type right_set: str
+        :param left_columns: Columns which values will be based on the left set.
+        :type left_columns: list
+        :param right_columns: Columns which values will be based on the right set.
+        :type right_columns: list
+        :param output_set: Name of the output annotations set.
+        :type output_set: str
+        :return: [description]
+        :rtype: [type]
+        """
+        assert left_set != right_set, "sets must differ"
+        assert not (set(left_columns) & set (right_columns)), "left_columns and right_columns must be disjoint"
+
+        union = set(left_columns) | set (right_columns)
+        all_columns = set([c.name for c in self.SEGMENTS_COLUMNS]) - set(['annotation_file', 'segment_onset', 'segment_offset'])
+        required_columns = set([c.name for c in self.SEGMENTS_COLUMNS if c.required]) - set(['annotation_file', 'segment_onset', 'segment_offset'])
+        assert union.issubset(all_columns), "left_columns and right_columns have unexpected values"
+        assert required_columns.issubset(union), "left_columns and right_columns have missing values"
+
+        left_annotations = self.annotations[self.annotations['set'] == left_set]
+        right_annotations = self.annotations[self.annotations['set'] == right_set]
+
+        left_annotations = left_annotations[left_annotations['error'].isnull()]
+        right_annotations = right_annotations[right_annotations['error'].isnull()]
+
+        left_annotations, right_annotations = self.intersection(left_annotations, right_annotations)
+        left_annotations = left_annotations.reset_index(drop = True).rename_axis('interval').reset_index()
+        right_annotations = right_annotations.reset_index(drop = True).rename_axis('interval').reset_index()
+
+        input_annotations = [
+            {
+                'left_annotations': left_annotations[left_annotations['recording_filename'] == recording],
+                'right_annotations': right_annotations[right_annotations['recording_filename'] == recording]
+            }
+            for recording in left_annotations['recording_filename'].unique()
+        ]
+            
+        pool = mp.Pool(processes = threads if threads > 0 else mp.cpu_count())
+        annotations = pool.map(partial(self.merge_annotations, left_columns, right_columns, columns, output_set), input_annotations)
+        annotations = pd.concat(annotations)
         annotations.drop(columns = list(set(annotations.columns)-set([c.name for c in self.INDEX_COLUMNS])), inplace = True)
         
         self.read()
@@ -853,8 +881,8 @@ class AnnotationManager:
         b_stack = []
 
         for recording in recordings:
-            a = left[left['recording_filename'] == recording]
-            b = right[right['recording_filename'] == recording]
+            a = left[left['recording_filename'] == recording].copy()
+            b = right[right['recording_filename'] == recording].copy()
 
             for bound in ('onset', 'offset'):
                 a['abs_range_' + bound] = a['range_' + bound] + a['time_seek']

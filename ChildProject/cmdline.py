@@ -108,7 +108,8 @@ def import_annotations(args):
     arg("--right-set", help = "right set", required = True),
     arg("--left-columns", help = "comma-separated columns to merge from the left set", required = True),
     arg("--right-columns", help = "comma-separated columns to merge from the right set", required = True),
-    arg("--output-set", help = "name of the output set", required = True)
+    arg("--output-set", help = "name of the output set", required = True),
+    arg("--threads", help = "amount of threads to run on (default: 1)", type = int, default = 1)
 ])
 def merge_annotations(args):
     """merge segments sharing identical onset and offset from two sets of annotations"""
@@ -126,7 +127,8 @@ def merge_annotations(args):
         right_set = args.right_set,
         left_columns = args.left_columns.split(','),
         right_columns = args.right_columns.split(','),
-        output_set = args.output_set
+        output_set = args.output_set,
+        threads = args.threads
     )
 
 @subcommand([
