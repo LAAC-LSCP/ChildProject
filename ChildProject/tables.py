@@ -22,6 +22,13 @@ class IndexColumn:
         self.unique = unique
         self.generated = generated
 
+    def __str__(self):
+        return 'IndexColumn(name = {})'.format(self.name)
+
+    def __repr__(self):
+        return 'IndexColumn(name = {})'.format(self.name)
+
+
 class IndexTable:
     def __init__(self, name, path = None, columns = []):
         self.name = name
@@ -56,6 +63,7 @@ class IndexTable:
 
             if rc.name not in self.df.columns:
                 errors.append(self.msg("{} table is missing column '{}'".format(self.name, rc.name)))
+                continue
 
             null = self.df[self.df[rc.name].isnull()].index.values.tolist()
             if len(null) > 0:
