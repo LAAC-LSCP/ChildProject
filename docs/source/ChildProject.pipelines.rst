@@ -20,6 +20,14 @@ ChildProject.pipelines.pipeline module
    :undoc-members:
    :show-inheritance:
 
+ChildProject.pipelines.sampler module
+-------------------------------------
+
+.. automodule:: ChildProject.pipelines.sampler
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 ChildProject.pipelines.vtc module
 ---------------------------------
 

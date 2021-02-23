@@ -9,7 +9,7 @@ import ChildProject
 from ChildProject.pipelines.pipeline import Pipeline
 
 class Sampler(ABC):
-    def __init__(self, project):
+    def __init__(self, project: ChildProject.projects.ChildProject):
         self.project = project
         self.segments = pd.DataFrame()
         self.annotation_set = ''
@@ -58,6 +58,17 @@ class CustomSampler(Sampler):
         parser.add_argument('segments', help = 'path to selected segments datafame')
 
 class RandomVocalizationSampler(Sampler):
+    """Sample vocalizations based on some input annotation set.
+
+    :param project: ChildProject instance of the target dataset.
+    :type project: ChildProject.projects.ChildProject
+    :param annotation_set: Set of annotations to get vocalizations from.
+    :type annotation_set: str
+    :param target_speaker_type: List of speaker types to sample vocalizations from.
+    :type target_speaker_type: list
+    :param sample_size: Amount of vocalizations to sample, per recording.
+    :type sample_size: int
+    """
     def __init__(self,
         project: ChildProject.projects.ChildProject,
         annotation_set: str,
@@ -85,25 +96,45 @@ import numpy as np
 from pydub import AudioSegment
 
 class EnergyDetectionSampler(Sampler):
+    """Sample windows within each recording, targetting those
+    that have a signal energy higher than some threshold.
+
+    :param project: ChildProject instance of the target dataset.
+    :type project: ChildProject.projects.ChildProject
+    :param windows_length: Length of each window, in seconds.
+    :type windows_length: float
+    :param windows_spacing: Spacing between the start of each window, in seconds.
+    :type windows_spacing: float
+    :param windows_count: How many windows to retain per recording.
+    :type windows_count: int
+    :param windows_offset: start of the first window, in seconds, defaults to 0
+    :type windows_offset: float, optional
+    :param threshold: lowest energy quantile to sample from, defaults to 0.8
+    :type threshold: float, optional
+    :param low_freq: if > 0, frequencies below will be filtered before calculating the energy, defaults to 0
+    :type low_freq: int, optional
+    :param high_freq: if < 100000, frequencies above will be filtered before calculating the energy, defaults to 100000
+    :type high_freq: int, optional
+    """
     def __init__(self,
         project: ChildProject.projects.ChildProject,
         windows_length: float,
         windows_spacing: float,
         windows_count: int,
+        windows_offset: float = 0,
         threshold: float = 0.8,
         low_freq: int = 0,
-        high_freq: int = 100000,
-        initial_segments: str = None
+        high_freq: int = 100000
         ):
 
         super().__init__(project)
         self.windows_length = windows_length
         self.windows_count = windows_count
         self.windows_spacing = windows_spacing
+        self.windows_offset = windows_offset
         self.threshold = threshold
         self.low_freq = low_freq
         self.high_freq = high_freq
-        self.initial_segments_path = initial_segments
 
     def compute_energy_loudness(self, chunk, sampling_frequency: int):
         if self.low_freq > 0 or self.high_freq < 100000:
@@ -122,7 +153,7 @@ class EnergyDetectionSampler(Sampler):
         frequency = int(audio.frame_rate)
         max_value = 256**(int(audio.sample_width))/2-1
 
-        windows_starts = (1000*np.arange(self.windows_spacing, duration - self.windows_length, self.windows_spacing)).astype(int)
+        windows_starts = (1000*np.arange(self.windows_offset, duration - self.windows_length, self.windows_spacing)).astype(int)
         windows = []
 
         for start in windows_starts:
@@ -153,19 +184,18 @@ class EnergyDetectionSampler(Sampler):
             windows = windows.sample(self.windows_count)
             segments.extend(windows.to_dict(orient = 'records'))
 
-        self.segments = pd.DataFrame(segments)     
+        self.segments = pd.DataFrame(segments)
 
     @staticmethod
     def add_parser(samplers):
         parser = samplers.add_parser('energy-detection', help = 'energy based activity detection')
         parser.add_argument('--windows-length', help = 'length of each window (in seconds)', required = True, type = float)
-        parser.add_argument('--windows-spacing', help = 'spacing between windows (in seconds)', required = True, type = float)
+        parser.add_argument('--windows-spacing', help = 'spacing between the start of two consecutive windows (in seconds)', required = True, type = float)
         parser.add_argument('--windows-count', help = 'how many windows to sample from', required = True, type = int)
+        parser.add_argument('--windows-offset', help = 'start of the first window (in seconds)', type = float, default = 0)
         parser.add_argument('--threshold', help = 'lowest energy quantile to sample from. default is 0.8 (i.e., sample from the 20%% windows with the highest energy).', default = 0.8, type = float)
         parser.add_argument('--low-freq', help = 'remove all frequencies below low-freq before calculating each window\'s energy. (in Hz)', default = 0, type = int)
         parser.add_argument('--high-freq', help = 'remove all frequencies above high-freq before calculating each window\'s energy. (in Hz)', default = 100000, type = int)
-
-            
 
 class HighVolubilitySampler(Sampler):
     def __init__(self,
