@@ -1,6 +1,9 @@
+import glob
 import os
 import pandas as pd
 import json
+import re
+import shutil
 
 from ChildProject.projects import ChildProject
 from ChildProject.annotations import AnnotationManager
@@ -56,18 +59,46 @@ class AnonymizationPipeline(Pipeline):
 
     def run(self, path: str, input_set: str, output_set: str, replacements_json_dict: str = '', **kwargs):
         """Anonymize a set of its annotations (`input_set`) and saves it as `output_set`."""
-        
+
+        if input_set == output_set:
+            raise Exception('input_set and output_set should not be equal')
+
         project = ChildProject(path)
         project.read()
-
-        am = AnnotationManager(project)
-        am.read()
-
-        annotations = am.annotations
 
         replacements = self.DEFAULT_REPLACEMENTS
         if replacements_json_dict:
             replacements = json.load(open(replacements_json_dict, 'r'))
+
+        input_set_path = os.path.join(project.path, 'annotations', input_set, 'raw')
+        output_set_path = os.path.join(project.path, 'annotations', output_set, 'raw')
+
+        if os.path.exists(output_set_path):
+            raise Exception('destination {} already exists'.format(output_set_path))
+        
+        its_files = glob.glob(os.path.join(input_set_path, '**/*.*'), recursive = True)
+        for its in its_files:
+            inFile = its 
+            outFile = os.path.join(output_set_path, its[len(os.path.join(input_set_path, '')):])
+            os.makedirs(os.path.dirname(outFile), exist_ok = True)
+
+            with open(inFile, 'r') as inF:
+                with open(outFile, 'w') as outF:
+                    for line in inF:
+                        for node in replacements.keys():
+                            if re.search(r'<{}\b'.format(node), line):  # word boundary is important here
+                                for name, value in replacements[node].items():
+                                    if isinstance(value,list):
+                                        if bool(value[1]["only_time"]) is True:
+                                            line = re.sub(r'{}="[0-9\-]*'.format(name),
+                                                    r'{}="{}'.format(name, value[0]["replace_value"]),
+                                                    line)
+                                            continue
+                                    
+                                    line = re.sub(r'{}="[a-zA-Z0-9_.:\-]*"'.format(name),
+                                                    r'{}="{}"'.format(name, value),
+                                                    line)
+                        outF.write(line)
 
 
     @staticmethod
