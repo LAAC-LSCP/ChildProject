@@ -67,5 +67,6 @@ In this context, we provide tools and a procedure to:
 -  Convert your raw recordings into the desired format
 -  Import raw annotations (from ELAN, Praat, csv, rttm from VTC and
    ALICE) into our standardized format
+-  Sample segments of the recordings to annotate from a set of sampling algorithms
 -  Add clips to an annotation pipeline in Zooniverse, and retrieve the
    ensuing annotations
