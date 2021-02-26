@@ -23,7 +23,7 @@ def subcommand(args=[], parent = subparsers):
     return decorator
 
 def register_pipeline(subcommand, cls):
-    _parser = subparsers.add_parser(subcommand, description = cls.__doc__)
+    _parser = subparsers.add_parser(subcommand, description = cls.run.__doc__)
     cls.setup_parser(_parser)
     _parser.set_defaults(func = lambda args: cls().run(**vars(args)))
 
@@ -108,7 +108,8 @@ def import_annotations(args):
     arg("--right-set", help = "right set", required = True),
     arg("--left-columns", help = "comma-separated columns to merge from the left set", required = True),
     arg("--right-columns", help = "comma-separated columns to merge from the right set", required = True),
-    arg("--output-set", help = "name of the output set", required = True)
+    arg("--output-set", help = "name of the output set", required = True),
+    arg("--threads", help = "amount of threads to run on (default: 1)", type = int, default = 1)
 ])
 def merge_annotations(args):
     """merge segments sharing identical onset and offset from two sets of annotations"""
@@ -126,7 +127,8 @@ def merge_annotations(args):
         right_set = args.right_set,
         left_columns = args.left_columns.split(','),
         right_columns = args.right_columns.split(','),
-        output_set = args.output_set
+        output_set = args.output_set,
+        threads = args.threads
     )
 
 @subcommand([
@@ -251,6 +253,7 @@ def main():
     register_pipeline('sampler', SamplerPipeline)
     register_pipeline('zooniverse', ZooniversePipeline)
     register_pipeline('convert', ConversionPipeline)
+    register_pipeline('anonymize', AnonymizationPipeline)
 
     args = parser.parse_args()
     args.func(args)

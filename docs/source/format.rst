@@ -104,8 +104,8 @@ Annotations are indexed in one unique dataframe located at
 Annotation importation input format
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The annotations importation script and function take a dataframe of the
-following format as an input :
+The annotations importation script (:ref:`tools-annotations-bulk-importation`) and python method (:meth:`ChildProject.annotations.AnnotationManager.import_annotations`) take a dataframe of the
+following format as an input:
 
 .. index-table:: Input annotations
    :header: input_annotations

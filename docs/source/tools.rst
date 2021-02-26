@@ -1,23 +1,6 @@
 Basic tools
 ===========
 
--  `Data validation <#data-validation>`__
--  `Convert recordings <#convert-recordings>`__
-
-   -  `Multi-core audio conversion with slurm on a
-      cluster <#multi-core-audio-conversion-with-slurm-on-a-cluster>`__
-
--  `Compute recordings duration <#compute-recordings-duration>`__
--  `Import annotations <#import-annotations>`__
-
-   -  `Single file importation <#single-file-importation>`__
-   -  `Bulk importation <#bulk-importation>`__
-   -  `Merge annotation sets <#merge-annotation-sets>`__
-   -  `Rename a set of annotations <#rename-a-set-of-annotations>`__
-   -  `Remove a set of annotations <#remove-a-set-of-annotations>`__
-
-.. _tools-data-validation:
-
 Data validation
 ---------------
 
@@ -86,8 +69,14 @@ in the metadata.
 
    child-project compute-durations /path/to/dataset --help
 
-Import annotations
-------------------
+Managing annotations
+--------------------
+
+Importation
+~~~~~~~~~~~
+
+Single file importation
+^^^^^^^^^^^^^^^^^^^^^^^
 
 Annotations can be imported one by one or in bulk. Annotation
 importation does the following :
@@ -98,8 +87,7 @@ importation does the following :
 2. Registers them to the annotation index at
    ``metadata/annotations.csv``
 
-Single file importation
-~~~~~~~~~~~~~~~~~~~~~~~
+
 
 Use ``child-project import-annotations`` to import a single annotation
 file.
@@ -112,12 +100,21 @@ Example:
 
 ::
 
-   child-project import-annotations /path/to/dataset --set eaf --recording_filename sound.wav --time_seek 0 --raw_filename example.eaf --range_onset 0 --range_offset 300 --format eaf
+   child-project import-annotations /path/to/dataset \
+      --set eaf \
+      --recording_filename sound.wav \
+      --time_seek 0 \
+      --raw_filename example.eaf \
+      --range_onset 0 \
+      --range_offset 300 \
+      --format eaf
 
 Find more information about the allowed values for each parameter, see :ref:`format-input-annotations`.
 
+.. _tools-annotations-bulk-importation:
+
 Bulk importation
-~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^
 
 Use this to do bulk importation of many annotation files.
 
@@ -128,12 +125,6 @@ Use this to do bulk importation of many annotation files.
 The input dataframe ``/path/to/dataframe.csv`` must have one entry per
 annotation to import, according to the format specified at :ref:`format-input-annotations`.
 
-Merge annotation sets
-~~~~~~~~~~~~~~~~~~~~~
-
-::
-
-   child-project merge-annotations /path/to/dataset --left-set vtc --right-set alice --left-columns speaker_id,ling_type,speaker_type,vcm_type,lex_type,mwu_type,addresseee,transcription --right-columns phonemes,syllables,words --output-set alice_vtc
 
 Rename a set of annotations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -164,3 +155,40 @@ remove them from the index.
 ::
 
    child-project remove-annotations /path/to/dataset --set vtc
+
+ITS annotations anonymization
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+LENA .its files might contain information that can help recover the identity of the participants, which may be undesired.
+This command anonymizes .its files, based on a routine by `HomeBank
+<https://github.com/HomeBankCode/ITS_annonymizer>`_.
+
+.. clidoc::
+
+   child-project anonymize /path/to/dataset --help
+
+::
+
+   child-project anonymize /path/to/dataset --input-set lena --output-set lena/anonymous
+
+Merge annotation sets
+~~~~~~~~~~~~~~~~~~~~~
+
+Some processing tools use pre-existing annotations as an input,
+and label the original segments with more information. This is
+typically the case of ALICE, which labels segments generated
+by the VTC. In this case, one might want to merge the ALICE
+and VTC annotations altogether. This can be done with ``child-project merge-annotations``.
+
+.. clidoc::
+
+   child-project merge-annotations /path/to/dataset --help
+
+::
+
+   child-project merge-annotations /path/to/dataset \
+   --left-set vtc \
+   --right-set alice \
+   --left-columns speaker_id,ling_type,speaker_type,vcm_type,lex_type,mwu_type,addresseee,transcription \
+   --right-columns phonemes,syllables,words \
+   --output-set alice_vtc
