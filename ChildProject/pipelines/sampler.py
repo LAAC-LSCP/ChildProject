@@ -3,6 +3,7 @@ import argparse
 import datetime
 import multiprocessing as mp
 import os
+import sys
 import pandas as pd
 
 import ChildProject
@@ -157,7 +158,12 @@ class EnergyDetectionSampler(Sampler):
         else:
             recording_path = os.path.join(self.project.path, ChildProject.projects.ChildProject.RAW_RECORDINGS, recording['filename'])
 
-        audio = AudioSegment.from_wav(recording_path)
+        try:
+            audio = AudioSegment.from_wav(recording_path)
+        except:
+            print("failed to read '{}', is it a valid .wav file ?".format(recording_path), file = sys.stderr)
+            return pd.DataFrame()
+
         duration = audio.duration_seconds
         channels = audio.channels
         frequency = int(audio.frame_rate)
@@ -186,6 +192,7 @@ class EnergyDetectionSampler(Sampler):
         
 
     def sample(self):
+        recordings = self.project.recordings[self.project.recordings['filename'] != 'NA']
         pool = mp.Pool(processes = self.threads if self.threads >= 1 else mp.cpu_count())
         windows = pd.concat(pool.map(self.get_recording_windows, self.project.recordings.to_dict(orient = 'records')))
         windows = windows.merge(
