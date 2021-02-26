@@ -28,9 +28,9 @@ class AnnotationManager:
     INDEX_COLUMNS = [
         IndexColumn(name = 'set', description = 'name of the annotation set (e.g. VTC, annotator1, etc.)', required = True),
         IndexColumn(name = 'recording_filename', description = 'recording filename as specified in the recordings index', required = True),
-        IndexColumn(name = 'time_seek', description = 'reference time in seconds, e.g: 3600, or 3600.500. All times expressed in the annotations are relative to this time.', regex = r"(\-?)(\d+(\.\d+)?)", required = True),
-        IndexColumn(name = 'range_onset', description = 'covered range start time in seconds, measured since `time_seek`', regex = r"(\d+(\.\d+)?)", required = True),
-        IndexColumn(name = 'range_offset', description = 'covered range end time in seconds, measured since `time_seek`', regex = r"(\d+(\.\d+)?)", required = True),
+        IndexColumn(name = 'time_seek', description = 'reference time in seconds, e.g: 3600, or 3600.500. All times expressed in the annotations are relative to this time.', regex = r"(\-?)([0-9]+)", required = True),
+        IndexColumn(name = 'range_onset', description = 'covered range start time in seconds, measured since `time_seek`', regex = r"([0-9]+)", required = True),
+        IndexColumn(name = 'range_offset', description = 'covered range end time in seconds, measured since `time_seek`', regex = r"([0-9]+)", required = True),
         IndexColumn(name = 'raw_filename', description = 'annotation input filename location, relative to `annotations/<set>/raw`', filename = True, required = True),
         IndexColumn(name = 'format', description = 'input annotation format', choices = ['TextGrid', 'eaf', 'vtc_rttm', 'alice', 'its'], required = False),
         IndexColumn(name = 'filter', description = 'source file to filter in (for rttm and alice only)', required = False),
@@ -41,8 +41,8 @@ class AnnotationManager:
 
     SEGMENTS_COLUMNS = [
         IndexColumn(name = 'annotation_file', description = 'raw annotation path relative, relative to `annotations/<set>/raw`', required = True),
-        IndexColumn(name = 'segment_onset', description = 'segment start time in seconds', regex = r"(\d+(\.\d+)?)", required = True),
-        IndexColumn(name = 'segment_offset', description = 'segment end time in seconds', regex = r"(\d+(\.\d+)?)", required = True),
+        IndexColumn(name = 'segment_onset', description = 'segment start time in seconds', regex = r"([0-9]+)", required = True),
+        IndexColumn(name = 'segment_offset', description = 'segment end time in seconds', regex = r"([0-9]+)", required = True),
         IndexColumn(name = 'speaker_id', description = 'identity of speaker in the annotation', required = True),
         IndexColumn(name = 'speaker_type', description = 'class of speaker (FEM, MAL, CHI, OCH)', choices = ['FEM', 'MAL', 'CHI', 'OCH', 'SPEECH'] + ['TVN', 'TVF', 'FUZ', 'FEF', 'MAF', 'SIL', 'CXF', 'NON', 'OLN', 'OLF', 'CHF', 'NA'], required = True),
         IndexColumn(name = 'ling_type', description = '1 if the vocalization contains at least a vowel (ie canonical or non-canonical), 0 if crying or laughing', choices = ['1', '0', 'NA'], required = True),
@@ -61,11 +61,11 @@ class AnnotationManager:
         IndexColumn(name = 'lena_conv_floor_type', description = '(FI): Floor Initiation, (FH): Floor Holding', choices = ['FI', 'FH']),
         IndexColumn(name = 'lena_conv_turn_type', description = 'LENA turn type', choices = ['TIFI', 'TIMI', 'TIFR', 'TIMR', 'TIFE', 'TIME', 'NT']),
         IndexColumn(name = 'utterances_count', description = 'utterances count', regex = r"(\d+(\.\d+)?)"),
-        IndexColumn(name = 'utterances_length', description = 'utterances length', regex = r"(\d+(\.\d+)?)"),
-        IndexColumn(name = 'non_speech_length', description = 'non-speech length', regex = r"(\d+(\.\d+)?)"),
+        IndexColumn(name = 'utterances_length', description = 'utterances length', regex = r"([0-9]+)"),
+        IndexColumn(name = 'non_speech_length', description = 'non-speech length', regex = r"([0-9]+)"),
         IndexColumn(name = 'average_db', description = 'average dB level', regex = r"(\-?)(\d+(\.\d+)?)"),
         IndexColumn(name = 'peak_db', description = 'peak dB level', regex = r"(\-?)(\d+(\.\d+)?)"),
-        IndexColumn(name = 'child_cry_vfx_len', description = 'childCryVfxLen', regex = r"(\d+(\.\d+)?)"),
+        IndexColumn(name = 'child_cry_vfx_len', description = 'childCryVfxLen', regex = r"([0-9]+)"),
         IndexColumn(name = 'utterances', description = 'LENA utterances details (json)'),
         IndexColumn(name = 'cries', description = 'cries (json)'),
         IndexColumn(name = 'vfxs', description = 'Vfx (json)')
@@ -219,8 +219,8 @@ class AnnotationManager:
                     continue
 
                 segment = {
-                    'segment_onset': float(interval[0]),
-                    'segment_offset': float(interval[1]),
+                    'segment_onset': int(1000*float(interval[0])),
+                    'segment_offset': int(1000*float(interval[1])),
                     'speaker_id': tier_name,
                     'ling_type': ling_type(interval[2]),
                     'speaker_type': self.SPEAKER_ID_TO_TYPE[tier_name] if tier_name in self.SPEAKER_ID_TO_TYPE else 'NA',
@@ -255,8 +255,8 @@ class AnnotationManager:
                 (start_t, end_t) = (eaf.timeslots[start_ts], eaf.timeslots[end_ts])
 
                 segment = {
-                    'segment_onset': start_t/1000,
-                    'segment_offset': end_t/1000,
+                    'segment_onset': int(start_t),
+                    'segment_offset': int(end_t),
                     'speaker_id': tier_name,
                     'ling_type': 'NA',
                     'speaker_type': self.SPEAKER_ID_TO_TYPE[tier_name] if tier_name in self.SPEAKER_ID_TO_TYPE else 'NA',
@@ -407,8 +407,8 @@ class AnnotationManager:
                     n = n + 1
 
                 segments.append({
-                    'segment_onset': onset,
-                    'segment_offset': offset,
+                    'segment_onset': int(onset*1000),
+                    'segment_offset': int(offset*1000),
                     'speaker_id': 'NA',
                     'ling_type': 'NA',
                     'speaker_type': self.LENA_SPEAKER_TYPE_TRANSLATION[seg.get('spkr')],
@@ -427,12 +427,12 @@ class AnnotationManager:
                     'lena_conv_turn_type': lena_conv_turn_type,
                     'lena_conv_floor_type': lena_conv_floor_type,
                     'utterances_count': utterances_count,
-                    'utterances_length': utterances_length,
+                    'utterances_length': int(utterances_length*1000),
                     'average_db': average_db,
                     'peak_db': peak_db,
                     'utterances': utterances,
-                    'non_speech_length': non_speech_length,
-                    'child_cry_vfx_len': child_cry_vfx_len,
+                    'non_speech_length': int(non_speech_length*1000),
+                    'child_cry_vfx_len': int(child_cry_vfx_len*1000),
                     'cries': cries,
                     'vfxs': vfxs
                 })
@@ -449,8 +449,10 @@ class AnnotationManager:
         )
 
         df = rttm
-        df['segment_onset'] = df['tbeg'].astype(float)
-        df['segment_offset'] = (df['tbeg']+df['tdur']).astype(float)
+        df['segment_onset'] = 1000*df['tbeg'].astype(float)
+        df['segment_offset'] = 1000*(df['tbeg']+df['tdur']).astype(float)
+        df['segment_onset'] = df['segment_onset'].astype(int)
+        df['segment_offset'] = df['segment_offset'].astype(int)
         df['speaker_id'] = 'NA'
         df['ling_type'] = 'NA'
         df['speaker_type'] = df['name'].map(self.VTC_SPEAKER_TYPE_TRANSLATION)
@@ -490,8 +492,8 @@ class AnnotationManager:
 
         matches = df['file'].str.extract(r"^(.*)_(?:0+)?([0-9]{1,})_(?:0+)?([0-9]{1,})\.wav$")
         df['filename'] = matches[0]
-        df['segment_onset'] = matches[1].astype(float)/10000
-        df['segment_offset'] = matches[2].astype(float)/10000
+        df['segment_onset'] = matches[1].astype(int)/10
+        df['segment_offset'] = matches[2].astype(int)/10
         
         df.drop(columns = ['filename', 'file'], inplace = True)
 
@@ -732,17 +734,6 @@ class AnnotationManager:
         right_segments['segment_onset'] = right_segments['segment_onset'] + right_segments['time_seek']
         right_segments['segment_offset'] = right_segments['segment_offset'] + right_segments['time_seek']
 
-        def timestamp_to_int(f):
-            return int(round(f*10000))
-
-        def int_to_timestamp(i):
-            return i/10000
-
-        left_segments['segment_onset'] = left_segments['segment_onset'].apply(timestamp_to_int)
-        left_segments['segment_offset'] = left_segments['segment_offset'].apply(timestamp_to_int)
-        right_segments['segment_onset'] = right_segments['segment_onset'].apply(timestamp_to_int)
-        right_segments['segment_offset'] = right_segments['segment_offset'].apply(timestamp_to_int)
-
         merge_columns = ['interval', 'segment_onset', 'segment_offset']
 
         output_segments = left_segments[merge_columns + left_columns + ['annotation_file', 'time_seek']].merge(
@@ -751,8 +742,6 @@ class AnnotationManager:
             left_on = merge_columns,
             right_on = merge_columns
         )
-        output_segments['segment_onset'] = output_segments['segment_onset'].apply(int_to_timestamp)
-        output_segments['segment_offset'] = output_segments['segment_offset'].apply(int_to_timestamp)
 
         output_segments['segment_onset'] = output_segments['segment_onset'] - output_segments['time_seek']
         output_segments['segment_offset'] = output_segments['segment_offset'] - output_segments['time_seek']
@@ -928,16 +917,16 @@ class AnnotationManager:
 
         return pd.concat(a_stack), pd.concat(b_stack)
 
-    def clip_segments(self, segments: pd.DataFrame, start: float, stop: float) -> pd.DataFrame:
+    def clip_segments(self, segments: pd.DataFrame, start: int, stop: int) -> pd.DataFrame:
         """Clip all segments onsets and offsets within ``start`` and ``stop``.
         Segments outside of the range [``start``,``stop``] will be removed.
 
         :param segments: Dataframe of the segments to clip
         :type segments: pd.DataFrame
         :param start: range start
-        :type start: float
+        :type start: int
         :param stop: range end
-        :type stop: float
+        :type stop: int
         :return: Dataframe of the clipped segments
         :rtype: pd.DataFrame
         """
