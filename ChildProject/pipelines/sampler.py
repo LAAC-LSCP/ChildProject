@@ -189,13 +189,13 @@ class EnergyDetectionSampler(Sampler):
                 'energy': energy
             })
 
-        return pd.DataFrame(windows).set_index('recording_filename')
+        return pd.DataFrame(windows)
         
 
     def sample(self):
         recordings = self.project.recordings[self.project.recordings['filename'] != 'NA']
         pool = mp.Pool(processes = self.threads if self.threads >= 1 else mp.cpu_count())
-        windows = pd.concat(pool.map(self.get_recording_windows, recordings.to_dict(orient = 'records')))
+        windows = pd.concat(pool.map(self.get_recording_windows, recordings.to_dict(orient = 'records'))).set_index('recording_filename')
         windows = windows.merge(
             windows.groupby('recording_filename').agg(energy_threshold = ('energy', lambda a: np.quantile(a, self.threshold))),
             left_index = True,
