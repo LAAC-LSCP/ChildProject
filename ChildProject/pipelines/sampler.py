@@ -195,15 +195,16 @@ class EnergyDetectionSampler(Sampler):
     def sample(self):
         recordings = self.project.recordings[self.project.recordings['filename'] != 'NA']
         pool = mp.Pool(processes = self.threads if self.threads >= 1 else mp.cpu_count())
-        windows = pd.concat(pool.map(self.get_recording_windows, self.project.recordings.to_dict(orient = 'records')))
+        windows = pd.concat(pool.map(self.get_recording_windows, recordings.to_dict(orient = 'records')))
         windows = windows.merge(
             windows.groupby('recording_filename').agg(energy_threshold = ('energy', lambda a: np.quantile(a, self.threshold))),
             left_index = True,
             right_index = True
         )
         windows = windows[windows['energy'] >= windows['energy_threshold']]
-        self.segments = windows.groupby('recording_filename').sample(self.windows_count)
+        self.segments = windows.groupby('recording_filename').sample(self.windows_count, replace = True)
         self.segments.reset_index(inplace = True)
+        self.segments.drop_duplicates(['recording_filename', 'segment_onset', 'segment_offset'], inplace = True)
 
     @staticmethod
     def add_parser(samplers):
