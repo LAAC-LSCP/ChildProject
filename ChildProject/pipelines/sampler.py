@@ -172,6 +172,7 @@ class EnergyDetectionSampler(Sampler):
         windows_starts = (1000*np.arange(self.windows_offset, duration - self.windows_length, self.windows_spacing)).astype(int)
         windows = []
 
+        print("computing the energy of {} windows for recording {}...".format(len(windows_starts), recording['filename']))
         for start in windows_starts:
             energy = 0
             chunk = audio[start:start+int(1000*self.windows_length)].get_array_of_samples()
