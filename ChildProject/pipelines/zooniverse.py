@@ -2,6 +2,7 @@ import argparse
 import datetime
 import itertools
 import json
+import math
 import multiprocessing as mp
 import os
 import pandas as pd
@@ -15,18 +16,14 @@ from pydub import AudioSegment
 import ChildProject
 from ChildProject.pipelines.pipeline import Pipeline
 
-def check_dur(dur, target):
-    if dur % 0.5 == 0:
-        new_dur=dur
-        remain=0
-    else:
-        closest_int=int(round(dur))
-        if closest_int>=dur:
-            new_dur = float(closest_int)
-        else:
-            new_dur = float(closest_int)+0.5
-    remain = float(new_dur-dur)
-    return new_dur,remain
+def pad_interval(onset: int, offset: int, chunks_length: int, chunks_min_amount: int = 1):
+    length = offset-onset
+
+    target_length = chunks_length * max(chunks_min_amount, math.ceil(length/chunks_length))
+    onset -= (target_length - length)/2
+    offset += (target_length - length)/2
+
+    return int(onset), int(offset)
 
 class Chunk():
     def __init__(self, recording, onset, offset, segment_onset, segment_offset):
@@ -62,29 +59,25 @@ class ZooniversePipeline(Pipeline):
         for segment in segments:
             onset = int(segment['segment_onset']*1000)
             offset = int(segment['segment_offset']*1000)
-            difference = offset-onset
 
             original_onset = onset
             original_offset = offset
 
-            if difference < 1000:
-                tgt = 1000-difference
-                onset = float(onset)-tgt/2
-                offset = float(offset) + tgt/2
+            if self.chunks_length > 0:
+                onset, offset = pad_interval(onset, offset, self.chunks_length, self.chunks_min_amount)
+
+                if onset < 0:
+                    print("skipping chunk with negative onset ({})".format(onset))
+                    continue
+
+                intervals = [(a, a+self.chunks_length) for a in range(onset, offset, self.chunks_length)]
             else:
-                new_dur,remain = check_dur((offset-onset)/1000, self.chunk_length/1000)
-                onset = float(onset)-remain*1000/2
-                offset = float(offset) + remain*1000/2
+                intervals = [(onset, offset)]
 
-            onset = int(onset)
-            offset = int(offset)
-
-            intervals = range(onset, offset, self.chunk_length) 
-
-            for interval in intervals:
+            for (onset, offset) in intervals:
                 chunk = Chunk(
                     segment['recording_filename'],
-                    interval, interval + self.chunk_length,
+                    onset, offset,
                     original_onset, original_offset
                 )
                 chunk_audio = audio[chunk.onset:chunk.offset].fade_in(10).fade_out(10)
@@ -104,23 +97,21 @@ class ZooniversePipeline(Pipeline):
 
     def extract_chunks(self, keyword, destination, path, annotation_set = 'vtc',
         batch_size = 1000,
-        chunk_length = 500, threads = 0, batches = 0,
+        chunks_length = -1, chunks_min_amount = 2,
+        threads = 0, batches = 0,
         segments = None,
         exclude_segments = [], **kwargs):
 
         parameters = locals()
         parameters = [[key, parameters[key]] for key in parameters if key != 'self']
 
-        assert 1000 % chunk_length == 0, 'chunk_length should divide 1000'
-
         self.destination = destination
         self.project = ChildProject.projects.ChildProject(path)
 
         batch_size = int(batch_size)
-        chunk_length = int(chunk_length)
+        self.chunks_length = int(chunks_length)
+        self.chunks_min_amount = chunks_min_amount
         threads = int(threads)
-
-        self.chunk_length = chunk_length
 
         destination_path = os.path.join(destination, 'chunks')
         os.makedirs(destination_path, exist_ok = True)
@@ -284,6 +275,10 @@ class ZooniversePipeline(Pipeline):
         parser_extraction = subparsers.add_parser('extract-chunks', help = 'extract chunks to DESTINATION, proving all associate metadata in the same directory')
         parser_extraction.add_argument('path', help = 'path to the dataset')
         parser_extraction.add_argument('--keyword', help = 'export keyword', required = True)
+
+        parser_extraction.add_argument('--chunks-length', help = 'chunk length (in milliseconds). if <= 0, the segments will not be split into chunks', type = int, default = 0)
+        parser_extraction.add_argument('--chunks-min-amount', help = 'minimum amount of chunks to extract from a segment', default = 1)
+
         parser_extraction.add_argument('--segments', help = 'path to the input segments dataframe', required = True)
         parser_extraction.add_argument('--destination', help = 'destination', required = True)
         parser_extraction.add_argument('--exclude-segments', help = 'segments to exclude before sampling', nargs = '+', default = [])
