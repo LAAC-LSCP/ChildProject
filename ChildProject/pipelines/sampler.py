@@ -63,10 +63,16 @@ class PeriodicSampler(Sampler):
 
     :param project: ChildProject instance of the target dataset.
     :type project: ChildProject.projects.ChildProject
+    :param length: length of each segment, in seconds
+    :type length: float
+    :param period: spacing between two consecutive segments, in seconds
+    :type period: float
+    :param offset: offset of the first segment, in seconds, defaults to 0
+    :type offset: float
     """
     def __init__(self,
         project: ChildProject.projects.ChildProject,
-        length: float, period: float, offset: float
+        length: float, period: float, offset: float = 0
         ):
 
         super().__init__(project)
