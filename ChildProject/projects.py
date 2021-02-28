@@ -57,6 +57,7 @@ class ChildProject:
         IndexColumn(name = 'start_time', description = 'local time in which recording was started in format 24-hour (H)H:MM; if minutes are unknown, use 00. Set as ‘NA’ if unknown.', required = True, datetime = '%H:%M'),
         IndexColumn(name = 'recording_device_type', description = 'lena, usb, olympus, babylogger (lowercase)', required = True, choices = ['lena', 'usb', 'olympus', 'babylogger']),
         IndexColumn(name = 'filename', description = 'the path to the file from the root of “recordings”), set to ‘NA’ if no valid recording available. It is unique (two recordings cannot point towards the same file).', required = True, filename = True, unique = True),
+        IndexColumn(name = 'recording_set', description = 'name of the set of recordings this file belongs to'),
         IndexColumn(name = 'duration', description = 'duration of the audio', regex = r'(\d+(\.\d+)?)'),
         IndexColumn(name = 'session_id', description = 'identifier of the recording session.'),
         IndexColumn(name = 'session_offset', description = 'offset (in seconds) of the recording with respect to other recordings that are part of the same session. Each recording session is identified by their `session_id`.', regex = r'(\d+(\.\d+)?)'),
