@@ -95,12 +95,36 @@ class ZooniversePipeline(Pipeline):
 
         return chunks
 
-    def extract_chunks(self, keyword, destination, path, annotation_set = 'vtc',
-        batch_size = 1000,
-        chunks_length = -1, chunks_min_amount = 2,
-        threads = 0, batches = 0,
-        segments = None,
-        exclude_segments = [], **kwargs):
+    def extract_chunks(self, path: str, destination: str, keyword: str, 
+        segments: str,
+        batch_size: int = 1000,
+        chunks_length: int = -1, chunks_min_amount: int = 1,
+        exclude_segments: list = [],
+        threads: int = 0,
+        **kwargs):
+        """extract-audio chunks based on a list of segments and prepare them for upload
+        to zooniverse.
+
+        :param path: dataset path
+        :type path: str
+        :param destination: path to the folder where to store the metadata and audio chunks
+        :type destination: str
+        :param segments: path to the input segments csv dataframe, defaults to None
+        :type segments: str
+        :param keyword: keyword to insert in the output metadata
+        :type keyword: str
+        :param batch_size: size of each zooniverse subject subset, defaults to 1000
+        :type batch_size: int, optional
+        :param chunks_length: length of the chunks, in milliseconds, defaults to -1
+        :type chunks_length: int, optional
+        :param chunks_min_amount: minimum amount of chunk per segment, defaults to 1
+        :type chunks_min_amount: int, optional
+        :param threads: amount of threads to run-on, defaults to 0
+        :type threads: int, optional
+        :param exclude_segments: unused, defaults to []
+        :type exclude_segments: list, optional
+        """
+
 
         parameters = locals()
         parameters = [[key, parameters[key]] for key in parameters if key != 'self']
