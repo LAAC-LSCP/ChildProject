@@ -14,6 +14,7 @@ import sys
 import traceback
 from typing import Callable
 
+from . import __version__
 from .projects import ChildProject
 from .tables import IndexTable, IndexColumn
 from .utils import Segment, intersect_ranges
@@ -36,6 +37,7 @@ class AnnotationManager:
         IndexColumn(name = 'filter', description = 'source file to filter in (for rttm and alice only)', required = False),
         IndexColumn(name = 'annotation_filename', description = 'output formatted annotation location (automatic column, don\'t specify)', filename = True, required = False, generated = True),
         IndexColumn(name = 'imported_at', description = 'importation date (automatic column, don\'t specify)', datetime = "%Y-%m-%d %H:%M:%S", required = False, generated = True),
+        IndexColumn(name = 'package_version', description = 'version of the package used when the importation was performed', regex = r"[0-9]+\.[0-9]+\.[0-9]+", required = False, generated = True),
         IndexColumn(name = 'error', description = 'error message in case the annotation could not be imported', required = False, generated = True)
     ]
 
@@ -552,6 +554,7 @@ class AnnotationManager:
 
         annotation['annotation_filename'] = output_filename
         annotation['imported_at'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        annotation['package_version'] = __version__
 
         return annotation
 
