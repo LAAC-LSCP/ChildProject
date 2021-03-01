@@ -339,8 +339,8 @@ class AnnotationManager:
                 lena_conv_turn_type = conversation_info[5]
                 lena_conv_floor_type = conversation_info[6]
 
-                onset = extract_from_regex(timestamp_pattern, seg.get('startTime'))
-                offset = extract_from_regex(timestamp_pattern, seg.get('endTime'))
+                onset = float(extract_from_regex(timestamp_pattern, seg.get('startTime')))
+                offset = float(extract_from_regex(timestamp_pattern, seg.get('endTime')))
 
                 words = 0
                 for attr in ['femaleAdultWordCnt', 'maleAdultWordCnt']:
