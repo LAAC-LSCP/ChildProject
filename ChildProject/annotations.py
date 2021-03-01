@@ -28,9 +28,9 @@ class AnnotationManager:
     INDEX_COLUMNS = [
         IndexColumn(name = 'set', description = 'name of the annotation set (e.g. VTC, annotator1, etc.)', required = True),
         IndexColumn(name = 'recording_filename', description = 'recording filename as specified in the recordings index', required = True),
-        IndexColumn(name = 'time_seek', description = 'reference time in seconds, e.g: 3600, or 3600.500. All times expressed in the annotations are relative to this time.', regex = r"(\-?)([0-9]+)", required = True),
-        IndexColumn(name = 'range_onset', description = 'covered range start time in seconds, measured since `time_seek`', regex = r"([0-9]+)", required = True),
-        IndexColumn(name = 'range_offset', description = 'covered range end time in seconds, measured since `time_seek`', regex = r"([0-9]+)", required = True),
+        IndexColumn(name = 'time_seek', description = 'reference time in milliseconds, e.g: 3600000. All times expressed in the annotations are relative to this time.', regex = r"(\-?)([0-9]+)", required = True),
+        IndexColumn(name = 'range_onset', description = 'covered range start time in milliseconds, measured since `time_seek`', regex = r"([0-9]+)", required = True),
+        IndexColumn(name = 'range_offset', description = 'covered range end time in milliseconds, measured since `time_seek`', regex = r"([0-9]+)", required = True),
         IndexColumn(name = 'raw_filename', description = 'annotation input filename location, relative to `annotations/<set>/raw`', filename = True, required = True),
         IndexColumn(name = 'format', description = 'input annotation format', choices = ['TextGrid', 'eaf', 'vtc_rttm', 'alice', 'its'], required = False),
         IndexColumn(name = 'filter', description = 'source file to filter in (for rttm and alice only)', required = False),
@@ -41,8 +41,8 @@ class AnnotationManager:
 
     SEGMENTS_COLUMNS = [
         IndexColumn(name = 'annotation_file', description = 'raw annotation path relative, relative to `annotations/<set>/raw`', required = True),
-        IndexColumn(name = 'segment_onset', description = 'segment start time in seconds', regex = r"([0-9]+)", required = True),
-        IndexColumn(name = 'segment_offset', description = 'segment end time in seconds', regex = r"([0-9]+)", required = True),
+        IndexColumn(name = 'segment_onset', description = 'segment start time in milliseconds', regex = r"([0-9]+)", required = True),
+        IndexColumn(name = 'segment_offset', description = 'segment end time in milliseconds', regex = r"([0-9]+)", required = True),
         IndexColumn(name = 'speaker_id', description = 'identity of speaker in the annotation', required = True),
         IndexColumn(name = 'speaker_type', description = 'class of speaker (FEM, MAL, CHI, OCH)', choices = ['FEM', 'MAL', 'CHI', 'OCH', 'SPEECH'] + ['TVN', 'TVF', 'FUZ', 'FEF', 'MAF', 'SIL', 'CXF', 'NON', 'OLN', 'OLF', 'CHF', 'NA'], required = True),
         IndexColumn(name = 'ling_type', description = '1 if the vocalization contains at least a vowel (ie canonical or non-canonical), 0 if crying or laughing', choices = ['1', '0', 'NA'], required = True),
