@@ -4,6 +4,14 @@ ChildProject.pipelines package
 Submodules
 ----------
 
+ChildProject.pipelines.anonymize module
+---------------------------------------
+
+.. automodule:: ChildProject.pipelines.anonymize
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 ChildProject.pipelines.conversion module
 ----------------------------------------
 
@@ -24,14 +32,6 @@ ChildProject.pipelines.sampler module
 -------------------------------------
 
 .. automodule:: ChildProject.pipelines.sampler
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-ChildProject.pipelines.vtc module
----------------------------------
-
-.. automodule:: ChildProject.pipelines.vtc
    :members:
    :undoc-members:
    :show-inheritance:

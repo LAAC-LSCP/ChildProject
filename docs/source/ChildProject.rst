@@ -27,14 +27,6 @@ ChildProject.cmdline module
    :undoc-members:
    :show-inheritance:
 
-ChildProject.metrics module
----------------------------
-
-.. automodule:: ChildProject.metrics
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 ChildProject.projects module
 ----------------------------
 
