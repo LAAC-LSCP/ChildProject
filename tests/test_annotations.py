@@ -181,8 +181,8 @@ def test_clipping(project):
     am.import_annotations(input_annotations[input_annotations['set'] == 'vtc_rttm'])
     am.read()
 
-    start = 1981
-    stop = 1984
+    start = 1981000
+    stop = 1984000
     segments = am.get_segments(am.annotations[am.annotations['set'] == 'vtc_rttm'])
     segments = am.clip_segments(segments, start, stop)
     
@@ -213,8 +213,8 @@ def custom_function(filename):
         names = ['type', 'file', 'chnl', 'tbeg', 'tdur', 'ortho', 'stype', 'name', 'conf', 'unk']
     )
 
-    df['segment_onset'] = df['tbeg'].astype(float)
-    df['segment_offset'] = (df['tbeg']+df['tdur']).astype(float)
+    df['segment_onset'] = 1000*df['tbeg'].astype(int)
+    df['segment_offset'] = (1000*(df['tbeg']+df['tdur'])).astype(int)
     df['speaker_id'] = 'NA'
     df['ling_type'] = 'NA'
     df['speaker_type'] = df['name'].map(AnnotationManager.VTC_SPEAKER_TYPE_TRANSLATION)
@@ -235,7 +235,7 @@ def test_custom_importation(project):
     input = pd.DataFrame([{
         'set': 'vtc_rttm',
         'range_onset': 0,
-        'range_offset': 4,
+        'range_offset': 4000,
         'recording_filename': 'sound.wav',
         'time_seek': 0,
         'raw_filename': 'example.rttm',
@@ -248,7 +248,7 @@ def test_custom_importation(project):
     errors, warnings = am.validate()
     assert len(errors) == 0
 
-thresholds = [0, 0.5, 1]
+thresholds = [0, 500, 1000]
 @pytest.mark.parametrize('turntakingthresh', thresholds)
 @pytest.mark.skipif(tuple(map(int, pd.__version__.split('.')[:2])) < (1,1), reason = "requires pandas>=1.1.0")
 def test_vc_stats(project, turntakingthresh):
@@ -258,10 +258,10 @@ def test_vc_stats(project, turntakingthresh):
     am.import_annotations(input_annotations[input_annotations['raw_filename'] == raw_rttm])
     
     vc = am.get_vc_stats(am.get_segments(am.annotations), turntakingthresh = turntakingthresh).reset_index()
-    truth_vc = pd.read_csv('tests/truth/vc_truth_{:.1f}.csv'.format(turntakingthresh))
+    truth_vc = pd.read_csv('tests/truth/vc_truth_{}.csv'.format(turntakingthresh))
    
     pd.testing.assert_frame_equal(
         standardize_dataframe(vc, vc.columns.tolist()),
         standardize_dataframe(truth_vc, vc.columns.tolist()),
-        atol = 3
+        atol = 1, rtol = 0.02
     )

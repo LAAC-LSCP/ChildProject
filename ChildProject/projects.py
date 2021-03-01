@@ -212,5 +212,7 @@ class ChildProject:
             get_audio_duration(os.path.join(self.path, self.CONVERTED_RECORDINGS, profile, f)) if profile
             else get_audio_duration(os.path.join(self.path, self.RAW_RECORDINGS, f))
         )
+        recordings['duration'].fillna(0, inplace = True)
+        recordings['duration'] = (recordings['duration']*1000).astype(int)
 
         return recordings

@@ -101,13 +101,13 @@ class EnergyDetectionSampler(Sampler):
 
     :param project: ChildProject instance of the target dataset.
     :type project: ChildProject.projects.ChildProject
-    :param windows_length: Length of each window, in seconds.
+    :param windows_length: Length of each window, in milliseconds.
     :type windows_length: float
-    :param windows_spacing: Spacing between the start of each window, in seconds.
+    :param windows_spacing: Spacing between the start of each window, in milliseconds.
     :type windows_spacing: float
     :param windows_count: How many windows to retain per recording.
     :type windows_count: int
-    :param windows_offset: start of the first window, in seconds, defaults to 0
+    :param windows_offset: start of the first window, in milliseconds, defaults to 0
     :type windows_offset: float, optional
     :param threshold: lowest energy quantile to sample from, defaults to 0.8
     :type threshold: float, optional
@@ -118,20 +118,20 @@ class EnergyDetectionSampler(Sampler):
     """
     def __init__(self,
         project: ChildProject.projects.ChildProject,
-        windows_length: float,
-        windows_spacing: float,
+        windows_length: int,
+        windows_spacing: int,
         windows_count: int,
-        windows_offset: float = 0,
+        windows_offset: int = 0,
         threshold: float = 0.8,
         low_freq: int = 0,
         high_freq: int = 100000
         ):
 
         super().__init__(project)
-        self.windows_length = windows_length
-        self.windows_count = windows_count
-        self.windows_spacing = windows_spacing
-        self.windows_offset = windows_offset
+        self.windows_length = int(windows_length)
+        self.windows_count = int(windows_count)
+        self.windows_spacing = int(windows_spacing)
+        self.windows_offset = int(windows_offset)
         self.threshold = threshold
         self.low_freq = low_freq
         self.high_freq = high_freq
@@ -148,17 +148,17 @@ class EnergyDetectionSampler(Sampler):
     def get_recording_windows(self, profile, recording):
         recording_path = os.path.join(self.project.path, ChildProject.projects.ChildProject.RAW_RECORDINGS, recording['filename'])
         audio = AudioSegment.from_wav(recording_path)
-        duration = audio.duration_seconds
+        duration = int(audio.duration_seconds*1000)
         channels = audio.channels
         frequency = int(audio.frame_rate)
         max_value = 256**(int(audio.sample_width))/2-1
 
-        windows_starts = (1000*np.arange(self.windows_offset, duration - self.windows_length, self.windows_spacing)).astype(int)
+        windows_starts = np.arange(self.windows_offset, duration - self.windows_length, self.windows_spacing).astype(int)
         windows = []
 
         for start in windows_starts:
             energy = 0
-            chunk = audio[start:start+int(1000*self.windows_length)].get_array_of_samples()
+            chunk = audio[start:start+self.windows_length].get_array_of_samples()
             
             for channel in range(channels):
                 data = chunk[channel::channels]
@@ -166,8 +166,8 @@ class EnergyDetectionSampler(Sampler):
                 energy += self.compute_energy_loudness(data, frequency)
 
             windows.append({
-                'segment_onset': start/1000,
-                'segment_offset': start/1000+self.windows_length,
+                'segment_onset': start,
+                'segment_offset': start+self.windows_length,
                 'recording_filename': recording['filename'],
                 'energy': energy
             })
@@ -189,10 +189,10 @@ class EnergyDetectionSampler(Sampler):
     @staticmethod
     def add_parser(samplers):
         parser = samplers.add_parser('energy-detection', help = 'energy based activity detection')
-        parser.add_argument('--windows-length', help = 'length of each window (in seconds)', required = True, type = float)
-        parser.add_argument('--windows-spacing', help = 'spacing between the start of two consecutive windows (in seconds)', required = True, type = float)
+        parser.add_argument('--windows-length', help = 'length of each window (in milliseconds)', required = True, type = int)
+        parser.add_argument('--windows-spacing', help = 'spacing between the start of two consecutive windows (in milliseconds)', required = True, type = int)
         parser.add_argument('--windows-count', help = 'how many windows to sample from', required = True, type = int)
-        parser.add_argument('--windows-offset', help = 'start of the first window (in seconds)', type = float, default = 0)
+        parser.add_argument('--windows-offset', help = 'start of the first window (in milliseconds)', type = int, default = 0)
         parser.add_argument('--threshold', help = 'lowest energy quantile to sample from. default is 0.8 (i.e., sample from the 20%% windows with the highest energy).', default = 0.8, type = float)
         parser.add_argument('--low-freq', help = 'remove all frequencies below low-freq before calculating each window\'s energy. (in Hz)', default = 0, type = int)
         parser.add_argument('--high-freq', help = 'remove all frequencies above high-freq before calculating each window\'s energy. (in Hz)', default = 100000, type = int)

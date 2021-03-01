@@ -449,10 +449,8 @@ class AnnotationManager:
         )
 
         df = rttm
-        df['segment_onset'] = 1000*df['tbeg'].astype(float)
-        df['segment_offset'] = 1000*(df['tbeg']+df['tdur']).astype(float)
-        df['segment_onset'] = df['segment_onset'].astype(int)
-        df['segment_offset'] = df['segment_offset'].astype(int)
+        df['segment_onset'] = (1000*df['tbeg']).astype(int)
+        df['segment_offset'] = (1000*(df['tbeg']+df['tdur'])).astype(int)
         df['speaker_id'] = 'NA'
         df['ling_type'] = 'NA'
         df['speaker_type'] = df['name'].map(self.VTC_SPEAKER_TYPE_TRANSLATION)
@@ -539,14 +537,13 @@ class AnnotationManager:
             df = pd.DataFrame(columns = [c.name for c in self.SEGMENTS_COLUMNS])
         
         df['annotation_file'] = annotation['raw_filename']
-        df['segment_onset'] = df['segment_onset'].astype(float)
-        df['segment_offset'] = df['segment_offset'].astype(float)
+        df['segment_onset'] = df['segment_onset'].astype(int)
+        df['segment_offset'] = df['segment_offset'].astype(int)
 
-        if isinstance(annotation['range_onset'], Number)\
-            and isinstance(annotation['range_offset'], Number)\
-            and (annotation['range_offset'] - annotation['range_onset']) > 0.001:
+        annotation['range_onset'] = int(annotation['range_onset'])
+        annotation['range_offset'] = int(annotation['range_offset'])
 
-            df = self.clip_segments(df, annotation['range_onset'], annotation['range_offset'])
+        df = self.clip_segments(df, annotation['range_onset'], annotation['range_offset'])
 
         df.sort_values(['segment_onset', 'segment_offset', 'speaker_id', 'speaker_type'], inplace = True)
 
@@ -923,20 +920,24 @@ class AnnotationManager:
 
         :param segments: Dataframe of the segments to clip
         :type segments: pd.DataFrame
-        :param start: range start
+        :param start: range start (in milliseconds)
         :type start: int
-        :param stop: range end
+        :param stop: range end (in milliseconds)
         :type stop: int
         :return: Dataframe of the clipped segments
         :rtype: pd.DataFrame
         """
+        start = int(start)
+        stop = int(stop)
+
         segments['segment_onset'].clip(lower = start, upper = stop, inplace = True)
         segments['segment_offset'].clip(lower = start, upper = stop, inplace = True)
 
-        segments = segments[~np.isclose(segments['segment_offset']-segments['segment_onset'], 0)]
+        segments = segments[(segments['segment_offset'] - segments['segment_onset']) > 0]
+
         return segments
 
-    def get_vc_stats(self, segments: pd.DataFrame, turntakingthresh: float = 1):
+    def get_vc_stats(self, segments: pd.DataFrame, turntakingthresh: int = 1000):
         segments = segments.sort_values(['segment_onset', 'segment_offset'])
         segments = segments[segments['speaker_type'] != 'SPEECH']
         segments['duration'] = segments['segment_offset']-segments['segment_onset']
@@ -968,4 +969,4 @@ class AnnotationManager:
             voc_count = ('duration', 'count'),
             turns = ('turn', 'sum'),
             cds_dur = ('cds', 'sum')
-        )
+        ).astype(int)

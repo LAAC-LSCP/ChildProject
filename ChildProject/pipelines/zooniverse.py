@@ -60,8 +60,8 @@ class ZooniversePipeline(Pipeline):
         print("extracting chunks from {}...".format(source))
 
         for segment in segments:
-            onset = int(segment['segment_onset']*1000)
-            offset = int(segment['segment_offset']*1000)
+            onset = int(segment['segment_onset'])
+            offset = int(segment['segment_offset'])
             difference = offset-onset
 
             original_onset = onset
