@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 import argparse
 import datetime
 import multiprocessing as mp
+import numpy as np
 import os
 import sys
 import pandas as pd
@@ -58,6 +59,60 @@ class CustomSampler(Sampler):
         parser = samplers.add_parser('custom', help = 'custom sampling')
         parser.add_argument('segments', help = 'path to selected segments datafame')
 
+class PeriodicSampler(Sampler):
+    """Periodic sampling of a recording.
+
+    :param project: ChildProject instance of the target dataset.
+    :type project: ChildProject.projects.ChildProject
+    :param length: length of each segment, in seconds
+    :type length: float
+    :param period: spacing between two consecutive segments, in seconds
+    :type period: float
+    :param offset: offset of the first segment, in seconds, defaults to 0
+    :type offset: float
+    """
+    def __init__(self,
+        project: ChildProject.projects.ChildProject,
+        length: float, period: float, offset: float = 0
+        ):
+
+        super().__init__(project)
+        self.length = length
+        self.period = period
+        self.offset = offset
+
+    def sample(self):
+        recordings = self.project.recordings
+        
+        if not 'duration' in recordings.columns:
+            print("""recordings duration was not found in the metadata
+            and an attempt will be made to calculate it.""")
+
+            durations = self.project.compute_recordings_duration().dropna()
+            recordings = recordings.merge(durations[durations['filename'] != 'NA'], how = 'left', left_on = 'filename', right_on = 'filename')
+
+        recordings['duration'] = recordings['duration'].astype(float)
+        
+        self.segments = recordings[['filename', 'duration']].copy()
+        self.segments['segment_onset'] = self.segments.apply(
+            lambda row: np.arange(int(1000*self.offset), int(1000*(row['duration']-self.length))+1e-4, int(1000*(self.period+self.length))),
+            axis = 1
+        )
+        self.segments = self.segments.explode('segment_onset')
+        self.segments['segment_onset'] = self.segments['segment_onset']/1000
+        self.segments['segment_offset'] = self.segments['segment_onset'] + self.length
+        self.segments.rename(columns = {'filename': 'recording_filename'}, inplace = True)
+
+        return self.segments
+
+
+    @staticmethod
+    def add_parser(samplers):
+        parser = samplers.add_parser('periodic', help = 'periodic sampling')
+        parser.add_argument('--length', help = 'length of each segment, in seconds', type = float, required = True)
+        parser.add_argument('--period', help = 'spacing between two consecutive segments, in seconds', type = float, required = True)
+        parser.add_argument('--offset', help = 'offset of the first segment, in seconds', type = float, default = 0)
+
 class RandomVocalizationSampler(Sampler):
     """Sample vocalizations based on some input annotation set.
 
@@ -93,7 +148,6 @@ class RandomVocalizationSampler(Sampler):
         parser.add_argument('--target-speaker-type', help = 'speaker type to get chunks from', choices=['CHI', 'OCH', 'FEM', 'MAL'], nargs = '+', default = ['CHI'])
         parser.add_argument('--sample-size', help = 'how many samples per recording', required = True, type = int)
 
-import numpy as np
 from pydub import AudioSegment
 
 class EnergyDetectionSampler(Sampler):
@@ -260,7 +314,9 @@ class SamplerPipeline(Pipeline):
         self.project.read()
 
         splr = None
-        if sampler == 'random-vocalizations':
+        if sampler == 'periodic':
+            splr = PeriodicSampler(self.project, **kwargs)
+        elif sampler == 'random-vocalizations':
             splr = RandomVocalizationSampler(self.project, **kwargs)
         elif sampler == 'high-volubility':
             splr = HighVolubilitySampler(self.project, **kwargs)
@@ -294,6 +350,7 @@ class SamplerPipeline(Pipeline):
         parser.add_argument('path', help = 'path to the dataset')
         samplers = parser.add_subparsers(help = 'sampler', dest = 'sampler')
         #CustomSampler.add_parser(samplers)
+        PeriodicSampler.add_parser(samplers)
         RandomVocalizationSampler.add_parser(samplers)
         HighVolubilitySampler.add_parser(samplers)
         EnergyDetectionSampler.add_parser(samplers)
