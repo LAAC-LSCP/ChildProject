@@ -49,8 +49,7 @@ light-weight recording device with enough battery and storage to record
 over several hours.
 
 Alternative automated analysis options include the [Voice Type
-Classifier
-\<https://github.com/MarvinLvn/voice-type-classifier\>]{.title-ref}\_\_,
+Classifier](https://github.com/MarvinLvn/voice-type-classifier),
 which segments the audio into different talker types (key child, female
 adult, etc) and [ALICE](https://github.com/orasanen/ALICE), an automated
 linguistic unit counter.
@@ -60,7 +59,7 @@ As for manual annotation options,
 employing the [ACLEW DAS annotation scheme](https://osf.io/b2jep/).
 Assignment of annotation to individuals and evaluation can be done using
 [Seshat](https://github.com/bootphon/seshat). Finally,
-[Zooniverse](zooniverse.org) can be used to crowd-source certain aspects
+[Zooniverse](https://zooniverse.org) can be used to crowd-source certain aspects
 of the classification with the help of citizen scientists.
 
 In this context, we provide tools and a procedure to:

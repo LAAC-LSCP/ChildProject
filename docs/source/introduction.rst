@@ -57,7 +57,7 @@ As for manual annotation options,
 employing the `ACLEW DAS annotation scheme <https://osf.io/b2jep/>`__.
 Assignment of annotation to individuals and evaluation can be done using
 `Seshat <https://github.com/bootphon/seshat>`__. Finally,
-`Zooniverse <zooniverse.org>`__ can be used to crowd-source certain
+`Zooniverse <https://zooniverse.org>`__ can be used to crowd-source certain
 aspects of the classification with the help of citizen scientists.
 
 In this context, we provide tools and a procedure to:

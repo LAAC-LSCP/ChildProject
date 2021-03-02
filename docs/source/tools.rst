@@ -1,6 +1,8 @@
 Basic tools
 ===========
 
+.. _tools-data-validation:
+
 Data validation
 ---------------
 
