@@ -314,12 +314,17 @@ class SamplerPipeline(Pipeline):
         date = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
 
         os.makedirs(destination, exist_ok = True)
-        self.segments[self.segments.columns & {'recording_filename', 'segment_onset', 'segment_offset'}].to_csv(os.path.join(destination, 'segments_{}.csv'.format(date)), index = False)
+        segments_path = os.path.join(destination, 'segments_{}.csv'.format(date))
+        parameters_path = os.path.join(destination, 'parameters_{}.yml'.format(date))
+
+        self.segments[self.segments.columns & {'recording_filename', 'segment_onset', 'segment_offset'}].to_csv(segments_path, index = False)
+        print("exported sampled segments to {}".format(segments_path))
         dump({
             'parameters': parameters,
             'package_version': ChildProject.__version__,
             'date': date
-        }, open(os.path.join(destination, 'parameters_{}.yml'.format(date)), 'w+'))
+        }, open(parameters_path, 'w+'))
+        print("exported sampler parameters to {}".format(parameters_path))
 
     @staticmethod
     def setup_parser(parser):
