@@ -107,7 +107,7 @@ def test_import(project):
     for dataset in ['eaf', 'textgrid', 'eaf_solis']:
         annotations = am.annotations[am.annotations['set'] == dataset]
         segments = am.get_segments(annotations)
-        segments.drop(columns = annotations.columns, inplace = True)
+        segments.drop(columns = list(set(annotations.columns) - {'raw_filename'}), inplace = True)
 
         pd.testing.assert_frame_equal(
             standardize_dataframe(segments, segments.columns.tolist()),
@@ -119,7 +119,7 @@ def test_import(project):
         annotations = am.annotations[am.annotations['set'] == dataset]
         segments = am.get_segments(annotations)
         raw_filename = annotations['raw_filename'].tolist()[0]
-        truth = pd.read_csv(os.path.join('tests/truth/its', "{}_ITS_Segments.csv".format(os.path.splitext(raw_filename)[0])))
+        truth = pd.read_csv(os.path.join('tests/truth/its', "{}_ITS_Segments.csv".format(os.path.splitext(os.path.basename(raw_filename))[0])))
 
         check_its(segments, truth)
     
@@ -239,7 +239,7 @@ def test_custom_importation(project):
         'range_offset': 4,
         'recording_filename': 'sound.wav',
         'time_seek': 0,
-        'raw_filename': 'example.rttm',
+        'raw_filename': 'vtc_rttm/raw/example.rttm',
         'format': 'custom'
     }])
 
@@ -255,8 +255,7 @@ thresholds = [0, 0.5, 1]
 def test_vc_stats(project, turntakingthresh):
     am = AnnotationManager(project)
     input_annotations = pd.read_csv('examples/valid_raw_data/annotations/input.csv')
-    raw_rttm = 'example_metrics.rttm'
-    am.import_annotations(input_annotations[input_annotations['raw_filename'] == raw_rttm])
+    am.import_annotations(input_annotations[input_annotations['set'] == 'metrics'])
     
     vc = am.get_vc_stats(am.get_segments(am.annotations), turntakingthresh = turntakingthresh).reset_index()
     truth_vc = pd.read_csv('tests/truth/vc_truth_{:.1f}.csv'.format(turntakingthresh))

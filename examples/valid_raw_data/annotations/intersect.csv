@@ -1,4 +1,4 @@
 set,recording_filename,time_seek,raw_filename,range_onset,range_offset,format
-textgrid,sound.wav,3600,example.TextGrid,200,320,TextGrid
-textgrid,sound.wav,7200,example.TextGrid,200,320,TextGrid
-vtc_rttm,sound.wav,0,example.rttm,0,7500,vtc_rttm
+textgrid,sound.wav,3600,textgrid/raw/example.TextGrid,200,320,TextGrid
+textgrid,sound.wav,7200,textgrid/raw/example.TextGrid,200,320,TextGrid
+vtc_rttm,sound.wav,0,vtc_rttm/raw/example.rttm,0,7500,vtc_rttm
