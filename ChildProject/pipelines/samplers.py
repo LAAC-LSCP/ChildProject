@@ -329,11 +329,11 @@ class SamplerPipeline(Pipeline):
     @staticmethod
     def setup_parser(parser):
         parser.add_argument('path', help = 'path to the dataset')
+        parser.add_argument('destination', help = 'segments destination')
+
         samplers = parser.add_subparsers(help = 'sampler', dest = 'sampler')
-        #CustomSampler.add_parser(samplers)
         PeriodicSampler.add_parser(samplers)
         RandomVocalizationSampler.add_parser(samplers)
         HighVolubilitySampler.add_parser(samplers)
         EnergyDetectionSampler.add_parser(samplers)
 
-        parser.add_argument('destination', help = 'segments destination')
