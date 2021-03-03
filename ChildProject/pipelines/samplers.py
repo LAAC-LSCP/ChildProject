@@ -64,22 +64,22 @@ class PeriodicSampler(Sampler):
 
     :param project: ChildProject instance of the target dataset.
     :type project: ChildProject.projects.ChildProject
-    :param length: length of each segment, in seconds
-    :type length: float
-    :param period: spacing between two consecutive segments, in seconds
-    :type period: float
-    :param offset: offset of the first segment, in seconds, defaults to 0
-    :type offset: float
+    :param length: length of each segment, in milliseconds
+    :type length: int
+    :param period: spacing between two consecutive segments, in milliseconds
+    :type period: int
+    :param offset: offset of the first segment, in milliseconds, defaults to 0
+    :type offset: int
     """
     def __init__(self,
         project: ChildProject.projects.ChildProject,
-        length: float, period: float, offset: float = 0
+        length: int, period: int, offset: int = 0
         ):
 
         super().__init__(project)
-        self.length = length
-        self.period = period
-        self.offset = offset
+        self.length = int(length)
+        self.period = int(period)
+        self.offset = int(offset)
 
     def sample(self):
         recordings = self.project.recordings
@@ -91,15 +91,15 @@ class PeriodicSampler(Sampler):
             durations = self.project.compute_recordings_duration().dropna()
             recordings = recordings.merge(durations[durations['filename'] != 'NA'], how = 'left', left_on = 'filename', right_on = 'filename')
 
-        recordings['duration'] = recordings['duration'].astype(float)
+        recordings['duration'].fillna(0, inplace = True)
         
         self.segments = recordings[['filename', 'duration']].copy()
         self.segments['segment_onset'] = self.segments.apply(
-            lambda row: np.arange(int(1000*self.offset), int(1000*(row['duration']-self.length))+1e-4, int(1000*(self.period+self.length))),
+            lambda row: np.arange(self.offset, row['duration']-self.length+1e-4, self.period+self.length),
             axis = 1
         )
         self.segments = self.segments.explode('segment_onset')
-        self.segments['segment_onset'] = self.segments['segment_onset']/1000
+        self.segments['segment_onset'] = self.segments['segment_onset'].astype(int)
         self.segments['segment_offset'] = self.segments['segment_onset'] + self.length
         self.segments.rename(columns = {'filename': 'recording_filename'}, inplace = True)
 
@@ -109,9 +109,9 @@ class PeriodicSampler(Sampler):
     @staticmethod
     def add_parser(samplers):
         parser = samplers.add_parser('periodic', help = 'periodic sampling')
-        parser.add_argument('--length', help = 'length of each segment, in seconds', type = float, required = True)
-        parser.add_argument('--period', help = 'spacing between two consecutive segments, in seconds', type = float, required = True)
-        parser.add_argument('--offset', help = 'offset of the first segment, in seconds', type = float, default = 0)
+        parser.add_argument('--length', help = 'length of each segment, in milliseconds', type = float, required = True)
+        parser.add_argument('--period', help = 'spacing between two consecutive segments, in milliseconds', type = float, required = True)
+        parser.add_argument('--offset', help = 'offset of the first segment, in milliseconds', type = float, default = 0)
 
 class RandomVocalizationSampler(Sampler):
     """Sample vocalizations based on some input annotation set.
