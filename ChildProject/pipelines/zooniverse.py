@@ -10,6 +10,7 @@ from panoptes_client import Panoptes, Project, Subject, SubjectSet, Classificati
 import shutil
 import subprocess
 import sys
+from yaml import dump
 
 from pydub import AudioSegment
 
@@ -126,7 +127,8 @@ class ZooniversePipeline(Pipeline):
 
 
         parameters = locals()
-        parameters = [[key, parameters[key]] for key in parameters if key != 'self']
+        parameters = [{key: parameters[key]} for key in parameters if key not in ['self', 'kwargs']]
+        parameters.extend([{key: kwargs[key]} for key in kwargs])
 
         self.destination = destination
         self.project = ChildProject.projects.ChildProject(path)
@@ -138,8 +140,6 @@ class ZooniversePipeline(Pipeline):
 
         destination_path = os.path.join(destination, 'chunks')
         os.makedirs(destination_path, exist_ok = True)
-        if os.listdir(destination_path):
-            raise ValueError("destination '{}' is not empty, please choose another destination.".format(destination_path))
 
         self.segments = pd.read_csv(segments)
         shutil.copyfile(segments, os.path.join(self.destination, 'segments.csv'))
@@ -167,27 +167,25 @@ class ZooniversePipeline(Pipeline):
             'keyword': keyword
         } for c in self.chunks])
 
+        date = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+
         # shuffle chunks so that they can't be joined back together
         # based on Zooniverse subject IDs
         self.chunks = self.chunks.sample(frac=1).reset_index(drop=True)
         self.chunks['batch'] = self.chunks.index.map(lambda x: int(x/batch_size))
         self.chunks.index.name = 'index'
-        self.chunks.to_csv(os.path.join(self.destination, 'chunks.csv'))
+        self.chunks.to_csv(os.path.join(destination, 'chunks_{}.csv'.format(date)))
 
-        parameters.extend([
-            ['version', ChildProject.__version__],
-            ['date_extracted', datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')]
-        ])
+        dump({
+            'paramters': parameters,
+            'package_version': ChildProject.__version__,
+            'date': date
+        }, open(os.path.join(destination, 'parameters_{}.yml'.format(date)), 'w+'))
 
-        pd.DataFrame(
-            data = parameters,
-            columns = ['param', 'value']
-        ).to_csv(os.path.join(self.destination, 'parameters.csv'), index = False)
+    def upload_chunks(self, chunks, project_id, set_prefix, zooniverse_login, zooniverse_pwd, batches = 0, **kwargs):
+        self.chunks_file = chunks
 
-    def upload_chunks(self, destination, project_id, set_prefix, zooniverse_login, zooniverse_pwd, batches = 0, **kwargs):
-        self.destination = destination 
-
-        metadata_location = os.path.join(self.destination, 'chunks.csv')
+        metadata_location = os.path.join(self.chunks_file)
         try:
             self.chunks = pd.read_csv(metadata_location, index_col = 'index')
         except:
@@ -216,7 +214,7 @@ class ZooniversePipeline(Pipeline):
 
                 subject = Subject()
                 subject.links.project = zooniverse_project
-                subject.add_location(os.path.join(self.destination, 'chunks', chunk['mp3']))
+                subject.add_location(os.path.join(os.path.dirname(self.chunks_file), 'chunks', chunk['mp3']))
                 subject.metadata['date_extracted'] = chunk['date_extracted']
                 subject.save()
                 subjects.append(subject)
@@ -234,7 +232,7 @@ class ZooniversePipeline(Pipeline):
                 pd.DataFrame(subjects_metadata).set_index('index')
             )
 
-            self.chunks.to_csv(os.path.join(self.destination, 'chunks.csv'))
+            self.chunks.to_csv(os.path.join(self.chunks_file))
             uploaded += 1
 
             if batches > 0 and uploaded >= batches:
@@ -295,7 +293,7 @@ class ZooniversePipeline(Pipeline):
     def setup_parser(parser):
         subparsers = parser.add_subparsers(help = 'action', dest = 'action')
 
-        parser_extraction = subparsers.add_parser('extract-chunks', help = 'extract chunks to DESTINATION, proving all associate metadata in the same directory')
+        parser_extraction = subparsers.add_parser('extract-chunks', help = 'extract chunks to <destination>, and exports the metadata inside of this directory')
         parser_extraction.add_argument('path', help = 'path to the dataset')
         parser_extraction.add_argument('--keyword', help = 'export keyword', required = True)
 
@@ -308,7 +306,7 @@ class ZooniversePipeline(Pipeline):
         parser_extraction.add_argument('--batch-size', help = 'batch size', default = 1000, type = int)
         parser_extraction.add_argument('--threads', help = 'how many threads to run on', default = 0, type = int)
 
-        parser_upload = subparsers.add_parser('upload-chunks', help = 'upload chunks and updates DESTINATION/chunks.csv')
+        parser_upload = subparsers.add_parser('upload-chunks', help = 'upload chunks and updates <destination>/chunks.csv')
         parser_upload.add_argument('--destination', help = 'destination', required = True)
         parser_upload.add_argument('--zooniverse-login', help = 'zooniverse login', required = True)
         parser_upload.add_argument('--zooniverse-pwd', help = 'zooniverse password', required = True)
@@ -317,7 +315,7 @@ class ZooniversePipeline(Pipeline):
         parser_upload.add_argument('--batches', help = 'amount of batches to upload', required = False, type = int, default = 0)
 
         parser_retrieve = subparsers.add_parser('retrieve-classifications', help = 'retrieve classifications and save them into DESTINATION/classifications.csv')
-        parser_retrieve.add_argument('--destination', help = 'destination', required = True)
+        parser_retrieve.add_argument('--chunks', help = 'path to the chunk dataframe', required = True)
         parser_retrieve.add_argument('--zooniverse-login', help = 'zooniverse login', required = True)
         parser_retrieve.add_argument('--zooniverse-pwd', help = 'zooniverse password', required = True)
         parser_retrieve.add_argument('--project-id', help = 'zooniverse project id', required = True)

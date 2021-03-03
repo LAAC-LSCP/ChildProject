@@ -5,6 +5,7 @@ import multiprocessing as mp
 import numpy as np
 import os
 import pandas as pd
+from yaml import dump
 
 import ChildProject
 from ChildProject.pipelines.pipeline import Pipeline
@@ -283,8 +284,8 @@ class SamplerPipeline(Pipeline):
 
     def run(self, path, destination, sampler, func = None, **kwargs):
         parameters = locals()
-        parameters = [[key, parameters[key]] for key in parameters if key not in ['self', 'kwargs']]
-        parameters.extend([[key, kwargs[key]] for key in kwargs])
+        parameters = [{key: parameters[key]} for key in parameters if key not in ['self', 'kwargs']]
+        parameters.extend([{key: kwargs[key]} for key in kwargs])
 
         self.project = ChildProject.projects.ChildProject(path)
         self.project.read()
@@ -310,25 +311,29 @@ class SamplerPipeline(Pipeline):
             self.segments['segment_onset'] = self.segments['segment_onset'] + self.segments['time_seek']
             self.segments['segment_offset'] = self.segments['segment_offset'] + self.segments['time_seek']
 
-        self.segments[self.segments.columns & {'recording_filename', 'segment_onset', 'segment_offset'}].to_csv(os.path.join(destination, 'segments.csv'), index = False)
+        date = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
 
-        parameters.extend([
-            ['version', ChildProject.__version__],
-            ['date_sampled', datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')]
-        ])
-        pd.DataFrame(
-            data = parameters,
-            columns = ['param', 'value']
-        ).to_csv(os.path.join(destination, 'parameters.csv'), index = False)
+        os.makedirs(destination, exist_ok = True)
+        segments_path = os.path.join(destination, 'segments_{}.csv'.format(date))
+        parameters_path = os.path.join(destination, 'parameters_{}.yml'.format(date))
+
+        self.segments[self.segments.columns & {'recording_filename', 'segment_onset', 'segment_offset'}].to_csv(segments_path, index = False)
+        print("exported sampled segments to {}".format(segments_path))
+        dump({
+            'parameters': parameters,
+            'package_version': ChildProject.__version__,
+            'date': date
+        }, open(parameters_path, 'w+'))
+        print("exported sampler parameters to {}".format(parameters_path))
 
     @staticmethod
     def setup_parser(parser):
         parser.add_argument('path', help = 'path to the dataset')
+        parser.add_argument('destination', help = 'segments destination')
+
         samplers = parser.add_subparsers(help = 'sampler', dest = 'sampler')
-        #CustomSampler.add_parser(samplers)
         PeriodicSampler.add_parser(samplers)
         RandomVocalizationSampler.add_parser(samplers)
         HighVolubilitySampler.add_parser(samplers)
         EnergyDetectionSampler.add_parser(samplers)
 
-        parser.add_argument('destination', help = 'segments destination')

@@ -28,10 +28,10 @@ ChildProject.pipelines.pipeline module
    :undoc-members:
    :show-inheritance:
 
-ChildProject.pipelines.sampler module
--------------------------------------
+ChildProject.pipelines.samplers module
+--------------------------------------
 
-.. automodule:: ChildProject.pipelines.sampler
+.. automodule:: ChildProject.pipelines.samplers
    :members:
    :undoc-members:
    :show-inheritance:
