@@ -208,7 +208,7 @@ class ChildProject:
         """
         recordings = self.recordings[['recording_filename']]
 
-        recordings['duration'] = recordings.assign(duration = recordings['recording_filename'].map(lambda f:
+        recordings = recordings.assign(duration = recordings['recording_filename'].map(lambda f:
             get_audio_duration(os.path.join(self.path, self.CONVERTED_RECORDINGS, profile, f)) if profile
             else get_audio_duration(os.path.join(self.path, self.RAW_RECORDINGS, f))
         ))
