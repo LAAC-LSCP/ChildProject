@@ -491,11 +491,11 @@ class AnnotationManager:
             df = df[df['file'].str.contains(source_file)]
 
         matches = df['file'].str.extract(r"^(.*)_(?:0+)?([0-9]{1,})_(?:0+)?([0-9]{1,})\.wav$")
-        df['filename'] = matches[0]
+        df['recording_filename'] = matches[0]
         df['segment_onset'] = matches[1].astype(float)/10000
         df['segment_offset'] = matches[2].astype(float)/10000
         
-        df.drop(columns = ['filename', 'file'], inplace = True)
+        df.drop(columns = ['recording_filename', 'file'], inplace = True)
 
         return df
 
@@ -572,7 +572,7 @@ class AnnotationManager:
         :rtype: pd.DataFrame
         """
         
-        missing_recordings = input[~input['recording_filename'].isin(self.project.recordings['filename'].tolist())]
+        missing_recordings = input[~input['recording_filename'].isin(self.project.recordings['recording_filename'].tolist())]
         missing_recordings = missing_recordings['recording_filename'].tolist()
 
         if len(missing_recordings) > 0:
