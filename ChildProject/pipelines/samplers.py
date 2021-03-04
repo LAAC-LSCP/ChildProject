@@ -89,11 +89,11 @@ class PeriodicSampler(Sampler):
             and an attempt will be made to calculate it.""")
 
             durations = self.project.compute_recordings_duration().dropna()
-            recordings = recordings.merge(durations[durations['filename'] != 'NA'], how = 'left', left_on = 'filename', right_on = 'filename')
+            recordings = recordings.merge(durations[durations['recording_filename'] != 'NA'], how = 'left', left_on = 'recording_filename', right_on = 'recording_filename')
 
         recordings['duration'].fillna(0, inplace = True)
         
-        self.segments = recordings[['filename', 'duration']].copy()
+        self.segments = recordings[['recording_filename', 'duration']].copy()
         self.segments['segment_onset'] = self.segments.apply(
             lambda row: np.arange(self.offset, row['duration']-self.length+1e-4, self.period+self.length),
             axis = 1
@@ -101,7 +101,7 @@ class PeriodicSampler(Sampler):
         self.segments = self.segments.explode('segment_onset')
         self.segments['segment_onset'] = self.segments['segment_onset'].astype(int)
         self.segments['segment_offset'] = self.segments['segment_onset'] + self.length
-        self.segments.rename(columns = {'filename': 'recording_filename'}, inplace = True)
+        self.segments.rename(columns = {'recording_filename': 'recording_filename'}, inplace = True)
 
         return self.segments
 
@@ -201,7 +201,7 @@ class EnergyDetectionSampler(Sampler):
             return np.sum(chunk**2)
 
     def get_recording_windows(self, profile, recording):
-        recording_path = os.path.join(self.project.path, ChildProject.projects.ChildProject.RAW_RECORDINGS, recording['filename'])
+        recording_path = os.path.join(self.project.path, ChildProject.projects.ChildProject.RAW_RECORDINGS, recording['recording_filename'])
         audio = AudioSegment.from_wav(recording_path)
         duration = int(audio.duration_seconds*1000)
         channels = audio.channels
@@ -223,7 +223,7 @@ class EnergyDetectionSampler(Sampler):
             windows.append({
                 'segment_onset': start,
                 'segment_offset': start+self.windows_length,
-                'recording_filename': recording['filename'],
+                'recording_filename': recording['recording_filename'],
                 'energy': energy
             })
 
