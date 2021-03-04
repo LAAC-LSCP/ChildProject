@@ -149,6 +149,19 @@ Downloading large files
 Files can be retrieved using ``datalad get [path]``. For instance,
 ``datalad get recordings`` will download all recordings.
 
+.. note::
+
+   Technically speaking, the large files in your repository are symbolic links
+   pointing to their actual location, somewhere under `.git`.
+   You can ignore that and read/copy the content of these files as if they where
+   actual files.
+
+.. warning::
+
+   If you want to *edit* the content of a large file, you will need to unlock it
+   beforehand, using ``datalad unlock``,
+   e.g.: ``datalad unlock annotations/vtc/converted``.
+
 Updating a dataset
 ------------------
 
