@@ -109,3 +109,8 @@ following format as an input:
 
 .. index-table:: Input annotations
    :header: input_annotations
+
+.. note::
+   In order to avoid rounding errors, all timestamps are integers,
+   expressed in milliseconds.
+
