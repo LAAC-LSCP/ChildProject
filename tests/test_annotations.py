@@ -61,9 +61,9 @@ def check_its(segments, truth):
     }, inplace = True)
 
     truth['words'] = truth[['maleAdultWordCnt', 'femaleAdultWordCnt']].fillna(0).sum(axis = 1)
-    truth['utterances_count'] = truth[['femaleAdultUttCnt', 'maleAdultUttCnt', 'childUttCnt']].fillna(0).sum(axis = 1).astype(float)
-    truth['utterances_length'] = truth[['femaleAdultUttLen', 'maleAdultUttLen', 'childUttLen']].fillna(0).sum(axis = 1).astype(float)
-    truth['non_speech_length'] = truth[['femaleAdultNonSpeechLen', 'maleAdultNonSpeechLen']].fillna(0).sum(axis = 1).astype(float)
+    truth['utterances_count'] = truth[['femaleAdultUttCnt', 'maleAdultUttCnt', 'childUttCnt']].fillna(0).sum(axis = 1)
+    truth['utterances_length'] = truth[['femaleAdultUttLen', 'maleAdultUttLen', 'childUttLen']].fillna(0).sum(axis = 1).mul(1000).astype(int)
+    truth['non_speech_length'] = truth[['femaleAdultNonSpeechLen', 'maleAdultNonSpeechLen']].fillna(0).sum(axis = 1).mul(1000).astype(int)
 
     truth['lena_block_type'] = truth.apply(lambda row: 'pause' if row['blkType'] == 'Pause' else row['convType'], axis = 1)
     truth['lena_response_count'] = truth['conversationInfo'].apply(lambda s: np.nan if pd.isnull(s) else s.split('|')[1:-1][3]).astype(float, errors = 'ignore')
@@ -71,6 +71,9 @@ def check_its(segments, truth):
     truth['cries'] = truth.apply(partial(gather_columns_to_dict, 'startCry', 'endCry'), axis = 1).astype(str)
     truth['utterances'] = truth.apply(partial(gather_columns_to_dict, 'startUtt', 'endUtt'), axis = 1).astype(str)
     truth['vfxs'] = truth.apply(partial(gather_columns_to_dict, 'startVfx', 'endVfx'), axis = 1).astype(str)
+
+    truth['segment_onset'] = (truth['segment_onset']*1000).astype(int)
+    truth['segment_offset'] = (truth['segment_offset']*1000).astype(int)
 
     columns = [
         'segment_onset', 'segment_offset',
@@ -182,8 +185,8 @@ def test_clipping(project):
     am.import_annotations(input_annotations[input_annotations['set'] == 'vtc_rttm'])
     am.read()
 
-    start = 1981
-    stop = 1984
+    start = 1981000
+    stop = 1984000
     segments = am.get_segments(am.annotations[am.annotations['set'] == 'vtc_rttm'])
     segments = am.clip_segments(segments, start, stop)
     
@@ -214,8 +217,8 @@ def custom_function(filename):
         names = ['type', 'file', 'chnl', 'tbeg', 'tdur', 'ortho', 'stype', 'name', 'conf', 'unk']
     )
 
-    df['segment_onset'] = df['tbeg'].astype(float)
-    df['segment_offset'] = (df['tbeg']+df['tdur']).astype(float)
+    df['segment_onset'] = 1000*df['tbeg'].astype(int)
+    df['segment_offset'] = (1000*(df['tbeg']+df['tdur'])).astype(int)
     df['speaker_id'] = 'NA'
     df['ling_type'] = 'NA'
     df['speaker_type'] = df['name'].map(AnnotationManager.VTC_SPEAKER_TYPE_TRANSLATION)
@@ -236,7 +239,7 @@ def test_custom_importation(project):
     input = pd.DataFrame([{
         'set': 'vtc_rttm',
         'range_onset': 0,
-        'range_offset': 4,
+        'range_offset': 4000,
         'recording_filename': 'sound.wav',
         'time_seek': 0,
         'raw_filename': 'vtc_rttm/raw/example.rttm',
@@ -249,7 +252,7 @@ def test_custom_importation(project):
     errors, warnings = am.validate()
     assert len(errors) == 0
 
-thresholds = [0, 0.5, 1]
+thresholds = [0, 500, 1000]
 @pytest.mark.parametrize('turntakingthresh', thresholds)
 @pytest.mark.skipif(tuple(map(int, pd.__version__.split('.')[:2])) < (1,1), reason = "requires pandas>=1.1.0")
 def test_vc_stats(project, turntakingthresh):
@@ -258,10 +261,10 @@ def test_vc_stats(project, turntakingthresh):
     am.import_annotations(input_annotations[input_annotations['set'] == 'metrics'])
     
     vc = am.get_vc_stats(am.get_segments(am.annotations), turntakingthresh = turntakingthresh).reset_index()
-    truth_vc = pd.read_csv('tests/truth/vc_truth_{:.1f}.csv'.format(turntakingthresh))
+    truth_vc = pd.read_csv('tests/truth/vc_truth_{}.csv'.format(turntakingthresh))
    
     pd.testing.assert_frame_equal(
         standardize_dataframe(vc, vc.columns.tolist()),
         standardize_dataframe(truth_vc, vc.columns.tolist()),
-        atol = 3
+        atol = 1, rtol = 0.02
     )

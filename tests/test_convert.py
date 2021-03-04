@@ -22,7 +22,7 @@ def test_convert():
     recordings = project.recordings
     converted_recordings = profile.recordings
 
-    assert np.isclose(4, project.compute_recordings_duration()['duration'].sum()), "audio duration equals expected value"
+    assert np.isclose(4000, project.compute_recordings_duration()['duration'].sum()), "audio duration equals expected value"
     assert os.path.exists(os.path.join("output/convert/", ChildProject.CONVERTED_RECORDINGS, "test")), "missing converted recordings folder"
     assert recordings.shape[0] == converted_recordings.shape[0], "conversion table is incomplete"
     assert all(converted_recordings['success'].tolist()), "not all recordings were successfully converted"

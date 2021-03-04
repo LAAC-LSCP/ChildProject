@@ -56,10 +56,10 @@ class ChildProject:
         IndexColumn(name = 'date_iso', description = 'date in which recording was started in ISO (eg 2020-09-17)', required = True, datetime = '%Y-%m-%d'),
         IndexColumn(name = 'start_time', description = 'local time in which recording was started in format 24-hour (H)H:MM; if minutes are unknown, use 00. Set as ‘NA’ if unknown.', required = True, datetime = '%H:%M'),
         IndexColumn(name = 'recording_device_type', description = 'lena, usb, olympus, babylogger (lowercase)', required = True, choices = ['lena', 'usb', 'olympus', 'babylogger']),
-        IndexColumn(name = 'filename', description = 'the path to the file from the root of “recordings”), set to ‘NA’ if no valid recording available. It is unique (two recordings cannot point towards the same file).', required = True, filename = True, unique = True),
-        IndexColumn(name = 'duration', description = 'duration of the audio', regex = r'(\d+(\.\d+)?)'),
+        IndexColumn(name = 'recording_filename', description = 'the path to the file from the root of “recordings”), set to ‘NA’ if no valid recording available. It is unique (two recordings cannot point towards the same file).', required = True, filename = True, unique = True),
+        IndexColumn(name = 'duration', description = 'duration of the audio, in milliseconds', regex = r'([0-9]+)'),
         IndexColumn(name = 'session_id', description = 'identifier of the recording session.'),
-        IndexColumn(name = 'session_offset', description = 'offset (in seconds) of the recording with respect to other recordings that are part of the same session. Each recording session is identified by their `session_id`.', regex = r'(\d+(\.\d+)?)'),
+        IndexColumn(name = 'session_offset', description = 'offset (in milliseconds) of the recording with respect to other recordings that are part of the same session. Each recording session is identified by their `session_id`.', regex = r'[0-9]+'),
         IndexColumn(name = 'recording_device_id', description = 'unique ID of the recording device'),
         IndexColumn(name = 'experimenter', description = 'who collected the data (could be anonymized ID)'),
         IndexColumn(name = 'location_id', description = 'unique location ID -- can be specified at the level of the child (if children do not change locations)'),
@@ -188,8 +188,8 @@ class ChildProject:
         :rtype: dict
         """
         stats = {}
-        recordings = self.recordings.merge(self.compute_recordings_duration(), left_on = 'filename', right_on = 'filename')
-        recordings['exists'] = recordings['filename'].map(lambda f: os.path.exists(os.path.join(self.path, self.RAW_RECORDINGS, f)))
+        recordings = self.recordings.merge(self.compute_recordings_duration(), left_on = 'recording_filename', right_on = 'recording_filename')
+        recordings['exists'] = recordings['recording_filename'].map(lambda f: os.path.exists(os.path.join(self.path, self.RAW_RECORDINGS, f)))
 
         stats['total_recordings'] = recordings.shape[0]
         stats['total_existing_recordings'] = recordings[recordings['exists'] == True].shape[0]
@@ -206,11 +206,13 @@ class ChildProject:
         :return: dataframe of the recordings, with an additional/updated duration columns.
         :rtype: pd.DataFrame
         """
-        recordings = self.recordings[['filename']]
+        recordings = self.recordings[['recording_filename']]
 
-        recordings['duration'] = recordings['filename'].map(lambda f:
+        recordings['duration'] = recordings['recording_filename'].map(lambda f:
             get_audio_duration(os.path.join(self.path, self.CONVERTED_RECORDINGS, profile, f)) if profile
             else get_audio_duration(os.path.join(self.path, self.RAW_RECORDINGS, f))
         )
+        recordings['duration'].fillna(0, inplace = True)
+        recordings['duration'] = (recordings['duration']*1000).astype(int)
 
         return recordings
