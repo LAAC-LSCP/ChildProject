@@ -983,3 +983,29 @@ class AnnotationManager:
             turns = ('turn', 'sum'),
             cds_dur = ('cds', 'sum')
         )
+
+    def plot(self, annotations):
+        from matplotlib import pyplot as plt
+        from pyannote.core import Timeline, Annotation, Segment, notebook
+
+        nrows = len(annotations['recording_filename'].unique())
+        fig, ax = plt.subplots(nrows = nrows, ncols = 1)
+        fig.set_figwidth(20)
+        fig.set_figheight(nrows * 2)
+
+        i = 0
+        for recording_filename, recording_annotations in annotations.groupby('recording_filename'):
+            pyannotation = Annotation()
+
+            for annotation in recording_annotations.to_dict(orient = 'records'):
+                start = annotation['range_onset'] + annotation['time_seek']
+                end = annotation['range_offset'] + annotation['time_seek']
+
+                pyannotation[Segment(start, end), annotation['set']] = annotation['set']
+
+                print(annotation)
+
+            notebook.plot_annotation(pyannotation, ax = ax[i], legend = True, time = True)
+            i += 1
+        
+        return fig, ax
