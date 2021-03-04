@@ -1,10 +1,9 @@
 ChildRecordsData
 ================
 
-- [ChildRecordsData](#childrecordsdata)
-  - [Introduction](#introduction)
-  - [Available tools](#available-tools)
-  - [Installation](#installation)
+- [Introduction](#introduction)
+- [Available tools](#available-tools)
+- [Installation](#installation)
 
 Introduction
 ------------
