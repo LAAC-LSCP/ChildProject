@@ -2,6 +2,7 @@ from ChildProject.projects import ChildProject
 from ChildProject.annotations import AnnotationManager
 from ChildProject.tables import IndexTable
 import glob
+import json
 import pandas as pd
 import numpy as np
 import os
@@ -10,11 +11,14 @@ import shutil
 import subprocess
 import sys
 
+def standardize_dataframe(df, columns):
+    df = df[columns]
+    return df.sort_index(axis = 1).sort_values(columns).reset_index(drop = True)
+
 @pytest.fixture(scope='function')
 def project(request):
     if not os.path.exists("output/annotations"):
-        project = ChildProject("examples/valid_raw_data")
-        project.import_data("output/annotations")
+        shutil.copytree(src = "examples/valid_raw_data", dst = "output/annotations")
 
     project = ChildProject("output/annotations")
     yield project
@@ -22,6 +26,69 @@ def project(request):
     os.remove("output/annotations/metadata/annotations.csv")
     for raw_annotation in glob.glob("output/annotations/annotations/*.*/converted"):
         shutil.rmtree(raw_annotation)
+
+def gather_columns_to_dict(start_col, end_col, row):
+    n = 1
+    l = []
+    while True:
+        start_key = '{}{}'.format(start_col, n)
+        end_key = '{}{}'.format(end_col, n)
+
+        if start_key in row.keys() and not pd.isnull(row[start_key]): 
+            l.append({
+                'start': row[start_key],
+                'end': row[end_key]
+            })
+        else:
+            return l
+
+        n += 1
+
+from functools import partial
+def check_its(segments, truth):
+    segments['cries'] = segments['cries'].astype(str)
+    segments['utterances'] = segments['utterances'].apply(lambda l: [{'start': u['start'], 'end': u['end']} for u in json.loads(l.replace("'", '"'))]).astype(str)
+    segments['vfxs'] = segments['vfxs'].astype(str)
+
+    truth.rename(columns = {
+        'startTime': 'segment_onset',
+        'endTime': 'segment_offset',
+        'average_dB': 'average_db',
+        'peak_dB': 'peak_db',
+        'blkTypeId': 'lena_block_number',
+        'convTurnType': 'lena_conv_turn_type',
+        'convFloorType': 'lena_conv_floor_type'
+    }, inplace = True)
+
+    truth['words'] = truth[['maleAdultWordCnt', 'femaleAdultWordCnt']].fillna(0).sum(axis = 1)
+    truth['utterances_count'] = truth[['femaleAdultUttCnt', 'maleAdultUttCnt', 'childUttCnt']].fillna(0).sum(axis = 1)
+    truth['utterances_length'] = truth[['femaleAdultUttLen', 'maleAdultUttLen', 'childUttLen']].fillna(0).sum(axis = 1).mul(1000).astype(int)
+    truth['non_speech_length'] = truth[['femaleAdultNonSpeechLen', 'maleAdultNonSpeechLen']].fillna(0).sum(axis = 1).mul(1000).astype(int)
+
+    truth['lena_block_type'] = truth.apply(lambda row: 'pause' if row['blkType'] == 'Pause' else row['convType'], axis = 1)
+    truth['lena_response_count'] = truth['conversationInfo'].apply(lambda s: np.nan if pd.isnull(s) else s.split('|')[1:-1][3]).astype(float, errors = 'ignore')
+
+    truth['cries'] = truth.apply(partial(gather_columns_to_dict, 'startCry', 'endCry'), axis = 1).astype(str)
+    truth['utterances'] = truth.apply(partial(gather_columns_to_dict, 'startUtt', 'endUtt'), axis = 1).astype(str)
+    truth['vfxs'] = truth.apply(partial(gather_columns_to_dict, 'startVfx', 'endVfx'), axis = 1).astype(str)
+
+    truth['segment_onset'] = (truth['segment_onset']*1000).astype(int)
+    truth['segment_offset'] = (truth['segment_offset']*1000).astype(int)
+
+    columns = [
+        'segment_onset', 'segment_offset',
+        'average_db', 'peak_db',
+        'words', 'utterances_count', 'utterances_length', 'non_speech_length',
+        'lena_block_number', #'lena_block_type',
+        'lena_response_count',
+        'cries', 'utterances', 'vfxs',
+        'lena_conv_turn_type', 'lena_conv_floor_type'
+    ]
+
+    pd.testing.assert_frame_equal(
+        standardize_dataframe(truth, columns),
+        standardize_dataframe(segments, columns)
+    )
 
 def test_import(project):
     am = AnnotationManager(project)
@@ -46,10 +113,19 @@ def test_import(project):
         segments.drop(columns = annotations.columns, inplace = True)
 
         pd.testing.assert_frame_equal(
-            segments.sort_index(axis = 1).sort_values(segments.columns.tolist()).reset_index(drop = True),
-            pd.read_csv('tests/truth/{}.csv'.format(dataset)).sort_index(axis = 1).sort_values(segments.columns.tolist()).reset_index(drop = True),
+            standardize_dataframe(segments, segments.columns.tolist()),
+            standardize_dataframe(pd.read_csv('tests/truth/{}.csv'.format(dataset)), segments.columns.tolist()),
             check_less_precise = True
         )
+
+    for dataset in ['new_its', 'old_its']:
+        annotations = am.annotations[am.annotations['set'] == dataset]
+        segments = am.get_segments(annotations)
+        raw_filename = annotations['raw_filename'].tolist()[0]
+        truth = pd.read_csv(os.path.join('tests/truth/its', "{}_ITS_Segments.csv".format(os.path.splitext(raw_filename)[0])))
+
+        check_its(segments, truth)
+    
 
 def test_intersect(project):
     am = AnnotationManager(project)
@@ -61,15 +137,19 @@ def test_intersect(project):
         am.annotations[am.annotations['set'] == 'textgrid'],
         am.annotations[am.annotations['set'] == 'vtc_rttm']
     )
-    
+
+    columns = a.columns.tolist()
+    columns.remove('imported_at')
+    columns.remove('package_version')
+        
     pd.testing.assert_frame_equal(
-        a.sort_index(axis = 1).sort_values(a.columns.tolist()).reset_index(drop = True).drop(columns=['imported_at']),
-        pd.read_csv('tests/truth/intersect_a.csv').sort_index(axis = 1).sort_values(a.columns.tolist()).reset_index(drop = True).drop(columns=['imported_at'])
+        standardize_dataframe(a, columns),
+        standardize_dataframe(pd.read_csv('tests/truth/intersect_a.csv'), columns)
     )
 
     pd.testing.assert_frame_equal(
-        b.sort_index(axis = 1).sort_values(b.columns.tolist()).reset_index(drop = True).drop(columns=['imported_at']),
-        pd.read_csv('tests/truth/intersect_b.csv').sort_index(axis = 1).sort_values(b.columns.tolist()).reset_index(drop = True).drop(columns=['imported_at'])
+        standardize_dataframe(b, columns),
+        standardize_dataframe(pd.read_csv('tests/truth/intersect_b.csv'), columns)
     )
 
 def test_merge(project):
@@ -102,11 +182,11 @@ def test_clipping(project):
     am = AnnotationManager(project)
 
     input_annotations = pd.read_csv('examples/valid_raw_data/annotations/input.csv')
-    am.import_annotations(input_annotations)
+    am.import_annotations(input_annotations[input_annotations['set'] == 'vtc_rttm'])
     am.read()
 
-    start = 1981
-    stop = 1984
+    start = 1981000
+    stop = 1984000
     segments = am.get_segments(am.annotations[am.annotations['set'] == 'vtc_rttm'])
     segments = am.clip_segments(segments, start, stop)
     
@@ -117,35 +197,75 @@ def test_rename(project):
     am = AnnotationManager(project)
 
     input_annotations = pd.read_csv('examples/valid_raw_data/annotations/input.csv')
-    am.import_annotations(input_annotations)
+    am.import_annotations(input_annotations[input_annotations['set'] == 'textgrid'])
     am.read()
-    its_count = am.annotations[am.annotations['set'] == 'new_its'].shape[0]
+    tg_count = am.annotations[am.annotations['set'] == 'textgrid'].shape[0]
 
-    am.rename_set('new_its', 'renamed')
+    am.rename_set('textgrid', 'renamed')
     am.read()
 
     errors, warnings = am.validate()
     assert len(errors) == 0 and len(warnings) == 0, "malformed annotations detected"
 
-    assert am.annotations[am.annotations['set'] == 'new_its'].shape[0] == 0
-    assert am.annotations[am.annotations['set'] == 'renamed'].shape[0] == its_count
+    assert am.annotations[am.annotations['set'] == 'textgrid'].shape[0] == 0
+    assert am.annotations[am.annotations['set'] == 'renamed'].shape[0] == tg_count
 
+def custom_function(filename):
+    df = pd.read_csv(
+        filename,
+        sep = " ",
+        names = ['type', 'file', 'chnl', 'tbeg', 'tdur', 'ortho', 'stype', 'name', 'conf', 'unk']
+    )
 
-thresholds = [0, 0.5, 1]
+    df['segment_onset'] = 1000*df['tbeg'].astype(int)
+    df['segment_offset'] = (1000*(df['tbeg']+df['tdur'])).astype(int)
+    df['speaker_id'] = 'NA'
+    df['ling_type'] = 'NA'
+    df['speaker_type'] = df['name'].map(AnnotationManager.VTC_SPEAKER_TYPE_TRANSLATION)
+    df['vcm_type'] = 'NA'
+    df['lex_type'] = 'NA'
+    df['mwu_type'] = 'NA'
+    df['addresseee'] = 'NA'
+    df['transcription'] = 'NA'
+    df['phonemes'] = 'NA'
+    df['syllables'] = 'NA'
+    df['words'] = 'NA'
+
+    df.drop(['type', 'file', 'chnl', 'tbeg', 'tdur', 'ortho', 'stype', 'name', 'conf', 'unk'], axis = 1, inplace = True)
+    return df
+
+def test_custom_importation(project):
+    am = AnnotationManager(project)
+    input = pd.DataFrame([{
+        'set': 'vtc_rttm',
+        'range_onset': 0,
+        'range_offset': 4000,
+        'recording_filename': 'sound.wav',
+        'time_seek': 0,
+        'raw_filename': 'example.rttm',
+        'format': 'custom'
+    }])
+
+    am.import_annotations(input, import_function =  custom_function)
+    am.read()
+
+    errors, warnings = am.validate()
+    assert len(errors) == 0
+
+thresholds = [0, 500, 1000]
 @pytest.mark.parametrize('turntakingthresh', thresholds)
 @pytest.mark.skipif(tuple(map(int, pd.__version__.split('.')[:2])) < (1,1), reason = "requires pandas>=1.1.0")
 def test_vc_stats(project, turntakingthresh):
     am = AnnotationManager(project)
-    am.import_annotations(pd.read_csv('examples/valid_raw_data/annotations/input.csv'))
-
+    input_annotations = pd.read_csv('examples/valid_raw_data/annotations/input.csv')
     raw_rttm = 'example_metrics.rttm'
-    segments = am.annotations[am.annotations['raw_filename'] == raw_rttm]
+    am.import_annotations(input_annotations[input_annotations['raw_filename'] == raw_rttm])
     
-    vc = am.get_vc_stats(am.get_segments(segments), turntakingthresh = turntakingthresh).reset_index()
-    truth_vc = pd.read_csv('tests/truth/vc_truth_{:.1f}.csv'.format(turntakingthresh))
+    vc = am.get_vc_stats(am.get_segments(am.annotations), turntakingthresh = turntakingthresh).reset_index()
+    truth_vc = pd.read_csv('tests/truth/vc_truth_{}.csv'.format(turntakingthresh))
    
     pd.testing.assert_frame_equal(
-        vc.reset_index().sort_index(axis = 1).sort_values(vc.columns.tolist()),
-        truth_vc.reset_index().sort_index(axis = 1).sort_values(vc.columns.tolist()),
-        atol = 3
+        standardize_dataframe(vc, vc.columns.tolist()),
+        standardize_dataframe(truth_vc, vc.columns.tolist()),
+        atol = 1, rtol = 0.02
     )

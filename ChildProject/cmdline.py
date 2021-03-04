@@ -23,14 +23,15 @@ def subcommand(args=[], parent = subparsers):
     return decorator
 
 def register_pipeline(subcommand, cls):
-    _parser = subparsers.add_parser(subcommand, description = cls.__doc__)
+    _parser = subparsers.add_parser(subcommand, description = cls.run.__doc__)
     cls.setup_parser(_parser)
     _parser.set_defaults(func = lambda args: cls().run(**vars(args)))
 
 @subcommand([
     arg("source", help = "project path"),
-    arg('--ignore-files', dest='ignore_files', required = False, default = False, action = 'store_true'),
-    arg('--check-annotations', dest='check_annotations', required = False, default = False, action = 'store_true')
+    arg('--ignore-files', help = 'ignore missing audio files', dest='ignore_files', required = False, default = False, action = 'store_true'),
+    arg('--check-annotations', help = 'check all imported annotations for errors',  dest='check_annotations', required = False, default = False, action = 'store_true'),
+    arg("--threads", help = "amount of threads to run on (only applies to --check-annotations)", type = int, default = 0)
 ])
 def validate(args):
     """validate the consistency of the dataset returning detailed errors and warnings"""
@@ -44,7 +45,7 @@ def validate(args):
         errors.extend(am.errors)
         warnings.extend(am.warnings)
 
-        annotations_errors, annotations_warnings = am.validate()
+        annotations_errors, annotations_warnings = am.validate(threads = args.threads)
         errors.extend(annotations_errors)
         warnings.extend(annotations_warnings)
 
@@ -62,10 +63,16 @@ def validate(args):
 
 @subcommand([
     arg("source", help = "project path"),
-    arg("--annotations", help = "path to input annotations index (csv)", default = ""),
+    arg("--annotations", help = "path to input annotations dataframe (csv) [only for bulk importation]", default = ""),
     arg("--threads", help = "amount of threads to run on", type = int, default = 0)
 ] + [
-    arg("--{}".format(col.name), help = col.description, type = str, default = None)
+    arg(
+        "--{}".format(col.name),
+        help = col.description,
+        type = str,
+        default = None,
+        choices = col.choices if col.choices else None
+    )
     for col in AnnotationManager.INDEX_COLUMNS
     if not col.generated
 ])
@@ -85,9 +92,9 @@ def import_annotations(args):
         annotations = pd.DataFrame([{col.name: getattr(args, col.name) for col in AnnotationManager.INDEX_COLUMNS if not col.generated}])
 
     am = AnnotationManager(project)
-    am.import_annotations(annotations, args.threads)
+    imported = am.import_annotations(annotations, args.threads)
 
-    errors, warnings = am.validate()
+    errors, warnings = am.validate(annotations = imported, threads = args.threads)
 
     if len(am.errors) > 0:
         print("importation completed with {} errors and {} warnings".format(len(am.errors)+len(errors), len(warnings)), file = sys.stderr)
@@ -101,7 +108,8 @@ def import_annotations(args):
     arg("--right-set", help = "right set", required = True),
     arg("--left-columns", help = "comma-separated columns to merge from the left set", required = True),
     arg("--right-columns", help = "comma-separated columns to merge from the right set", required = True),
-    arg("--output-set", help = "name of the output set", required = True)
+    arg("--output-set", help = "name of the output set", required = True),
+    arg("--threads", help = "amount of threads to run on (default: 1)", type = int, default = 1)
 ])
 def merge_annotations(args):
     """merge segments sharing identical onset and offset from two sets of annotations"""
@@ -119,7 +127,8 @@ def merge_annotations(args):
         right_set = args.right_set,
         left_columns = args.left_columns.split(','),
         right_columns = args.right_columns.split(','),
-        output_set = args.output_set
+        output_set = args.output_set,
+        threads = args.threads
     )
 
 @subcommand([
@@ -241,8 +250,10 @@ def compute_durations(args):
     recordings.to_csv(os.path.join(project.path, 'metadata/recordings.csv'), index = False)
 
 def main():
+    register_pipeline('sampler', SamplerPipeline)
     register_pipeline('zooniverse', ZooniversePipeline)
     register_pipeline('convert', ConversionPipeline)
+    register_pipeline('anonymize', AnonymizationPipeline)
 
     args = parser.parse_args()
     args.func(args)

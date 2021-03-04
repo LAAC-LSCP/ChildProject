@@ -4,13 +4,23 @@ import numpy as np
 import os
 import pandas as pd
 import re
-import shutil
 import subprocess
 
 from .tables import IndexTable, IndexColumn, is_boolean
 from .utils import get_audio_duration
 
 class ChildProject:
+    """This class is a representation of a ChildRecords dataset.
+
+    Attributes:
+        :param path: path to the root of the dataset.
+        :type path: str
+        :param recordings: pandas dataframe representation of this dataset metadata/recordings.csv 
+        :type recordings: class:`pd.DataFrame`
+        :param children: pandas dataframe representation of this dataset metadata/children.csv 
+        :type children: class:`pd.DataFrame`
+    """
+
     REQUIRED_DIRECTORIES = [
         'recordings',
         'extra'
@@ -37,7 +47,7 @@ class ChildProject:
         IndexColumn(name = 'n_of_siblings', description = 'amount of siblings', regex = r'(\d+(\.\d+)?)', required = False),
         IndexColumn(name = 'household_size', description = 'number of people living in the household (adults+children)', regex = r'(\d+(\.\d+)?)', required = False),
         IndexColumn(name = 'dob_criterion', description = "determines whether the date of birth is known exactly or extrapolated e.g. from the age. Dates of birth are assumed to be known exactly if this column is NA or unspecified.", choices = ['extrapolated', 'exact'], required = False),
-        IndexColumn(name = 'dob_accuracy', description = "date of birth accuracy", choices = ['extact', 'week', 'month', 'year', 'other'])
+        IndexColumn(name = 'dob_accuracy', description = "date of birth accuracy", choices = ['exact', 'week', 'month', 'year', 'other'])
     ]
 
     RECORDINGS_COLUMNS = [
@@ -46,8 +56,10 @@ class ChildProject:
         IndexColumn(name = 'date_iso', description = 'date in which recording was started in ISO (eg 2020-09-17)', required = True, datetime = '%Y-%m-%d'),
         IndexColumn(name = 'start_time', description = 'local time in which recording was started in format 24-hour (H)H:MM; if minutes are unknown, use 00. Set as ‘NA’ if unknown.', required = True, datetime = '%H:%M'),
         IndexColumn(name = 'recording_device_type', description = 'lena, usb, olympus, babylogger (lowercase)', required = True, choices = ['lena', 'usb', 'olympus', 'babylogger']),
-        IndexColumn(name = 'filename', description = 'the path to the file from the root of “recordings”), set to ‘NA’ if no valid recording available. It is unique (two recordings cannot point towards the same file).', required = True, filename = True, unique = True),
-        IndexColumn(name = 'duration', description = 'duration of the audio', regex = r'(\d+(\.\d+)?)'),
+        IndexColumn(name = 'recording_filename', description = 'the path to the file from the root of “recordings”), set to ‘NA’ if no valid recording available. It is unique (two recordings cannot point towards the same file).', required = True, filename = True, unique = True),
+        IndexColumn(name = 'duration', description = 'duration of the audio, in milliseconds', regex = r'([0-9]+)'),
+        IndexColumn(name = 'session_id', description = 'identifier of the recording session.'),
+        IndexColumn(name = 'session_offset', description = 'offset (in milliseconds) of the recording with respect to other recordings that are part of the same session. Each recording session is identified by their `session_id`.', regex = r'[0-9]+'),
         IndexColumn(name = 'recording_device_id', description = 'unique ID of the recording device'),
         IndexColumn(name = 'experimenter', description = 'who collected the data (could be anonymized ID)'),
         IndexColumn(name = 'location_id', description = 'unique location ID -- can be specified at the level of the child (if children do not change locations)'),
@@ -72,7 +84,12 @@ class ChildProject:
         'scripts'
     ]
 
-    def __init__(self, path):
+    def __init__(self, path: str):
+        """Constructor
+
+        :param path: path to the root of the dataset.
+        :type path: str
+        """
         self.path = path
         self.errors = []
         self.warnings = []
@@ -80,13 +97,22 @@ class ChildProject:
         self.recordings = None
     
     def read(self):
-        self.ct = IndexTable('children', os.path.join(self.path, 'metadata/children'), self.CHILDREN_COLUMNS)
-        self.rt = IndexTable('recordings', os.path.join(self.path, 'metadata/recordings'), self.RECORDINGS_COLUMNS)
+        """Read the metadata
+        """
+        self.ct = IndexTable('children', os.path.join(self.path, 'metadata/children.csv'), self.CHILDREN_COLUMNS)
+        self.rt = IndexTable('recordings', os.path.join(self.path, 'metadata/recordings.csv'), self.RECORDINGS_COLUMNS)
 
-        self.children = self.ct.read(lookup_extensions = ['.csv', '.xls', '.xlsx'])
-        self.recordings = self.rt.read(lookup_extensions = ['.csv', '.xls', '.xlsx'])
+        self.children = self.ct.read()
+        self.recordings = self.rt.read()
 
-    def validate(self, ignore_files = False):
+    def validate(self, ignore_files: bool = False) -> tuple:
+        """Validate a dataset, returning all errors and warnings.
+
+        :param ignore_files: if True, no errors will be returned for missing recordings.
+        :type ignore_files: bool, optional
+        :return: A tuple containing the list of errors, and the list of warnings.
+        :rtype: a tuple of two lists
+        """
         self.errors = []
         self.warnings = []
 
@@ -155,26 +181,15 @@ class ChildProject:
 
         return self.errors, self.warnings
 
-    def import_data(self, destination, follow_symlinks = True):
-        errors, warnings = self.validate()
+    def get_stats(self) -> dict:
+        """return statistics extracted from the dataset
 
-        if len(errors) > 0:
-            raise Exception('cannot import data: validation failed')
-
-        # perform copy
-        shutil.copytree(src = self.path, dst = destination, symlinks = follow_symlinks)
-
-        # create folders
-        for folder in self.PROJECT_FOLDERS:
-            os.makedirs(
-                name = os.path.join(destination, folder),
-                exist_ok = True
-            )
-
-    def get_stats(self):
+        :return: A dictionary with various statistics (total_recordings, total_children, audio_duration, etc.)
+        :rtype: dict
+        """
         stats = {}
-        recordings = self.recordings.merge(self.compute_recordings_duration(), left_on = 'filename', right_on = 'filename')
-        recordings['exists'] = recordings['filename'].map(lambda f: os.path.exists(os.path.join(self.path, self.RAW_RECORDINGS, f)))
+        recordings = self.recordings.merge(self.compute_recordings_duration(), left_on = 'recording_filename', right_on = 'recording_filename')
+        recordings['exists'] = recordings['recording_filename'].map(lambda f: os.path.exists(os.path.join(self.path, self.RAW_RECORDINGS, f)))
 
         stats['total_recordings'] = recordings.shape[0]
         stats['total_existing_recordings'] = recordings[recordings['exists'] == True].shape[0]
@@ -183,12 +198,21 @@ class ChildProject:
 
         return stats
 
-    def compute_recordings_duration(self, profile = None):
-        recordings = self.recordings[['filename']]
+    def compute_recordings_duration(self, profile: str = None) -> pd.DataFrame:
+        """[summary]
 
-        recordings = recordings.assign(duration = recordings['filename'].map(lambda f:
+        :param profile: name of the profile of recordings to compute the duration from. If None, raw recordings are used. defaults to None
+        :type profile: str, optional
+        :return: dataframe of the recordings, with an additional/updated duration columns.
+        :rtype: pd.DataFrame
+        """
+        recordings = self.recordings[['recording_filename']]
+
+        recordings['duration'] = recordings.assign(duration = recordings['recording_filename'].map(lambda f:
             get_audio_duration(os.path.join(self.path, self.CONVERTED_RECORDINGS, profile, f)) if profile
             else get_audio_duration(os.path.join(self.path, self.RAW_RECORDINGS, f))
         ))
+        recordings['duration'].fillna(0, inplace = True)
+        recordings['duration'] = (recordings['duration']*1000).astype(int)
 
         return recordings

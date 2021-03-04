@@ -1,2 +1,2 @@
-experiment,child_id,date_iso,start_time,recording_device_type,filename,notes,noisy_setting
+experiment,child_id,date_iso,start_time,recording_device_type,recording_filename,notes,noisy_setting
 test,1,2020-09-18,9:00,usb,sound.wav,none,1

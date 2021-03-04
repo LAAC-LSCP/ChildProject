@@ -14,8 +14,8 @@ from ChildProject.projects import ChildProject
 from ChildProject.pipelines.pipeline import Pipeline
 
 class RecordingProfile:
-    def __init__(self, name, format = 'wav', codec = 'pcm_s16le', sampling = 16000,
-                 split = None, extra_flags = None):
+    def __init__(self, name: str, format: str = 'wav', codec: str = 'pcm_s16le', sampling: int = 16000,
+                 split: str = None, extra_flags: str = None):
 
         self.name = str(name)
         self.format = format
@@ -32,7 +32,7 @@ class RecordingProfile:
         self.split = split
         self.recordings = []
 
-    def to_csv(self, destination):
+    def to_csv(self, destination: str):
         pd.DataFrame([
             {'key': 'name', 'value': self.name},
             {'key': 'format', 'value': self.format},
@@ -42,22 +42,22 @@ class RecordingProfile:
             {'key': 'extra_flags', 'value': self.extra_flags}
         ]).to_csv(destination, index = False)
 
-def convert_recording(path, profile, skip_existing, row):
-    if row['filename'] == 'NA':
+def convert_recording(path: str, profile: str, skip_existing: bool, row: dict) -> list:
+    if row['recording_filename'] == 'NA':
             return []
 
     original_file = os.path.join(
         path,
         ChildProject.RAW_RECORDINGS,
-        row['filename']
+        row['recording_filename']
     )
 
     destination_file = os.path.join(
         path,
         ChildProject.CONVERTED_RECORDINGS,
         profile.name,
-        os.path.splitext(row['filename'])[0] + '.%03d.' + profile.format if profile.split
-        else os.path.splitext(row['filename'])[0] + '.' + profile.format
+        os.path.splitext(row['recording_filename'])[0] + '.%03d.' + profile.format if profile.split
+        else os.path.splitext(row['recording_filename'])[0] + '.' + profile.format
     )
 
     os.makedirs(
@@ -91,7 +91,7 @@ def convert_recording(path, profile, skip_existing, row):
 
     if not success:
         return [{
-            'original_filename': row['filename'],
+            'original_filename': row['recording_filename'],
             'converted_filename': "",
             'success': False,
             'error': stderr
@@ -100,20 +100,20 @@ def convert_recording(path, profile, skip_existing, row):
         if profile.split:
             converted_files = [
                 os.path.basename(cf)
-                for cf in glob.glob(os.path.join(path, ChildProject.CONVERTED_RECORDINGS, profile.name, os.path.splitext(row['filename'])[0] + '.*.' + profile.format))
+                for cf in glob.glob(os.path.join(path, ChildProject.CONVERTED_RECORDINGS, profile.name, os.path.splitext(row['recording_filename'])[0] + '.*.' + profile.format))
             ]
         else:
-            converted_files = [os.path.splitext(row['filename'])[0] + '.' + profile.format]
+            converted_files = [os.path.splitext(row['recording_filename'])[0] + '.' + profile.format]
 
     return [{
-        'original_filename': row['filename'],
+        'original_filename': row['recording_filename'],
         'converted_filename': cf,
         'success': True
     } for cf in converted_files]
 
 class ConversionPipeline(Pipeline):
 
-    def run(self, path, name, format, codec, sampling, split = None, skip_existing = False, threads = 0, **kwargs):
+    def run(self, path: str, name: str, format: str, codec: str, sampling: int, split: str = None, skip_existing: bool = False, threads: int = 0, **kwargs) -> RecordingProfile:
         profile = RecordingProfile(
             name,
             format = format,
