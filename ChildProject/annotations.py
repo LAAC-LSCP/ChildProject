@@ -451,8 +451,8 @@ class AnnotationManager:
         )
 
         df = rttm
-        df['segment_onset'] = (1000*df['tbeg']).astype(int)
-        df['segment_offset'] = (1000*(df['tbeg']+df['tdur'])).astype(int)
+        df['segment_onset'] = df['tbeg'].mul(1000).round().astype(int)
+        df['segment_offset'] = df['segment_onset'] + df['tdur'].mul(1000).round().astype(int)
         df['speaker_id'] = 'NA'
         df['ling_type'] = 'NA'
         df['speaker_type'] = df['name'].map(self.VTC_SPEAKER_TYPE_TRANSLATION)
