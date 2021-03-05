@@ -149,7 +149,7 @@ Create the metadata
 
 Let’s start with the recordings metadata. ``metadata/recordings.csv``
 should at least have the following columns: experiment, child_id,
-date_iso, start_time, recording_device_type, filename. The .its file
+date_iso, start_time, recording_device_type, recording_filename. The .its file
 contains (``annotations/its/raw/BN32_010007.its``) precious information
 about when the recording started:
 
@@ -161,7 +161,7 @@ Make sure that ``metadata/recordings.csv`` contains the following text:
 
 ::
 
-   experiment,child_id,date_iso,start_time,recording_device_type,filename
+   experiment,child_id,date_iso,start_time,recording_device_type,recording_filename
    vandam-daylong,1,2010-07-24,11:58,lena,BN32_010007.mp3
 
 (we have decided that the only child of the dataset should have ID ‘1’)

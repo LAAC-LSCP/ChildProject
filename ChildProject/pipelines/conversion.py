@@ -43,21 +43,21 @@ class RecordingProfile:
         ]).to_csv(destination, index = False)
 
 def convert_recording(path: str, profile: str, skip_existing: bool, row: dict) -> list:
-    if row['filename'] == 'NA':
+    if row['recording_filename'] == 'NA':
             return []
 
     original_file = os.path.join(
         path,
         ChildProject.RAW_RECORDINGS,
-        row['filename']
+        row['recording_filename']
     )
 
     destination_file = os.path.join(
         path,
         ChildProject.CONVERTED_RECORDINGS,
         profile.name,
-        os.path.splitext(row['filename'])[0] + '.%03d.' + profile.format if profile.split
-        else os.path.splitext(row['filename'])[0] + '.' + profile.format
+        os.path.splitext(row['recording_filename'])[0] + '.%03d.' + profile.format if profile.split
+        else os.path.splitext(row['recording_filename'])[0] + '.' + profile.format
     )
 
     os.makedirs(
@@ -91,7 +91,7 @@ def convert_recording(path: str, profile: str, skip_existing: bool, row: dict) -
 
     if not success:
         return [{
-            'original_filename': row['filename'],
+            'original_filename': row['recording_filename'],
             'converted_filename': "",
             'success': False,
             'error': stderr
@@ -100,13 +100,13 @@ def convert_recording(path: str, profile: str, skip_existing: bool, row: dict) -
         if profile.split:
             converted_files = [
                 os.path.basename(cf)
-                for cf in glob.glob(os.path.join(path, ChildProject.CONVERTED_RECORDINGS, profile.name, os.path.splitext(row['filename'])[0] + '.*.' + profile.format))
+                for cf in glob.glob(os.path.join(path, ChildProject.CONVERTED_RECORDINGS, profile.name, os.path.splitext(row['recording_filename'])[0] + '.*.' + profile.format))
             ]
         else:
-            converted_files = [os.path.splitext(row['filename'])[0] + '.' + profile.format]
+            converted_files = [os.path.splitext(row['recording_filename'])[0] + '.' + profile.format]
 
     return [{
-        'original_filename': row['filename'],
+        'original_filename': row['recording_filename'],
         'converted_filename': cf,
         'success': True
     } for cf in converted_files]

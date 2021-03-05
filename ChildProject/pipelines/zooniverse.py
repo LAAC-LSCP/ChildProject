@@ -58,11 +58,10 @@ class ZooniversePipeline(Pipeline):
         print("extracting chunks from {}...".format(source))
 
         for segment in segments:
-            original_onset = segment['segment_onset']
-            original_offset = segment['segment_offset']
-
-            onset = int(original_onset*1000)
-            offset = int(original_offset*1000)
+            original_onset = int(segment['segment_onset'])
+            original_offset = int(segment['segment_offset'])
+            onset = original_onset
+            offset = original_offset
 
             if self.chunks_length > 0:
                 onset, offset = pad_interval(onset, offset, self.chunks_length, self.chunks_min_amount)

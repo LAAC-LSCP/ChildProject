@@ -81,7 +81,9 @@ class IndexTable(CSVTable):
         self.options['file'] = '{}.csv'.format(array)
         self.options['header-rows'] = 1
         self.options['widths'] = [20, 50, 10, 20]
-        pd.DataFrame(df).to_csv(os.path.join('source', self.options['file']), index = False)
+
+        dir_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
+        pd.DataFrame(df).to_csv(os.path.join(dir_path, self.options['file']), index = False)
 
 
 def setup(app):
