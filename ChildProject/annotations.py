@@ -29,22 +29,22 @@ class AnnotationManager:
     INDEX_COLUMNS = [
         IndexColumn(name = 'set', description = 'name of the annotation set (e.g. VTC, annotator1, etc.)', required = True),
         IndexColumn(name = 'recording_filename', description = 'recording filename as specified in the recordings index', required = True),
-        IndexColumn(name = 'time_seek', description = 'reference time in seconds, e.g: 3600, or 3600.500. All times expressed in the annotations are relative to this time.', regex = r"(\-?)(\d+(\.\d+)?)", required = True),
-        IndexColumn(name = 'range_onset', description = 'covered range start time in seconds, measured since `time_seek`', regex = r"(\d+(\.\d+)?)", required = True),
-        IndexColumn(name = 'range_offset', description = 'covered range end time in seconds, measured since `time_seek`', regex = r"(\d+(\.\d+)?)", required = True),
+        IndexColumn(name = 'time_seek', description = 'reference time in milliseconds, e.g: 3600000. All times expressed in the annotations are relative to this time.', regex = r"(\-?)([0-9]+)", required = True),
+        IndexColumn(name = 'range_onset', description = 'covered range start time in milliseconds, measured since `time_seek`', regex = r"([0-9]+)", required = True),
+        IndexColumn(name = 'range_offset', description = 'covered range end time in milliseconds, measured since `time_seek`', regex = r"([0-9]+)", required = True),
         IndexColumn(name = 'raw_filename', description = 'annotation input filename location, relative to `annotations/<set>/raw`', filename = True, required = True),
         IndexColumn(name = 'format', description = 'input annotation format', choices = ['TextGrid', 'eaf', 'vtc_rttm', 'alice', 'its'], required = False),
         IndexColumn(name = 'filter', description = 'source file to filter in (for rttm and alice only)', required = False),
-        IndexColumn(name = 'annotation_filename', description = 'output formatted annotation location (automatic column, don\'t specify)', filename = True, required = False, generated = True),
+        IndexColumn(name = 'annotation_filename', description = 'output formatted annotation location, relative to `annotations/<set>/converted (automatic column, don\'t specify)', filename = True, required = False, generated = True),
         IndexColumn(name = 'imported_at', description = 'importation date (automatic column, don\'t specify)', datetime = "%Y-%m-%d %H:%M:%S", required = False, generated = True),
         IndexColumn(name = 'package_version', description = 'version of the package used when the importation was performed', regex = r"[0-9]+\.[0-9]+\.[0-9]+", required = False, generated = True),
         IndexColumn(name = 'error', description = 'error message in case the annotation could not be imported', required = False, generated = True)
     ]
 
     SEGMENTS_COLUMNS = [
-        IndexColumn(name = 'annotation_file', description = 'raw annotation path relative, relative to `annotations/<set>/raw`', required = True),
-        IndexColumn(name = 'segment_onset', description = 'segment start time in seconds', regex = r"(\d+(\.\d+)?)", required = True),
-        IndexColumn(name = 'segment_offset', description = 'segment end time in seconds', regex = r"(\d+(\.\d+)?)", required = True),
+        IndexColumn(name = 'raw_filename', description = 'raw annotation path relative, relative to `annotations/<set>/raw`', required = True),
+        IndexColumn(name = 'segment_onset', description = 'segment start time in milliseconds', regex = r"([0-9]+)", required = True),
+        IndexColumn(name = 'segment_offset', description = 'segment end time in milliseconds', regex = r"([0-9]+)", required = True),
         IndexColumn(name = 'speaker_id', description = 'identity of speaker in the annotation', required = True),
         IndexColumn(name = 'speaker_type', description = 'class of speaker (FEM, MAL, CHI, OCH)', choices = ['FEM', 'MAL', 'CHI', 'OCH', 'SPEECH'] + ['TVN', 'TVF', 'FUZ', 'FEF', 'MAF', 'SIL', 'CXF', 'NON', 'OLN', 'OLF', 'CHF', 'NA'], required = True),
         IndexColumn(name = 'ling_type', description = '1 if the vocalization contains at least a vowel (ie canonical or non-canonical), 0 if crying or laughing', choices = ['1', '0', 'NA'], required = True),
@@ -63,11 +63,11 @@ class AnnotationManager:
         IndexColumn(name = 'lena_conv_floor_type', description = '(FI): Floor Initiation, (FH): Floor Holding', choices = ['FI', 'FH']),
         IndexColumn(name = 'lena_conv_turn_type', description = 'LENA turn type', choices = ['TIFI', 'TIMI', 'TIFR', 'TIMR', 'TIFE', 'TIME', 'NT']),
         IndexColumn(name = 'utterances_count', description = 'utterances count', regex = r"(\d+(\.\d+)?)"),
-        IndexColumn(name = 'utterances_length', description = 'utterances length', regex = r"(\d+(\.\d+)?)"),
-        IndexColumn(name = 'non_speech_length', description = 'non-speech length', regex = r"(\d+(\.\d+)?)"),
+        IndexColumn(name = 'utterances_length', description = 'utterances length', regex = r"([0-9]+)"),
+        IndexColumn(name = 'non_speech_length', description = 'non-speech length', regex = r"([0-9]+)"),
         IndexColumn(name = 'average_db', description = 'average dB level', regex = r"(\-?)(\d+(\.\d+)?)"),
         IndexColumn(name = 'peak_db', description = 'peak dB level', regex = r"(\-?)(\d+(\.\d+)?)"),
-        IndexColumn(name = 'child_cry_vfx_len', description = 'childCryVfxLen', regex = r"(\d+(\.\d+)?)"),
+        IndexColumn(name = 'child_cry_vfx_len', description = 'childCryVfxLen', regex = r"([0-9]+)"),
         IndexColumn(name = 'utterances', description = 'LENA utterances details (json)'),
         IndexColumn(name = 'cries', description = 'cries (json)'),
         IndexColumn(name = 'vfxs', description = 'Vfx (json)')
@@ -172,7 +172,7 @@ class AnnotationManager:
 
         segments = IndexTable(
             'segments',
-            path = os.path.join(self.project.path, 'annotations', str(annotation['annotation_filename'])),
+            path = os.path.join(self.project.path, 'annotations', annotation['set'], 'converted', str(annotation['annotation_filename'])),
             columns = self.SEGMENTS_COLUMNS
         )
 
@@ -221,8 +221,8 @@ class AnnotationManager:
                     continue
 
                 segment = {
-                    'segment_onset': float(interval[0]),
-                    'segment_offset': float(interval[1]),
+                    'segment_onset': int(round(1000*float(interval[0]))),
+                    'segment_offset': int(round(1000*float(interval[1]))),
                     'speaker_id': tier_name,
                     'ling_type': ling_type(interval[2]),
                     'speaker_type': self.SPEAKER_ID_TO_TYPE[tier_name] if tier_name in self.SPEAKER_ID_TO_TYPE else 'NA',
@@ -257,8 +257,8 @@ class AnnotationManager:
                 (start_t, end_t) = (eaf.timeslots[start_ts], eaf.timeslots[end_ts])
 
                 segment = {
-                    'segment_onset': start_t/1000,
-                    'segment_offset': end_t/1000,
+                    'segment_onset': int(round(start_t)),
+                    'segment_offset': int(round(end_t)),
                     'speaker_id': tier_name,
                     'ling_type': 'NA',
                     'speaker_type': self.SPEAKER_ID_TO_TYPE[tier_name] if tier_name in self.SPEAKER_ID_TO_TYPE else 'NA',
@@ -341,8 +341,8 @@ class AnnotationManager:
                 lena_conv_turn_type = conversation_info[5]
                 lena_conv_floor_type = conversation_info[6]
 
-                onset = extract_from_regex(timestamp_pattern, seg.get('startTime'))
-                offset = extract_from_regex(timestamp_pattern, seg.get('endTime'))
+                onset = float(extract_from_regex(timestamp_pattern, seg.get('startTime')))
+                offset = float(extract_from_regex(timestamp_pattern, seg.get('endTime')))
 
                 words = 0
                 for attr in ['femaleAdultWordCnt', 'maleAdultWordCnt']:
@@ -409,8 +409,8 @@ class AnnotationManager:
                     n = n + 1
 
                 segments.append({
-                    'segment_onset': onset,
-                    'segment_offset': offset,
+                    'segment_onset': int(round(onset*1000)),
+                    'segment_offset': int(round(offset*1000)),
                     'speaker_id': 'NA',
                     'ling_type': 'NA',
                     'speaker_type': self.LENA_SPEAKER_TYPE_TRANSLATION[seg.get('spkr')],
@@ -429,12 +429,12 @@ class AnnotationManager:
                     'lena_conv_turn_type': lena_conv_turn_type,
                     'lena_conv_floor_type': lena_conv_floor_type,
                     'utterances_count': utterances_count,
-                    'utterances_length': utterances_length,
+                    'utterances_length': int(utterances_length*1000),
                     'average_db': average_db,
                     'peak_db': peak_db,
                     'utterances': utterances,
-                    'non_speech_length': non_speech_length,
-                    'child_cry_vfx_len': child_cry_vfx_len,
+                    'non_speech_length': int(non_speech_length*1000),
+                    'child_cry_vfx_len': int(child_cry_vfx_len*1000),
                     'cries': cries,
                     'vfxs': vfxs
                 })
@@ -451,8 +451,8 @@ class AnnotationManager:
         )
 
         df = rttm
-        df['segment_onset'] = df['tbeg'].astype(float)
-        df['segment_offset'] = (df['tbeg']+df['tdur']).astype(float)
+        df['segment_onset'] = df['tbeg'].mul(1000).round().astype(int)
+        df['segment_offset'] = (df['tbeg']+df['tdur']).mul(1000).round().astype(int)
         df['speaker_id'] = 'NA'
         df['ling_type'] = 'NA'
         df['speaker_type'] = df['name'].map(self.VTC_SPEAKER_TYPE_TRANSLATION)
@@ -476,7 +476,8 @@ class AnnotationManager:
         df = pd.read_csv(
             filename,
             sep = r"\s",
-            names = ['file', 'phonemes', 'syllables', 'words']
+            names = ['file', 'phonemes', 'syllables', 'words'],
+            engine = 'python'
         )
         df['speaker_id'] = 'NA'
         df['ling_type'] = 'NA'
@@ -491,11 +492,11 @@ class AnnotationManager:
             df = df[df['file'].str.contains(source_file)]
 
         matches = df['file'].str.extract(r"^(.*)_(?:0+)?([0-9]{1,})_(?:0+)?([0-9]{1,})\.wav$")
-        df['filename'] = matches[0]
-        df['segment_onset'] = matches[1].astype(float)/10000
-        df['segment_offset'] = matches[2].astype(float)/10000
+        df['recording_filename'] = matches[0]
+        df['segment_onset'] = matches[1].astype(int)/10
+        df['segment_offset'] = matches[2].astype(int)/10
         
-        df.drop(columns = ['filename', 'file'], inplace = True)
+        df.drop(columns = ['recording_filename', 'file'], inplace = True)
 
         return df
 
@@ -504,7 +505,8 @@ class AnnotationManager:
         """import and convert ``annotation``. This function should not be called outside of this class.
         """
         source_recording = os.path.splitext(annotation['recording_filename'])[0]
-        output_filename = "{}/converted/{}_{}_{}.csv".format(annotation['set'], source_recording, annotation['time_seek'], annotation['range_onset'])
+        annotation_filename = "{}_{}_{}.csv".format(source_recording, annotation['time_seek'], annotation['range_onset'])
+        output_filename = os.path.join('annotations', annotation['set'], 'converted', annotation_filename)
 
         path = os.path.join(self.project.path, 'annotations', annotation['set'], 'raw', annotation['raw_filename'])
         annotation_format = annotation['format']
@@ -538,22 +540,21 @@ class AnnotationManager:
         if not df.shape[1]:
             df = pd.DataFrame(columns = [c.name for c in self.SEGMENTS_COLUMNS])
         
-        df['annotation_file'] = annotation['raw_filename']
-        df['segment_onset'] = df['segment_onset'].astype(float)
-        df['segment_offset'] = df['segment_offset'].astype(float)
+        df['raw_filename'] = annotation['raw_filename']
+        df['segment_onset'] = df['segment_onset'].astype(int)
+        df['segment_offset'] = df['segment_offset'].astype(int)
 
-        if isinstance(annotation['range_onset'], Number)\
-            and isinstance(annotation['range_offset'], Number)\
-            and (annotation['range_offset'] - annotation['range_onset']) > 0.001:
+        annotation['range_onset'] = int(annotation['range_onset'])
+        annotation['range_offset'] = int(annotation['range_offset'])
 
-            df = self.clip_segments(df, annotation['range_onset'], annotation['range_offset'])
+        df = self.clip_segments(df, annotation['range_onset'], annotation['range_offset'])
 
         df.sort_values(['segment_onset', 'segment_offset', 'speaker_id', 'speaker_type'], inplace = True)
 
-        os.makedirs(os.path.dirname(os.path.join(self.project.path, 'annotations', output_filename)), exist_ok = True)
-        df.to_csv(os.path.join(self.project.path, 'annotations', output_filename), index = False)
+        os.makedirs(os.path.dirname(os.path.join(self.project.path, output_filename)), exist_ok = True)
+        df.to_csv(os.path.join(self.project.path, output_filename), index = False)
 
-        annotation['annotation_filename'] = output_filename
+        annotation['annotation_filename'] = annotation_filename
         annotation['imported_at'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         annotation['package_version'] = __version__
 
@@ -572,11 +573,14 @@ class AnnotationManager:
         :rtype: pd.DataFrame
         """
         
-        missing_recordings = input[~input['recording_filename'].isin(self.project.recordings['filename'].tolist())]
+        missing_recordings = input[~input['recording_filename'].isin(self.project.recordings['recording_filename'].tolist())]
         missing_recordings = missing_recordings['recording_filename'].tolist()
 
         if len(missing_recordings) > 0:
             raise ValueError("cannot import annotations, because the following recordings are not referenced in the metadata:\n{}".format("\n".join(missing_recordings)))
+
+        input['range_onset'] = input['range_onset'].astype(int)
+        input['range_offset'] = input['range_offset'].astype(int)
 
         pool = mp.Pool(processes = threads if threads > 0 else mp.cpu_count())
         imported = pool.map(
@@ -609,8 +613,13 @@ class AnnotationManager:
         candidates = list(set(os.listdir(path)) - {'raw', 'converted'})
         for candidate in candidates:
             subset = os.path.join(annotation_set, candidate)
+
+            if not os.path.isdir(os.path.join(self.project.path, 'annotations', subset)):
+                continue
+
             subsets.append(subset)
-            if recursive and os.path.isdir(os.path.join(path, subset)):
+
+            if recursive:
                 subsets.extend(self.get_subsets(subset))
 
         return subsets
@@ -695,8 +704,6 @@ class AnnotationManager:
         if os.path.exists(os.path.join(current_path, 'converted')):
             shutil.move(os.path.join(current_path, 'converted'), os.path.join(new_path, 'converted'))
 
-        self.annotations.loc[(self.annotations['set'] == annotation_set), 'annotation_filename'] = self.annotations.loc[(self.annotations['set'] == annotation_set), 'annotation_filename']\
-            .str.replace(r"^{}/".format(re.escape(annotation_set)), repl = os.path.join(new_set, ''), regex = True)
         self.annotations.loc[(self.annotations['set'] == annotation_set), 'set'] = new_set
 
         self.annotations.to_csv(os.path.join(self.project.path, 'metadata/annotations.csv'), index = False)
@@ -708,8 +715,7 @@ class AnnotationManager:
         annotations = left_annotations.copy()
         annotations['format'] = ''
         annotations['annotation_filename'] = annotations.apply(
-            lambda annotation: "{}/converted/{}_{}_{}.csv".format(
-                output_set,
+            lambda annotation: "{}_{}_{}.csv".format(
                 os.path.splitext(annotation['recording_filename'])[0],
                 annotation['time_seek'],
                 annotation['range_onset']
@@ -721,10 +727,10 @@ class AnnotationManager:
 
         annotations['set'] = output_set
 
-        if not all([os.path.exists(os.path.join(self.project.path, 'annotations', f)) for f in left_annotations['annotation_filename'].tolist()]):
+        if not all([os.path.exists(os.path.join(self.project.path, 'annotations', a['set'], 'converted', a['annotation_filename'])) for a in left_annotations.to_dict(orient = 'records')]):
             return pd.DataFrame()
 
-        if not all([os.path.exists(os.path.join(self.project.path, 'annotations', f)) for f in right_annotations['annotation_filename'].tolist()]):
+        if not all([os.path.exists(os.path.join(self.project.path, 'annotations', a['set'], 'converted', a['annotation_filename'])) for a in right_annotations.to_dict(orient = 'records')]):
             return pd.DataFrame()
 
         left_segments = self.get_segments(left_annotations)
@@ -735,55 +741,44 @@ class AnnotationManager:
         right_segments['segment_onset'] = right_segments['segment_onset'] + right_segments['time_seek']
         right_segments['segment_offset'] = right_segments['segment_offset'] + right_segments['time_seek']
 
-        def timestamp_to_int(f):
-            return int(round(f*10000))
-
-        def int_to_timestamp(i):
-            return i/10000
-
-        left_segments['segment_onset'] = left_segments['segment_onset'].apply(timestamp_to_int)
-        left_segments['segment_offset'] = left_segments['segment_offset'].apply(timestamp_to_int)
-        right_segments['segment_onset'] = right_segments['segment_onset'].apply(timestamp_to_int)
-        right_segments['segment_offset'] = right_segments['segment_offset'].apply(timestamp_to_int)
-
         merge_columns = ['interval', 'segment_onset', 'segment_offset']
 
-        output_segments = left_segments[merge_columns + left_columns + ['annotation_file', 'time_seek']].merge(
-            right_segments[merge_columns + right_columns + ['annotation_file']],
+        output_segments = left_segments[merge_columns + left_columns + ['raw_filename', 'time_seek']].merge(
+            right_segments[merge_columns + right_columns + ['raw_filename']],
             how = 'outer',
             left_on = merge_columns,
             right_on = merge_columns
         )
-        output_segments['segment_onset'] = output_segments['segment_onset'].apply(int_to_timestamp)
-        output_segments['segment_offset'] = output_segments['segment_offset'].apply(int_to_timestamp)
 
-        output_segments['segment_onset'] = output_segments['segment_onset'] - output_segments['time_seek']
-        output_segments['segment_offset'] = output_segments['segment_offset'] - output_segments['time_seek']
+        output_segments['segment_onset'] = (output_segments['segment_onset'] - output_segments['time_seek']).fillna(0).astype(int)
+        output_segments['segment_offset'] = (output_segments['segment_offset'] - output_segments['time_seek']).fillna(0).astype(int)
 
-        output_segments['annotation_file'] = output_segments['annotation_file_x'] + ',' + output_segments['annotation_file_y']
+        output_segments['raw_filename'] = output_segments['raw_filename_x'] + ',' + output_segments['raw_filename_y']
 
         annotations.drop(columns = 'raw_filename', inplace = True)
         annotations = annotations.merge(
-            output_segments[['interval', 'annotation_file']].dropna().drop_duplicates(),
+            output_segments[['interval', 'raw_filename']].dropna().drop_duplicates(),
             how = 'left',
             left_on = 'interval',
             right_on = 'interval'
         )
-        annotations.rename(columns = {'annotation_file': 'raw_filename'}, inplace = True)
+        annotations.rename(columns = {'raw_filename': 'raw_filename'}, inplace = True)
         annotations['generated_at'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-        output_segments['annotation_file'] = output_segments['annotation_file_x'].fillna('') + ',' + output_segments['annotation_file_y'].fillna('')
-        output_segments.drop(columns = ['annotation_file_x', 'annotation_file_y', 'time_seek'], inplace = True)
+        output_segments['raw_filename'] = output_segments['raw_filename_x'].fillna('') + ',' + output_segments['raw_filename_y'].fillna('')
+        output_segments.drop(columns = ['raw_filename_x', 'raw_filename_y', 'time_seek'], inplace = True)
 
         output_segments.fillna('NA', inplace = True)
 
         for interval, segments in output_segments.groupby('interval'):
             annotation_filename = annotations[annotations['interval'] == interval]['annotation_filename'].tolist()[0]
-            os.makedirs(os.path.dirname(os.path.join(self.project.path, 'annotations', annotation_filename)), exist_ok = True)
+            annotation_set = annotations[annotations['interval'] == interval]['set'].tolist()[0]
+
+            os.makedirs(os.path.dirname(os.path.join(self.project.path, 'annotations', annotation_set, 'converted', annotation_filename)), exist_ok = True)
 
             segments.drop(columns = list(set(segments.columns)-set([c.name for c in self.SEGMENTS_COLUMNS])), inplace = True)
             segments.to_csv(
-                os.path.join(self.project.path, 'annotations', annotation_filename),
+                os.path.join(self.project.path, 'annotations', annotation_set, 'converted', annotation_filename),
                 index = False
             )
 
@@ -815,8 +810,8 @@ class AnnotationManager:
         assert not (set(left_columns) & set (right_columns)), "left_columns and right_columns must be disjoint"
 
         union = set(left_columns) | set (right_columns)
-        all_columns = set([c.name for c in self.SEGMENTS_COLUMNS]) - set(['annotation_file', 'segment_onset', 'segment_offset'])
-        required_columns = set([c.name for c in self.SEGMENTS_COLUMNS if c.required]) - set(['annotation_file', 'segment_onset', 'segment_offset'])
+        all_columns = set([c.name for c in self.SEGMENTS_COLUMNS]) - set(['raw_filename', 'segment_onset', 'segment_offset'])
+        required_columns = set([c.name for c in self.SEGMENTS_COLUMNS if c.required]) - set(['raw_filename', 'segment_onset', 'segment_offset'])
         assert union.issubset(all_columns), "left_columns and right_columns have unexpected values"
         assert required_columns.issubset(union), "left_columns and right_columns have missing values"
 
@@ -851,15 +846,16 @@ class AnnotationManager:
         """get all segments associated to the annotations referenced in ``annotations``.
 
         :param annotations: dataframe of annotations, according to :ref:`format-annotations`
-        :type annotations: pd.DataFrame
+        :type annotations: pd.DataFramef
         :return: dataframe of all the segments merged (as specified in :ref:`format-annotations-segments`), merged with ``annotations``. 
         :rtype: pd.DataFrame
         """
         annotations = annotations.dropna(subset = ['annotation_filename'])
+        annotations.drop(columns = ['raw_filename'], inplace = True)
 
         segments = pd.concat([
-            pd.read_csv(os.path.join(self.project.path, 'annotations', f)).assign(annotation_filename = f)
-            for f in annotations['annotation_filename'].tolist()
+            pd.read_csv(os.path.join(self.project.path, 'annotations', a['set'], 'converted', a['annotation_filename'])).assign(annotation_filename = a['annotation_filename'])
+            for a in annotations.to_dict(orient = 'records')
         ])
 
         return segments.merge(annotations, how = 'left', left_on = 'annotation_filename', right_on = 'annotation_filename')
@@ -931,26 +927,30 @@ class AnnotationManager:
 
         return pd.concat(a_stack), pd.concat(b_stack)
 
-    def clip_segments(self, segments: pd.DataFrame, start: float, stop: float) -> pd.DataFrame:
+    def clip_segments(self, segments: pd.DataFrame, start: int, stop: int) -> pd.DataFrame:
         """Clip all segments onsets and offsets within ``start`` and ``stop``.
         Segments outside of the range [``start``,``stop``] will be removed.
 
         :param segments: Dataframe of the segments to clip
         :type segments: pd.DataFrame
-        :param start: range start
-        :type start: float
-        :param stop: range end
-        :type stop: float
+        :param start: range start (in milliseconds)
+        :type start: int
+        :param stop: range end (in milliseconds)
+        :type stop: int
         :return: Dataframe of the clipped segments
         :rtype: pd.DataFrame
         """
+        start = int(start)
+        stop = int(stop)
+
         segments['segment_onset'].clip(lower = start, upper = stop, inplace = True)
         segments['segment_offset'].clip(lower = start, upper = stop, inplace = True)
 
-        segments = segments[~np.isclose(segments['segment_offset']-segments['segment_onset'], 0)]
+        segments = segments[(segments['segment_offset'] - segments['segment_onset']) > 0]
+
         return segments
 
-    def get_vc_stats(self, segments: pd.DataFrame, turntakingthresh: float = 1):
+    def get_vc_stats(self, segments: pd.DataFrame, turntakingthresh: int = 1000):
         segments = segments.sort_values(['segment_onset', 'segment_offset'])
         segments = segments[segments['speaker_type'] != 'SPEECH']
         segments['duration'] = segments['segment_offset']-segments['segment_onset']
@@ -982,4 +982,4 @@ class AnnotationManager:
             voc_count = ('duration', 'count'),
             turns = ('turn', 'sum'),
             cds_dur = ('cds', 'sum')
-        )
+        ).astype(int)

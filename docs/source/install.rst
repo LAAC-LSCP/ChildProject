@@ -55,3 +55,10 @@ You can check the setup by issuing the following commands :
 .. clidoc::
 
    child-project --help
+
+
+.. note::
+
+    We recommend that you regularly keep DataLad and our package up to date. 
+    This can be achieved with the commands ``pip install datalad --upgrade``
+    and ``pip install git+https://github.com/LAAC-LSCP/ChildRecordsData.git --upgrade``.

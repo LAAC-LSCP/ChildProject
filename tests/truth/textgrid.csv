@@ -1,6 +1,6 @@
-annotation_file,segment_onset,segment_offset,speaker_id,speaker_type,ling_type,vcm_type,lex_type,mwu_type,addresseee,transcription,phonemes,syllables,words
-example.TextGrid,1.602,2.215,CHI*,CHI,1,NA,NA,NA,NA,NA,,,
-example.TextGrid,2.215,3.32,C1,OCH,1,NA,NA,NA,NA,NA,,,
-example.TextGrid,4.1,5.21,C2,OCH,1,NA,NA,NA,NA,NA,,,
-example.TextGrid,5.593,7.521,MOT*,FEM,1,NA,NA,NA,NA,NA,,,
-example.TextGrid,8.101,9.285,LF2P,NA,1,NA,NA,NA,NA,NA,,,
+raw_filename,segment_onset,segment_offset,speaker_id,speaker_type,ling_type,vcm_type,lex_type,mwu_type,addresseee,transcription,phonemes,syllables,words
+example.TextGrid,1602,2215,CHI*,CHI,1,NA,NA,NA,NA,NA,,,
+example.TextGrid,2215,3320,C1,OCH,1,NA,NA,NA,NA,NA,,,
+example.TextGrid,4100,5210,C2,OCH,1,NA,NA,NA,NA,NA,,,
+example.TextGrid,5593,7521,MOT*,FEM,1,NA,NA,NA,NA,NA,,,
+example.TextGrid,8101,9285,LF2P,NA,1,NA,NA,NA,NA,NA,,,

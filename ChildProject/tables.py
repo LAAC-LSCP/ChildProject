@@ -134,7 +134,7 @@ class IndexTable:
                 continue
 
             grouped = self.df[self.df[c.name] != 'NA']
-            grouped['lineno'] = grouped.index
+            grouped = grouped.assign(lineno = grouped.index)
             grouped = grouped.groupby(c.name)['lineno']\
                 .agg([
                     ('count', len),
