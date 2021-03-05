@@ -246,7 +246,7 @@ def compute_durations(args):
 
     durations = project.compute_recordings_duration(profile = args.profile).dropna()
 
-    recordings = project.recordings.merge(durations[durations['filename'] != 'NA'], how = 'left', left_on = 'filename', right_on = 'filename')
+    recordings = project.recordings.merge(durations[durations['recording_filename'] != 'NA'], how = 'left', left_on = 'recording_filename', right_on = 'recording_filename')
     recordings.to_csv(os.path.join(project.path, 'metadata/recordings.csv'), index = False)
 
 def main():
