@@ -745,8 +745,8 @@ class AnnotationManager:
             right_on = merge_columns
         )
 
-        output_segments['segment_onset'] = output_segments['segment_onset'] - output_segments['time_seek']
-        output_segments['segment_offset'] = output_segments['segment_offset'] - output_segments['time_seek']
+        output_segments['segment_onset'] = (output_segments['segment_onset'] - output_segments['time_seek']).fillna(0).astype(int)
+        output_segments['segment_offset'] = (output_segments['segment_offset'] - output_segments['time_seek']).fillna(0).astype(int)
 
         output_segments['raw_filename'] = output_segments['raw_filename_x'] + ',' + output_segments['raw_filename_y']
 
