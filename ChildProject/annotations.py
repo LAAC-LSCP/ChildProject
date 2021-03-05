@@ -221,8 +221,8 @@ class AnnotationManager:
                     continue
 
                 segment = {
-                    'segment_onset': int(1000*float(interval[0])),
-                    'segment_offset': int(1000*float(interval[1])),
+                    'segment_onset': int(round(1000*float(interval[0]))),
+                    'segment_offset': int(round(1000*float(interval[1]))),
                     'speaker_id': tier_name,
                     'ling_type': ling_type(interval[2]),
                     'speaker_type': self.SPEAKER_ID_TO_TYPE[tier_name] if tier_name in self.SPEAKER_ID_TO_TYPE else 'NA',
@@ -257,8 +257,8 @@ class AnnotationManager:
                 (start_t, end_t) = (eaf.timeslots[start_ts], eaf.timeslots[end_ts])
 
                 segment = {
-                    'segment_onset': int(start_t),
-                    'segment_offset': int(end_t),
+                    'segment_onset': int(round(start_t)),
+                    'segment_offset': int(round(end_t)),
                     'speaker_id': tier_name,
                     'ling_type': 'NA',
                     'speaker_type': self.SPEAKER_ID_TO_TYPE[tier_name] if tier_name in self.SPEAKER_ID_TO_TYPE else 'NA',
@@ -409,8 +409,8 @@ class AnnotationManager:
                     n = n + 1
 
                 segments.append({
-                    'segment_onset': int(onset*1000),
-                    'segment_offset': int(offset*1000),
+                    'segment_onset': int(round(onset*1000)),
+                    'segment_offset': int(round(offset*1000)),
                     'speaker_id': 'NA',
                     'ling_type': 'NA',
                     'speaker_type': self.LENA_SPEAKER_TYPE_TRANSLATION[seg.get('spkr')],
@@ -452,7 +452,7 @@ class AnnotationManager:
 
         df = rttm
         df['segment_onset'] = df['tbeg'].mul(1000).round().astype(int)
-        df['segment_offset'] = df['segment_onset'] + df['tdur'].mul(1000).round().astype(int)
+        df['segment_offset'] = (df['tbeg']+df['tdur']).mul(1000).round().astype(int)
         df['speaker_id'] = 'NA'
         df['ling_type'] = 'NA'
         df['speaker_type'] = df['name'].map(self.VTC_SPEAKER_TYPE_TRANSLATION)
