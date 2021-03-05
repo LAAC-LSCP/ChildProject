@@ -613,8 +613,13 @@ class AnnotationManager:
         candidates = list(set(os.listdir(path)) - {'raw', 'converted'})
         for candidate in candidates:
             subset = os.path.join(annotation_set, candidate)
+
+            if not os.path.isdir(os.path.join(self.project.path, 'annotations', subset)):
+                continue
+
             subsets.append(subset)
-            if recursive and os.path.isdir(os.path.join(path, subset)):
+
+            if recursive:
                 subsets.extend(self.get_subsets(subset))
 
         return subsets
