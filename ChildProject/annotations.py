@@ -579,6 +579,9 @@ class AnnotationManager:
         if len(missing_recordings) > 0:
             raise ValueError("cannot import annotations, because the following recordings are not referenced in the metadata:\n{}".format("\n".join(missing_recordings)))
 
+        input['range_onset'] = input['range_onset'].astype(int)
+        input['range_offset'] = input['range_offset'].astype(int)
+
         pool = mp.Pool(processes = threads if threads > 0 else mp.cpu_count())
         imported = pool.map(
             partial(self.import_annotation, import_function),
