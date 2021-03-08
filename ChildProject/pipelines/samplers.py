@@ -25,14 +25,26 @@ class Sampler(ABC):
     def add_parser(parsers):
         pass
 
-    def retrieve_segments(self):
+    def retrieve_segments(self, recording_filename = None):
         am = ChildProject.annotations.AnnotationManager(self.project)
         annotations = am.annotations
         annotations = annotations[annotations['set'] == self.annotation_set]
-        self.segments = am.get_segments(annotations)
+
+        if recording_filename:
+            annotations = annotations[annotations['recording_filename'] == recording_filename]
+
+        if annotations.shape[0] == 0:
+            return None
+        
+        try:
+            segments = am.get_segments(annotations)
+        except:
+            return None
 
         if len(self.target_speaker_type):
-            self.segments = self.segments[self.segments['speaker_type'].isin(self.target_speaker_type)]
+            segments = segments[segments['speaker_type'].isin(self.target_speaker_type)]
+
+        return segments
         
     def assert_valid(self):
         require_columns = ['recording_filename', 'segment_onset', 'segment_offset']
@@ -137,7 +149,7 @@ class RandomVocalizationSampler(Sampler):
         self.sample_size = sample_size
 
     def sample(self):
-        self.retrieve_segments()
+        self.segments = self.retrieve_segments()
         self.segments = self.segments.groupby('recording_filename').sample(self.sample_size)
         return self.segments
 
@@ -256,31 +268,31 @@ class HighVolubilitySampler(Sampler):
     def __init__(self,
         project: ChildProject.projects.ChildProject,
         annotation_set: str,
-        target_speaker_type: list,
-        windows_length: float,
+        windows_length: int,
         windows_count: int):
 
         super().__init__(project)
         self.annotation_set = annotation_set
-        self.target_speaker_type = target_speaker_type
         self.windows_length = windows_length
         self.windows_count = windows_count
 
     def _segment_scores(self, recording):
-        segments = self.segments.copy()
+        segments = self.retrieve_segments(recording['recording_filename'])
 
+        if segments is None:
+            return pd.DataFrame(columns = ['segment_onset', 'segment_offset', 'recording_filename'])
 
         # NOTE: The timestamps were simply rounded to 5 minutes in the original 
         # code via a complicated string replacement , which imo was incorrect, but 
         # there are edge cases that must be decided (even though they are quiet small)
-        segments['chunk'] = (segments['segment_offset']  // (self.windows_length * 60) + 1).astype('int')
+        segments['chunk'] = (segments['segment_offset']  // self.windows_length + 1).astype('int')
 
         segment_onsets = segments.groupby('chunk')['segment_onset'].min()
         segment_offsets = segments.groupby('chunk')['segment_offset'].max()
 
         # this dataframe contains the segment onset and offsets for the chunks we calculated.
         windows = pd.merge(segment_onsets, segment_offsets, left_index=True, right_index=True).reset_index()
-        windows['recording_filename'] = recording['filename']
+        windows['recording_filename'] = recording['recording_filename']
 
         # NOTE: The original code explicitly chooses for these conversational turn 
         # types, but we might wish to verify what they are. 
@@ -303,7 +315,6 @@ class HighVolubilitySampler(Sampler):
 
 
     def sample(self):
-        self.retrieve_segments()
         segments = []
         for recording in self.project.recordings.to_dict(orient = 'records'):
             df = self._segment_scores(recording)
@@ -315,8 +326,7 @@ class HighVolubilitySampler(Sampler):
     def add_parser(samplers):
         parser = samplers.add_parser('high-volubility', help = 'high-volubility targeted sampling')
         parser.add_argument('--annotation-set', help = 'annotation set', default = 'vtc')
-        parser.add_argument('--target-speaker-type', help = 'speaker type to get chunks from', choices=['CHI', 'OCH', 'FEM', 'MAL'], nargs = '+', default = ['CHI'])
-        parser.add_argument('--windows-length', help = 'window length (minutes)', required = True, type = float)
+        parser.add_argument('--windows-length', help = 'window length (milliseconds)', required = True, type = int)
         parser.add_argument('--windows-count', help = 'how many windows to be sampled', required = True, type = int)
 
 class SamplerPipeline(Pipeline):
