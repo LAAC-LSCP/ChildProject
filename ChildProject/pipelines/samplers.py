@@ -266,9 +266,47 @@ class HighVolubilitySampler(Sampler):
         self.windows_length = windows_length
         self.windows_count = windows_count
 
+    def _segment_scores(self, recording):
+        segments = self.segments.copy()
+
+
+        # NOTE: The timestamps were simply rounded to 5 minutes in the original 
+        # code via a complicated string replacement , which imo was incorrect, but 
+        # there are edge cases that must be decided (even though they are quiet small)
+        segments['chunk'] = (segments['segment_offset']  // (self.windows_length * 60) + 1).astype('int')
+
+        segment_onsets = segments.groupby('chunk')['segment_onset'].min()
+        segment_offsets = segments.groupby('chunk')['segment_offset'].max()
+
+        # this dataframe contains the segment onset and offsets for the chunks we calculated.
+        windows = pd.merge(segment_onsets, segment_offsets, left_index=True, right_index=True).reset_index()
+        windows['recording_filename'] = recording['filename']
+
+        # NOTE: The original code explicitly chooses for these conversational turn 
+        # types, but we might wish to verify what they are. 
+        segments['is_CT'] = segments['lena_conv_turn_type'].isin(['TIFR', 'TIMR'])
+
+        # NOTE: This is the equivalent of CTC (tab1) in rlena_extract.R
+        ctc = segments.groupby('chunk', as_index=False)[['is_CT']].sum().rename(columns={'is_CT': 'ctc'}).sort_values(by='ctc', ascending='False').merge(windows)
+
+        # NOTE: This is the equivalent of CVC (tab2) in rlena_extract.R
+        cvc = segments[segments.speaker_type.isin(['OCH', 'CHI'])].groupby('chunk', as_index=False)[['utterances_count']].sum().rename(columns={'utterances_count': 'cvc'}).merge(windows)
+
+        # NOTE: This is the equivalent of AWC (tab3) in rlena_extract.R
+        awc = segments[segments.speaker_type.isin(['FEM', 'MAL'])].groupby('chunk', as_index=False)[['words']].sum().rename(columns={'words': 'awc'}).merge(windows)
+        
+
+        # TODO: This is currently incorrect (we shouldn't just return awc), but I am not 
+        # sure: should we set the segments to one of the tables? Or should we combine 
+        # all 3 tables into one and that should become the 'self.segments'?
+        self.segments = awc
+
+
     def sample(self):
         self.retrieve_segments()
-        return self.segments
+        for recording in self.project.recordings.to_dict(orient = 'records'):
+            self._segment_scores(recording)
+        
 
     @staticmethod
     def add_parser(samplers):
