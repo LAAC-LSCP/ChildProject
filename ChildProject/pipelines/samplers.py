@@ -299,14 +299,17 @@ class HighVolubilitySampler(Sampler):
         # TODO: This is currently incorrect (we shouldn't just return awc), but I am not 
         # sure: should we set the segments to one of the tables? Or should we combine 
         # all 3 tables into one and that should become the 'self.segments'?
-        self.segments = awc
+        return awc
 
 
     def sample(self):
         self.retrieve_segments()
+        segments = []
         for recording in self.project.recordings.to_dict(orient = 'records'):
-            self._segment_scores(recording)
-        
+            df = self._segment_scores(recording)
+            segments.append(df)
+
+        self.segments = pd.concat(segments)
 
     @staticmethod
     def add_parser(samplers):
