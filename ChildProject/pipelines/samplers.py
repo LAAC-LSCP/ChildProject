@@ -326,6 +326,8 @@ class SamplerPipeline(Pipeline):
         }, open(parameters_path, 'w+'))
         print("exported sampler parameters to {}".format(parameters_path))
 
+        return segments_path
+
     @staticmethod
     def setup_parser(parser):
         parser.add_argument('path', help = 'path to the dataset')

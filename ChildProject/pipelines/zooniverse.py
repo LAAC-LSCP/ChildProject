@@ -195,20 +195,26 @@ class ZooniversePipeline(Pipeline):
             'keyword': keyword
         } for c in self.chunks])
 
-        date = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-
         # shuffle chunks so that they can't be joined back together
         # based on Zooniverse subject IDs
         self.chunks = self.chunks.sample(frac=1).reset_index(drop=True)
         self.chunks['batch'] = self.chunks.index.map(lambda x: int(x/batch_size))
         self.chunks.index.name = 'index'
-        self.chunks.to_csv(os.path.join(destination, 'chunks_{}.csv'.format(date)))
 
+        date = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+        chunks_path = os.path.join(destination, 'chunks_{}.csv'.format(date))
+        parameters_path = os.path.join(destination, 'parameters_{}.yml'.format(date))
+
+        self.chunks.to_csv(chunks_path)
+        print("exported chunks metadata to {}".format(chunks_path))
         dump({
             'parameters': parameters,
             'package_version': ChildProject.__version__,
             'date': date
-        }, open(os.path.join(destination, 'parameters_{}.yml'.format(date)), 'w+'))
+        }, open(parameters_path, 'w+'))
+        print("exported extract-chunks parameters to {}".format(parameters_path))
+
+        return chunks_path
 
     def upload_chunks(self, chunks: str, project_id: int, set_prefix: str,
         zooniverse_login = '', zooniverse_pwd = '',
@@ -346,11 +352,11 @@ class ZooniversePipeline(Pipeline):
 
     def run(self, action, **kwargs):
         if action == 'extract-chunks':
-            self.extract_chunks(**kwargs)
+            return self.extract_chunks(**kwargs)
         elif action == 'upload-chunks':
-            self.upload_chunks(**kwargs)
+            return self.upload_chunks(**kwargs)
         elif action == 'retrieve-classifications':
-            self.retrieve_classifications(**kwargs)
+            return self.retrieve_classifications(**kwargs)
 
     @staticmethod
     def setup_parser(parser):
