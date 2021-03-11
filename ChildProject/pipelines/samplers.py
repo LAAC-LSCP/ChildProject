@@ -268,11 +268,13 @@ class HighVolubilitySampler(Sampler):
     def __init__(self,
         project: ChildProject.projects.ChildProject,
         annotation_set: str,
+        metric: str,
         windows_length: int,
         windows_count: int):
 
         super().__init__(project)
         self.annotation_set = annotation_set
+        self.metric = metric
         self.windows_length = windows_length
         self.windows_count = windows_count
 
@@ -294,25 +296,23 @@ class HighVolubilitySampler(Sampler):
         windows = pd.merge(segment_onsets, segment_offsets, left_index=True, right_index=True).reset_index()
         windows['recording_filename'] = recording['recording_filename']
 
-        # NOTE: The original code explicitly chooses for these conversational turn 
-        # types, but we might wish to verify what they are. 
-        segments['is_CT'] = segments['lena_conv_turn_type'].isin(['TIFR', 'TIMR'])
+        if self.metric == 'ctc':
+            # NOTE: The original code explicitly chooses for these conversational turn 
+            # types, but we might wish to verify what they are. 
+            segments['is_CT'] = segments['lena_conv_turn_type'].isin(['TIFR', 'TIMR'])
 
-        # NOTE: This is the equivalent of CTC (tab1) in rlena_extract.R
-        ctc = segments.groupby('chunk', as_index=False)[['is_CT']].sum().rename(columns={'is_CT': 'ctc'}).sort_values(by='ctc', ascending='False').merge(windows)
-
-        # NOTE: This is the equivalent of CVC (tab2) in rlena_extract.R
-        cvc = segments[segments.speaker_type.isin(['OCH', 'CHI'])].groupby('chunk', as_index=False)[['utterances_count']].sum().rename(columns={'utterances_count': 'cvc'}).merge(windows)
-
-        # NOTE: This is the equivalent of AWC (tab3) in rlena_extract.R
-        awc = segments[segments.speaker_type.isin(['FEM', 'MAL'])].groupby('chunk', as_index=False)[['words']].sum().rename(columns={'words': 'awc'}).merge(windows)
+            # NOTE: This is the equivalent of CTC (tab1) in rlena_extract.R
+            return segments.groupby('chunk', as_index=False)[['is_CT']].sum().rename(columns={'is_CT': 'ctc'}).sort_values(by='ctc', ascending='False').merge(windows)
         
-
-        # TODO: This is currently incorrect (we shouldn't just return awc), but I am not 
-        # sure: should we set the segments to one of the tables? Or should we combine 
-        # all 3 tables into one and that should become the 'self.segments'?
-        return awc
-
+        elif self.metric == 'cvc':
+            # NOTE: This is the equivalent of CVC (tab2) in rlena_extract.R
+            return segments[segments.speaker_type.isin(['OCH', 'CHI'])].groupby('chunk', as_index=False)[['utterances_count']].sum().rename(columns={'utterances_count': 'cvc'}).merge(windows)
+        
+        elif self.metric == 'awc':
+            # NOTE: This is the equivalent of AWC (tab3) in rlena_extract.R
+            return segments[segments.speaker_type.isin(['FEM', 'MAL'])].groupby('chunk', as_index=False)[['words']].sum().rename(columns={'words': 'awc'}).merge(windows)
+        
+        raise ValueError("unknown metric '{}'".format(self.metric))
 
     def sample(self):
         segments = []
@@ -321,11 +321,14 @@ class HighVolubilitySampler(Sampler):
             segments.append(df)
 
         self.segments = pd.concat(segments)
+        self.segments = self.segments.sort_values(self.metric, ascending = False)
+        self.segments = self.segments.groupby('recording_filename').head(self.windows_count).reset_index(drop = True)
 
     @staticmethod
     def add_parser(samplers):
         parser = samplers.add_parser('high-volubility', help = 'high-volubility targeted sampling')
-        parser.add_argument('--annotation-set', help = 'annotation set', default = 'vtc')
+        parser.add_argument('--annotation-set', help = 'annotation set', required = True)
+        parser.add_argument('--metric', help = 'which metric should be used to evaluate volubility', required = True, choices = ['ctc', 'cvc', 'awc'])
         parser.add_argument('--windows-length', help = 'window length (milliseconds)', required = True, type = int)
         parser.add_argument('--windows-count', help = 'how many windows to be sampled', required = True, type = int)
 
