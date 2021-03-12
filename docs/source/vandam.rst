@@ -250,8 +250,8 @@ Now ``metadata/recordings.csv`` became:
 .. code:: bash
 
    $ cat metadata/recordings.csv 
-   experiment,child_id,date_iso,start_time,recording_device_type,filename,duration
-   vandam-daylong,1,2010-07-24,11:58,lena,BN32_010007.mp3,50464.512
+   experiment,child_id,date_iso,start_time,recording_device_type,recording_filename,duration
+   vandam-daylong,1,2010-07-24,11:58,lena,BN32_010007.mp3,50464512
 
 You can also convert and index the its annotation:
 
@@ -261,7 +261,7 @@ You can also convert and index the its annotation:
      --recording_filename BN32_010007.mp3 \
      --time_seek 0 \
      --range_onset 0 \
-     --range_offset 50464.512 \
+     --range_offset 50464512 \
      --raw_filename BN32_010007.its \
      --format its
 

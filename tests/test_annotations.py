@@ -100,8 +100,8 @@ def test_import(project):
     assert am.annotations.shape[0] == input_annotations.shape[0], "imported annotations length does not match input"
 
     assert all([
-        os.path.exists(os.path.join(project.path, 'annotations', f))
-        for f in am.annotations['annotation_filename'].tolist()
+        os.path.exists(os.path.join(project.path, 'annotations', a['set'], 'converted', a['annotation_filename']))
+        for a in am.annotations.to_dict(orient = 'records')
     ]), "some annotations are missing"
 
     errors, warnings = am.validate()
