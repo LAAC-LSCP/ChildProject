@@ -169,9 +169,9 @@ class EnergyDetectionSampler(Sampler):
     :param project: ChildProject instance of the target dataset.
     :type project: ChildProject.projects.ChildProject
     :param windows_length: Length of each window, in milliseconds.
-    :type windows_length: float
+    :type windows_length: int
     :param windows_spacing: Spacing between the start of each window, in milliseconds.
-    :type windows_spacing: float
+    :type windows_spacing: int
     :param windows_count: How many windows to retain per recording.
     :type windows_count: int
     :param windows_offset: start of the first window, in milliseconds, defaults to 0
@@ -265,6 +265,24 @@ class EnergyDetectionSampler(Sampler):
         parser.add_argument('--high-freq', help = 'remove all frequencies above high-freq before calculating each window\'s energy. (in Hz)', default = 100000, type = int)
 
 class HighVolubilitySampler(Sampler):
+    """Return the top ``windows_count`` windows (of length ``windows_length``)
+    with the highest volubility from each recording,
+    as calculated from the metric ``metric``.
+
+    :param project: ChildProject instance of the target dataset.
+    :type project: ChildProject.projects.ChildProject
+    :param annotation_set: set of annotations to calculate volubility from.
+    :type annotation_set: str
+    :param metric: the metric to evaluate high-volubility. should be any of 'awc', 'ctc', 'cvc'.
+    :type metric: str
+    :param windows_length: length of the windows, in milliseconds
+    :type windows_length: int
+    :param windows_count: amount of top regions to extract per recording
+    :type windows_count: int
+    :param threads: amount of threads to run the sampler on
+    :type threads: int
+    """
+
     def __init__(self,
         project: ChildProject.projects.ChildProject,
         annotation_set: str,
