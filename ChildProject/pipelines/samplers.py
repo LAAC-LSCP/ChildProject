@@ -289,7 +289,7 @@ class HighVolubilitySampler(Sampler):
         metric: str,
         windows_length: int,
         windows_count: int,
-        threads: int):
+        threads: int = 1):
 
         super().__init__(project)
         self.annotation_set = annotation_set
