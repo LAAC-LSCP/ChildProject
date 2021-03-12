@@ -270,13 +270,15 @@ class HighVolubilitySampler(Sampler):
         annotation_set: str,
         metric: str,
         windows_length: int,
-        windows_count: int):
+        windows_count: int,
+        threads: int):
 
         super().__init__(project)
         self.annotation_set = annotation_set
         self.metric = metric
         self.windows_length = windows_length
         self.windows_count = windows_count
+        self.threads = threads
 
     def _segment_scores(self, recording):
         segments = self.retrieve_segments(recording['recording_filename'])
@@ -302,27 +304,25 @@ class HighVolubilitySampler(Sampler):
             segments['is_CT'] = segments['lena_conv_turn_type'].isin(['TIFR', 'TIMR'])
 
             # NOTE: This is the equivalent of CTC (tab1) in rlena_extract.R
-            return segments.groupby('chunk', as_index=False)[['is_CT']].sum().rename(columns={'is_CT': 'ctc'}).sort_values(by='ctc', ascending='False').merge(windows)
+            segments = segments.groupby('chunk', as_index=False)[['is_CT']].sum().rename(columns={'is_CT': 'ctc'}).merge(windows)
         
         elif self.metric == 'cvc':
             # NOTE: This is the equivalent of CVC (tab2) in rlena_extract.R
-            return segments[segments.speaker_type.isin(['OCH', 'CHI'])].groupby('chunk', as_index=False)[['utterances_count']].sum().rename(columns={'utterances_count': 'cvc'}).merge(windows)
+            segments = segments[segments.speaker_type.isin(['OCH', 'CHI'])].groupby('chunk', as_index=False)[['utterances_count']].sum().rename(columns={'utterances_count': 'cvc'}).merge(windows)
         
         elif self.metric == 'awc':
             # NOTE: This is the equivalent of AWC (tab3) in rlena_extract.R
-            return segments[segments.speaker_type.isin(['FEM', 'MAL'])].groupby('chunk', as_index=False)[['words']].sum().rename(columns={'words': 'awc'}).merge(windows)
+            segments = segments[segments.speaker_type.isin(['FEM', 'MAL'])].groupby('chunk', as_index=False)[['words']].sum().rename(columns={'words': 'awc'}).merge(windows)
         
-        raise ValueError("unknown metric '{}'".format(self.metric))
+        else:
+            raise ValueError("unknown metric '{}'".format(self.metric))
+
+        return segments.sort_values(self.metric, ascending = False).head(self.windows_count).reset_index(drop = True)
 
     def sample(self):
-        segments = []
-        for recording in self.project.recordings.to_dict(orient = 'records'):
-            df = self._segment_scores(recording)
-            segments.append(df)
-
-        self.segments = pd.concat(segments)
-        self.segments = self.segments.sort_values(self.metric, ascending = False)
-        self.segments = self.segments.groupby('recording_filename').head(self.windows_count).reset_index(drop = True)
+        pool = mp.Pool(processes = self.threads if self.threads >= 1 else mp.cpu_count())
+        self.segments = pool.map(self._segment_scores, self.project.recordings.to_dict(orient = 'records'))
+        self.segments = pd.concat(self.segments)
 
     @staticmethod
     def add_parser(samplers):
@@ -331,6 +331,8 @@ class HighVolubilitySampler(Sampler):
         parser.add_argument('--metric', help = 'which metric should be used to evaluate volubility', required = True, choices = ['ctc', 'cvc', 'awc'])
         parser.add_argument('--windows-length', help = 'window length (milliseconds)', required = True, type = int)
         parser.add_argument('--windows-count', help = 'how many windows to be sampled', required = True, type = int)
+        parser.add_argument('--threads', help = 'amount of threads to run on', default = 1, type = int)
+
 
 class SamplerPipeline(Pipeline):
     def __init__(self):
