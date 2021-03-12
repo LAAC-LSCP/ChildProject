@@ -25,14 +25,26 @@ class Sampler(ABC):
     def add_parser(parsers):
         pass
 
-    def retrieve_segments(self):
+    def retrieve_segments(self, recording_filename = None):
         am = ChildProject.annotations.AnnotationManager(self.project)
         annotations = am.annotations
         annotations = annotations[annotations['set'] == self.annotation_set]
-        self.segments = am.get_segments(annotations)
+
+        if recording_filename:
+            annotations = annotations[annotations['recording_filename'] == recording_filename]
+
+        if annotations.shape[0] == 0:
+            return None
+        
+        try:
+            segments = am.get_segments(annotations)
+        except:
+            return None
 
         if len(self.target_speaker_type):
-            self.segments = self.segments[self.segments['speaker_type'].isin(self.target_speaker_type)]
+            segments = segments[segments['speaker_type'].isin(self.target_speaker_type)]
+
+        return segments
         
     def assert_valid(self):
         require_columns = ['recording_filename', 'segment_onset', 'segment_offset']
@@ -137,7 +149,7 @@ class RandomVocalizationSampler(Sampler):
         self.sample_size = sample_size
 
     def sample(self):
-        self.retrieve_segments()
+        self.segments = self.retrieve_segments()
         self.segments = self.segments.groupby('recording_filename').sample(self.sample_size)
         return self.segments
 
@@ -157,9 +169,9 @@ class EnergyDetectionSampler(Sampler):
     :param project: ChildProject instance of the target dataset.
     :type project: ChildProject.projects.ChildProject
     :param windows_length: Length of each window, in milliseconds.
-    :type windows_length: float
+    :type windows_length: int
     :param windows_spacing: Spacing between the start of each window, in milliseconds.
-    :type windows_spacing: float
+    :type windows_spacing: int
     :param windows_count: How many windows to retain per recording.
     :type windows_count: int
     :param windows_offset: start of the first window, in milliseconds, defaults to 0
@@ -253,30 +265,92 @@ class EnergyDetectionSampler(Sampler):
         parser.add_argument('--high-freq', help = 'remove all frequencies above high-freq before calculating each window\'s energy. (in Hz)', default = 100000, type = int)
 
 class HighVolubilitySampler(Sampler):
+    """Return the top ``windows_count`` windows (of length ``windows_length``)
+    with the highest volubility from each recording,
+    as calculated from the metric ``metric``.
+
+    :param project: ChildProject instance of the target dataset.
+    :type project: ChildProject.projects.ChildProject
+    :param annotation_set: set of annotations to calculate volubility from.
+    :type annotation_set: str
+    :param metric: the metric to evaluate high-volubility. should be any of 'awc', 'ctc', 'cvc'.
+    :type metric: str
+    :param windows_length: length of the windows, in milliseconds
+    :type windows_length: int
+    :param windows_count: amount of top regions to extract per recording
+    :type windows_count: int
+    :param threads: amount of threads to run the sampler on
+    :type threads: int
+    """
+
     def __init__(self,
         project: ChildProject.projects.ChildProject,
         annotation_set: str,
-        target_speaker_type: list,
-        windows_length: float,
-        windows_count: int):
+        metric: str,
+        windows_length: int,
+        windows_count: int,
+        threads: int = 1):
 
         super().__init__(project)
         self.annotation_set = annotation_set
-        self.target_speaker_type = target_speaker_type
+        self.metric = metric
         self.windows_length = windows_length
         self.windows_count = windows_count
+        self.threads = threads
+
+    def _segment_scores(self, recording):
+        segments = self.retrieve_segments(recording['recording_filename'])
+
+        if segments is None:
+            return pd.DataFrame(columns = ['segment_onset', 'segment_offset', 'recording_filename'])
+
+        # NOTE: The timestamps were simply rounded to 5 minutes in the original 
+        # code via a complicated string replacement , which imo was incorrect, but 
+        # there are edge cases that must be decided (even though they are quiet small)
+        segments['chunk'] = (segments['segment_offset']  // self.windows_length + 1).astype('int')
+
+        segment_onsets = segments.groupby('chunk')['segment_onset'].min()
+        segment_offsets = segments.groupby('chunk')['segment_offset'].max()
+
+        # this dataframe contains the segment onset and offsets for the chunks we calculated.
+        windows = pd.merge(segment_onsets, segment_offsets, left_index=True, right_index=True).reset_index()
+        windows['recording_filename'] = recording['recording_filename']
+
+        if self.metric == 'ctc':
+            # NOTE: The original code explicitly chooses for these conversational turn 
+            # types, but we might wish to verify what they are. 
+            segments['is_CT'] = segments['lena_conv_turn_type'].isin(['TIFR', 'TIMR'])
+
+            # NOTE: This is the equivalent of CTC (tab1) in rlena_extract.R
+            segments = segments.groupby('chunk', as_index=False)[['is_CT']].sum().rename(columns={'is_CT': 'ctc'}).merge(windows)
+        
+        elif self.metric == 'cvc':
+            # NOTE: This is the equivalent of CVC (tab2) in rlena_extract.R
+            segments = segments[segments.speaker_type.isin(['OCH', 'CHI'])].groupby('chunk', as_index=False)[['utterances_count']].sum().rename(columns={'utterances_count': 'cvc'}).merge(windows)
+        
+        elif self.metric == 'awc':
+            # NOTE: This is the equivalent of AWC (tab3) in rlena_extract.R
+            segments = segments[segments.speaker_type.isin(['FEM', 'MAL'])].groupby('chunk', as_index=False)[['words']].sum().rename(columns={'words': 'awc'}).merge(windows)
+        
+        else:
+            raise ValueError("unknown metric '{}'".format(self.metric))
+
+        return segments.sort_values(self.metric, ascending = False).head(self.windows_count).reset_index(drop = True)
 
     def sample(self):
-        self.retrieve_segments()
-        return self.segments
+        pool = mp.Pool(processes = self.threads if self.threads >= 1 else mp.cpu_count())
+        self.segments = pool.map(self._segment_scores, self.project.recordings.to_dict(orient = 'records'))
+        self.segments = pd.concat(self.segments)
 
     @staticmethod
     def add_parser(samplers):
         parser = samplers.add_parser('high-volubility', help = 'high-volubility targeted sampling')
-        parser.add_argument('--annotation-set', help = 'annotation set', default = 'vtc')
-        parser.add_argument('--target-speaker-type', help = 'speaker type to get chunks from', choices=['CHI', 'OCH', 'FEM', 'MAL'], nargs = '+', default = ['CHI'])
-        parser.add_argument('--windows-length', help = 'window length (minutes)', required = True, type = float)
+        parser.add_argument('--annotation-set', help = 'annotation set', required = True)
+        parser.add_argument('--metric', help = 'which metric should be used to evaluate volubility', required = True, choices = ['ctc', 'cvc', 'awc'])
+        parser.add_argument('--windows-length', help = 'window length (milliseconds)', required = True, type = int)
         parser.add_argument('--windows-count', help = 'how many windows to be sampled', required = True, type = int)
+        parser.add_argument('--threads', help = 'amount of threads to run on', default = 1, type = int)
+
 
 class SamplerPipeline(Pipeline):
     def __init__(self):
