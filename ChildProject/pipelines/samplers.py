@@ -219,7 +219,7 @@ class EnergyDetectionSampler(Sampler):
             print("failed to read '{}', is it a valid .wav file ?".format(recording_path), file = sys.stderr)
             return pd.DataFrame()
 
-        duration = audio.duration_seconds
+        duration = int(audio.duration_seconds*1000)
         channels = audio.channels
         frequency = int(audio.frame_rate)
         max_value = 256**(int(audio.sample_width))/2-1
@@ -227,28 +227,35 @@ class EnergyDetectionSampler(Sampler):
         windows_starts = np.arange(self.windows_offset, duration - self.windows_length, self.windows_spacing).astype(int)
         windows = []
 
-        print("computing the energy of {} windows for recording {}...".format(len(windows_starts), recording['filename']))
+        print("computing the energy of {} windows for recording {}...".format(len(windows_starts), recording['recording_filename']))
         for start in windows_starts:
             energy = 0
             chunk = audio[start:start+self.windows_length].get_array_of_samples()
-            
+            channel_energies = np.zeros(channels)
+
             for channel in range(channels):
                 data = chunk[channel::channels]
                 data = np.array([x/max_value for x in data])
-                energy += self.compute_energy_loudness(data, frequency)
+                channel_energies[channel] = self.compute_energy_loudness(data, frequency)
 
-            windows.append({
+            window = {
                 'segment_onset': start,
                 'segment_offset': start+self.windows_length,
                 'recording_filename': recording['recording_filename'],
-                'energy': energy
+                'energy': np.sum(channel_energies)
+            }
+            window.update({
+                'channel_{}'.format(channel): channel_energies[channel]
+                for channel in range(channels)
             })
+            print(window)
+            windows.append(window)
 
         return pd.DataFrame(windows)
         
 
     def sample(self):
-        recordings = self.project.recordings[self.project.recordings['filename'] != 'NA']
+        recordings = self.project.recordings[self.project.recordings['recording_filename'] != 'NA']
         pool = mp.Pool(processes = self.threads if self.threads >= 1 else mp.cpu_count())
         windows = pd.concat(pool.map(self.get_recording_windows, recordings.to_dict(orient = 'records'))).set_index('recording_filename')
         windows = windows.merge(
