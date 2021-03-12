@@ -5,10 +5,12 @@ import multiprocessing as mp
 import numpy as np
 import os
 import pandas as pd
+from pydub import AudioSegment
 from yaml import dump
 
 import ChildProject
 from ChildProject.pipelines.pipeline import Pipeline
+
 
 class Sampler(ABC):
     def __init__(self, project: ChildProject.projects.ChildProject):
@@ -51,7 +53,31 @@ class Sampler(ABC):
         missing_columns = list(set(require_columns) - set(self.segments.columns))
 
         if missing_columns:
-            raise Exception("custom segments are missing the following columns: {}".format(','.join(missing_columns)))        
+            raise Exception("custom segments are missing the following columns: {}".format(','.join(missing_columns)))
+
+    def export_audio(self, destination, profile = None):
+        self.assert_valid()
+
+        for recording, segments in self.segments.groupby('recording_filename'):
+            if profile:
+                path = os.path.join(self.project.path, 'recordings/converted', profile, recording)
+            else:
+                path = os.path.join(self.project.path, 'recordings/raw', recording)
+            
+            audio = AudioSegment.from_file(path, os.path.splitext(path)[1].lower())
+
+            for segment in segments.to_dict(orient = 'records'):
+                output_name = "{}_{}_{}.{}".format(
+                    os.path.splitext(recording)[0],
+                    segment['segment_onset'],
+                    segment['segment_offset'],
+                    'wav'
+                )
+                output_path = os.path.join(destination, output_name)
+                seg = audio[segment['segment_onset']:segment['segment_offset']]
+
+                os.makedirs(os.path.dirname(output_path), exist_ok = True)
+                seg.export(output_path, 'wav')
 
 class CustomSampler(Sampler):
     def __init__(self, project: ChildProject.projects.ChildProject, segments_path: str):
@@ -160,7 +186,6 @@ class RandomVocalizationSampler(Sampler):
         parser.add_argument('--target-speaker-type', help = 'speaker type to get chunks from', choices=['CHI', 'OCH', 'FEM', 'MAL'], nargs = '+', default = ['CHI'])
         parser.add_argument('--sample-size', help = 'how many samples per recording', required = True, type = int)
 
-from pydub import AudioSegment
 
 class EnergyDetectionSampler(Sampler):
     """Sample windows within each recording, targetting those
