@@ -251,9 +251,9 @@ class EnergyDetectionSampler(Sampler):
             recording_path = os.path.join(self.project.path, ChildProject.projects.ChildProject.RAW_RECORDINGS, recording['recording_filename'])
 
         try:
-            audio = AudioSegment.from_wav(recording_path)
+            audio = AudioSegment.from_file(recording_path)
         except:
-            print("failed to read '{}', is it a valid .wav file ?".format(recording_path), file = sys.stderr)
+            print("failed to read '{}', is it a valid audio file ?".format(recording_path), file = sys.stderr)
             return pd.DataFrame()
 
         duration = int(audio.duration_seconds*1000)
@@ -285,7 +285,6 @@ class EnergyDetectionSampler(Sampler):
                 'channel_{}'.format(channel): channel_energies[channel]
                 for channel in range(channels)
             })
-            print(window)
             windows.append(window)
 
         return pd.DataFrame(windows)
