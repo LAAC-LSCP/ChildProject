@@ -27,8 +27,8 @@ def pad_interval(onset: int, offset: int, chunks_length: int, chunks_min_amount:
     return int(onset), int(offset)
 
 class Chunk():
-    def __init__(self, recording, onset, offset, segment_onset, segment_offset):
-        self.recording = recording
+    def __init__(self, recording_filename, onset, offset, segment_onset, segment_offset):
+        self.recording_filename = recording_filename
         self.onset = onset
         self.offset = offset
 
@@ -38,7 +38,7 @@ class Chunk():
 
     def getbasename(self, extension):
         return "{}_{}_{}.{}".format(
-            os.path.splitext(self.recording.replace('/', '_'))[0],
+            os.path.splitext(self.recording_filename.replace('/', '_'))[0],
             self.onset,
             self.offset,
             extension
@@ -47,13 +47,42 @@ class Chunk():
 class ZooniversePipeline(Pipeline):
     def __init__(self):
         self.chunks = []
+
+    def get_credentials(self, login: str = '', pwd: str = ''):
+        """returns input credentials if provided or attempts to read them
+        from the environmental variables.
+
+        :param login: input login, defaults to ''
+        :type login: str, optional
+        :param pwd: input password, defaults to ''
+        :type pwd: str, optional
+        :return: (login, pwd)
+        :rtype: (str, str)
+        """
+        if login and pwd:
+            self.zooniverse_login = login
+            self.zooniverse_pwd = pwd
+            return (self.zooniverse_login, self.zooniverse_pwd)
+
+        if os.getenv('ZOONIVERSE_LOGIN'):
+            self.zooniverse_login = os.getenv('ZOONIVERSE_LOGIN')
+        else:
+            raise Exception("no login specified, and no 'ZOONIVERSE_LOGIN' environment variable found")
+
+        if os.getenv('ZOONIVERSE_PWD'):
+            self.zooniverse_pwd = os.getenv('ZOONIVERSE_PWD')
+        else:
+            raise Exception("no password specified, and no 'ZOONIVERSE_PWD' environment variable found")
+
+        return (self.zooniverse_login, self.zooniverse_pwd)
+
                 
     def split_recording(self, segments: pd.DataFrame) -> list:
         segments = segments.to_dict(orient = 'records')
         chunks = []
 
         source = os.path.join(self.project.path, ChildProject.projects.ChildProject.RAW_RECORDINGS, segments[0]['recording_filename'])
-        audio = AudioSegment.from_wav(source)
+        audio = AudioSegment.from_file(source)
 
         print("extracting chunks from {}...".format(source))
 
@@ -95,8 +124,7 @@ class ZooniversePipeline(Pipeline):
 
         return chunks
 
-    def extract_chunks(self, path: str, destination: str, keyword: str, 
-        segments: str,
+    def extract_chunks(self, path: str, destination: str, keyword: str, segments: str,
         batch_size: int = 1000,
         chunks_length: int = -1, chunks_min_amount: int = 1,
         exclude_segments: list = [],
@@ -152,7 +180,7 @@ class ZooniversePipeline(Pipeline):
         self.chunks = pool.map(self.split_recording, segments)
         self.chunks = itertools.chain.from_iterable(self.chunks)
         self.chunks = pd.DataFrame([{
-            'recording': c.recording,
+            'recording_filename': c.recording_filename,
             'onset': c.onset,
             'offset': c.offset,
             'segment_onset': c.segment_onset,
@@ -167,31 +195,57 @@ class ZooniversePipeline(Pipeline):
             'keyword': keyword
         } for c in self.chunks])
 
-        date = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-
         # shuffle chunks so that they can't be joined back together
         # based on Zooniverse subject IDs
         self.chunks = self.chunks.sample(frac=1).reset_index(drop=True)
         self.chunks['batch'] = self.chunks.index.map(lambda x: int(x/batch_size))
         self.chunks.index.name = 'index'
-        self.chunks.to_csv(os.path.join(destination, 'chunks_{}.csv'.format(date)))
 
+        date = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+        chunks_path = os.path.join(destination, 'chunks_{}.csv'.format(date))
+        parameters_path = os.path.join(destination, 'parameters_{}.yml'.format(date))
+
+        self.chunks.to_csv(chunks_path)
+        print("exported chunks metadata to {}".format(chunks_path))
         dump({
-            'paramters': parameters,
+            'parameters': parameters,
             'package_version': ChildProject.__version__,
             'date': date
-        }, open(os.path.join(destination, 'parameters_{}.yml'.format(date)), 'w+'))
+        }, open(parameters_path, 'w+'))
+        print("exported extract-chunks parameters to {}".format(parameters_path))
 
-    def upload_chunks(self, chunks, project_id, set_prefix, zooniverse_login, zooniverse_pwd, batches = 0, **kwargs):
+        return chunks_path
+
+    def upload_chunks(self, chunks: str, project_id: int, set_prefix: str,
+        zooniverse_login = '', zooniverse_pwd = '',
+        batches = 0,
+        **kwargs):
+        """Uploads ``batches`` batches of audio chunks from the CSV dataframe `chunks` to a zooniverse project.
+
+        :param chunks: path to the chunk CSV dataframe
+        :type chunks: [type]
+        :param project_id: zooniverse project id
+        :type project_id: int
+        :param set_prefix: prefix to each subject set display name
+        :type set_prefix: str
+        :param zooniverse_login: zooniverse login. If not specified, the program attempts to get it from the environmental variable ``ZOONIVERSE_LOGIN`` instead, defaults to ''
+        :type zooniverse_login: str, optional
+        :param zooniverse_pwd: zooniverse password. If not specified, the program attempts to get it from the environmental variable ``ZOONIVERSE_PWD`` instead, defaults to ''
+        :type zooniverse_pwd: str, optional
+        :param batches: amount of batches to upload, defaults to 0
+        :type batches: int, optional
+        """
+
         self.chunks_file = chunks
+        self.get_credentials(zooniverse_login, zooniverse_pwd)
 
         metadata_location = os.path.join(self.chunks_file)
         try:
             self.chunks = pd.read_csv(metadata_location, index_col = 'index')
         except:
-            raise Exception("cannot read chunk metadata in {}. Check the --destination parameter, and make sure you have extracted chunks before.".format(metadata_location))
+            raise Exception("cannot read chunk metadata from {}.".format(metadata_location))
 
-        Panoptes.connect(username = zooniverse_login, password = zooniverse_pwd)
+        Panoptes.connect(username = self.zooniverse_login, password = self.zooniverse_pwd)
         zooniverse_project = Project(project_id)
 
         subjects_metadata = []
@@ -210,7 +264,7 @@ class ZooniversePipeline(Pipeline):
             for chunk_index in _chunks:
                 chunk = _chunks[chunk_index]
 
-                print("uploading chunk {} ({},{}) in batch {}".format(chunk['recording'], chunk['onset'], chunk['offset'], batch))
+                print("uploading chunk {} ({},{}) in batch {}".format(chunk['recording_filename'], chunk['onset'], chunk['offset'], batch))
 
                 subject = Subject()
                 subject.links.project = zooniverse_project
@@ -220,8 +274,8 @@ class ZooniversePipeline(Pipeline):
                 subjects.append(subject)
 
                 chunk['index'] = chunk_index
-                chunk['zooniverse_id'] = subject.id
-                chunk['project_id'] = project_id
+                chunk['zooniverse_id'] = str(subject.id)
+                chunk['project_id'] = str(project_id)
                 chunk['subject_set'] = str(subject_set.display_name)
                 chunk['uploaded'] = True
                 subjects_metadata.append(chunk)
@@ -232,14 +286,29 @@ class ZooniversePipeline(Pipeline):
                 pd.DataFrame(subjects_metadata).set_index('index')
             )
 
-            self.chunks.to_csv(os.path.join(self.chunks_file))
+            self.chunks.to_csv(self.chunks_file)
             uploaded += 1
 
             if batches > 0 and uploaded >= batches:
                 return
 
-    def retrieve_classifications(self, destination, project_id, zooniverse_login, zooniverse_pwd, **kwargs):
-        Panoptes.connect(username = zooniverse_login, password = zooniverse_pwd)
+    def retrieve_classifications(self, destination: str, project_id: int,
+        zooniverse_login: str = '', zooniverse_pwd: str = '',
+        **kwargs):
+        """[summary]
+
+        :param destination: output CSV dataframe destination
+        :type destination: str
+        :param project_id: zooniverse project id
+        :type project_id: int
+        :param zooniverse_login: zooniverse login. If not specified, the program attempts to get it from the environmental variable ``ZOONIVERSE_LOGIN`` instead, defaults to ''
+        :type zooniverse_login: str, optional
+        :param zooniverse_pwd: zooniverse password. If not specified, the program attempts to get it from the environmental variable ``ZOONIVERSE_PWD`` instead, defaults to ''
+        :type zooniverse_pwd: str, optional
+        """
+        self.get_credentials(zooniverse_login, zooniverse_pwd)
+
+        Panoptes.connect(username = self.zooniverse_login, password = self.zooniverse_pwd)
         project = Project(project_id)
 
         answers_translation_table = []
@@ -279,15 +348,15 @@ class ZooniversePipeline(Pipeline):
             left_on = ['workflow_id', 'task_id', 'answer_id'],
             right_on = ['workflow_id', 'task_id', 'answer_id']
         )
-        classifications.set_index('id').to_csv(os.path.join(destination, 'classifications.csv'))
+        classifications.set_index('id').to_csv(destination)
 
     def run(self, action, **kwargs):
         if action == 'extract-chunks':
-            self.extract_chunks(**kwargs)
+            return self.extract_chunks(**kwargs)
         elif action == 'upload-chunks':
-            self.upload_chunks(**kwargs)
+            return self.upload_chunks(**kwargs)
         elif action == 'retrieve-classifications':
-            self.retrieve_classifications(**kwargs)
+            return self.retrieve_classifications(**kwargs)
 
     @staticmethod
     def setup_parser(parser):
@@ -306,16 +375,16 @@ class ZooniversePipeline(Pipeline):
         parser_extraction.add_argument('--batch-size', help = 'batch size', default = 1000, type = int)
         parser_extraction.add_argument('--threads', help = 'how many threads to run on', default = 0, type = int)
 
-        parser_upload = subparsers.add_parser('upload-chunks', help = 'upload chunks and updates <destination>/chunks.csv')
-        parser_upload.add_argument('--destination', help = 'destination', required = True)
-        parser_upload.add_argument('--zooniverse-login', help = 'zooniverse login', required = True)
-        parser_upload.add_argument('--zooniverse-pwd', help = 'zooniverse password', required = True)
-        parser_upload.add_argument('--project-id', help = 'zooniverse project id', required = True)
+        parser_upload = subparsers.add_parser('upload-chunks', help = 'upload chunks and updates chunk state')
+        parser_upload.add_argument('--chunks', help = 'path to the chunk CSV dataframe', required = True)
+        parser_upload.add_argument('--project-id', help = 'zooniverse project id', required = True, type = int)
         parser_upload.add_argument('--set-prefix', help = 'subject prefix', required = True)
         parser_upload.add_argument('--batches', help = 'amount of batches to upload', required = False, type = int, default = 0)
+        parser_upload.add_argument('--zooniverse-login', help = 'zooniverse login. If not specified, the program attempts to get it from the environmental variable ZOONIVERSE_LOGIN instead', default = '')
+        parser_upload.add_argument('--zooniverse-pwd', help = 'zooniverse password. If not specified, the program attempts to get it from the environmental variable ZOONIVERSE_PWD instead', default = '')
 
-        parser_retrieve = subparsers.add_parser('retrieve-classifications', help = 'retrieve classifications and save them into DESTINATION/classifications.csv')
-        parser_retrieve.add_argument('--chunks', help = 'path to the chunk dataframe', required = True)
-        parser_retrieve.add_argument('--zooniverse-login', help = 'zooniverse login', required = True)
-        parser_retrieve.add_argument('--zooniverse-pwd', help = 'zooniverse password', required = True)
-        parser_retrieve.add_argument('--project-id', help = 'zooniverse project id', required = True)
+        parser_retrieve = subparsers.add_parser('retrieve-classifications', help = 'retrieve classifications and save them as <destination>')
+        parser_retrieve.add_argument('--destination', help = 'output CSV dataframe destination', required = True)
+        parser_retrieve.add_argument('--project-id', help = 'zooniverse project id', required = True, type = int)
+        parser_retrieve.add_argument('--zooniverse-login', help = 'zooniverse login. If not specified, the program attempts to get it from the environmental variable ZOONIVERSE_LOGIN instead', default = '')
+        parser_retrieve.add_argument('--zooniverse-pwd', help = 'zooniverse password. If not specified, the program attempts to get it from the environmental variable ZOONIVERSE_PWD instead', default = '')
