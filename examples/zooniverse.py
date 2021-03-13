@@ -6,7 +6,7 @@ from ChildProject.pipelines.samplers import HighVolubilitySampler
 import argparse
 import os
 
-parser = argparse.ArgumentParser(description='import and convert VTC annotations into the project')
+parser = argparse.ArgumentParser(description='split the top 10 minutes of each recording with the highest volubility into 500 ms chunks and upload them to zooniverse')
 parser.add_argument("--source", help = "project path", required = True)
 parser.add_argument("--chunks-destination", help = "chunks destination", required = True)
 parser.add_argument("--set", help = "annotation set", default = 'its')
@@ -27,6 +27,7 @@ sampler.sample()
 sampler.segments.to_csv('segments.csv')
 
 zooniverse = ZooniversePipeline()
+
 chunks_path = zooniverse.extract_chunks(
     path = project.path,
     destination = args.chunks_destination,
