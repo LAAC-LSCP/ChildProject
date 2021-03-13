@@ -64,7 +64,7 @@ class Sampler(ABC):
             else:
                 path = os.path.join(self.project.path, 'recordings/raw', recording)
             
-            audio = AudioSegment.from_file(path, os.path.splitext(path)[1].lower())
+            audio = AudioSegment.from_file(path)
 
             for segment in segments.to_dict(orient = 'records'):
                 output_name = "{}_{}_{}.{}".format(
@@ -424,6 +424,8 @@ class SamplerPipeline(Pipeline):
             'date': date
         }, open(parameters_path, 'w+'))
         print("exported sampler parameters to {}".format(parameters_path))
+
+        return segments_path
 
     @staticmethod
     def setup_parser(parser):
