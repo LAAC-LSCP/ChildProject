@@ -64,7 +64,7 @@ class Sampler(ABC):
             else:
                 path = os.path.join(self.project.path, 'recordings/raw', recording)
             
-            audio = AudioSegment.from_file(path, os.path.splitext(path)[1].lower())
+            audio = AudioSegment.from_file(path)
 
             for segment in segments.to_dict(orient = 'records'):
                 output_name = "{}_{}_{}.{}".format(
