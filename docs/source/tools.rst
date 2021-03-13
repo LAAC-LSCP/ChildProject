@@ -74,6 +74,17 @@ in the metadata.
 Managing annotations
 --------------------
 
+.. warning::
+
+   You should never run two of the following commands in parallel.
+   All of them need to be run sequentially, otherwise the index
+   may get corrupted.
+
+   If you need to parallelize the processing to speed it up,
+   you can use the ``--threads`` option, which is built-in
+   in all of our tools that might require it.
+
+
 Importation
 ~~~~~~~~~~~
 

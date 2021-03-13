@@ -36,6 +36,7 @@ Welcome to ChildRecordsData's documentation!
    :caption: Package reference
 
    modules
+   examples
 
 * :ref:`genindex`
 * :ref:`modindex`
