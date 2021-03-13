@@ -17,7 +17,7 @@ am = AnnotationManager(project)
 if args.overwrite:
     am.remove_set(args.set)
 
-input = project.recordings[['recording_filename']]
+input = project.recordings[['recording_filename', 'duration']]
 input = input[input['recording_filename'] != 'NA']
 input['set'] = args.set
 input['time_seek'] = 0
@@ -26,4 +26,4 @@ input['range_offset'] = input['duration']
 input['raw_filename'] = input['recording_filename'].apply(lambda s: os.path.splitext(s)[0] + '.rttm')
 input['format'] = 'vtc_rttm'
 
-am.import_annotations(input)
+am.import_annotations(input, threads = 4)
