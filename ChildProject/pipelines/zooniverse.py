@@ -82,7 +82,7 @@ class ZooniversePipeline(Pipeline):
         chunks = []
 
         source = os.path.join(self.project.path, ChildProject.projects.ChildProject.RAW_RECORDINGS, segments[0]['recording_filename'])
-        audio = AudioSegment.from_wav(source)
+        audio = AudioSegment.from_file(source, os.path.splitext(segments[0]['recording_filename'])[1])
 
         print("extracting chunks from {}...".format(source))
 
