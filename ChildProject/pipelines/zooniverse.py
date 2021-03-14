@@ -48,9 +48,9 @@ class ZooniversePipeline(Pipeline):
     def __init__(self):
         self.chunks = []
 
-    def get_credentials(self, login: str = '', pwd: str = ''):
-        """returns input credentials if provided or attempts to read them
-        from the environment variables.
+    def set_credentials(self, login: str = '', pwd: str = ''):
+        """configure credentials from the input if provided
+        or attempts to read them from the environment variables.
 
         :param login: input login, defaults to ''
         :type login: str, optional
@@ -237,7 +237,7 @@ class ZooniversePipeline(Pipeline):
         """
 
         self.chunks_file = chunks
-        self.get_credentials(zooniverse_login, zooniverse_pwd)
+        self.set_credentials(zooniverse_login, zooniverse_pwd)
 
         metadata_location = os.path.join(self.chunks_file)
         try:
@@ -306,7 +306,7 @@ class ZooniversePipeline(Pipeline):
         :param zooniverse_pwd: zooniverse password. If not specified, the program attempts to get it from the environment variable ``ZOONIVERSE_PWD`` instead, defaults to ''
         :type zooniverse_pwd: str, optional
         """
-        self.get_credentials(zooniverse_login, zooniverse_pwd)
+        self.set_credentials(zooniverse_login, zooniverse_pwd)
 
         Panoptes.connect(username = self.zooniverse_login, password = self.zooniverse_pwd)
         project = Project(project_id)
