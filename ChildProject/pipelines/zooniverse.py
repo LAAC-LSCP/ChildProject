@@ -50,7 +50,7 @@ class ZooniversePipeline(Pipeline):
 
     def get_credentials(self, login: str = '', pwd: str = ''):
         """returns input credentials if provided or attempts to read them
-        from the environmental variables.
+        from the environment variables.
 
         :param login: input login, defaults to ''
         :type login: str, optional
@@ -228,9 +228,9 @@ class ZooniversePipeline(Pipeline):
         :type project_id: int
         :param set_prefix: prefix to each subject set display name
         :type set_prefix: str
-        :param zooniverse_login: zooniverse login. If not specified, the program attempts to get it from the environmental variable ``ZOONIVERSE_LOGIN`` instead, defaults to ''
+        :param zooniverse_login: zooniverse login. If not specified, the program attempts to get it from the environment variable ``ZOONIVERSE_LOGIN`` instead, defaults to ''
         :type zooniverse_login: str, optional
-        :param zooniverse_pwd: zooniverse password. If not specified, the program attempts to get it from the environmental variable ``ZOONIVERSE_PWD`` instead, defaults to ''
+        :param zooniverse_pwd: zooniverse password. If not specified, the program attempts to get it from the environment variable ``ZOONIVERSE_PWD`` instead, defaults to ''
         :type zooniverse_pwd: str, optional
         :param batches: amount of batches to upload, defaults to 0
         :type batches: int, optional
@@ -301,9 +301,9 @@ class ZooniversePipeline(Pipeline):
         :type destination: str
         :param project_id: zooniverse project id
         :type project_id: int
-        :param zooniverse_login: zooniverse login. If not specified, the program attempts to get it from the environmental variable ``ZOONIVERSE_LOGIN`` instead, defaults to ''
+        :param zooniverse_login: zooniverse login. If not specified, the program attempts to get it from the environment variable ``ZOONIVERSE_LOGIN`` instead, defaults to ''
         :type zooniverse_login: str, optional
-        :param zooniverse_pwd: zooniverse password. If not specified, the program attempts to get it from the environmental variable ``ZOONIVERSE_PWD`` instead, defaults to ''
+        :param zooniverse_pwd: zooniverse password. If not specified, the program attempts to get it from the environment variable ``ZOONIVERSE_PWD`` instead, defaults to ''
         :type zooniverse_pwd: str, optional
         """
         self.get_credentials(zooniverse_login, zooniverse_pwd)
@@ -380,11 +380,11 @@ class ZooniversePipeline(Pipeline):
         parser_upload.add_argument('--project-id', help = 'zooniverse project id', required = True, type = int)
         parser_upload.add_argument('--set-prefix', help = 'subject prefix', required = True)
         parser_upload.add_argument('--batches', help = 'amount of batches to upload', required = False, type = int, default = 0)
-        parser_upload.add_argument('--zooniverse-login', help = 'zooniverse login. If not specified, the program attempts to get it from the environmental variable ZOONIVERSE_LOGIN instead', default = '')
-        parser_upload.add_argument('--zooniverse-pwd', help = 'zooniverse password. If not specified, the program attempts to get it from the environmental variable ZOONIVERSE_PWD instead', default = '')
+        parser_upload.add_argument('--zooniverse-login', help = 'zooniverse login. If not specified, the program attempts to get it from the environment variable ZOONIVERSE_LOGIN instead', default = '')
+        parser_upload.add_argument('--zooniverse-pwd', help = 'zooniverse password. If not specified, the program attempts to get it from the environment variable ZOONIVERSE_PWD instead', default = '')
 
         parser_retrieve = subparsers.add_parser('retrieve-classifications', help = 'retrieve classifications and save them as <destination>')
         parser_retrieve.add_argument('--destination', help = 'output CSV dataframe destination', required = True)
         parser_retrieve.add_argument('--project-id', help = 'zooniverse project id', required = True, type = int)
-        parser_retrieve.add_argument('--zooniverse-login', help = 'zooniverse login. If not specified, the program attempts to get it from the environmental variable ZOONIVERSE_LOGIN instead', default = '')
-        parser_retrieve.add_argument('--zooniverse-pwd', help = 'zooniverse password. If not specified, the program attempts to get it from the environmental variable ZOONIVERSE_PWD instead', default = '')
+        parser_retrieve.add_argument('--zooniverse-login', help = 'zooniverse login. If not specified, the program attempts to get it from the environment variable ZOONIVERSE_LOGIN instead', default = '')
+        parser_retrieve.add_argument('--zooniverse-pwd', help = 'zooniverse password. If not specified, the program attempts to get it from the environment variable ZOONIVERSE_PWD instead', default = '')
