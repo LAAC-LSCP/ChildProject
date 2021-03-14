@@ -4,6 +4,7 @@ import datetime
 import multiprocessing as mp
 import numpy as np
 import os
+import sys
 import pandas as pd
 from pydub import AudioSegment
 from yaml import dump
@@ -207,6 +208,8 @@ class EnergyDetectionSampler(Sampler):
     :type low_freq: int, optional
     :param high_freq: if < 100000, frequencies above will be filtered before calculating the energy, defaults to 100000
     :type high_freq: int, optional
+    :param threads: amount of threads to run on, defaults to 1
+    :type threads: int, optional
     """
     def __init__(self,
         project: ChildProject.projects.ChildProject,
@@ -216,7 +219,9 @@ class EnergyDetectionSampler(Sampler):
         windows_offset: int = 0,
         threshold: float = 0.8,
         low_freq: int = 0,
-        high_freq: int = 100000
+        high_freq: int = 100000,
+        threads: int = 1,
+        profile: str = ''
         ):
 
         super().__init__(project)
@@ -227,6 +232,8 @@ class EnergyDetectionSampler(Sampler):
         self.threshold = threshold
         self.low_freq = low_freq
         self.high_freq = high_freq
+        self.threads = threads
+        self.profile = profile
 
     def compute_energy_loudness(self, chunk, sampling_frequency: int):
         if self.low_freq > 0 or self.high_freq < 100000:
@@ -237,9 +244,18 @@ class EnergyDetectionSampler(Sampler):
         else:
             return np.sum(chunk**2)
 
-    def get_recording_windows(self, profile, recording):
-        recording_path = os.path.join(self.project.path, ChildProject.projects.ChildProject.RAW_RECORDINGS, recording['recording_filename'])
-        audio = AudioSegment.from_wav(recording_path)
+    def get_recording_windows(self, recording):
+        if self.profile:
+            recording_path = os.path.join(self.project.path, ChildProject.projects.ChildProject.CONVERTED_RECORDINGS, self.profile, recording['recording_filename'])
+        else:
+            recording_path = os.path.join(self.project.path, ChildProject.projects.ChildProject.RAW_RECORDINGS, recording['recording_filename'])
+
+        try:
+            audio = AudioSegment.from_file(recording_path)
+        except:
+            print("failed to read '{}', is it a valid audio file ?".format(recording_path), file = sys.stderr)
+            return pd.DataFrame()
+
         duration = int(audio.duration_seconds*1000)
         channels = audio.channels
         frequency = int(audio.frame_rate)
@@ -248,35 +264,45 @@ class EnergyDetectionSampler(Sampler):
         windows_starts = np.arange(self.windows_offset, duration - self.windows_length, self.windows_spacing).astype(int)
         windows = []
 
+        print("computing the energy of {} windows for recording {}...".format(len(windows_starts), recording['recording_filename']))
         for start in windows_starts:
             energy = 0
             chunk = audio[start:start+self.windows_length].get_array_of_samples()
-            
+            channel_energies = np.zeros(channels)
+
             for channel in range(channels):
                 data = chunk[channel::channels]
                 data = np.array([x/max_value for x in data])
-                energy += self.compute_energy_loudness(data, frequency)
+                channel_energies[channel] = self.compute_energy_loudness(data, frequency)
 
-            windows.append({
+            window = {
                 'segment_onset': start,
                 'segment_offset': start+self.windows_length,
                 'recording_filename': recording['recording_filename'],
-                'energy': energy
+                'energy': np.sum(channel_energies)
+            }
+            window.update({
+                'channel_{}'.format(channel): channel_energies[channel]
+                for channel in range(channels)
             })
+            windows.append(window)
 
-        return windows
+        return pd.DataFrame(windows)
         
 
     def sample(self):
-        segments = []
-        for recording in self.project.recordings.to_dict(orient = 'records'):
-            windows = pd.DataFrame(self.get_recording_windows('', recording))
-            energy_threshold = windows['energy'].quantile(self.threshold)
-            windows = windows[windows['energy'] >= energy_threshold]
-            windows = windows.sample(self.windows_count)
-            segments.extend(windows.to_dict(orient = 'records'))
-
-        self.segments = pd.DataFrame(segments)
+        recordings = self.project.recordings[self.project.recordings['recording_filename'] != 'NA']
+        pool = mp.Pool(processes = self.threads if self.threads >= 1 else mp.cpu_count())
+        windows = pd.concat(pool.map(self.get_recording_windows, recordings.to_dict(orient = 'records'))).set_index('recording_filename')
+        windows = windows.merge(
+            windows.groupby('recording_filename').agg(energy_threshold = ('energy', lambda a: np.quantile(a, self.threshold))),
+            left_index = True,
+            right_index = True
+        )
+        windows = windows[windows['energy'] >= windows['energy_threshold']]
+        self.segments = windows.groupby('recording_filename').sample(self.windows_count, replace = True)
+        self.segments.reset_index(inplace = True)
+        self.segments.drop_duplicates(['recording_filename', 'segment_onset', 'segment_offset'], inplace = True)
 
     @staticmethod
     def add_parser(samplers):
@@ -288,6 +314,10 @@ class EnergyDetectionSampler(Sampler):
         parser.add_argument('--threshold', help = 'lowest energy quantile to sample from. default is 0.8 (i.e., sample from the 20%% windows with the highest energy).', default = 0.8, type = float)
         parser.add_argument('--low-freq', help = 'remove all frequencies below low-freq before calculating each window\'s energy. (in Hz)', default = 0, type = int)
         parser.add_argument('--high-freq', help = 'remove all frequencies above high-freq before calculating each window\'s energy. (in Hz)', default = 100000, type = int)
+        parser.add_argument('--threads', help = 'amount of threads to run on', default = 1, type = int)
+        parser.add_argument('--profile', help = 'name of the profile of recordings to use (uses raw recordings if empty)', default = '', type = str)
+
+
 
 class HighVolubilitySampler(Sampler):
     """Return the top ``windows_count`` windows (of length ``windows_length``)
