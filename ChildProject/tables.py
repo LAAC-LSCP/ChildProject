@@ -84,8 +84,10 @@ class IndexTable:
                 ','.join([c.name for c in self.columns])
             )))
 
-        for line_number, row in self.df.iterrows():
-            for column_name in self.df.columns:
+        rows = self.df.to_dict(orient = 'index')
+        for line_number in rows:
+            row = rows[line_number]
+            for column_name in row.keys():
                 column_attr = next((c for c in self.columns if c.name == column_name), None)
 
                 if column_attr is None:
