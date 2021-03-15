@@ -57,6 +57,11 @@ class IndexTable:
     def validate(self):
         errors, warnings = [], []
 
+        columns = {
+            c.name: c 
+            for c in self.columns
+        }
+
         for rc in self.columns:
             if not rc.required:
                 continue
@@ -73,7 +78,7 @@ class IndexTable:
 
         unknown_columns = [
             c for c in self.df.columns
-            if c not in [c.name for c in self.columns]
+            if c not in columns.keys()
         ]
 
         if len(unknown_columns) > 0:
@@ -81,12 +86,14 @@ class IndexTable:
                 's' if len(unknown_columns) > 1 else '',
                 ','.join(unknown_columns),
                 self.name,
-                ','.join([c.name for c in self.columns])
+                ','.join(columns.keys())
             )))
 
-        for line_number, row in self.df.iterrows():
-            for column_name in self.df.columns:
-                column_attr = next((c for c in self.columns if c.name == column_name), None)
+        rows = self.df.to_dict(orient = 'index')
+        for line_number in rows:
+            row = rows[line_number]
+            for column_name in row.keys():
+                column_attr = columns.get(column_name)
 
                 if column_attr is None:
                     continue
