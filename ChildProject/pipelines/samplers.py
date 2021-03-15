@@ -381,7 +381,10 @@ class HighVolubilitySampler(Sampler):
         
         elif self.metric == 'cvc':
             # NOTE: This is the equivalent of CVC (tab2) in rlena_extract.R
-            segments = segments[segments.speaker_type.isin(['OCH', 'CHI'])].groupby('chunk', as_index=False)[['utterances_count']].sum().rename(columns={'utterances_count': 'cvc'}).merge(windows)
+            if 'utterances_count' in segments.columns:
+                segments = segments[segments.speaker_type == 'CHI'].groupby('chunk', as_index=False)[['utterances_count']].sum().rename(columns={'utterances_count': 'cvc'}).merge(windows)
+            else:
+                segments = segments[segments.speaker_type == 'CHI'].groupby('chunk', as_index=False)[['segment_onset']].count().rename(columns={'segment_onset': 'cvc'}).merge(windows)
         
         elif self.metric == 'awc':
             # NOTE: This is the equivalent of AWC (tab3) in rlena_extract.R
