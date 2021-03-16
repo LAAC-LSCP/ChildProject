@@ -372,13 +372,26 @@ class HighVolubilitySampler(Sampler):
         windows['recording_filename'] = recording['recording_filename']
 
         if self.metric == 'ctc':
-            # NOTE: The original code explicitly chooses for these conversational turn 
-            # types, but we might wish to verify what they are. 
-            segments['is_CT'] = segments['lena_conv_turn_type'].isin(['TIFR', 'TIMR'])
+            if 'lena_conv_turn_type' in segments.columns:
+                # NOTE: This is the equivalent of CTC (tab1) in rlena_extract.R
+                segments['is_CT'] = segments['lena_conv_turn_type'].isin(['TIFR', 'TIMR'])
+            else:
+                segments.sort_values(['segment_onset', 'segment_offset'])
+                segments = segments[segments['speaker_type'].isin(['FEM', 'MAL', 'OCH', 'CHI'])]
+                segments['duration'] = segments['segment_offset']-segments['segment_onset']
+                segments['iti'] = segments['segment_onset'] - segments['segment_offset'].shift(1)
+                segments['prev_speaker_type'] = segments['speaker_type'].shift(1)
 
-            # NOTE: This is the equivalent of CTC (tab1) in rlena_extract.R
+                key_child_env = ['FEM', 'MAL', 'OCH']
+                segments['is_CT'] = segments.apply(
+                    lambda row: (row['iti'] < 1000) and (
+                        (row['speaker_type'] == 'CHI' and row['prev_speaker_type'] in key_child_env) or
+                        (row['speaker_type'] in key_child_env and row['prev_speaker_type'] == 'CHI')
+                    ), axis = 1
+                )
+
             segments = segments.groupby('chunk', as_index=False)[['is_CT']].sum().rename(columns={'is_CT': 'ctc'}).merge(windows)
-        
+
         elif self.metric == 'cvc':
             # NOTE: This is the equivalent of CVC (tab2) in rlena_extract.R
             if 'utterances_count' in segments.columns:
