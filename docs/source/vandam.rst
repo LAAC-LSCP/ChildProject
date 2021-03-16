@@ -225,7 +225,7 @@ No error occurs.
 .. note::
 
    The metadata can be enriched with many more columns.
-   See :ref:`format-metadata` for standards columns.
+   See :ref:`format-metadata` for standard columns.
    You can add as many extra, custom columns as you need.
 
 Save the changes locally
