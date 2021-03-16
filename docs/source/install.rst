@@ -1,3 +1,5 @@
+.. _installation:
+
 Installation
 ------------
 
@@ -13,9 +15,12 @@ The package can be installed using pip :
 
     pip install git+https://github.com/LAAC-LSCP/ChildRecordsData.git
 
-Important: the package requires Python 3+, so make sure ``pip`` points
-to a python3 installation, otherwise try pip3. You can do so by typing
-``pip --version``.
+.. warning::
+    
+    Important: the package requires Python 3+, so make sure ``pip`` points
+    to a python3 installation, otherwise try pip3. You can do so by typing
+    ``pip --version``. If you have accidentally installed the package on  
+    the wrong environment, remove it with ``pip uninstall datalad``.
 
 If you are having permissions issues - or any other issue -, you can try
 any of the following :
