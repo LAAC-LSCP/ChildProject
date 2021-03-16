@@ -377,12 +377,12 @@ class HighVolubilitySampler(Sampler):
                 segments['is_CT'] = segments['lena_conv_turn_type'].isin(['TIFR', 'TIMR'])
             else:
                 segments.sort_values(['segment_onset', 'segment_offset'])
-                segments = segments[segments['speaker_type'].isin(['FEM', 'MAL', 'OCH', 'CHI'])]
+                segments = segments[segments['speaker_type'].isin(['FEM', 'MAL', 'CHI'])]
                 segments['duration'] = segments['segment_offset']-segments['segment_onset']
                 segments['iti'] = segments['segment_onset'] - segments['segment_offset'].shift(1)
                 segments['prev_speaker_type'] = segments['speaker_type'].shift(1)
 
-                key_child_env = ['FEM', 'MAL', 'OCH']
+                key_child_env = ['FEM', 'MAL', 'CHI']
                 segments['is_CT'] = segments.apply(
                     lambda row: (row['iti'] < 1000) and (
                         (row['speaker_type'] == 'CHI' and row['prev_speaker_type'] in key_child_env) or
