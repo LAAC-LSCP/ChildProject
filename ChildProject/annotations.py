@@ -727,11 +727,17 @@ class AnnotationManager:
 
         annotations['set'] = output_set
 
-        if not all([os.path.exists(os.path.join(self.project.path, 'annotations', a['set'], 'converted', a['annotation_filename'])) for a in left_annotations.to_dict(orient = 'records')]):
-            raise Exception()
+        left_annotation_files = [os.path.join(self.project.path, 'annotations', a['set'], 'converted', a['annotation_filename']) for a in left_annotations.to_dict(orient = 'records')]
+        left_missing_annotations = [f for f in left_annotation_files if not os.path.exists(f)]
 
-        if not all([os.path.exists(os.path.join(self.project.path, 'annotations', a['set'], 'converted', a['annotation_filename'])) for a in right_annotations.to_dict(orient = 'records')]):
-            return pd.DataFrame()
+        right_annotation_files = [os.path.join(self.project.path, 'annotations', a['set'], 'converted', a['annotation_filename']) for a in right_annotations.to_dict(orient = 'records')]
+        right_missing_annotations = [f for f in right_annotation_files if not os.path.exists(f)]
+
+        if left_missing_annotations:
+            raise Exception('the following annotations from the left set are missing: {}'.format(','.join(left_missing_annotations)))
+
+        if right_missing_annotations:
+            raise Exception('the following annotations from the right set are missing: {}'.format(','.join(right_missing_annotations)))
 
         left_segments = self.get_segments(left_annotations)
         left_segments['segment_onset'] = left_segments['segment_onset'] + left_segments['time_seek']
