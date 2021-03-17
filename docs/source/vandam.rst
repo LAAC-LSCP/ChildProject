@@ -31,6 +31,8 @@ as an example.
 Set-up datalad and child-project
 --------------------------------
 
+Make sure you have followed the :ref:`installation` instructions before proceeding.
+
 Create a dataset
 ----------------
 
@@ -48,7 +50,7 @@ So far, the dataset contains nothing but hidden files:
    $ ls -A
    .datalad    .git        .gitattributes
 
-Now, we would like to get the data from https://, convert it to our
+Now, we would like to get the data from https://homebank.talkbank.org/access/Public/VanDam-Daylong.html, convert it to our
 standards, and then publish it.
 
 Gather and sort the files
@@ -58,10 +60,10 @@ The first step is to create the directories:
 
 .. code:: bash
 
-   mkdir metadata
-   mkdir -p recordings/raw
-   mkdir annotations
-   mkdir extra
+   mkdir metadata # Create the metadata subfolder
+   mkdir -p recordings/raw # Create the subfolders for raw recordings
+   mkdir annotations # Create the subfolder for annotations
+   mkdir extra # Create the subfolder for extra data (that are neither metadata, recordings or annotations)
    touch extra/.gitignore # Make sure the directory is present even though it's empty
 
 Then, download the original data-set from HomeBank.
@@ -70,28 +72,25 @@ The audio first:
 
 .. code:: bash
 
-   wget https://media.talkbank.org/homebank/Public/VanDam-Daylong/BN32/BN32_010007.mp3 -O recordings/raw/BN32_010007.mp3
+   curl https://media.talkbank.org/homebank/Public/VanDam-Daylong/BN32/BN32_010007.mp3 -o recordings/raw/BN32_010007.mp3
 
 Now let’s get the annotations.
 
 .. code:: bash
 
-   wget https://homebank.talkbank.org/data/Public/VanDam-Daylong.zip -O VanDam-Daylong.zip
+   curl https://homebank.talkbank.org/data/Public/VanDam-Daylong.zip -o VanDam-Daylong.zip
    unzip VanDam-Daylong.zip
-   rm VanDam-Daylong.zip
+   rm VanDam-Daylong.zip # Remove the zip archive
 
-Let’s explore the content of VanDam-Daylong:
+Let’s explore the contents of VanDam-Daylong:
 
 .. code:: bash
 
-   $ ls -R VanDam-Daylong
-   0metadata.cdc   BN32
-
-   VanDam-Daylong/BN32:
-   0its        BN32_010007.cha
-
-   VanDam-Daylong/BN32/0its:
-   e20100728_143446_003489.its
+   $ find . -not -path '*/\.*' -type f -print
+   ./recordings/raw/BN32_010007.mp3
+   ./VanDam-Daylong/BN32/0its/e20100728_143446_003489.its
+   ./VanDam-Daylong/BN32/BN32_010007.cha
+   ./VanDam-Daylong/0metadata.cdc
 
 -  ``0metadata.cdc1`` looks like some metadata file, so we will move it
    to ``metadata/`` :
@@ -140,12 +139,18 @@ dataset:
        raise Exception("could not find table '{}'".format(self.path))
    Exception: could not find table './metadata/children'
 
-The validation fails, because the metadata is missing. We need to store
+This is expected. The validation should fail, because the metadata is missing. We need to store
 the metadata about the children and the recordings in a way that meets
 the specifications (see :ref:`format-metadata`).
 
 Create the metadata
 -------------------
+
+We need two metadata files:
+
+ - ``metadata/recordings.csv``, which links each recording to their associate metadata
+     (recording date and time, recording device, etc.)
+ - ``metadata/children.csv``, which stores the information about the participants.
 
 Let’s start with the recordings metadata. ``metadata/recordings.csv``
 should at least have the following columns: experiment, child_id,
@@ -157,16 +162,28 @@ about when the recording started:
 
    <Recording num="1" startClockTime="2010-07-24T11:58:16Z" endClockTime="2010-07-25T01:59:20Z" startTime="PT0.00S" endTime="PT50464.24S">
 
-Make sure that ``metadata/recordings.csv`` contains the following text:
 
-::
+In order to reflect that information, the recordings CSV metadata
+should look like this (we have decided that the only child of the
+dataset should have ID ‘1’):
 
+.. csv-table:: Recordings metadata
+      :header-rows: 1
+      :file: _static/vandam/recordings.csv
+
+We have prepared it for you. Download ``recordings.csv`` :download:`here <_static/vandam/recordings.csv>`,
+and save it in the ``metadata`` subfolder of your dataset.
+You can check its content by issuing the following command:
+
+.. code:: bash
+
+   $ cat metadata/recordings.csv
    experiment,child_id,date_iso,start_time,recording_device_type,recording_filename
    vandam-daylong,1,2010-07-24,11:58,lena,BN32_010007.mp3
 
-(we have decided that the only child of the dataset should have ID ‘1’)
 
-Now the children metadata. The only fields that are required are:
+Now, let us proceed to the children metadata.
+The only fields that are required are:
 experiment, child_id and child_dob. The .its file also contains some
 information about the child:
 
@@ -180,10 +197,19 @@ assign her a calculated date of birth: 2009-07-24. We will set
 date of birth was calculated from the approximate age at recording. We
 will also set ``dob_accuracy`` to ‘month’ for that child.
 
-This is what ``metadata/children.csv`` should look like:
+In other words, the children metadata CSV file should look like this:
 
-::
+.. csv-table:: Children metadata
+      :header-rows: 1
+      :file: _static/vandam/children.csv
 
+We have prepared it for you. Download ``children.csv`` :download:`here <_static/vandam/children.csv>`,
+and save it in the ``metadata`` subfolder of your dataset.
+You can check its content by issuing the following command:
+
+.. code:: bash
+
+   $ cat metadata/children.csv
    experiment,child_id,child_dob,dob_criterion,dob_accuracy
    vandam-daylong,1,2009-07-24,extrapolated,month
 
@@ -195,6 +221,12 @@ command again:
    child-project validate .
 
 No error occurs.
+
+.. note::
+
+   The metadata can be enriched with many more columns.
+   See :ref:`format-metadata` for standard columns.
+   You can add as many extra, custom columns as you need.
 
 Save the changes locally
 ------------------------
