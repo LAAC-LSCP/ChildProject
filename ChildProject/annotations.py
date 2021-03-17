@@ -728,7 +728,7 @@ class AnnotationManager:
         annotations['set'] = output_set
 
         if not all([os.path.exists(os.path.join(self.project.path, 'annotations', a['set'], 'converted', a['annotation_filename'])) for a in left_annotations.to_dict(orient = 'records')]):
-            return pd.DataFrame()
+            raise Exception()
 
         if not all([os.path.exists(os.path.join(self.project.path, 'annotations', a['set'], 'converted', a['annotation_filename'])) for a in right_annotations.to_dict(orient = 'records')]):
             return pd.DataFrame()
@@ -770,12 +770,14 @@ class AnnotationManager:
 
         output_segments.fillna('NA', inplace = True)
 
-        for interval, segments in output_segments.groupby('interval'):
-            annotation_filename = annotations[annotations['interval'] == interval]['annotation_filename'].tolist()[0]
-            annotation_set = annotations[annotations['interval'] == interval]['set'].tolist()[0]
+        for annotation in annotations.to_dict(orient = 'records'):
+            interval = annotation['interval']
+            annotation_filename = annotation['annotation_filename']
+            annotation_set = annotation['set']
 
             os.makedirs(os.path.dirname(os.path.join(self.project.path, 'annotations', annotation_set, 'converted', annotation_filename)), exist_ok = True)
 
+            segments = output_segments[output_segments['interval'] == interval]
             segments.drop(columns = list(set(segments.columns)-set([c.name for c in self.SEGMENTS_COLUMNS])), inplace = True)
             segments.to_csv(
                 os.path.join(self.project.path, 'annotations', annotation_set, 'converted', annotation_filename),
