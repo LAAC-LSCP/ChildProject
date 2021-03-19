@@ -527,9 +527,17 @@ class AnnotationManager:
         return df
 
 
-    def import_annotation(self, import_function: Callable[[str], pd.DataFrame], annotation: dict):
+    def _import_annotation(self, import_function: Callable[[str], pd.DataFrame], annotation: dict):
         """import and convert ``annotation``. This function should not be called outside of this class.
+
+        :param import_function: If callable, ``import_function`` will be called to convert the input annotation into a dataframe. Otherwise, the conversion will be performed by a built-in function.
+        :type import_function: Callable[[str], pd.DataFrame]
+        :param annotation: input annotation dictionary (attributes defined according to :ref:`ChildProject.annotations.AnnotationManager.SEGMENTS_COLUMNS`)
+        :type annotation: dict
+        :return: output annotation dictionary (attributes defined according to :ref:`ChildProject.annotations.AnnotationManager.SEGMENTS_COLUMNS`)
+        :rtype: dict
         """
+
         source_recording = os.path.splitext(annotation['recording_filename'])[0]
         annotation_filename = "{}_{}_{}.csv".format(source_recording, annotation['time_seek'], annotation['range_onset'])
         output_filename = os.path.join('annotations', annotation['set'], 'converted', annotation_filename)
@@ -610,7 +618,7 @@ class AnnotationManager:
 
         pool = mp.Pool(processes = threads if threads > 0 else mp.cpu_count())
         imported = pool.map(
-            partial(self.import_annotation, import_function),
+            partial(self._import_annotation, import_function),
             input.to_dict(orient = 'records')
         )
 
