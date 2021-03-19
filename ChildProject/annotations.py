@@ -516,13 +516,13 @@ class AnnotationManager:
             if col.required:
                 df[col.name] = 'NA'
 
-        df['segment_onset'] = df['time_marks'].apply(lambda tm: tm[0])
-        df['segment_offset'] = df['time_marks'].apply(lambda tm: tm[1])
+        df['segment_onset'] = df['time_marks'].apply(lambda tm: tm[0] if tm else 'NA')
+        df['segment_offset'] = df['time_marks'].apply(lambda tm: tm[1] if tm else 'NA')
         df['speaker_id'] = df['participant']
         df['speaker_type'] = df['speaker_id'].replace(speaker_id_to_type)
         df['transcription'] = df['tokens'].apply(lambda l: '|'.join([t['word'] for t in l]))
 
-        df = df[self.columns & set([c.name for c in self.SEGMENTS_COLUMNS if c.required])]
+        df = df[set(df.columns) & {c.name for c in self.SEGMENTS_COLUMNS if c.required}]
 
         return df
 
@@ -615,7 +615,7 @@ class AnnotationManager:
         )
 
         imported = pd.DataFrame(imported)
-        imported.drop(list(set(imported.columns)-set([c.name for c in self.INDEX_COLUMNS])), axis = 1, inplace = True)
+        imported.drop(list(set(imported.columns)-{c.name for c in self.INDEX_COLUMNS}), axis = 1, inplace = True)
 
         self.read()
         self.annotations = pd.concat([self.annotations, imported], sort = False)
@@ -810,7 +810,7 @@ class AnnotationManager:
             os.makedirs(os.path.dirname(os.path.join(self.project.path, 'annotations', annotation_set, 'converted', annotation_filename)), exist_ok = True)
 
             segments = output_segments[output_segments['interval'] == interval]
-            segments.drop(columns = list(set(segments.columns)-set([c.name for c in self.SEGMENTS_COLUMNS])), inplace = True)
+            segments.drop(columns = list(set(segments.columns)-{c.name for c in self.SEGMENTS_COLUMNS}), inplace = True)
             segments.to_csv(
                 os.path.join(self.project.path, 'annotations', annotation_set, 'converted', annotation_filename),
                 index = False
@@ -844,8 +844,8 @@ class AnnotationManager:
         assert not (set(left_columns) & set (right_columns)), "left_columns and right_columns must be disjoint"
 
         union = set(left_columns) | set (right_columns)
-        all_columns = set([c.name for c in self.SEGMENTS_COLUMNS]) - set(['raw_filename', 'segment_onset', 'segment_offset'])
-        required_columns = set([c.name for c in self.SEGMENTS_COLUMNS if c.required]) - set(['raw_filename', 'segment_onset', 'segment_offset'])
+        all_columns = {c.name for c in self.SEGMENTS_COLUMNS} - {'raw_filename', 'segment_onset', 'segment_offset'}
+        required_columns = {c.name for c in self.SEGMENTS_COLUMNS if c.required} - {'raw_filename', 'segment_onset', 'segment_offset'}
         assert union.issubset(all_columns), "left_columns and right_columns have unexpected values"
         assert required_columns.issubset(union), "left_columns and right_columns have missing values"
 
@@ -870,7 +870,7 @@ class AnnotationManager:
         pool = mp.Pool(processes = threads if threads > 0 else mp.cpu_count())
         annotations = pool.map(partial(self.merge_annotations, left_columns, right_columns, columns, output_set), input_annotations)
         annotations = pd.concat(annotations)
-        annotations.drop(columns = list(set(annotations.columns)-set([c.name for c in self.INDEX_COLUMNS])), inplace = True)
+        annotations.drop(columns = list(set(annotations.columns)-{c.name for c in self.INDEX_COLUMNS}), inplace = True)
         
         self.read()
         self.annotations = pd.concat([self.annotations, annotations], sort = False)
