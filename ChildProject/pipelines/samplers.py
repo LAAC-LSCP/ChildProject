@@ -357,6 +357,10 @@ class HighVolubilitySampler(Sampler):
         segments = self.retrieve_segments(recording['recording_filename'])
 
         if segments is None:
+            print("warning: no annotations from the set '{}' were found for the recording '{}'".format(
+                self.annotation_set,
+                recording['recording_filename']
+            ))
             return pd.DataFrame(columns = ['segment_onset', 'segment_offset', 'recording_filename'])
 
         # NOTE: The timestamps were simply rounded to 5 minutes in the original 
@@ -462,7 +466,7 @@ class SamplerPipeline(Pipeline):
         segments_path = os.path.join(destination, 'segments_{}.csv'.format(date))
         parameters_path = os.path.join(destination, 'parameters_{}.yml'.format(date))
 
-        self.segments[self.segments.columns & {'recording_filename', 'segment_onset', 'segment_offset'}].to_csv(segments_path, index = False)
+        self.segments[set(self.segments.columns) & {'recording_filename', 'segment_onset', 'segment_offset'}].to_csv(segments_path, index = False)
         print("exported sampled segments to {}".format(segments_path))
         dump({
             'parameters': parameters,
