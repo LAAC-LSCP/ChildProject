@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ANNOTATION_DOCUMENT AUTHOR="" DATE="2017-07-26T14:56:07+01:00" FORMAT="3.0" VERSION="3.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.mpi.nl/tools/elan/EAFv3.0.xsd">
+    <HEADER MEDIA_FILE="" TIME_UNITS="milliseconds"/>
+    <TIME_ORDER/>
+    <TIER LINGUISTIC_TYPE_REF="transcription" PARTICIPANT="CHI" TIER_ID="CHI"/>
+    <TIER LINGUISTIC_TYPE_REF="transcription" PARTICIPANT="FA1" TIER_ID="FA1"/>
+    <TIER LINGUISTIC_TYPE_REF="VCM" PARENT_REF="CHI" PARTICIPANT="CHI" TIER_ID="vcm@CHI"/>
+    <TIER LINGUISTIC_TYPE_REF="LEX" PARENT_REF="vcm@CHI" PARTICIPANT="CHI" TIER_ID="lex@CHI"/>
+    <TIER LINGUISTIC_TYPE_REF="MWU" PARENT_REF="lex@CHI" PARTICIPANT="CHI" TIER_ID="mwu@CHI"/>
+    <TIER LINGUISTIC_TYPE_REF="XDS" PARENT_REF="FA1" PARTICIPANT="FA1" TIER_ID="xds@FA1"/>
+    <TIER LINGUISTIC_TYPE_REF="VCM" PARENT_REF="FA1" PARTICIPANT="FA1" TIER_ID="vcm@FA1"/>
+    <LINGUISTIC_TYPE CONSTRAINTS="Symbolic_Association" CONTROLLED_VOCABULARY_REF="xds" GRAPHIC_REFERENCES="false" LINGUISTIC_TYPE_ID="XDS" TIME_ALIGNABLE="false"/>
+    <LINGUISTIC_TYPE CONSTRAINTS="Symbolic_Association" CONTROLLED_VOCABULARY_REF="vcm" GRAPHIC_REFERENCES="false" LINGUISTIC_TYPE_ID="VCM" TIME_ALIGNABLE="false"/>
+    <LINGUISTIC_TYPE CONSTRAINTS="Symbolic_Association" CONTROLLED_VOCABULARY_REF="mwu" GRAPHIC_REFERENCES="false" LINGUISTIC_TYPE_ID="MWU" TIME_ALIGNABLE="false"/>
+    <LINGUISTIC_TYPE CONSTRAINTS="Symbolic_Association" CONTROLLED_VOCABULARY_REF="lex" GRAPHIC_REFERENCES="false" LINGUISTIC_TYPE_ID="LEX" TIME_ALIGNABLE="false"/>
+    <LINGUISTIC_TYPE GRAPHIC_REFERENCES="false" LINGUISTIC_TYPE_ID="transcription" TIME_ALIGNABLE="true"/>
+    <LANGUAGE LANG_DEF="http://cdb.iso.org/lg/CDB-00130975-001" LANG_ID="und" LANG_LABEL="undetermined (und)"/>
+    <CONSTRAINT DESCRIPTION="Time subdivision of parent annotation's time interval, no time gaps allowed within this interval" STEREOTYPE="Time_Subdivision"/>
+    <CONSTRAINT DESCRIPTION="Symbolic subdivision of a parent annotation. Annotations refering to the same parent are ordered" STEREOTYPE="Symbolic_Subdivision"/>
+    <CONSTRAINT DESCRIPTION="1-1 association with a parent annotation" STEREOTYPE="Symbolic_Association"/>
+    <CONSTRAINT DESCRIPTION="Time alignable annotations within the parent annotation's time interval, gaps are allowed" STEREOTYPE="Included_In"/>
+    <CONTROLLED_VOCABULARY CV_ID="mwu" EXT_REF="er1"/>
+    <CONTROLLED_VOCABULARY CV_ID="lex" EXT_REF="er1"/>
+    <CONTROLLED_VOCABULARY CV_ID="xds" EXT_REF="er1"/>
+    <CONTROLLED_VOCABULARY CV_ID="vcm" EXT_REF="er1"/>
+    <EXTERNAL_REF EXT_REF_ID="er1" TYPE="ecv" VALUE="https://raw.githubusercontent.com/marisacasillas/DARCLE-AnnSchDev/master/ACLEW/External-closed-vocabularies/ACLEW-basic-vocabularies.ecv"/>
+</ANNOTATION_DOCUMENT>
