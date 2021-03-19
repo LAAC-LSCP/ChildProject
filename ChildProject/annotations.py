@@ -6,6 +6,7 @@ from numbers import Number
 import numpy as np
 import os
 import pandas as pd
+import pylangacq
 import pympi
 import re
 from functools import reduce, partial
@@ -497,6 +498,31 @@ class AnnotationManager:
         df['segment_offset'] = matches[2].astype(int)/10
         
         df.drop(columns = ['recording_filename', 'file'], inplace = True)
+
+        return df
+
+    def load_clan(self, filename: str, speaker_id_to_type: dict = None) -> pd.DataFrame:
+        if speaker_id_to_type is None:
+            speaker_id_to_type = {
+                'MOT': 'FEM',
+                'FAT': 'MAL'
+            }
+
+        reader = pylangacq.Reader.from_files([filename])
+
+        df = pd.DataFrame(reader.utterances())
+
+        for col in self.SEGMENTS_COLUMNS:
+            if col.required:
+                df[col.name] = 'NA'
+
+        df['segment_onset'] = df['time_marks'].apply(lambda tm: tm[0])
+        df['segment_offset'] = df['time_marks'].apply(lambda tm: tm[1])
+        df['speaker_id'] = df['participant']
+        df['speaker_type'] = df['speaker_id'].replace(speaker_id_to_type)
+        df['transcription'] = df['tokens'].apply(lambda l: '|'.join([t['word'] for t in l]))
+
+        df = df[self.columns & set([c.name for c in self.SEGMENTS_COLUMNS if c.required])]
 
         return df
 

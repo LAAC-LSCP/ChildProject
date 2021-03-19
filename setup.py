@@ -2,7 +2,8 @@ from setuptools import setup, find_packages
 import ChildProject
 
 requires = {
-    'core': ['pandas', 'xlrd', 'jinja2', 'numpy>=1.16.5', 'pympi-ling', 'lxml', 'sox', 'datalad', 'requests<2.25.0'],
+    'core': ['pandas', 'jinja2', 'numpy>=1.16.5', 'sox', 'datalad', 'requests<2.25.0'],
+    'annotations': ['lxml', 'pympi-ling', 'pylangacq', 'python-dateutil>=2.8.1'],
     'samplers': ['PyYAML'],
     'zooniverse': ['panoptes_client', 'pydub']
 }
@@ -25,7 +26,7 @@ setup(
         'Topic :: Scientific/Engineering',
     ],
     packages=find_packages(),
-    install_requires=requires['core'] + requires['samplers'] + requires['zooniverse'],
+    install_requires=requires['core'] + requires['annotations'] + requires['samplers'] + requires['zooniverse'],
     include_package_data=True,
     entry_points={
         'console_scripts': [
