@@ -2,8 +2,9 @@ import argparse
 import os
 import pandas as pd
 import sys
-import os.path
+import os
 import shutil
+import pympi
 
 try:
     from importlib import resources
@@ -14,8 +15,43 @@ except ImportError:
 from ChildProject.projects import ChildProject
 from ChildProject.pipelines.pipeline import Pipeline
 
-from ChildProject.pipelines.utils import choose_template, create_eaf
+def create_eaf(etf_path: str, id: str, output_dir: str,
+    timestamps_list: list,
+    eaf_type: str, contxt_on: int, contxt_off: int,
+    template: str):
 
+    print("ACLEW ID: ", id)
+    eaf = pympi.Elan.Eaf(etf_path)
+    ling_type = "transcription"
+    eaf.add_tier("code_"+eaf_type, ling=ling_type)
+    eaf.add_tier("context_"+eaf_type, ling=ling_type)
+    eaf.add_tier("code_num_"+eaf_type, ling=ling_type)
+    for i, ts in enumerate(timestamps_list):
+        print("Creating eaf code segment # ", i+1)
+        print("enumerate makes: ", i, ts)
+        whole_region_onset = ts[0]
+        whole_region_offset = ts[1]
+        #print whole_region_offset, whole_region_onset
+        context_onset = int(whole_region_onset) - contxt_on
+        #for float / integer unmatch float()
+        context_offset = int(whole_region_offset) + contxt_off
+
+        if context_onset < 0:
+            context_onset = 0.0
+        
+        codeNumVal = eaf_type + str(i+1)
+        eaf.add_annotation("code_"+eaf_type, whole_region_onset, whole_region_offset)
+        eaf.add_annotation("code_num_"+eaf_type, whole_region_onset, whole_region_offset, value=codeNumVal)
+        eaf.add_annotation("context_"+eaf_type, context_onset, context_offset)
+
+    #import pdb
+    #pdb.set_trace()
+    os.makedirs(output_dir, exist_ok = True)
+    eaf.to_file(os.path.join(output_dir, "{}.eaf".format(id)))
+    for i in eaf.get_tier_names():
+        print(i,":",eaf.get_annotation_data_for_tier(i))
+
+    return eaf
 
 class EafBuilderPipeline(Pipeline):
     def __init__(self):
@@ -25,13 +61,30 @@ class EafBuilderPipeline(Pipeline):
         eaf_type: str, template: str,
         context_onset: float, context_offset: float,
         **kwargs):
+        """[summary]
+
+        :param path: project path
+        :type path: str
+        :param destination: eaf destination
+        :type destination: str
+        :param segments: path to the input segments dataframe
+        :type segments: str
+        :param eaf_type: eaf-type [random, periodic]
+        :type eaf_type: str
+        :param template: [description]
+        :type template: str
+        :param context_onset: [description]
+        :type context_onset: float
+        :param context_offset: [description]
+        :type context_offset: float
+        """
 
         self.project = ChildProject(path)
         self.project.read()
 
-
         # TODO: Make sure etf file paths are approprite and robust. 
-        etf_path, psfx_path = choose_template(template)
+        etf_path = "{}.etf".format(template)
+        psfx_path = "{}.pfsx".format(template)
 
         print("making the "+eaf_type+" eaf file and csv")
 
@@ -40,15 +93,23 @@ class EafBuilderPipeline(Pipeline):
         # TODO: This list of timestamps as tuples might not be ideal/should perhaps be optimized, but I am just replicating the original eaf creation code here.
         timestamps = [(on, off) for on, off in segments.loc[:, ['segment_onset', 'segment_offset']].values]
 
-
         for recording in self.project.recordings.to_dict(orient = 'records'):
             recording_filename = os.path.splitext(recording['recording_filename'])[0]
 
             output_dir = os.path.join(destination, recording_filename)
-            with resources.path('ChildProject.etf_templates', etf_path) as e_path:
-                create_eaf(e_path,recording_filename+eaf_type+'_'+'its_'+template, output_dir, timestamps,eaf_type,context_onset,context_offset,template)
+            with resources.path('ChildProject.templates', etf_path) as e_path:
+                create_eaf(
+                    e_path,
+                    recording_filename + eaf_type + '_' + 'its_' + template,
+                    output_dir,
+                    timestamps,
+                    eaf_type,
+                    context_onset,
+                    context_offset,
+                    template
+                )
 
-            with resources.path('ChildProject.etf_templates', psfx_path) as p_path:
+            with resources.path('ChildProject.templates', psfx_path) as p_path:
                 shutil.copy(p_path, os.path.join(output_dir, "{}.pfsx".format(recording_filename+eaf_type+'_'+'its_'+template)))
 
 
@@ -58,7 +119,7 @@ class EafBuilderPipeline(Pipeline):
         parser.add_argument("destination", help = "eaf destination")
         parser.add_argument('--segments', help = 'path to the input segments dataframe', required = True)
         # TODO: add other options here such as high-volubility, energy, etc.?
-        parser.add_argument('--eaf-type', help = 'eaf-type', choices = ['random', 'periodic'])
+        parser.add_argument('--eaf-type', help = 'eaf-type', choices = ['random', 'periodic'], required = True)
         parser.add_argument('--template', help = 'eaf template', choices = ['basic', 'native', 'non-native'], required = True)
-        parser.add_argument('--context-onset', help = 'context onset and segment offset difference, 0 for no introductory context', type = float, default = 0)
-        parser.add_argument('--context-offset', help = 'context offset and segment offset difference, 0 for no outro context', type = float, default = 0)
+        parser.add_argument('--context-onset', help = 'context onset and segment offset difference in milliseconds, 0 for no introductory context', type = int, default = 0)
+        parser.add_argument('--context-offset', help = 'context offset and segment offset difference in milliseconds, 0 for no outro context', type = int, default = 0)
