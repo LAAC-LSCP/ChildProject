@@ -28,6 +28,7 @@ Welcome to ChildRecordsData's documentation!
 
    tools
    samplers
+   elan
    zooniverse
    cheatsheet
 
