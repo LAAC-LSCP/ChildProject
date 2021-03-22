@@ -55,11 +55,11 @@ class EafBuilderPipeline(Pipeline):
     def __init__(self):
         pass
                 
-    def run(self, path: str, destination: str, segments: str,
+    def run(self, destination: str, segments: str,
         eaf_type: str, template: str,
         context_onset: int = 0, context_offset: int = 0,
         **kwargs):
-        """[summary]
+        """generate .eaf templates based on intervals to code
 
         :param path: project path
         :type path: str
@@ -77,9 +77,6 @@ class EafBuilderPipeline(Pipeline):
         :type context_offset: float
         """
 
-        self.project = ChildProject(path)
-        self.project.read()
-
         # TODO: Make sure etf file paths are approprite and robust. 
         etf_path = "{}.etf".format(template)
         psfx_path = "{}.pfsx".format(template)
@@ -88,17 +85,18 @@ class EafBuilderPipeline(Pipeline):
 
         segments = pd.read_csv(segments)
 
-        # TODO: This list of timestamps as tuples might not be ideal/should perhaps be optimized, but I am just replicating the original eaf creation code here.
-        timestamps = [(on, off) for on, off in segments.loc[:, ['segment_onset', 'segment_offset']].values]
-
-        for recording in self.project.recordings.to_dict(orient = 'records'):
-            recording_filename = os.path.splitext(recording['recording_filename'])[0]
+        for recording_filename, segs in segments.groupby('recording_filename'):
+            recording_filename = os.path.splitext(recording_filename)[0]
+            output_filename = recording_filename + '_' + eaf_type + '_' + template
+            
+            # TODO: This list of timestamps as tuples might not be ideal/should perhaps be optimized, but I am just replicating the original eaf creation code here.
+            timestamps = [(on, off) for on, off in segs.loc[:, ['segment_onset', 'segment_offset']].values]
 
             output_dir = os.path.join(destination, recording_filename)
             with resources.path('ChildProject.templates', etf_path) as e_path:
                 create_eaf(
                     e_path,
-                    recording_filename + eaf_type + '_' + 'its_' + template,
+                    output_filename,
                     output_dir,
                     timestamps,
                     eaf_type,
@@ -108,13 +106,12 @@ class EafBuilderPipeline(Pipeline):
                 )
 
             with resources.path('ChildProject.templates', psfx_path) as p_path:
-                shutil.copy(p_path, os.path.join(output_dir, "{}.pfsx".format(recording_filename+eaf_type+'_'+'its_'+template)))
+                shutil.copy(p_path, os.path.join(output_dir, "{}.pfsx".format(output_filename)))
 
 
     @staticmethod
     def setup_parser(parser):
-        parser.add_argument("path", help = "project path")
-        parser.add_argument("destination", help = "eaf destination")
+        parser.add_argument("--destination", help = "eaf destination")
         parser.add_argument('--segments', help = 'path to the input segments dataframe', required = True)
         # TODO: add other options here such as high-volubility, energy, etc.?
         parser.add_argument('--eaf-type', help = 'eaf-type', choices = ['random', 'periodic'], required = True)
