@@ -1,5 +1,4 @@
 import argparse
-import os
 import pandas as pd
 import sys
 import os
@@ -21,19 +20,20 @@ def create_eaf(etf_path: str, id: str, output_dir: str,
     template: str):
 
     print("ACLEW ID: ", id)
+
     eaf = pympi.Elan.Eaf(etf_path)
     ling_type = "transcription"
     eaf.add_tier("code_"+eaf_type, ling=ling_type)
     eaf.add_tier("context_"+eaf_type, ling=ling_type)
     eaf.add_tier("code_num_"+eaf_type, ling=ling_type)
+
     for i, ts in enumerate(timestamps_list):
         print("Creating eaf code segment # ", i+1)
         print("enumerate makes: ", i, ts)
         whole_region_onset = ts[0]
         whole_region_offset = ts[1]
-        #print whole_region_offset, whole_region_onset
+
         context_onset = int(whole_region_onset) - contxt_on
-        #for float / integer unmatch float()
         context_offset = int(whole_region_offset) + contxt_off
 
         if context_onset < 0:
@@ -44,8 +44,6 @@ def create_eaf(etf_path: str, id: str, output_dir: str,
         eaf.add_annotation("code_num_"+eaf_type, whole_region_onset, whole_region_offset, value=codeNumVal)
         eaf.add_annotation("context_"+eaf_type, context_onset, context_offset)
 
-    #import pdb
-    #pdb.set_trace()
     os.makedirs(output_dir, exist_ok = True)
     eaf.to_file(os.path.join(output_dir, "{}.eaf".format(id)))
     for i in eaf.get_tier_names():
@@ -59,7 +57,7 @@ class EafBuilderPipeline(Pipeline):
                 
     def run(self, path: str, destination: str, segments: str,
         eaf_type: str, template: str,
-        context_onset: float, context_offset: float,
+        context_onset: int = 0, context_offset: int = 0,
         **kwargs):
         """[summary]
 
@@ -71,11 +69,11 @@ class EafBuilderPipeline(Pipeline):
         :type segments: str
         :param eaf_type: eaf-type [random, periodic]
         :type eaf_type: str
-        :param template: [description]
+        :param template: name of the template to use (basic, native, or non-native)
         :type template: str
-        :param context_onset: [description]
+        :param context_onset: context onset and segment offset difference in milliseconds, 0 for no introductory context
         :type context_onset: float
-        :param context_offset: [description]
+        :param context_offset: context offset and segment offset difference in milliseconds, 0 for no outro context
         :type context_offset: float
         """
 
