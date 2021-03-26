@@ -39,6 +39,6 @@ def test_periodic():
     segments = pd.DataFrame(segments)
 
     pd.testing.assert_frame_equal(
-        segments[['segment_onset', 'segment_offset']].reset_index(drop = True).sort_values(['segment_onset', 'segment_offset']),
-        sampler.segments[['segment_onset', 'segment_offset']].reset_index(drop = True).sort_values(['segment_onset', 'segment_offset'])
+        segments[['segment_onset', 'segment_offset']].sort_values(['segment_onset', 'segment_offset']).reset_index(drop = True),
+        sampler.segments[['segment_onset', 'segment_offset']].sort_values(['segment_onset', 'segment_offset']).reset_index(drop = True)
     )
