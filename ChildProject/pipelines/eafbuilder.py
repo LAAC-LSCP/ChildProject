@@ -21,7 +21,9 @@ def create_eaf(etf_path: str, id: str, output_dir: str,
 
     print("ACLEW ID: ", id)
 
-    eaf = pympi.Elan.Eaf(etf_path)
+    # NOTE: https://stackoverflow.com/questions/42694112/when-using-pathlib-getting-error-typeerror-invalid-file-posixpathexample-t
+    # Due to the issue above, I just call str() on the etf_path. A more elegant solution may be possible. 
+    eaf = pympi.Elan.Eaf(str(etf_path))
     ling_type = "transcription"
     eaf.add_tier("code_"+eaf_type, ling=ling_type)
     eaf.add_tier("context_"+eaf_type, ling=ling_type)
@@ -106,7 +108,7 @@ class EafBuilderPipeline(Pipeline):
                 )
 
             with resources.path('ChildProject.templates', psfx_path) as p_path:
-                shutil.copy(p_path, os.path.join(output_dir, "{}.pfsx".format(output_filename)))
+                shutil.copy(str(p_path), os.path.join(output_dir, "{}.pfsx".format(output_filename)))
 
 
     @staticmethod
