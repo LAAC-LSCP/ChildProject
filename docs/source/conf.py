@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.abspath('../../ChildProject/'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'ChildRecordsData'
+project = 'ChildProject'
 copyright = '2021, Lucas Gautheron'
 author = 'Lucas Gautheron'
 

@@ -13,7 +13,7 @@ The package can be installed using pip :
 
 ::
 
-    pip install git+https://github.com/LAAC-LSCP/ChildRecordsData.git
+    pip install git+https://github.com/LAAC-LSCP/ChildProject.git
 
 .. warning::
     
@@ -29,7 +29,7 @@ any of the following :
 
 ::
 
-    pip install git+https://github.com/LAAC-LSCP/ChildRecordsData.git --user
+    pip install git+https://github.com/LAAC-LSCP/ChildProject.git --user
 
 -  Create and activate a virtual python environment beforehand. You will
    have to activate it everytime you need to use the package or datalad.
@@ -38,7 +38,7 @@ any of the following :
 
     python3 -m venv ~/ChildProjectVenv
     source ~/ChildProjectVenv/bin/activate
-    pip install git+https://github.com/LAAC-LSCP/ChildRecordsData.git
+    pip install git+https://github.com/LAAC-LSCP/ChildProject.git
 
 Install git-annex
 ~~~~~~~~~~~~~~~~~
@@ -66,4 +66,4 @@ You can check the setup by issuing the following commands :
 
     We recommend that you regularly keep DataLad and our package up to date. 
     This can be achieved with the commands ``pip install datalad --upgrade``
-    and ``pip install git+https://github.com/LAAC-LSCP/ChildRecordsData.git --upgrade``.
+    and ``pip install git+https://github.com/LAAC-LSCP/ChildProject.git --upgrade``.
