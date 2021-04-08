@@ -125,7 +125,6 @@ class ZooniversePipeline(Pipeline):
         return chunks
 
     def extract_chunks(self, path: str, destination: str, keyword: str, segments: str,
-        batch_size: int = 1000,
         chunks_length: int = -1, chunks_min_amount: int = 1,
         exclude_segments: list = [],
         threads: int = 0,
@@ -141,8 +140,6 @@ class ZooniversePipeline(Pipeline):
         :type segments: str
         :param keyword: keyword to insert in the output metadata
         :type keyword: str
-        :param batch_size: size of each zooniverse subject subset, defaults to 1000
-        :type batch_size: int, optional
         :param chunks_length: length of the chunks, in milliseconds, defaults to -1
         :type chunks_length: int, optional
         :param chunks_min_amount: minimum amount of chunk per segment, defaults to 1
@@ -161,7 +158,6 @@ class ZooniversePipeline(Pipeline):
         self.destination = destination
         self.project = ChildProject.projects.ChildProject(path)
 
-        batch_size = int(batch_size)
         self.chunks_length = int(chunks_length)
         self.chunks_min_amount = chunks_min_amount
         threads = int(threads)
@@ -198,7 +194,6 @@ class ZooniversePipeline(Pipeline):
         # shuffle chunks so that they can't be joined back together
         # based on Zooniverse subject IDs
         self.chunks = self.chunks.sample(frac=1).reset_index(drop=True)
-        self.chunks['batch'] = self.chunks.index.map(lambda x: int(x/batch_size))
         self.chunks.index.name = 'index'
 
         date = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -216,24 +211,24 @@ class ZooniversePipeline(Pipeline):
 
         return chunks_path
 
-    def upload_chunks(self, chunks: str, project_id: int, set_prefix: str,
+    def upload_chunks(self, chunks: str, project_id: int, set_name: str,
         zooniverse_login = '', zooniverse_pwd = '',
-        batches = 0,
+        amount: int = 1000,
         **kwargs):
-        """Uploads ``batches`` batches of audio chunks from the CSV dataframe `chunks` to a zooniverse project.
+        """Uploads ``amount`` audio chunks from the CSV dataframe `chunks` to a zooniverse project.
 
         :param chunks: path to the chunk CSV dataframe
         :type chunks: [type]
         :param project_id: zooniverse project id
         :type project_id: int
-        :param set_prefix: prefix to each subject set display name
-        :type set_prefix: str
+        :param set_name: name of the subject set
+        :type set_name: str
         :param zooniverse_login: zooniverse login. If not specified, the program attempts to get it from the environment variable ``ZOONIVERSE_LOGIN`` instead, defaults to ''
         :type zooniverse_login: str, optional
         :param zooniverse_pwd: zooniverse password. If not specified, the program attempts to get it from the environment variable ``ZOONIVERSE_PWD`` instead, defaults to ''
         :type zooniverse_pwd: str, optional
-        :param batches: amount of batches to upload, defaults to 0
-        :type batches: int, optional
+        :param amount: amount of chunks to upload, defaults to 0
+        :type amount: int, optional
         """
 
         self.chunks_file = chunks
@@ -250,47 +245,54 @@ class ZooniversePipeline(Pipeline):
 
         subjects_metadata = []
         uploaded = 0
-        for batch, chunks in self.chunks.groupby('batch'):
-            if chunks['uploaded'].all():
-                continue
 
+        subject_set = None
+
+        for ss in zooniverse_project.links.subject_sets:
+            if ss.display_name == set_name:
+                subject_set = ss
+
+        if subject_set is None:
             subject_set = SubjectSet()
             subject_set.links.project = zooniverse_project
-            subject_set.display_name = "{}_batch_{}".format(set_prefix, batch)
+            subject_set.display_name = set_name
             subject_set.save()
-            subjects = []
+        
+        subjects = []
 
-            _chunks = chunks.to_dict(orient = 'index')
-            for chunk_index in _chunks:
-                chunk = _chunks[chunk_index]
+        chunks_to_upload = self.chunks[self.chunks['uploaded'] == False].head(amount)
+        chunks_to_upload = chunks_to_upload.to_dict(orient = 'index')
 
-                print("uploading chunk {} ({},{}) in batch {}".format(chunk['recording_filename'], chunk['onset'], chunk['offset'], batch))
+        if len(chunks_to_upload) == 0:
+            print('nothing left to upload.')
+            return
 
-                subject = Subject()
-                subject.links.project = zooniverse_project
-                subject.add_location(os.path.join(os.path.dirname(self.chunks_file), 'chunks', chunk['mp3']))
-                subject.metadata['date_extracted'] = chunk['date_extracted']
-                subject.save()
-                subjects.append(subject)
+        for chunk_index in chunks_to_upload:
+            chunk = chunks_to_upload[chunk_index]
 
-                chunk['index'] = chunk_index
-                chunk['zooniverse_id'] = str(subject.id)
-                chunk['project_id'] = str(project_id)
-                chunk['subject_set'] = str(subject_set.display_name)
-                chunk['uploaded'] = True
-                subjects_metadata.append(chunk)
+            print("uploading chunk {} ({},{})".format(chunk['recording_filename'], chunk['onset'], chunk['offset']))
+
+            subject = Subject()
+            subject.links.project = zooniverse_project
+            subject.add_location(os.path.join(os.path.dirname(self.chunks_file), 'chunks', chunk['mp3']))
+            subject.metadata['date_extracted'] = chunk['date_extracted']
+            subject.save()
+            subjects.append(subject)
+
+            chunk['index'] = chunk_index
+            chunk['zooniverse_id'] = str(subject.id)
+            chunk['project_id'] = str(project_id)
+            chunk['subject_set'] = str(subject_set.display_name)
+            chunk['uploaded'] = True
+            subjects_metadata.append(chunk)
             
-            subject_set.add(subjects)
+        subject_set.add(subjects)
 
-            self.chunks.update(
-                pd.DataFrame(subjects_metadata).set_index('index')
-            )
+        self.chunks.update(
+            pd.DataFrame(subjects_metadata).set_index('index')
+        )
 
-            self.chunks.to_csv(self.chunks_file)
-            uploaded += 1
-
-            if batches > 0 and uploaded >= batches:
-                return
+        self.chunks.to_csv(self.chunks_file)
 
     def retrieve_classifications(self, destination: str, project_id: int,
         zooniverse_login: str = '', zooniverse_pwd: str = '',
@@ -372,14 +374,13 @@ class ZooniversePipeline(Pipeline):
         parser_extraction.add_argument('--segments', help = 'path to the input segments dataframe', required = True)
         parser_extraction.add_argument('--destination', help = 'destination', required = True)
         parser_extraction.add_argument('--exclude-segments', help = 'segments to exclude before sampling', nargs = '+', default = [])
-        parser_extraction.add_argument('--batch-size', help = 'batch size', default = 1000, type = int)
         parser_extraction.add_argument('--threads', help = 'how many threads to run on', default = 0, type = int)
 
         parser_upload = subparsers.add_parser('upload-chunks', help = 'upload chunks and updates chunk state')
         parser_upload.add_argument('--chunks', help = 'path to the chunk CSV dataframe', required = True)
         parser_upload.add_argument('--project-id', help = 'zooniverse project id', required = True, type = int)
-        parser_upload.add_argument('--set-prefix', help = 'subject prefix', required = True)
-        parser_upload.add_argument('--batches', help = 'amount of batches to upload', required = False, type = int, default = 0)
+        parser_upload.add_argument('--set-name', help = 'subject set display name', required = True)
+        parser_upload.add_argument('--amount', help = 'amount of chunks to upload', required = False, type = int, default = 1000)
         parser_upload.add_argument('--zooniverse-login', help = 'zooniverse login. If not specified, the program attempts to get it from the environment variable ZOONIVERSE_LOGIN instead', default = '')
         parser_upload.add_argument('--zooniverse-pwd', help = 'zooniverse password. If not specified, the program attempts to get it from the environment variable ZOONIVERSE_PWD instead', default = '')
 
