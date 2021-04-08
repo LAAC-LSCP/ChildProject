@@ -509,7 +509,6 @@ class AnnotationManager:
             }
 
         reader = pylangacq.Reader.from_files([filename])
-
         df = pd.DataFrame(reader.utterances())
 
         for col in self.SEGMENTS_COLUMNS:
@@ -520,7 +519,7 @@ class AnnotationManager:
         df['segment_offset'] = df['time_marks'].apply(lambda tm: tm[1] if tm else 'NA')
         df['speaker_id'] = df['participant']
         df['speaker_type'] = df['speaker_id'].replace(speaker_id_to_type)
-        df['transcription'] = df['tokens'].apply(lambda l: '|'.join([t['word'] for t in l]))
+        df['transcription'] = df['tokens'].apply(lambda l: ' '.join([t['word'] for t in l]))
 
         df = df[set(df.columns) & {c.name for c in self.SEGMENTS_COLUMNS if c.required}]
 
