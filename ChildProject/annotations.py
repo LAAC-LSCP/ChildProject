@@ -845,6 +845,7 @@ class AnnotationManager:
         annotations = pool.map(partial(self.merge_annotations, left_columns, right_columns, columns, output_set), input_annotations)
         annotations = pd.concat(annotations)
         annotations.drop(columns = list(set(annotations.columns)-set([c.name for c in self.INDEX_COLUMNS])), inplace = True)
+        annotations.fillna({'raw_filename': 'NA'}, inplace = True)
         
         self.read()
         self.annotations = pd.concat([self.annotations, annotations], sort = False)
