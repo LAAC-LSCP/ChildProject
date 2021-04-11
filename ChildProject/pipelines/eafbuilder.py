@@ -3,13 +3,6 @@ import pandas as pd
 import sys
 import os
 import shutil
-import pympi
-
-try:
-    from importlib import resources
-except ImportError:
-    # TODO: Perhaps add this as a dependency to the resources?
-    import importlib_resources as resources
 
 from ChildProject.projects import ChildProject
 from ChildProject.pipelines.pipeline import Pipeline
@@ -18,6 +11,8 @@ def create_eaf(etf_path: str, id: str, output_dir: str,
     timestamps_list: list,
     eaf_type: str, contxt_on: int, contxt_off: int,
     template: str):
+    
+    import pympi
 
     print("ACLEW ID: ", id)
 
@@ -78,6 +73,12 @@ class EafBuilderPipeline(Pipeline):
         :param context_offset: context offset and segment offset difference in milliseconds, 0 for no outro context
         :type context_offset: float
         """
+
+        try:
+            from importlib import resources
+        except ImportError:
+            # TODO: Perhaps add this as a dependency to the resources?
+            import importlib_resources as resources
 
         # TODO: Make sure etf file paths are approprite and robust. 
         etf_path = "{}.etf".format(template)
