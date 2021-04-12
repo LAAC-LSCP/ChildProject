@@ -61,7 +61,7 @@ class Sampler(ABC):
 
         for recording, segments in self.segments.groupby('recording_filename'):
             if profile:
-                path = os.path.join(self.project.path, 'recordings/converted', profile, recording)
+                path = os.path.join(self.project.path, 'recordings/converted', profile, self.project.get_converted_recording_filename(profile, recording))
             else:
                 path = os.path.join(self.project.path, 'recordings/raw', recording)
             
@@ -246,7 +246,12 @@ class EnergyDetectionSampler(Sampler):
 
     def get_recording_windows(self, recording):
         if self.profile:
-            recording_path = os.path.join(self.project.path, ChildProject.projects.ChildProject.CONVERTED_RECORDINGS, self.profile, recording['recording_filename'])
+            recording_path = os.path.join(
+                self.project.path,
+                ChildProject.projects.ChildProject.CONVERTED_RECORDINGS,
+                self.profile,
+                self.project.get_converted_recording_filename(self.profile, recording['recording_filename'])
+            )
         else:
             recording_path = os.path.join(self.project.path, ChildProject.projects.ChildProject.RAW_RECORDINGS, recording['recording_filename'])
 

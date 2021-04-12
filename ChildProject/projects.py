@@ -95,6 +95,8 @@ class ChildProject:
         self.warnings = []
         self.children = None
         self.recordings = None
+
+        self.converted_recordings_hashtable = {}
     
     def read(self):
         """Read the metadata
@@ -180,6 +182,39 @@ class ChildProject:
                 self.warnings.append("file '{}' not indexed.".format(rf))
 
         return self.errors, self.warnings
+
+    def get_converted_recording_filename(self, profile: str, recording_filename: str) -> str:
+        """retrieve the converted filename of a recording under a given ``profile``,
+        from its original filename.
+
+        :param profile: recording profile
+        :type profile: str
+        :param recording_filename: original recording filename, as indexed in the metadata
+        :type recording_filename: str
+        :return: corresponding converted filename of the recording under this profile
+        :rtype: str
+        """
+
+        key = (profile, recording_filename)
+
+        if key in self.converted_recordings_hashtable:
+            return self.converted_recordings_hashtable[key]
+
+        converted_recordings = pd.read_csv(os.path.join(
+            self.path, self.CONVERTED_RECORDINGS, profile, 'recordings.csv'
+        ))
+
+        self.converted_recordings_hashtable.update({
+            (profile, original): converted
+            for original, converted in converted_recordings.loc[:, ['original_filename', 'converted_filename']].values
+        })
+
+        if key in self.converted_recordings_hashtable:
+            return self.converted_recordings_hashtable[key]
+        else:
+            self.converted_recordings_hashtable[key] = None
+            return None
+
 
     def get_stats(self) -> dict:
         """return statistics extracted from the dataset
