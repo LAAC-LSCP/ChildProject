@@ -11,14 +11,9 @@ def create_eaf(etf_path: str, id: str, output_dir: str,
     timestamps_list: list,
     eaf_type: str, contxt_on: int, contxt_off: int,
     template: str):
-    
-    import pympi
+    import pympi    
+    eaf = pympi.Elan.Eaf(etf_path)
 
-    print("ACLEW ID: ", id)
-
-    # NOTE: https://stackoverflow.com/questions/42694112/when-using-pathlib-getting-error-typeerror-invalid-file-posixpathexample-t
-    # Due to the issue above, I just call str() on the etf_path. A more elegant solution may be possible. 
-    eaf = pympi.Elan.Eaf(str(etf_path))
     ling_type = "transcription"
     eaf.add_tier("code_"+eaf_type, ling=ling_type)
     eaf.add_tier("context_"+eaf_type, ling=ling_type)
@@ -80,36 +75,47 @@ class EafBuilderPipeline(Pipeline):
             # TODO: Perhaps add this as a dependency to the resources?
             import importlib_resources as resources
 
-        # TODO: Make sure etf file paths are approprite and robust. 
         etf_path = "{}.etf".format(template)
-        psfx_path = "{}.pfsx".format(template)
+        pfsx_path = "{}.pfsx".format(template)
 
+        if template in ['basic', 'native', 'non-native']:
+            with resources.path('ChildProject.templates', etf_path) as etf:
+                etf_path = str(etf)
+
+            with resources.path('ChildProject.templates', pfsx_path) as pfsx:
+                pfsx_path = str(pfsx)
+
+        if not os.path.exists(etf_path):
+            raise Exception('{} cannot be found'.format(etf_path))
+
+        if not os.path.exists(pfsx_path):
+            raise Exception('{} cannot be found'.format(pfsx_path))
+        
         print("making the "+eaf_type+" eaf file and csv")
 
         segments = pd.read_csv(segments)
 
         for recording_filename, segs in segments.groupby('recording_filename'):
             recording_filename = os.path.splitext(recording_filename)[0]
-            output_filename = recording_filename + '_' + eaf_type + '_' + template
+            output_filename = recording_filename + '_' + eaf_type + '_' + os.path.basename(template)
             
             # TODO: This list of timestamps as tuples might not be ideal/should perhaps be optimized, but I am just replicating the original eaf creation code here.
             timestamps = [(on, off) for on, off in segs.loc[:, ['segment_onset', 'segment_offset']].values]
 
             output_dir = os.path.join(destination, recording_filename)
-            with resources.path('ChildProject.templates', etf_path) as e_path:
-                create_eaf(
-                    e_path,
-                    output_filename,
-                    output_dir,
-                    timestamps,
-                    eaf_type,
-                    context_onset,
-                    context_offset,
-                    template
-                )
 
-            with resources.path('ChildProject.templates', psfx_path) as p_path:
-                shutil.copy(str(p_path), os.path.join(output_dir, "{}.pfsx".format(output_filename)))
+            create_eaf(
+                etf_path,
+                output_filename,
+                output_dir,
+                timestamps,
+                eaf_type,
+                context_onset,
+                context_offset,
+                template
+            )
+
+            shutil.copy(pfsx_path, os.path.join(output_dir, "{}.pfsx".format(output_filename)))
 
 
     @staticmethod
@@ -117,7 +123,7 @@ class EafBuilderPipeline(Pipeline):
         parser.add_argument("--destination", help = "eaf destination")
         parser.add_argument('--segments', help = 'path to the input segments dataframe', required = True)
         # TODO: add other options here such as high-volubility, energy, etc.?
-        parser.add_argument('--eaf-type', help = 'eaf-type', choices = ['random', 'periodic'], required = True)
-        parser.add_argument('--template', help = 'eaf template', choices = ['basic', 'native', 'non-native'], required = True)
+        parser.add_argument('--eaf-type', help = 'eaf-type', choices = ['random', 'periodic', 'high-volubility'], required = True)
+        parser.add_argument('--template', help = 'Which ACLEW templates (basic, native or non-native); otherwise, the path to the etf et pfsx templates, without the extension.', required = True)
         parser.add_argument('--context-onset', help = 'context onset and segment offset difference in milliseconds, 0 for no introductory context', type = int, default = 0)
         parser.add_argument('--context-offset', help = 'context offset and segment offset difference in milliseconds, 0 for no outro context', type = int, default = 0)
