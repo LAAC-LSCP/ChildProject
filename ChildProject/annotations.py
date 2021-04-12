@@ -6,8 +6,6 @@ from numbers import Number
 import numpy as np
 import os
 import pandas as pd
-import pylangacq
-import pympi
 import re
 from functools import reduce, partial
 import shutil
@@ -199,6 +197,7 @@ class AnnotationManager:
         return errors, warnings
 
     def load_textgrid(self, filename: str) -> pd.DataFrame:
+        import pympi
         textgrid = pympi.Praat.TextGrid(filename)
 
         def ling_type(s):
@@ -242,10 +241,10 @@ class AnnotationManager:
         return pd.DataFrame(segments)
 
     def load_eaf(self, filename: str) -> pd.DataFrame:
+        import pympi
         eaf = pympi.Elan.Eaf(filename)
 
         segments = {}
-        
         for tier_name in eaf.tiers:
             annotations = eaf.tiers[tier_name][0]
 
@@ -502,6 +501,8 @@ class AnnotationManager:
         return df
 
     def load_clan(self, filename: str, speaker_id_to_type: dict = None) -> pd.DataFrame:
+        import pylangacq
+
         if speaker_id_to_type is None:
             speaker_id_to_type = {
                 'MOT': 'FEM',
