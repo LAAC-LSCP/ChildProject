@@ -177,7 +177,7 @@ class RandomVocalizationSampler(Sampler):
 
     def sample(self):
         self.segments = self.retrieve_segments()
-        self.segments = self.segments.groupby('recording_filename').sample(self.sample_size)
+        self.segments = self.segments.groupby('recording_filename').sample(frac = 1).head(self.sample_size)
         return self.segments
 
     @staticmethod
@@ -300,7 +300,7 @@ class EnergyDetectionSampler(Sampler):
             right_index = True
         )
         windows = windows[windows['energy'] >= windows['energy_threshold']]
-        self.segments = windows.groupby('recording_filename').sample(self.windows_count, replace = True)
+        self.segments = windows.groupby('recording_filename').sample(frac = 1).head(self.windows_count)
         self.segments.reset_index(inplace = True)
         self.segments.drop_duplicates(['recording_filename', 'segment_onset', 'segment_offset'], inplace = True)
 
