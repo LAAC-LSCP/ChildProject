@@ -5,7 +5,8 @@ Introduction
 ~~~~~~~~~~~~
 
 The ELAN .eaf builder exports eaf files ready to be annotated
-with the ELAN software, based on the ACLEW DAS templates.
+with the ELAN software, based on either the `ACLEW DAS templates <https://osf.io/aknjv/>`_
+or custom templates.
 
 The `original code <https://github.com/aclew/EAF_builder_scripts/tree/Second-Version>`_ was written
 by Sarah Mac Ewan.

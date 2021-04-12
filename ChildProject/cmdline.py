@@ -14,6 +14,9 @@ subparsers = parser.add_subparsers()
 def arg(*name_or_flags, **kwargs):
     return (list(name_or_flags), kwargs)
 
+def get_doc_summary(doc):
+    return doc.split("\n")[0] if doc else ''
+
 def subcommand(args=[], parent = subparsers):
     def decorator(func):
         parser = parent.add_parser(func.__name__.replace('_', '-'), description=func.__doc__)
@@ -23,7 +26,7 @@ def subcommand(args=[], parent = subparsers):
     return decorator
 
 def register_pipeline(subcommand, cls):
-    _parser = subparsers.add_parser(subcommand, description = cls.run.__doc__)
+    _parser = subparsers.add_parser(subcommand, description = get_doc_summary(cls.run.__doc__))
     cls.setup_parser(_parser)
     _parser.set_defaults(func = lambda args: cls().run(**vars(args)))
 
