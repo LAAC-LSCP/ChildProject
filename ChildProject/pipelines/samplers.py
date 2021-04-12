@@ -61,7 +61,7 @@ class Sampler(ABC):
 
         for recording, segments in self.segments.groupby('recording_filename'):
             if profile:
-                path = os.path.join(self.project.path, 'recordings/converted', profile, recording)
+                path = os.path.join(self.project.path, 'recordings/converted', profile, self.project.get_converted_recording_filename(profile, recording))
             else:
                 path = os.path.join(self.project.path, 'recordings/raw', recording)
             
@@ -177,7 +177,7 @@ class RandomVocalizationSampler(Sampler):
 
     def sample(self):
         self.segments = self.retrieve_segments()
-        self.segments = self.segments.groupby('recording_filename').sample(self.sample_size)
+        self.segments = self.segments.groupby('recording_filename').sample(frac = 1).head(self.sample_size)
         return self.segments
 
     @staticmethod
@@ -246,7 +246,12 @@ class EnergyDetectionSampler(Sampler):
 
     def get_recording_windows(self, recording):
         if self.profile:
-            recording_path = os.path.join(self.project.path, ChildProject.projects.ChildProject.CONVERTED_RECORDINGS, self.profile, recording['recording_filename'])
+            recording_path = os.path.join(
+                self.project.path,
+                ChildProject.projects.ChildProject.CONVERTED_RECORDINGS,
+                self.profile,
+                self.project.get_converted_recording_filename(self.profile, recording['recording_filename'])
+            )
         else:
             recording_path = os.path.join(self.project.path, ChildProject.projects.ChildProject.RAW_RECORDINGS, recording['recording_filename'])
 
@@ -300,7 +305,7 @@ class EnergyDetectionSampler(Sampler):
             right_index = True
         )
         windows = windows[windows['energy'] >= windows['energy_threshold']]
-        self.segments = windows.groupby('recording_filename').sample(self.windows_count, replace = True)
+        self.segments = windows.groupby('recording_filename').sample(frac = 1).head(self.windows_count)
         self.segments.reset_index(inplace = True)
         self.segments.drop_duplicates(['recording_filename', 'segment_onset', 'segment_offset'], inplace = True)
 

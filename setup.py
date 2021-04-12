@@ -12,7 +12,7 @@ setup(
     name='ChildProject',
     version = ChildProject.__version__,
     description='LAAC@LSCP',
-    url='https://github.com/LAAC-LSCP/ChildRecordsData',
+    url='https://github.com/LAAC-LSCP/ChildProject',
     author='Lucas',
     author_email='lucas.gautheron@gmail.com',
     license='MIT',

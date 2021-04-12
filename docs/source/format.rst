@@ -5,7 +5,7 @@
 Datasets structure
 ==================
 
-ChildRecordsData assumes your data is structured in a specific way
+ChildProject assumes your data is structured in a specific way
 before it is imported. This structure is necessary to check, for
 instance, that there are no unreferenced files, and no referenced files
 that are actually missing. The data curator therefore needs to organize
