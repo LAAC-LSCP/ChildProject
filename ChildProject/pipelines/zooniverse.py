@@ -368,8 +368,8 @@ class ZooniversePipeline(Pipeline):
         parser_extraction.add_argument('path', help = 'path to the dataset')
         parser_extraction.add_argument('--keyword', help = 'export keyword', required = True)
 
-        parser_extraction.add_argument('--chunks-length', help = 'chunk length (in milliseconds). if <= 0, the segments will not be split into chunks', type = int, default = 0)
-        parser_extraction.add_argument('--chunks-min-amount', help = 'minimum amount of chunks to extract from a segment', default = 1)
+        parser_extraction.add_argument('--chunks-length', help = 'chunk length (in milliseconds). if <= 0, the segments will not be split into chunks (default value: 0)', type = int, default = 0)
+        parser_extraction.add_argument('--chunks-min-amount', help = 'minimum amount of chunks to extract from a segment (default value: 1)', default = 1)
 
         parser_extraction.add_argument('--segments', help = 'path to the input segments dataframe', required = True)
         parser_extraction.add_argument('--destination', help = 'destination', required = True)
