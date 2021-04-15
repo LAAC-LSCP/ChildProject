@@ -32,7 +32,7 @@ class AnnotationManager:
         IndexColumn(name = 'range_onset', description = 'covered range start time in milliseconds, measured since `time_seek`', regex = r"([0-9]+)", required = True),
         IndexColumn(name = 'range_offset', description = 'covered range end time in milliseconds, measured since `time_seek`', regex = r"([0-9]+)", required = True),
         IndexColumn(name = 'raw_filename', description = 'annotation input filename location, relative to `annotations/<set>/raw`', filename = True, required = True),
-        IndexColumn(name = 'format', description = 'input annotation format', choices = ['TextGrid', 'eaf', 'vtc_rttm', 'vcm_rttm', 'alice', 'its'], required = False),
+        IndexColumn(name = 'format', description = 'input annotation format', choices = ['TextGrid', 'eaf', 'vtc_rttm', 'vcm_rttm', 'alice', 'its', 'chat'], required = False),
         IndexColumn(name = 'filter', description = 'source file to filter in (for rttm and alice only)', required = False),
         IndexColumn(name = 'annotation_filename', description = 'output formatted annotation location, relative to `annotations/<set>/converted (automatic column, don\'t specify)', filename = True, required = False, generated = True),
         IndexColumn(name = 'imported_at', description = 'importation date (automatic column, don\'t specify)', datetime = "%Y-%m-%d %H:%M:%S", required = False, generated = True),
@@ -546,7 +546,7 @@ class AnnotationManager:
 
         return df
 
-    def load_clan(self, filename: str, speaker_id_to_type: dict = None) -> pd.DataFrame:
+    def load_chat(self, filename: str, speaker_id_to_type: dict = None) -> pd.DataFrame:
         import pylangacq
 
         if speaker_id_to_type is None:
@@ -609,6 +609,8 @@ class AnnotationManager:
                 df = self.load_its(path, recording_num = filter)
             elif annotation_format == 'alice':
                 df = self.load_alice(path, source_file = filter)
+            elif annotation_format == 'chat':
+                df = self.load_chat(path)
             else:
                 raise ValueError("file format '{}' unknown for '{}'".format(annotation_format, path))
         except:
