@@ -61,7 +61,7 @@ class Sampler(ABC):
 
         for recording, segments in self.segments.groupby('recording_filename'):
             if profile:
-                path = os.path.join(self.project.path, 'recordings/converted', profile, recording)
+                path = os.path.join(self.project.path, 'recordings/converted', profile, self.project.get_converted_recording_filename(profile, recording))
             else:
                 path = os.path.join(self.project.path, 'recordings/raw', recording)
             
@@ -177,7 +177,7 @@ class RandomVocalizationSampler(Sampler):
 
     def sample(self):
         self.segments = self.retrieve_segments()
-        self.segments = self.segments.groupby('recording_filename').sample(self.sample_size)
+        self.segments = self.segments.groupby('recording_filename').sample(frac = 1).head(self.sample_size)
         return self.segments
 
     @staticmethod
@@ -246,7 +246,12 @@ class EnergyDetectionSampler(Sampler):
 
     def get_recording_windows(self, recording):
         if self.profile:
-            recording_path = os.path.join(self.project.path, ChildProject.projects.ChildProject.CONVERTED_RECORDINGS, self.profile, recording['recording_filename'])
+            recording_path = os.path.join(
+                self.project.path,
+                ChildProject.projects.ChildProject.CONVERTED_RECORDINGS,
+                self.profile,
+                self.project.get_converted_recording_filename(self.profile, recording['recording_filename'])
+            )
         else:
             recording_path = os.path.join(self.project.path, ChildProject.projects.ChildProject.RAW_RECORDINGS, recording['recording_filename'])
 
@@ -300,7 +305,7 @@ class EnergyDetectionSampler(Sampler):
             right_index = True
         )
         windows = windows[windows['energy'] >= windows['energy_threshold']]
-        self.segments = windows.groupby('recording_filename').sample(self.windows_count, replace = True)
+        self.segments = windows.groupby('recording_filename').sample(frac = 1).head(self.windows_count)
         self.segments.reset_index(inplace = True)
         self.segments.drop_duplicates(['recording_filename', 'segment_onset', 'segment_offset'], inplace = True)
 
@@ -357,6 +362,10 @@ class HighVolubilitySampler(Sampler):
         segments = self.retrieve_segments(recording['recording_filename'])
 
         if segments is None:
+            print("warning: no annotations from the set '{}' were found for the recording '{}'".format(
+                self.annotation_set,
+                recording['recording_filename']
+            ))
             return pd.DataFrame(columns = ['segment_onset', 'segment_offset', 'recording_filename'])
 
         # NOTE: The timestamps were simply rounded to 5 minutes in the original 
@@ -372,16 +381,32 @@ class HighVolubilitySampler(Sampler):
         windows['recording_filename'] = recording['recording_filename']
 
         if self.metric == 'ctc':
-            # NOTE: The original code explicitly chooses for these conversational turn 
-            # types, but we might wish to verify what they are. 
-            segments['is_CT'] = segments['lena_conv_turn_type'].isin(['TIFR', 'TIMR'])
+            if 'lena_conv_turn_type' in segments.columns:
+                # NOTE: This is the equivalent of CTC (tab1) in rlena_extract.R
+                segments['is_CT'] = segments['lena_conv_turn_type'].isin(['TIFR', 'TIMR'])
+            else:
+                segments.sort_values(['segment_onset', 'segment_offset'])
+                segments = segments[segments['speaker_type'].isin(['FEM', 'MAL', 'CHI'])]
+                segments['duration'] = segments['segment_offset']-segments['segment_onset']
+                segments['iti'] = segments['segment_onset'] - segments['segment_offset'].shift(1)
+                segments['prev_speaker_type'] = segments['speaker_type'].shift(1)
 
-            # NOTE: This is the equivalent of CTC (tab1) in rlena_extract.R
+                key_child_env = ['FEM', 'MAL', 'CHI']
+                segments['is_CT'] = segments.apply(
+                    lambda row: (row['iti'] < 1000) and (
+                        (row['speaker_type'] == 'CHI' and row['prev_speaker_type'] in key_child_env) or
+                        (row['speaker_type'] in key_child_env and row['prev_speaker_type'] == 'CHI')
+                    ), axis = 1
+                )
+
             segments = segments.groupby('chunk', as_index=False)[['is_CT']].sum().rename(columns={'is_CT': 'ctc'}).merge(windows)
-        
+
         elif self.metric == 'cvc':
             # NOTE: This is the equivalent of CVC (tab2) in rlena_extract.R
-            segments = segments[segments.speaker_type.isin(['OCH', 'CHI'])].groupby('chunk', as_index=False)[['utterances_count']].sum().rename(columns={'utterances_count': 'cvc'}).merge(windows)
+            if 'utterances_count' in segments.columns:
+                segments = segments[segments.speaker_type == 'CHI'].groupby('chunk', as_index=False)[['utterances_count']].sum().rename(columns={'utterances_count': 'cvc'}).merge(windows)
+            else:
+                segments = segments[segments.speaker_type == 'CHI'].groupby('chunk', as_index=False)[['segment_onset']].count().rename(columns={'segment_onset': 'cvc'}).merge(windows)
         
         elif self.metric == 'awc':
             # NOTE: This is the equivalent of AWC (tab3) in rlena_extract.R
@@ -446,7 +471,7 @@ class SamplerPipeline(Pipeline):
         segments_path = os.path.join(destination, 'segments_{}.csv'.format(date))
         parameters_path = os.path.join(destination, 'parameters_{}.yml'.format(date))
 
-        self.segments[self.segments.columns & {'recording_filename', 'segment_onset', 'segment_offset'}].to_csv(segments_path, index = False)
+        self.segments[set(self.segments.columns) & {'recording_filename', 'segment_onset', 'segment_offset'}].to_csv(segments_path, index = False)
         print("exported sampled segments to {}".format(segments_path))
         dump({
             'parameters': parameters,

@@ -1,28 +1,6 @@
 Converting a dataset
 ====================
 
--  `Converting a dataset <#converting-a-dataset>`__
-
-   -  `Set-up datalad and
-      child-project <#set-up-datalad-and-child-project>`__
-   -  `Create a dataset <#create-a-dataset>`__
-   -  `Gather and sort the files <#gather-and-sort-the-files>`__
-   -  `Create the metadata <#create-the-metadata>`__
-   -  `Save the changes locally <#save-the-changes-locally>`__
-   -  `Processing <#processing>`__
-   -  `Publish the dataset <#publish-the-dataset>`__
-
-      -  `Where to publish my dataset
-         ? <#where-to-publish-my-dataset->`__
-      -  `Publish to a SSH server <#publish-to-a-ssh-server>`__
-      -  `Publish to GitHub <#publish-to-github>`__
-
-         -  `GitHub + SSH mirror to store the large
-            files <#github--ssh-mirror-to-store-the-large-files>`__
-
-      -  `Publish on S3 <#publish-on-s3>`__
-      -  `Publish on OSF <#publish-on-osf>`__
-
 This tutorial will guide you through the steps for the conversion of an
 existing dataset. We will use the `VanDam-Daylong dataset from
 HomeBank <https://homebank.talkbank.org/access/Public/VanDam-Daylong.html>`__
@@ -162,6 +140,15 @@ about when the recording started:
 
    <Recording num="1" startClockTime="2010-07-24T11:58:16Z" endClockTime="2010-07-25T01:59:20Z" startTime="PT0.00S" endTime="PT50464.24S">
 
+The 'Z' suffix in the clock times indicate they correspond to the UTC timezone.
+However, the metadata should contain local times only. The difference between
+the two is 5 hours, according to the following line in the .its file:
+
+.. code:: xml
+
+   <TransferTime LocalTime="2010-07-28T14:34:46" TimeZone="CST" UTCTime="2010-07-28T19:34:46" />
+
+Therefore, the recording started on 2010-07-24, at 06:58 (local time).
 
 In order to reflect that information, the recordings CSV metadata
 should look like this (we have decided that the only child of the
@@ -309,8 +296,11 @@ Publish the dataset
 Where to publish my dataset ?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-DataLad allows you to publish your datasets on a very wide range of
-platforms, each having their own advantages and limitations. It is also
+DataLad allows you to publish your datasets on `large number of storage
+providers <https://git-annex.branchable.com/special_remotes/>`_,
+including Amazon S3, Dropbox, Google Cloud Storage, Microsoft Azure Blob
+Storage, etc.,
+each having their own advantages and limitations. It is also
 possible to publish to several platforms, as we do with our own
 datasets.
 
@@ -325,16 +315,52 @@ generalize.
    instead of the regular git files (such as scripts and metadata)
 
 It is necessary to use a platform or a combination of platforms that
-supports both.
+supports both. We recommend the use of `GIN <https://gin.g-node.org/>`_,
+although you should always push your data to another platform as backup.
 
 .. csv-table::
    :header-rows: 1
 
-   Host,Git,Large Files,Encryption
-   SSH server,Yes,Yes,No ?
-   GitHub,Yes,No,No
-   Amazon S3,No,Yes,Yes
-   OSF.io,Yes,Yes*,No
+   Provider,Git,Large Files,Authentication,Permissions,Cost,Quota
+   GIN,Yes,Yes,HTTPS/SSH,ACL,Free below ~10 TB,None
+   SSH server,Yes,Yes,SSH,Unix,\-,None
+   GitHub,Yes,No,HTTPS/SSH,ACL,Free,~1 GB
+   GitLab,Yes,No,HTTPS/SSH,ACL,Free,~1 GB
+   Amazon S3,No,Yes,API,IAM,~4$/TB/month,None
+   Nextcloud,No,Yes,WebDav,ACL,\-,None
+   OSF.io,Yes,Yes*,Token,ACL,Free,5 GB
+
+.. note::
+
+   DataLad uses git-annex, which naturally handles `encryption <https://git-annex.branchable.com/encryption>`_.
+   This is particularly useful when using third-party providers
+   such as Amazon S3.
+   
+
+Publish to GIN
+~~~~~~~~~~~~~~
+
+.. note::
+   
+   Before anything, you will need to create an account on `GIN <https://gin.g-node.org/>`_,
+   and to link your `SSH public key <https://gin.g-node.org/user/settings/ssh>`_ to your
+   GIN account.
+
+1. Create a new repository from `GIN's web interface <https://gin.g-node.org/repo/create>`_.
+2. Copy the SSH url of your repository to your clipboard, e.g.: ``git@gin.g-node.org:/<username>/<reponame>.git``
+3. Add a datalad sibling pointing to this repository:
+
+.. code:: bash
+   
+   datalad siblings add \
+      --name gin \
+      --url git@gin.g-node.org:/<username>/<reponame>.git
+
+4. Push the data to GIN:
+
+.. code:: bash
+
+   datalad push --to gin
 
 Publish to a SSH server
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -380,6 +406,7 @@ it explicitly with the ``--data`` flag:
 
    datalad push --to cluster --data anything
 
+
 Publish to GitHub
 ~~~~~~~~~~~~~~~~~
 
@@ -415,8 +442,8 @@ Users can now install your dataset from GitHub:
 
    datalad install https://github.com/LAAC-LSCP/vandam-daylong-demo.git
 
-PS: we recommand that you do ``git push --set-upstream origin`` to set
-upstream to the GitHub sibling. Users who install your dataset will not
+PS: we recommend that you do ``git push --set-upstream origin`` to set
+upstream to the GitHub sibling. Users who install your dataset from GitHub will not
 need to do this.
 
 GitHub + SSH mirror to store the large files
@@ -448,17 +475,9 @@ them, which can be done this way :
 Publish on S3
 ~~~~~~~~~~~~~
 
-You might not have access to a SSH server with enough storage capacity,
-or you might just not want to setup SSH keys to every user of your
-dataset. Fortunately, DataLad supports a `large number of storage
-providers <https://git-annex.branchable.com/special_remotes/>`__ such
-as: Amazon S3, Dropbox, Google Cloud Storage, Microsoft Azure Blob
-Storage, as well as any FTP/SFTP server. Here, we will give instructions
-for Amazon S3.
-
 Like other *git annex special remotes*, Amazon S3 will not support the
-git files, only the large files. But you can use it along with GitHub or
-GitLab.
+git files, only the large files. It could be used together win GitHub
+as the primary host for your large files, or as a backup. 
 
 *For the sake of simplicity, we will not use encryption here, but git
 annex implements several*\ `encryption

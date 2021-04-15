@@ -1,5 +1,5 @@
-ChildRecordsData
-================
+ChildProject
+============
 
 - [Introduction](#introduction)
 - [Available tools](#available-tools)
@@ -73,9 +73,9 @@ In this context, we provide tools and a procedure to:
 -   Add clips to an annotation pipeline in Zooniverse, and retrieve the
     ensuing annotations
 
-These tools can be used both in [command-line](https://laac-lscp.github.io/ChildRecordsData/tools.html) or from within your python code, by importing our [modules](https://laac-lscp.github.io/ChildRecordsData/modules.html).
+These tools can be used both in [command-line](https://childproject.readthedocs.io/en/latest/tools.html) or from within your python code, by importing our [modules](https://childproject.readthedocs.io/en/latest/modules.html).
 
 Installation
 ------------
 
-You can find instructions to install and use our package in our [documentation](https://laac-lscp.github.io/ChildRecordsData/install.html).
+You can find instructions to install and use our package in our [documentation](https://childproject.readthedocs.io/en/latest/install.html).

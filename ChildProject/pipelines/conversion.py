@@ -73,7 +73,6 @@ def convert_recording(path: str, profile: str, skip_existing: bool, row: dict) -
             'ffmpeg', '-y',
             '-loglevel', 'error',
             '-i', original_file,
-            '-ac', '1',
             '-c:a', profile.codec,
             '-ar', str(profile.sampling)
         ]

@@ -80,6 +80,9 @@ consenting adults. Here are the steps:
 3. Click on the green button ‘New SSH key’ and paste your public key
    where requested.
 
+.. _reuse-oberon-ssh:
+
+
 Setting up your ssh access to Oberon
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -180,8 +183,7 @@ In order to install the superdataset, run the following commands :
    datalad run-procedure setup <oberon_alias>
 
 Make sure to replace ``<oberon_alias>`` with whatever alias you use to
-ssh into Oberon. If you have followed `our
-instructions <https://laac-lscp.github.io/ChildRecordsData/REUSE.html#setting-up-your-ssh-access-to-oberon>`__,
+ssh into Oberon. If you have followed our instructions (:ref:`reuse-oberon-ssh`),
 it should be ``foberon``.
 
 You’re good to go. You can download data from any dataset, e.g. by doing
