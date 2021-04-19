@@ -213,7 +213,8 @@ class AnnotationManager:
 
         return errors, warnings
 
-    def load_textgrid(self, filename: str) -> pd.DataFrame:
+    @staticmethod
+    def load_textgrid(filename: str) -> pd.DataFrame:
         import pympi
         textgrid = pympi.Praat.TextGrid(filename)
 
@@ -242,7 +243,7 @@ class AnnotationManager:
                     'segment_offset': int(round(1000*float(interval[1]))),
                     'speaker_id': tier_name,
                     'ling_type': ling_type(interval[2]),
-                    'speaker_type': self.SPEAKER_ID_TO_TYPE[tier_name] if tier_name in self.SPEAKER_ID_TO_TYPE else 'NA',
+                    'speaker_type': AnnotationManager.SPEAKER_ID_TO_TYPE[tier_name] if tier_name in AnnotationManager.SPEAKER_ID_TO_TYPE else 'NA',
                     'vcm_type': 'NA',
                     'lex_type': 'NA',
                     'mwu_type': 'NA',
@@ -257,7 +258,8 @@ class AnnotationManager:
 
         return pd.DataFrame(segments)
 
-    def load_eaf(self, filename: str) -> pd.DataFrame:
+    @staticmethod
+    def load_eaf(filename: str) -> pd.DataFrame:
         import pympi
         eaf = pympi.Elan.Eaf(filename)
 
@@ -265,7 +267,7 @@ class AnnotationManager:
         for tier_name in eaf.tiers:
             annotations = eaf.tiers[tier_name][0]
 
-            if tier_name not in self.SPEAKER_ID_TO_TYPE and len(annotations) > 0:
+            if tier_name not in AnnotationManager.SPEAKER_ID_TO_TYPE and len(annotations) > 0:
                 print("warning: unknown tier '{}' will be ignored in '{}'".format(tier_name, filename))
                 continue
 
@@ -278,7 +280,7 @@ class AnnotationManager:
                     'segment_offset': int(round(end_t)),
                     'speaker_id': tier_name,
                     'ling_type': 'NA',
-                    'speaker_type': self.SPEAKER_ID_TO_TYPE[tier_name] if tier_name in self.SPEAKER_ID_TO_TYPE else 'NA',
+                    'speaker_type': AnnotationManager.SPEAKER_ID_TO_TYPE[tier_name] if tier_name in AnnotationManager.SPEAKER_ID_TO_TYPE else 'NA',
                     'vcm_type': 'NA',
                     'lex_type': 'NA',
                     'mwu_type': 'NA',
@@ -299,7 +301,7 @@ class AnnotationManager:
 
             reference_annotations = eaf.tiers[tier_name][1]
 
-            if ref not in self.SPEAKER_ID_TO_TYPE:
+            if ref not in AnnotationManager.SPEAKER_ID_TO_TYPE:
                 continue
 
             for aid in reference_annotations:
@@ -328,7 +330,8 @@ class AnnotationManager:
 
         return pd.DataFrame(segments.values())
 
-    def load_its(self, filename: str, recording_num: int = None) -> pd.DataFrame:
+    @staticmethod
+    def load_its(filename: str, recording_num: int = None) -> pd.DataFrame:
         xml = etree.parse(filename)
 
         recordings = xml.xpath('/ITS/ProcessingUnit/Recording' + ('[@num="{}"]'.format(recording_num) if recording_num else ''))
@@ -430,7 +433,7 @@ class AnnotationManager:
                     'segment_offset': int(round(offset*1000)),
                     'speaker_id': 'NA',
                     'ling_type': 'NA',
-                    'speaker_type': self.LENA_SPEAKER_TYPE_TRANSLATION[seg.get('spkr')],
+                    'speaker_type': AnnotationManager.LENA_SPEAKER_TYPE_TRANSLATION[seg.get('spkr')],
                     'vcm_type': 'NA',
                     'lex_type': 'NA',
                     'mwu_type': 'NA',
@@ -460,7 +463,8 @@ class AnnotationManager:
         
         return df
 
-    def load_vtc_rttm(self, filename: str, source_file: str = '') -> pd.DataFrame:
+    @staticmethod
+    def load_vtc_rttm(filename: str, source_file: str = '') -> pd.DataFrame:
         rttm = pd.read_csv(
             filename,
             sep = " ",
@@ -472,7 +476,7 @@ class AnnotationManager:
         df['segment_offset'] = (df['tbeg']+df['tdur']).mul(1000).round().astype(int)
         df['speaker_id'] = 'NA'
         df['ling_type'] = 'NA'
-        df['speaker_type'] = df['name'].map(self.VTC_SPEAKER_TYPE_TRANSLATION)
+        df['speaker_type'] = df['name'].map(AnnotationManager.VTC_SPEAKER_TYPE_TRANSLATION)
         df['vcm_type'] = 'NA'
         df['lex_type'] = 'NA'
         df['mwu_type'] = 'NA'
@@ -489,7 +493,8 @@ class AnnotationManager:
 
         return df
 
-    def load_vcm_rttm(self, filename: str, source_file: str = '') -> pd.DataFrame:
+    @staticmethod
+    def load_vcm_rttm(filename: str, source_file: str = '') -> pd.DataFrame:
         rttm = pd.read_csv(
             filename,
             sep = " ",
@@ -501,8 +506,8 @@ class AnnotationManager:
         df['segment_offset'] = (df['tbeg']+df['tdur']).mul(1000).round().astype(int)
         df['speaker_id'] = 'NA'
         df['ling_type'] = 'NA'
-        df['speaker_type'] = df['name'].map(self.VCM_SPEAKER_TYPE_TRANSLATION)
-        df['vcm_type'] = df['name'].map(self.VCM_VCM_TRANSLATION)
+        df['speaker_type'] = df['name'].map(AnnotationManager.VCM_SPEAKER_TYPE_TRANSLATION)
+        df['vcm_type'] = df['name'].map(AnnotationManager.VCM_VCM_TRANSLATION)
         df['lex_type'] = 'NA'
         df['mwu_type'] = 'NA'
         df['addresseee'] = 'NA'
@@ -518,7 +523,8 @@ class AnnotationManager:
 
         return df
 
-    def load_alice(self, filename: str, source_file: str = '') -> pd.DataFrame:
+    @staticmethod
+    def load_alice(filename: str, source_file: str = '') -> pd.DataFrame:
         df = pd.read_csv(
             filename,
             sep = r"\s",
@@ -546,21 +552,26 @@ class AnnotationManager:
 
         return df
 
-    def load_chat(self, filename: str, speaker_id_to_type: dict = None) -> pd.DataFrame:
+    @staticmethod
+    def load_chat(filename: str, speaker_id_to_type: dict = None) -> pd.DataFrame:
         import pylangacq
 
         if speaker_id_to_type is None:
             speaker_id_to_type = {
                 'MOT': 'FEM',
-                'FAT': 'MAL'
+                'FAT': 'MAL',
+                'SIS': 'OCH'
             }
 
         reader = pylangacq.Reader.from_files([filename])
         df = pd.DataFrame(reader.utterances())
 
-        for col in self.SEGMENTS_COLUMNS:
+        for col in AnnotationManager.SEGMENTS_COLUMNS:
             if col.required:
                 df[col.name] = 'NA'
+                
+        df['tiers'] = df['tiers'].apply(lambda d: {k.replace('%', ''): d[k] for k in d.keys()})
+        df = pd.concat([df.drop(['tiers'], axis = 1), df['tiers'].apply(pd.Series)], axis = 1)
 
         df['segment_onset'] = df['time_marks'].apply(lambda tm: tm[0] if tm else 'NA')
         df['segment_offset'] = df['time_marks'].apply(lambda tm: tm[1] if tm else 'NA')
@@ -568,7 +579,9 @@ class AnnotationManager:
         df['speaker_type'] = df['speaker_id'].replace(speaker_id_to_type)
         df['transcription'] = df['tokens'].apply(lambda l: ' '.join([t['word'] for t in l]))
 
-        df = df[set(df.columns) & {c.name for c in self.SEGMENTS_COLUMNS if c.required}]
+        df = df[(df['segment_onset'] != 'NA') & (df['segment_offset'] != 'NA')]
+        df.drop(columns = ['tokens', 'time_marks'], inplace = True)
+        df.fillna('NA', inplace = True)
 
         return df
 
@@ -598,19 +611,19 @@ class AnnotationManager:
             if callable(import_function):
                 df = import_function(path)
             elif annotation_format == 'TextGrid':
-                df = self.load_textgrid(path)
+                df = AnnotationManager.load_textgrid(path)
             elif annotation_format == 'eaf':
-                df = self.load_eaf(path)
+                df = AnnotationManager.load_eaf(path)
             elif annotation_format == 'vtc_rttm':
-                df = self.load_vtc_rttm(path, source_file = filter)
+                df = AnnotationManager.load_vtc_rttm(path, source_file = filter)
             elif annotation_format == 'vcm_rttm':
-                df = self.load_vcm_rttm(path, source_file = filter)
+                df = AnnotationManager.load_vcm_rttm(path, source_file = filter)
             elif annotation_format == 'its':
-                df = self.load_its(path, recording_num = filter)
+                df = AnnotationManager.load_its(path, recording_num = filter)
             elif annotation_format == 'alice':
-                df = self.load_alice(path, source_file = filter)
+                df = AnnotationManager.load_alice(path, source_file = filter)
             elif annotation_format == 'chat':
-                df = self.load_chat(path)
+                df = AnnotationManager.load_chat(path)
             else:
                 raise ValueError("file format '{}' unknown for '{}'".format(annotation_format, path))
         except:
@@ -666,11 +679,18 @@ class AnnotationManager:
         input['range_onset'] = input['range_onset'].astype(int)
         input['range_offset'] = input['range_offset'].astype(int)
 
-        pool = mp.Pool(processes = threads if threads > 0 else mp.cpu_count())
-        imported = pool.map(
-            partial(self._import_annotation, import_function),
-            input.to_dict(orient = 'records')
-        )
+        if 'chat' in input['format'].tolist():
+            print('warning: chat does not support multithread importation; running on 1 thread')
+            threads = 1
+
+        if threads == 1:
+            imported = input.apply(partial(self._import_annotation, import_function), axis = 1).to_dict(orient = 'records')
+        else:
+            pool = mp.Pool(processes = threads if threads > 0 else mp.cpu_count())
+            imported = pool.map(
+                partial(self._import_annotation, import_function),
+                input.to_dict(orient = 'records')
+            )
 
         imported = pd.DataFrame(imported)
         imported.drop(list(set(imported.columns)-{c.name for c in self.INDEX_COLUMNS}), axis = 1, inplace = True)
