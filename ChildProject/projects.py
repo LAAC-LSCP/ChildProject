@@ -101,11 +101,60 @@ class ChildProject:
     def read(self):
         """Read the metadata
         """
-        self.ct = IndexTable('children', os.path.join(self.path, 'metadata/children.csv'), self.CHILDREN_COLUMNS)
-        self.rt = IndexTable('recordings', os.path.join(self.path, 'metadata/recordings.csv'), self.RECORDINGS_COLUMNS)
+        metadata_path = os.path.join(self.path, 'metadata')
+
+        self.ct = IndexTable('children', os.path.join(metadata_path, 'children.csv'), self.CHILDREN_COLUMNS)
+        self.rt = IndexTable('recordings', os.path.join(metadata_path, 'recordings.csv'), self.RECORDINGS_COLUMNS)
 
         self.children = self.ct.read()
         self.recordings = self.rt.read()
+
+        additional_children_md = []
+        children_md_path = os.path.join(metadata_path, 'children')
+        
+        if os.path.exists(children_md_path):
+            additional_children_md = sorted(
+                glob.glob(os.path.join(children_md_path, '**/*.csv'), recursive = True),
+                key = os.path.basename
+            )
+
+            for md in additional_children_md:
+                table = IndexTable('children', md, self.CHILDREN_COLUMNS)
+                dataframe = table.read()
+
+                self.children['line'] = self.children.index
+                self.children = self.children[(set(self.children.columns) - set(dataframe.columns)) | {'child_id'}].merge(
+                    dataframe,
+                    how = 'left',
+                    left_on = 'child_id',
+                    right_on = 'child_id'
+                ).set_index('line')
+
+            self.ct.df = self.children
+
+        additional_recordings_md = []
+        recordings_md_path = os.path.join(metadata_path, 'recordings')
+
+        if os.path.exists(recordings_md_path):
+            additional_recordings_md = sorted(
+                glob.glob(os.path.join(recordings_md_path, '**/*.csv'), recursive = True),
+                key = os.path.basename
+            )
+
+            for md in additional_recordings_md:
+                table = IndexTable('recordings', md, self.RECORDINGS_COLUMNS)
+                dataframe = table.read()
+
+                self.recordings['line'] = self.recordings.index
+                self.recordings = self.recordings[(set(self.recordings.columns) - set(dataframe.columns)) | {'recording_filename'}].merge(
+                    dataframe,
+                    how = 'left',
+                    left_on = 'recording_filename',
+                    right_on = 'recording_filename'
+                ).set_index('line')
+
+            self.rt.df = self.recordings
+
 
     def validate(self, ignore_files: bool = False) -> tuple:
         """Validate a dataset, returning all errors and warnings.
