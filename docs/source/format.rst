@@ -75,8 +75,8 @@ The recordings metadata dataframe needs to be saved at
 .. index-table:: Recordings metadata
    :header: recordings
 
-Splitting the metadata in several files
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Splitting the metadata across several files
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Sometimes, access to parts of the metadata should be limited
 to a list of authorized users. This can be achieved by moving confidential
