@@ -56,7 +56,7 @@ class ChildProject:
         IndexColumn(name = 'date_iso', description = 'date in which recording was started in ISO (eg 2020-09-17)', required = True, datetime = '%Y-%m-%d'),
         IndexColumn(name = 'start_time', description = 'local time in which recording was started in format 24-hour (H)H:MM; if minutes are unknown, use 00. Set as ‘NA’ if unknown.', required = True, datetime = '%H:%M'),
         IndexColumn(name = 'recording_device_type', description = 'lena, usb, olympus, babylogger (lowercase)', required = True, choices = ['lena', 'usb', 'olympus', 'babylogger']),
-        IndexColumn(name = 'recording_filename', description = 'the path to the file from the root of “recordings”), set to ‘NA’ if no valid recording available. It is unique (two recordings cannot point towards the same file).', required = True, filename = True, unique = True),
+        IndexColumn(name = 'recording_filename', description = 'the path to the file from the root of “recordings”). It MUST be unique (two recordings cannot point towards the same file).', required = True, filename = True, unique = True),
         IndexColumn(name = 'duration', description = 'duration of the audio, in milliseconds', regex = r'([0-9]+)'),
         IndexColumn(name = 'session_id', description = 'identifier of the recording session.'),
         IndexColumn(name = 'session_offset', description = 'offset (in milliseconds) of the recording with respect to other recordings that are part of the same session. Each recording session is identified by their `session_id`.', regex = r'[0-9]+'),
@@ -111,11 +111,12 @@ class ChildProject:
 
         additional_children_md = []
         children_md_path = os.path.join(metadata_path, 'children')
-        
+
         if os.path.exists(children_md_path):
             additional_children_md = sorted(
                 glob.glob(os.path.join(children_md_path, '**/*.csv'), recursive = True),
-                key = os.path.basename
+                key = os.path.basename,
+                reverse = True
             )
 
             for md in additional_children_md:
@@ -138,7 +139,8 @@ class ChildProject:
         if os.path.exists(recordings_md_path):
             additional_recordings_md = sorted(
                 glob.glob(os.path.join(recordings_md_path, '**/*.csv'), recursive = True),
-                key = os.path.basename
+                key = os.path.basename,
+                reverse = True
             )
 
             for md in additional_recordings_md:
