@@ -49,7 +49,7 @@ class AnnotationManager:
         IndexColumn(name = 'vcm_type', description = 'vocal maturity defined as: C (canonical), N (non-canonical), Y (crying) L (laughing), J (junk)', choices = ['C', 'N', 'Y', 'L', 'J', 'NA'], required = True),
         IndexColumn(name = 'lex_type', description = 'W if meaningful, 0 otherwise', choices = ['W', '0', 'NA'], required = True),
         IndexColumn(name = 'mwu_type', description = 'M if multiword, 1 if single word -- only filled if lex_type==W', choices = ['M', '1', 'NA'], required = True),
-        IndexColumn(name = 'addresseee', description = 'T if target-child-directed, C if other-child-directed, A if adult-directed, U if uncertain or other', choices = ['T', 'C', 'A', 'U', 'NA'], required = True),
+        IndexColumn(name = 'addresseee', description = 'T if target-child-directed, C if other-child-directed, A if adult-directed, U if uncertain or other. Multiple values should be sorted and separated by commas.', choices = ['T', 'C', 'A', 'U', 'NA'], required = True),
         IndexColumn(name = 'transcription', description = 'orthographic transcription of the speach', required = True),
         IndexColumn(name = 'phonemes', description = 'amount of phonemes', regex = r'(\d+(\.\d+)?)'),
         IndexColumn(name = 'syllables', description = 'amount of syllables', regex = r'(\d+(\.\d+)?)'),
@@ -552,7 +552,9 @@ class AnnotationManager:
         return df
 
     @staticmethod
-    def load_chat(filename: str, speaker_id_to_type: dict = None) -> pd.DataFrame:
+    def load_chat(filename: str,
+    speaker_id_to_type: dict = None,
+    addresseee_table: dict = None) -> pd.DataFrame:
         import pylangacq
 
         if speaker_id_to_type is None:
@@ -562,6 +564,14 @@ class AnnotationManager:
                 'SIS': 'OCH'
             }
 
+        if addresseee_table is None:
+            addresseee_table = defaultdict(lambda: 'NA', {
+                'MOT': 'A',
+                'FAT': 'A',
+                'SIS': 'C',
+                'CHI': 'T'
+            })
+
         reader = pylangacq.Reader.from_files([filename])
         df = pd.DataFrame(reader.utterances())
 
@@ -569,14 +579,21 @@ class AnnotationManager:
             if col.required:
                 df[col.name] = 'NA'
                 
+        ### extract tiers
         df['tiers'] = df['tiers'].apply(lambda d: {k.replace('%', ''): d[k] for k in d.keys()})
         df = pd.concat([df.drop(['tiers'], axis = 1), df['tiers'].apply(pd.Series)], axis = 1)
 
         df['segment_onset'] = df['time_marks'].apply(lambda tm: tm[0] if tm else 'NA')
         df['segment_offset'] = df['time_marks'].apply(lambda tm: tm[1] if tm else 'NA')
+
         df['speaker_id'] = df['participant']
         df['speaker_type'] = df['speaker_id'].replace(speaker_id_to_type)
+
         df['transcription'] = df['tokens'].apply(lambda l: ' '.join([t['word'] for t in l]))
+
+        if 'add' in df.columns:
+            df['addresseee'] = df['add'].str.split(',')\
+                .apply(lambda l: ','.join(sorted([addresseee_table[x.strip()] for x in l])))
 
         df = df[(df['segment_onset'] != 'NA') & (df['segment_offset'] != 'NA')]
         df.drop(columns = ['tokens', 'time_marks'], inplace = True)
