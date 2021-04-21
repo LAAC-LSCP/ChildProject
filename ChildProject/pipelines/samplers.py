@@ -163,21 +163,38 @@ class RandomVocalizationSampler(Sampler):
     :type target_speaker_type: list
     :param sample_size: Amount of vocalizations to sample, per recording.
     :type sample_size: int
+    :param threads: amount of threads to run on, defaults to 1
+    :type threads: int, optional
     """
     def __init__(self,
         project: ChildProject.projects.ChildProject,
         annotation_set: str,
         target_speaker_type: list,
-        sample_size: int):
+        sample_size: int,
+        threads: int = 1):
 
         super().__init__(project)
         self.annotation_set = annotation_set
         self.target_speaker_type = target_speaker_type
         self.sample_size = sample_size
+        self.threads = threads
 
+    def _sample_recording(self, recording):
+        segments = self.retrieve_segments(recording['recording_filename'])
+
+        if segments is None:
+            print("warning: no annotations from the set '{}' were found for the recording '{}'".format(
+                self.annotation_set,
+                recording['recording_filename']
+            ))
+            return pd.DataFrame(columns = ['segment_onset', 'segment_offset', 'recording_filename'])
+
+        return segments.sample(frac = 1).head(self.sample_size)
+        
     def sample(self):
-        self.segments = self.retrieve_segments()
-        self.segments = self.segments.groupby('recording_filename').sample(frac = 1).head(self.sample_size)
+        pool = mp.Pool(processes = self.threads if self.threads >= 1 else mp.cpu_count())
+        self.segments = pool.map(self._sample_recording, self.project.recordings.to_dict(orient = 'records'))
+        self.segments = pd.concat(self.segments)
         return self.segments
 
     @staticmethod
@@ -186,6 +203,7 @@ class RandomVocalizationSampler(Sampler):
         parser.add_argument('--annotation-set', help = 'annotation set', default = 'vtc')
         parser.add_argument('--target-speaker-type', help = 'speaker type to get chunks from', choices=['CHI', 'OCH', 'FEM', 'MAL'], nargs = '+', default = ['CHI'])
         parser.add_argument('--sample-size', help = 'how many samples per recording', required = True, type = int)
+        parser.add_argument('--threads', help = 'amount of threads to run on', default = 1, type = int)
 
 
 class EnergyDetectionSampler(Sampler):
