@@ -2,13 +2,12 @@ from collections import defaultdict
 import datetime
 from lxml import etree
 import multiprocessing as mp
-from numbers import Number
 import numpy as np
 import os
 import pandas as pd
 import re
 from functools import reduce, partial
-import shutil
+from shutil import move, rmtree
 import sys
 import traceback
 from typing import Callable
@@ -750,7 +749,7 @@ class AnnotationManager:
         path = os.path.join(self.project.path, 'annotations', annotation_set, 'converted')
 
         try:
-            shutil.rmtree(path)
+            rmtree(path)
         except:
             print("could not delete '{}', as it does not exist (yet?)".format(path))
             pass
@@ -803,10 +802,10 @@ class AnnotationManager:
         os.makedirs(new_path, exist_ok = True)
 
         if os.path.exists(os.path.join(current_path, 'raw')):
-            shutil.move(os.path.join(current_path, 'raw'), os.path.join(new_path, 'raw'))
+            move(os.path.join(current_path, 'raw'), os.path.join(new_path, 'raw'))
 
         if os.path.exists(os.path.join(current_path, 'converted')):
-            shutil.move(os.path.join(current_path, 'converted'), os.path.join(new_path, 'converted'))
+            move(os.path.join(current_path, 'converted'), os.path.join(new_path, 'converted'))
 
         self.annotations.loc[(self.annotations['set'] == annotation_set), 'set'] = new_set
 
