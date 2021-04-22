@@ -49,7 +49,7 @@ class AnnotationManager:
         IndexColumn(name = 'vcm_type', description = 'vocal maturity defined as: C (canonical), N (non-canonical), Y (crying) L (laughing), J (junk)', choices = ['C', 'N', 'Y', 'L', 'J', 'NA'], required = True),
         IndexColumn(name = 'lex_type', description = 'W if meaningful, 0 otherwise', choices = ['W', '0', 'NA'], required = True),
         IndexColumn(name = 'mwu_type', description = 'M if multiword, 1 if single word -- only filled if lex_type==W', choices = ['M', '1', 'NA'], required = True),
-        IndexColumn(name = 'addresseee', description = 'T if target-child-directed, C if other-child-directed, A if adult-directed, U if uncertain or other. Multiple values should be sorted and separated by commas.', choices = ['T', 'C', 'A', 'U', 'NA'], required = True),
+        IndexColumn(name = 'addressee', description = 'T if target-child-directed, C if other-child-directed, A if adult-directed, U if uncertain or other. Multiple values should be sorted and separated by commas.', choices = ['T', 'C', 'A', 'U', 'NA'], required = True),
         IndexColumn(name = 'transcription', description = 'orthographic transcription of the speach', required = True),
         IndexColumn(name = 'phonemes', description = 'amount of phonemes', regex = r'(\d+(\.\d+)?)'),
         IndexColumn(name = 'syllables', description = 'amount of syllables', regex = r'(\d+(\.\d+)?)'),
@@ -246,7 +246,7 @@ class AnnotationManager:
                     'vcm_type': 'NA',
                     'lex_type': 'NA',
                     'mwu_type': 'NA',
-                    'addresseee': 'NA',
+                    'addressee': 'NA',
                     'transcription': 'NA',
                     'phonemes': 'NA',
                     'syllables': 'NA',
@@ -283,7 +283,7 @@ class AnnotationManager:
                     'vcm_type': 'NA',
                     'lex_type': 'NA',
                     'mwu_type': 'NA',
-                    'addresseee': 'NA',
+                    'addressee': 'NA',
                     'transcription': value if value != '0' else '0.',
                     'phonemes': 'NA',
                     'syllables': 'NA',
@@ -323,7 +323,7 @@ class AnnotationManager:
                 elif label == 'mwu':
                     segment['mwu_type'] = value
                 elif label == 'xds':
-                    segment['addresseee'] = value
+                    segment['addressee'] = value
                 elif label == 'vcm':
                     segment['vcm_type'] = value
 
@@ -436,7 +436,7 @@ class AnnotationManager:
                     'vcm_type': 'NA',
                     'lex_type': 'NA',
                     'mwu_type': 'NA',
-                    'addresseee': 'NA',
+                    'addressee': 'NA',
                     'transcription': 'NA',
                     'phonemes': 'NA',
                     'syllables': 'NA',
@@ -479,7 +479,7 @@ class AnnotationManager:
         df['vcm_type'] = 'NA'
         df['lex_type'] = 'NA'
         df['mwu_type'] = 'NA'
-        df['addresseee'] = 'NA'
+        df['addressee'] = 'NA'
         df['transcription'] = 'NA'
         df['phonemes'] = 'NA'
         df['syllables'] = 'NA'
@@ -509,7 +509,7 @@ class AnnotationManager:
         df['vcm_type'] = df['name'].map(AnnotationManager.VCM_VCM_TRANSLATION)
         df['lex_type'] = 'NA'
         df['mwu_type'] = 'NA'
-        df['addresseee'] = 'NA'
+        df['addressee'] = 'NA'
         df['transcription'] = 'NA'
         df['phonemes'] = 'NA'
         df['syllables'] = 'NA'
@@ -536,7 +536,7 @@ class AnnotationManager:
         df['vcm_type'] = 'NA'
         df['lex_type'] = 'NA'
         df['mwu_type'] = 'NA'
-        df['addresseee'] = 'NA'
+        df['addressee'] = 'NA'
         df['transcription'] = 'NA'
 
         if source_file:
@@ -554,7 +554,7 @@ class AnnotationManager:
     @staticmethod
     def load_chat(filename: str,
     speaker_id_to_type: dict = None,
-    addresseee_table: dict = None) -> pd.DataFrame:
+    addressee_table: dict = None) -> pd.DataFrame:
         import pylangacq
 
         if speaker_id_to_type is None:
@@ -564,8 +564,8 @@ class AnnotationManager:
                 'SIS': 'OCH'
             }
 
-        if addresseee_table is None:
-            addresseee_table = defaultdict(lambda: 'NA', {
+        if addressee_table is None:
+            addressee_table = defaultdict(lambda: 'NA', {
                 'MOT': 'A',
                 'FAT': 'A',
                 'SIS': 'C',
@@ -592,8 +592,8 @@ class AnnotationManager:
         df['transcription'] = df['tokens'].apply(lambda l: ' '.join([t['word'] for t in l]))
 
         if 'add' in df.columns:
-            df['addresseee'] = df['add'].str.split(',')\
-                .apply(lambda l: ','.join(sorted([addresseee_table[x.strip()] for x in l])))
+            df['addressee'] = df['add'].str.split(',')\
+                .apply(lambda l: ','.join(sorted([addressee_table[x.strip()] for x in l])))
 
         df = df[(df['segment_onset'] != 'NA') & (df['segment_offset'] != 'NA')]
         df.drop(columns = ['tokens', 'time_marks'], inplace = True)

@@ -164,7 +164,7 @@ def test_merge(project):
     am.merge_sets(
         left_set = 'vtc_rttm',
         right_set = 'alice',
-        left_columns = ['speaker_id','ling_type','speaker_type','vcm_type','lex_type','mwu_type','addresseee','transcription'],
+        left_columns = ['speaker_id','ling_type','speaker_type','vcm_type','lex_type','mwu_type','addressee','transcription'],
         right_columns = ['phonemes','syllables','words'],
         output_set = 'alice_vtc'
     )
@@ -225,7 +225,7 @@ def custom_function(filename):
     df['vcm_type'] = 'NA'
     df['lex_type'] = 'NA'
     df['mwu_type'] = 'NA'
-    df['addresseee'] = 'NA'
+    df['addressee'] = 'NA'
     df['transcription'] = 'NA'
     df['phonemes'] = 'NA'
     df['syllables'] = 'NA'
