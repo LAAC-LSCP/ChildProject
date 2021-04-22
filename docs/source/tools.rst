@@ -40,18 +40,19 @@ Example:
 .. code:: bash
 
    $ child-project overview .
-   
-   recordings:
-   usb: 5920.16 hours, 0/418 files locally available
 
+   recordings:
+   lena: 288.00 hours, 0/18 files locally available
+   olympus: 49.57 hours, 0/3 files locally available
+   usb: 223.42 hours, 0/20 files locally available
+   
    annotations:
-   alice: 5920.16 hours, 0/388 files locally available
-   alice_vtc: 5920.16 hours, 0/382 files locally available
-   solis/BC: 1.12 hours, 67/67 files locally available
-   solis/LD: 0.25 hours, 15/15 files locally available
-   solis/NK: 2.68 hours, 161/161 files locally available
-   solis/NM: 1.80 hours, 108/108 files locally available
-   vtc: 5920.16 hours, 2/383 files locally available
+   alice: 560.99 hours, 0/40 files locally available
+   alice_vtc: 560.99 hours, 0/40 files locally available
+   eaf/nk: 1.47 hours, 0/88 files locally available
+   lena: 272.00 hours, 0/17 files locally available
+   textgrid/mm: 8.75 hours, 0/525 files locally available
+   vtc: 560.99 hours, 40/40 files locally available   
 
 Convert recordings
 ------------------
