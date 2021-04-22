@@ -28,6 +28,7 @@ Welcome to ChildProject's documentation!
 
    tools
    samplers
+   elan
    zooniverse
    cheatsheet
 

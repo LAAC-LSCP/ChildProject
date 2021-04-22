@@ -33,7 +33,7 @@ class AnnotationManager:
         IndexColumn(name = 'range_onset', description = 'covered range start time in milliseconds, measured since `time_seek`', regex = r"([0-9]+)", required = True),
         IndexColumn(name = 'range_offset', description = 'covered range end time in milliseconds, measured since `time_seek`', regex = r"([0-9]+)", required = True),
         IndexColumn(name = 'raw_filename', description = 'annotation input filename location, relative to `annotations/<set>/raw`', filename = True, required = True),
-        IndexColumn(name = 'format', description = 'input annotation format', choices = ['TextGrid', 'eaf', 'vtc_rttm', 'alice', 'its'], required = False),
+        IndexColumn(name = 'format', description = 'input annotation format', choices = ['TextGrid', 'eaf', 'vtc_rttm', 'vcm_rttm', 'alice', 'its'], required = False),
         IndexColumn(name = 'filter', description = 'source file to filter in (for rttm and alice only)', required = False),
         IndexColumn(name = 'annotation_filename', description = 'output formatted annotation location, relative to `annotations/<set>/converted (automatic column, don\'t specify)', filename = True, required = False, generated = True),
         IndexColumn(name = 'imported_at', description = 'importation date (automatic column, don\'t specify)', datetime = "%Y-%m-%d %H:%M:%S", required = False, generated = True),
@@ -118,6 +118,23 @@ class AnnotationManager:
         'FEM': 'FEM',
         'MAL':'MAL',
         'SPEECH': 'SPEECH'
+    })
+
+    VCM_SPEAKER_TYPE_TRANSLATION = defaultdict(lambda: 'NA', {
+        'CHI': 'OCH',
+        'CRY': 'CHI',
+        'NCS': 'CHI',
+        'CNS': 'CHI',
+        'FEM': 'FEM',
+        'MAL':'MAL',
+        'SPEECH': 'SPEECH'
+    })
+
+    VCM_VCM_TRANSLATION = defaultdict(lambda: 'NA', {
+        'CRY': 'Y',
+        'NCS': 'N',
+        'CNS': 'C',
+        'OTH': 'J'
     })
 
     LENA_SPEAKER_TYPE_TRANSLATION = {
@@ -472,6 +489,35 @@ class AnnotationManager:
 
         return df
 
+    def load_vcm_rttm(self, filename: str, source_file: str = '') -> pd.DataFrame:
+        rttm = pd.read_csv(
+            filename,
+            sep = " ",
+            names = ['type', 'file', 'chnl', 'tbeg', 'tdur', 'ortho', 'stype', 'name', 'conf', 'unk']
+        )
+
+        df = rttm
+        df['segment_onset'] = df['tbeg'].mul(1000).round().astype(int)
+        df['segment_offset'] = (df['tbeg']+df['tdur']).mul(1000).round().astype(int)
+        df['speaker_id'] = 'NA'
+        df['ling_type'] = 'NA'
+        df['speaker_type'] = df['name'].map(self.VCM_SPEAKER_TYPE_TRANSLATION)
+        df['vcm_type'] = df['name'].map(self.VCM_VCM_TRANSLATION)
+        df['lex_type'] = 'NA'
+        df['mwu_type'] = 'NA'
+        df['addresseee'] = 'NA'
+        df['transcription'] = 'NA'
+        df['phonemes'] = 'NA'
+        df['syllables'] = 'NA'
+        df['words'] = 'NA'
+
+        if source_file:
+            df = df[df['file'] == source_file]
+
+        df.drop(['type', 'file', 'chnl', 'tbeg', 'tdur', 'ortho', 'stype', 'name', 'conf', 'unk'], axis = 1, inplace = True)
+
+        return df
+
     def load_alice(self, filename: str, source_file: str = '') -> pd.DataFrame:
         df = pd.read_csv(
             filename,
@@ -523,6 +569,8 @@ class AnnotationManager:
                 df = self.load_eaf(path)
             elif annotation_format == 'vtc_rttm':
                 df = self.load_vtc_rttm(path, source_file = filter)
+            elif annotation_format == 'vcm_rttm':
+                df = self.load_vcm_rttm(path, source_file = filter)
             elif annotation_format == 'its':
                 df = self.load_its(path, recording_num = filter)
             elif annotation_format == 'alice':
@@ -845,6 +893,7 @@ class AnnotationManager:
         annotations = pool.map(partial(self.merge_annotations, left_columns, right_columns, columns, output_set), input_annotations)
         annotations = pd.concat(annotations)
         annotations.drop(columns = list(set(annotations.columns)-set([c.name for c in self.INDEX_COLUMNS])), inplace = True)
+        annotations.fillna({'raw_filename': 'NA'}, inplace = True)
         
         self.read()
         self.annotations = pd.concat([self.annotations, annotations], sort = False)

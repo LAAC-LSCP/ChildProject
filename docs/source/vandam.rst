@@ -140,6 +140,15 @@ about when the recording started:
 
    <Recording num="1" startClockTime="2010-07-24T11:58:16Z" endClockTime="2010-07-25T01:59:20Z" startTime="PT0.00S" endTime="PT50464.24S">
 
+The 'Z' suffix in the clock times indicate they correspond to the UTC timezone.
+However, the metadata should contain local times only. The difference between
+the two is 5 hours, according to the following line in the .its file:
+
+.. code:: xml
+
+   <TransferTime LocalTime="2010-07-28T14:34:46" TimeZone="CST" UTCTime="2010-07-28T19:34:46" />
+
+Therefore, the recording started on 2010-07-24, at 06:58 (local time).
 
 In order to reflect that information, the recordings CSV metadata
 should look like this (we have decided that the only child of the

@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<preferences version="1.1"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.mpi.nl/tools/elan/Prefs_v1.1.xsd">
+    <prefList key="MultiTierViewer.TierOrder">
+        <String>CHI</String>
+        <String>vcm@CHI</String>
+        <String>lex@CHI</String>
+        <String>mwu@CHI</String>
+        <String>FA1</String>
+        <String>xds@FA1</String>
+    </prefList>
+    <pref key="LayoutManager.VisibleMultiTierViewer">
+        <String>mpi.eudico.client.annotator.viewer.TimeLineViewer</String>
+    </pref>
+    <pref key="MultiTierViewer.TierSortingMode">
+        <Int>1</Int>
+    </pref>
+    <prefGroup key="CV.ML.Prefs">
+        <prefGroup key="mwu">
+            <prefGroup key="cveid1">
+                <pref key="KeyCode">
+                    <Int>77</Int>
+                </pref>
+            </prefGroup>
+            <prefGroup key="cveid0">
+                <pref key="KeyCode">
+                    <Int>49</Int>
+                </pref>
+            </prefGroup>
+        </prefGroup>
+        <prefGroup key="lex">
+            <prefGroup key="cveid1">
+                <pref key="KeyCode">
+                    <Int>48</Int>
+                </pref>
+            </prefGroup>
+            <prefGroup key="cveid0">
+                <pref key="KeyCode">
+                    <Int>87</Int>
+                </pref>
+            </prefGroup>
+        </prefGroup>
+        <prefGroup key="xds">
+            <prefGroup key="cveid1">
+                <pref key="KeyCode">
+                    <Int>65</Int>
+                </pref>
+            </prefGroup>
+            <prefGroup key="cveid2">
+                <pref key="KeyCode">
+                    <Int>66</Int>
+                </pref>
+            </prefGroup>
+            <prefGroup key="cveid3">
+                <pref key="KeyCode">
+                    <Int>80</Int>
+                </pref>
+            </prefGroup>
+            <prefGroup key="cveid4">
+                <pref key="KeyCode">
+                    <Int>79</Int>
+                </pref>
+            </prefGroup>
+            <prefGroup key="cveid0">
+                <pref key="KeyCode">
+                    <Int>67</Int>
+                </pref>
+            </prefGroup>
+            <prefGroup key="cveid5">
+                <pref key="KeyCode">
+                    <Int>85</Int>
+                </pref>
+            </prefGroup>
+        </prefGroup>
+        <prefGroup key="vcm">
+            <prefGroup key="cveid1">
+                <pref key="KeyCode">
+                    <Int>89</Int>
+                </pref>
+            </prefGroup>
+            <prefGroup key="cveid2">
+                <pref key="KeyCode">
+                    <Int>78</Int>
+                </pref>
+            </prefGroup>
+            <prefGroup key="cveid3">
+                <pref key="KeyCode">
+                    <Int>67</Int>
+                </pref>
+            </prefGroup>
+            <prefGroup key="cveid4">
+                <pref key="KeyCode">
+                    <Int>85</Int>
+                </pref>
+            </prefGroup>
+            <prefGroup key="cveid0">
+                <pref key="KeyCode">
+                    <Int>76</Int>
+                </pref>
+            </prefGroup>
+        </prefGroup>
+    </prefGroup>
+    <prefGroup key="TierColors">
+        <pref key="CHI">
+            <Object class="java.awt.Color">160,0,0</Object>
+        </pref>
+        <pref key="FA1">
+            <Object class="java.awt.Color">160,0,90</Object>
+        </pref>
+    </prefGroup>
+    <pref key="MultiTierViewer.ActiveTierName">
+        <String>FA1</String>
+    </pref>
+    <pref key="LayoutManager.CurrentMode">
+        <Int>1</Int>
+    </pref>
+</preferences>

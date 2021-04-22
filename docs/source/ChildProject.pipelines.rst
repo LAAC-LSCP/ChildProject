@@ -20,6 +20,14 @@ ChildProject.pipelines.conversion module
    :undoc-members:
    :show-inheritance:
 
+ChildProject.pipelines.eafbuilder module
+----------------------------------------
+
+.. automodule:: ChildProject.pipelines.eafbuilder
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 ChildProject.pipelines.pipeline module
 --------------------------------------
 
@@ -43,7 +51,6 @@ ChildProject.pipelines.zooniverse module
    :members:
    :undoc-members:
    :show-inheritance:
-
 
 Module contents
 ---------------

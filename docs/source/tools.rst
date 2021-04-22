@@ -24,6 +24,36 @@ Example:
 
    child-project validate /path/to/dataset
 
+
+Dataset overview
+----------------
+
+An overview of the contents of a dataset can be obtained with the
+``child-project overview`` command.
+
+.. clidoc::
+
+   child-project overview --help
+
+Example:
+
+.. code:: bash
+
+   $ child-project overview .
+
+   recordings:
+   lena: 288.00 hours, 0/18 files locally available
+   olympus: 49.57 hours, 0/3 files locally available
+   usb: 223.42 hours, 0/20 files locally available
+   
+   annotations:
+   alice: 560.99 hours, 0/40 files locally available
+   alice_vtc: 560.99 hours, 0/40 files locally available
+   eaf/nk: 1.47 hours, 0/88 files locally available
+   lena: 272.00 hours, 0/17 files locally available
+   textgrid/mm: 8.75 hours, 0/525 files locally available
+   vtc: 560.99 hours, 40/40 files locally available   
+
 Convert recordings
 ------------------
 
