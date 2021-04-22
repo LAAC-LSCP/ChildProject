@@ -215,24 +215,6 @@ class ChildProject:
             self.converted_recordings_hashtable[key] = None
             return None
 
-
-    def get_stats(self) -> dict:
-        """return statistics extracted from the dataset
-
-        :return: A dictionary with various statistics (total_recordings, total_children, audio_duration, etc.)
-        :rtype: dict
-        """
-        stats = {}
-        recordings = self.recordings.merge(self.compute_recordings_duration(), left_on = 'recording_filename', right_on = 'recording_filename')
-        recordings['exists'] = recordings['recording_filename'].map(lambda f: os.path.exists(os.path.join(self.path, self.RAW_RECORDINGS, f)))
-
-        stats['total_recordings'] = recordings.shape[0]
-        stats['total_existing_recordings'] = recordings[recordings['exists'] == True].shape[0]
-        stats['audio_duration'] = recordings['duration'].sum()
-        stats['total_children'] = self.children.shape[0]
-
-        return stats
-
     def compute_recordings_duration(self, profile: str = None) -> pd.DataFrame:
         """[summary]
 

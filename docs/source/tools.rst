@@ -24,6 +24,35 @@ Example:
 
    child-project validate /path/to/dataset
 
+
+Dataset overview
+----------------
+
+An overview of the contents of a dataset can be obtained with the
+``child-project overview`` command.
+
+.. clidoc::
+
+   child-project overview --help
+
+Example:
+
+.. code:: bash
+
+   $ child-project overview .
+   
+   recordings:
+   usb: 5920.16 hours, 0/418 files locally available
+
+   annotations:
+   alice: 5920.16 hours, 0/388 files locally available
+   alice_vtc: 5920.16 hours, 0/382 files locally available
+   solis/BC: 1.12 hours, 67/67 files locally available
+   solis/LD: 0.25 hours, 15/15 files locally available
+   solis/NK: 2.68 hours, 161/161 files locally available
+   solis/NM: 1.80 hours, 108/108 files locally available
+   vtc: 5920.16 hours, 2/383 files locally available
+
 Convert recordings
 ------------------
 
