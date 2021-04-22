@@ -77,11 +77,16 @@ class ZooniversePipeline(Pipeline):
         return (self.zooniverse_login, self.zooniverse_pwd)
 
                 
-    def split_recording(self, segments: pd.DataFrame) -> list:
+    def _split_recording(self, segments: pd.DataFrame) -> list:
         segments = segments.to_dict(orient = 'records')
         chunks = []
 
-        source = os.path.join(self.project.path, ChildProject.projects.ChildProject.RAW_RECORDINGS, segments[0]['recording_filename'])
+        recording = segments[0]['recording_filename']
+        if self.profile:
+            source = os.path.join(self.project.path, 'recordings/converted', self.profile, self.project.get_converted_recording_filename(self.profile, recording))
+        else:
+            source = os.path.join(self.project.path, 'recordings/raw', recording)
+
         audio = AudioSegment.from_file(source)
 
         print("extracting chunks from {}...".format(source))
@@ -116,9 +121,14 @@ class ZooniversePipeline(Pipeline):
 
                 if not os.path.exists(wav):
                     chunk_audio.export(wav, format = 'wav')
+                else:
+                    print('{} already exists, exportation skipped.'.format(wav))
 
                 if not os.path.exists(mp3):
                     chunk_audio.export(mp3, format = 'mp3')
+                else:
+                    print('{} already exists, exportation skipped.'.format(mp3))
+
 
                 chunks.append(chunk)
 
@@ -126,7 +136,7 @@ class ZooniversePipeline(Pipeline):
 
     def extract_chunks(self, path: str, destination: str, keyword: str, segments: str,
         chunks_length: int = -1, chunks_min_amount: int = 1,
-        exclude_segments: list = [],
+        profile: str = '',
         threads: int = 0,
         **kwargs):
         """extract-audio chunks based on a list of segments and prepare them for upload
@@ -144,10 +154,10 @@ class ZooniversePipeline(Pipeline):
         :type chunks_length: int, optional
         :param chunks_min_amount: minimum amount of chunk per segment, defaults to 1
         :type chunks_min_amount: int, optional
+        :param profile: recording profile to extract from. If undefined, raw recordings will be used.
+        :type profile: str
         :param threads: amount of threads to run-on, defaults to 0
         :type threads: int, optional
-        :param exclude_segments: unused, defaults to []
-        :type exclude_segments: list, optional
         """
 
 
@@ -160,6 +170,8 @@ class ZooniversePipeline(Pipeline):
 
         self.chunks_length = int(chunks_length)
         self.chunks_min_amount = chunks_min_amount
+        self.profile = profile
+
         threads = int(threads)
 
         destination_path = os.path.join(destination, 'chunks')
@@ -173,7 +185,7 @@ class ZooniversePipeline(Pipeline):
             segments.append(_segments.assign(recording_filename = _recording))
         
         pool = mp.Pool(threads if threads > 0 else mp.cpu_count())
-        self.chunks = pool.map(self.split_recording, segments)
+        self.chunks = pool.map(self._split_recording, segments)
         self.chunks = itertools.chain.from_iterable(self.chunks)
         self.chunks = pd.DataFrame([{
             'recording_filename': c.recording_filename,
@@ -367,13 +379,11 @@ class ZooniversePipeline(Pipeline):
         parser_extraction = subparsers.add_parser('extract-chunks', help = 'extract chunks to <destination>, and exports the metadata inside of this directory')
         parser_extraction.add_argument('path', help = 'path to the dataset')
         parser_extraction.add_argument('--keyword', help = 'export keyword', required = True)
-
         parser_extraction.add_argument('--chunks-length', help = 'chunk length (in milliseconds). if <= 0, the segments will not be split into chunks (default value: 0)', type = int, default = 0)
         parser_extraction.add_argument('--chunks-min-amount', help = 'minimum amount of chunks to extract from a segment (default value: 1)', default = 1)
-
         parser_extraction.add_argument('--segments', help = 'path to the input segments dataframe', required = True)
         parser_extraction.add_argument('--destination', help = 'destination', required = True)
-        parser_extraction.add_argument('--exclude-segments', help = 'segments to exclude before sampling', nargs = '+', default = [])
+        parser_extraction.add_argument('--profile', help = 'Recording profile to extract the audio clips from. If not specified, raw recordings will be used', default = '')
         parser_extraction.add_argument('--threads', help = 'how many threads to run on', default = 0, type = int)
 
         parser_upload = subparsers.add_parser('upload-chunks', help = 'upload chunks and updates chunk state')
