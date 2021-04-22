@@ -92,5 +92,8 @@ You can now make sure the packages have been successfully installed:
 .. note::
 
     We recommend that you regularly keep DataLad and our package up to date. 
-    This can be achieved with the commands ``pip3 install datalad --upgrade``
-    and ``pip3 install git+https://github.com/LAAC-LSCP/ChildProject.git --upgrade``.
+    To force-upgrade this package, do ``pip3 uninstall ChildProject``
+    and then ``pip3 install git+https://github.com/LAAC-LSCP/ChildProject.git``.
+    
+    DataLad can be upgraded with ``pip3 install datalad --upgrade``
+    (see DataLad's documentation for more details).
