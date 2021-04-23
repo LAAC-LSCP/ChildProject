@@ -221,7 +221,7 @@ class ZooniversePipeline(Pipeline):
         }, open(parameters_path, 'w+'))
         print("exported extract-chunks parameters to {}".format(parameters_path))
 
-        return chunks_path
+        return chunks_path, parameters_path
 
     def upload_chunks(self, chunks: str, project_id: int, set_name: str,
         zooniverse_login = '', zooniverse_pwd = '',
