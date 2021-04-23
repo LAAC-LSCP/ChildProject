@@ -118,8 +118,8 @@ class ChildProject:
         md.sort_values('basename', ascending = False, inplace = True)
 
         duplicates = md.groupby('basename').agg(
-            paths = ('path', lambda l: ','.join(l)),
-            count = ('path', len)
+            paths = pd.NamedAgg(column = 'path', aggfunc = lambda l: ','.join(l)),
+            count = pd.NamedAgg(column = 'path', aggfunc = len),
         )
         duplicates = duplicates[duplicates['count'] >= 2].reset_index()
 
