@@ -96,10 +96,12 @@ class ChildProject:
         self.children = None
         self.recordings = None
 
+        self.children_metadata_origin = None
+        self.recordings_metadata_origin = None
+
         self.converted_recordings_hashtable = {}
 
     def accumulate_metadata(self, table: str, df: pd.DataFrame, columns: list, merge_column: str) -> pd.DataFrame:
-        additional_md = []
         md_path = os.path.join(self.path, 'metadata', table)
 
         if os.path.exists(md_path):
