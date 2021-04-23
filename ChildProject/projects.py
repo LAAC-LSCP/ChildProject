@@ -97,66 +97,47 @@ class ChildProject:
         self.recordings = None
 
         self.converted_recordings_hashtable = {}
+
+    def accumulate_metadata(self, table: str, df: pd.DataFrame, columns: list, merge_column: str) -> pd.DataFrame:
+        additional_md = []
+        md_path = os.path.join(self.path, 'metadata', table)
+
+        if os.path.exists(md_path):
+            additional_md = sorted(
+                glob.glob(os.path.join(md_path, '**/*.csv'), recursive = True),
+                key = os.path.basename,
+                reverse = True
+            )
+
+            for md in additional_md:
+                table = IndexTable(table, md, columns)
+                dataframe = table.read()
+
+                df['line'] = df.index
+                df = df[(set(df.columns) - set(dataframe.columns)) | {merge_column}].merge(
+                    dataframe,
+                    how = 'left',
+                    left_on = merge_column,
+                    right_on = merge_column
+                ).set_index('line')
+
+        return df
     
     def read(self):
         """Read the metadata
         """
-        metadata_path = os.path.join(self.path, 'metadata')
-
-        self.ct = IndexTable('children', os.path.join(metadata_path, 'children.csv'), self.CHILDREN_COLUMNS)
-        self.rt = IndexTable('recordings', os.path.join(metadata_path, 'recordings.csv'), self.RECORDINGS_COLUMNS)
+        self.ct = IndexTable('children', os.path.join(self.path, 'metadata/children.csv'), self.CHILDREN_COLUMNS)
+        self.rt = IndexTable('recordings', os.path.join(self.path, 'metadata/recordings.csv'), self.RECORDINGS_COLUMNS)
 
         self.children = self.ct.read()
         self.recordings = self.rt.read()
 
-        additional_children_md = []
-        children_md_path = os.path.join(metadata_path, 'children')
+        # accumulate additional metadata (optional)
+        self.ct.df = self.accumulate_metadata('children', self.children, self.CHILDREN_COLUMNS, 'child_id')
+        self.rt.df = self.accumulate_metadata('recordings', self.recordings, self.RECORDINGS_COLUMNS, 'recording_filename')
 
-        if os.path.exists(children_md_path):
-            additional_children_md = sorted(
-                glob.glob(os.path.join(children_md_path, '**/*.csv'), recursive = True),
-                key = os.path.basename,
-                reverse = True
-            )
-
-            for md in additional_children_md:
-                table = IndexTable('children', md, self.CHILDREN_COLUMNS)
-                dataframe = table.read()
-
-                self.children['line'] = self.children.index
-                self.children = self.children[(set(self.children.columns) - set(dataframe.columns)) | {'child_id'}].merge(
-                    dataframe,
-                    how = 'left',
-                    left_on = 'child_id',
-                    right_on = 'child_id'
-                ).set_index('line')
-
-            self.ct.df = self.children
-
-        additional_recordings_md = []
-        recordings_md_path = os.path.join(metadata_path, 'recordings')
-
-        if os.path.exists(recordings_md_path):
-            additional_recordings_md = sorted(
-                glob.glob(os.path.join(recordings_md_path, '**/*.csv'), recursive = True),
-                key = os.path.basename,
-                reverse = True
-            )
-
-            for md in additional_recordings_md:
-                table = IndexTable('recordings', md, self.RECORDINGS_COLUMNS)
-                dataframe = table.read()
-
-                self.recordings['line'] = self.recordings.index
-                self.recordings = self.recordings[(set(self.recordings.columns) - set(dataframe.columns)) | {'recording_filename'}].merge(
-                    dataframe,
-                    how = 'left',
-                    left_on = 'recording_filename',
-                    right_on = 'recording_filename'
-                ).set_index('line')
-
-            self.rt.df = self.recordings
-
+        self.children = self.ct.df
+        self.recordings = self.rt.df
 
     def validate(self, ignore_files: bool = False) -> tuple:
         """Validate a dataset, returning all errors and warnings.
