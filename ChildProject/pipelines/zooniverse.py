@@ -82,10 +82,7 @@ class ZooniversePipeline(Pipeline):
         chunks = []
 
         recording = segments[0]['recording_filename']
-        if self.profile:
-            source = os.path.join(self.project.path, 'recordings/converted', self.profile, self.project.get_converted_recording_filename(self.profile, recording))
-        else:
-            source = os.path.join(self.project.path, 'recordings/raw', recording)
+        source = self.project.get_recording_path(recording, self.profile)
 
         audio = AudioSegment.from_file(source)
 

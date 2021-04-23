@@ -183,6 +183,27 @@ class ChildProject:
 
         return self.errors, self.warnings
 
+    def get_recording_path(self, recording_filename: str, profile: str = None) -> str:
+        """return the path to a recording
+
+        :param recording_filename: recording filename, as in the metadata
+        :type recording_filename: str
+        :param profile: name of the conversion profile, defaults to None
+        :type profile: str, optional
+        :return: path to the recording
+        :rtype: str
+        """
+
+        if profile:
+            return os.path.join(
+                self.path,
+                self.CONVERTED_RECORDINGS,
+                profile,
+                self.project.get_converted_recording_filename(profile, recording_filename)
+            )
+        else:
+            return os.path.join(self.path, self.RAW_RECORDINGS, recording_filename)
+
     def get_converted_recording_filename(self, profile: str, recording_filename: str) -> str:
         """retrieve the converted filename of a recording under a given ``profile``,
         from its original filename.
@@ -216,7 +237,7 @@ class ChildProject:
             return None
 
     def compute_recordings_duration(self, profile: str = None) -> pd.DataFrame:
-        """[summary]
+        """compute recordings duration
 
         :param profile: name of the profile of recordings to compute the duration from. If None, raw recordings are used. defaults to None
         :type profile: str, optional
@@ -226,8 +247,7 @@ class ChildProject:
         recordings = self.recordings[['recording_filename']]
 
         recordings = recordings.assign(duration = recordings['recording_filename'].map(lambda f:
-            get_audio_duration(os.path.join(self.path, self.CONVERTED_RECORDINGS, profile, f)) if profile
-            else get_audio_duration(os.path.join(self.path, self.RAW_RECORDINGS, f))
+            get_audio_duration(self.get_recording_path(f))
         ))
         recordings['duration'].fillna(0, inplace = True)
         recordings['duration'] = (recordings['duration']*1000).astype(int)
