@@ -118,14 +118,14 @@ class ChildProject:
         md.sort_values('basename', ascending = False, inplace = True)
 
         duplicates = md.groupby('basename').agg(
-            paths = pd.NamedAgg(column = 'path', aggfunc = lambda l: ','.join(l)),
-            count = pd.NamedAgg(column = 'path', aggfunc = len),
+            paths = ('path', list),
+            count = ('path', len),
         )
         duplicates = duplicates[duplicates['count'] >= 2].reset_index()
 
         if len(duplicates):
             raise Exception("ambiguous filenames detected:\n{}".format(
-                '\n'.join(duplicates.apply(lambda d: "{} found as {}".format(d['basename'], d['paths']), axis = 1).tolist())
+                '\n'.join(duplicates.apply(lambda d: "{} found as {}".format(','.join(d['basename']), d['paths']), axis = 1).tolist())
             ))
 
         for md in md['path'].tolist():
