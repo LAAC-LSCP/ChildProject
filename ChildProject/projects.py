@@ -56,7 +56,7 @@ class ChildProject:
         IndexColumn(name = 'date_iso', description = 'date in which recording was started in ISO (eg 2020-09-17)', required = True, datetime = '%Y-%m-%d'),
         IndexColumn(name = 'start_time', description = 'local time in which recording was started in format 24-hour (H)H:MM; if minutes are unknown, use 00. Set as ‘NA’ if unknown.', required = True, datetime = '%H:%M'),
         IndexColumn(name = 'recording_device_type', description = 'lena, usb, olympus, babylogger (lowercase)', required = True, choices = ['lena', 'usb', 'olympus', 'babylogger']),
-        IndexColumn(name = 'recording_filename', description = 'the path to the file from the root of “recordings”), set to ‘NA’ if no valid recording available. It is unique (two recordings cannot point towards the same file).', required = True, filename = True, unique = True),
+        IndexColumn(name = 'recording_filename', description = 'the path to the file from the root of “recordings”). It MUST be unique (two recordings cannot point towards the same file).', required = True, filename = True, unique = True),
         IndexColumn(name = 'duration', description = 'duration of the audio, in milliseconds', regex = r'([0-9]+)'),
         IndexColumn(name = 'session_id', description = 'identifier of the recording session.'),
         IndexColumn(name = 'session_offset', description = 'offset (in milliseconds) of the recording with respect to other recordings that are part of the same session. Each recording session is identified by their `session_id`.', regex = r'[0-9]+'),
@@ -96,9 +96,57 @@ class ChildProject:
         self.children = None
         self.recordings = None
 
+        self.children_metadata_origin = None
+        self.recordings_metadata_origin = None
+
         self.converted_recordings_hashtable = {}
+
+    def accumulate_metadata(self, table: str, df: pd.DataFrame, columns: list, merge_column: str, verbose = False) -> pd.DataFrame:
+        md_path = os.path.join(self.path, 'metadata', table)
+
+        if not os.path.exists(md_path):
+            return df
+        
+        md = pd.DataFrame([
+            {'path': f, 'basename':  os.path.basename(f)}
+            for f in glob.glob(os.path.join(md_path, '**/*.csv'), recursive = True)
+        ])
+        
+        if not len(md):
+            return df
+
+        md.sort_values('basename', ascending = False, inplace = True)
+
+        duplicates = md.groupby('basename').agg(
+            paths = ('path', list),
+            count = ('path', len),
+        )
+        duplicates = duplicates[duplicates['count'] >= 2].reset_index()
+
+        if len(duplicates):
+            raise Exception("ambiguous filenames detected:\n{}".format(
+                '\n'.join(duplicates.apply(lambda d: "{} found as {}".format(','.join(d['basename']), d['paths']), axis = 1).tolist())
+            ))
+
+        for md in md['path'].tolist():
+            table = IndexTable(table, md, columns)
+            dataframe = table.read()
+
+            replaced_columns = (set(df.columns) & set(dataframe.columns)) - {merge_column}
+            if verbose and len(replaced_columns):
+                print('column(s) {} overwritten by {}'.format(','.join(replaced_columns), md))
+
+            df['line'] = df.index
+            df = df[(set(df.columns) - set(dataframe.columns)) | {merge_column}].merge(
+                dataframe,
+                how = 'left',
+                left_on = merge_column,
+                right_on = merge_column
+            ).set_index('line')
+
+        return df
     
-    def read(self):
+    def read(self, verbose = False):
         """Read the metadata
         """
         self.ct = IndexTable('children', os.path.join(self.path, 'metadata/children.csv'), self.CHILDREN_COLUMNS)
@@ -106,6 +154,13 @@ class ChildProject:
 
         self.children = self.ct.read()
         self.recordings = self.rt.read()
+
+        # accumulate additional metadata (optional)
+        self.ct.df = self.accumulate_metadata('children', self.children, self.CHILDREN_COLUMNS, 'child_id', verbose)
+        self.rt.df = self.accumulate_metadata('recordings', self.recordings, self.RECORDINGS_COLUMNS, 'recording_filename', verbose)
+
+        self.children = self.ct.df
+        self.recordings = self.rt.df
 
     def validate(self, ignore_files: bool = False) -> tuple:
         """Validate a dataset, returning all errors and warnings.
@@ -127,7 +182,7 @@ class ChildProject:
                 self.errors.append("missing directory {}.".format(rd))
 
         # check tables
-        self.read()
+        self.read(verbose = True)
         
         errors, warnings = self.ct.validate()
         self.errors += errors

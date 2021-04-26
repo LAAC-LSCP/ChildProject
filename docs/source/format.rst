@@ -57,22 +57,59 @@ the standards detailed right below.
 Metadata
 --------
 
-children notebook
+Children notebook
 ~~~~~~~~~~~~~~~~~
 
-The children dataframe needs to be saved at ``metadata/children.csv``.
+The children metadata dataframe needs to be saved at ``metadata/children.csv``.
 
 .. index-table:: Children metadata
    :header: children
 
-recording notebook
-~~~~~~~~~~~~~~~~~~
 
-The recordings dataframe needs to be saved at
+Recordings notebook
+~~~~~~~~~~~~~~~~~~~
+
+The recordings metadata dataframe needs to be saved at
 ``metadata/recordings.csv``.
 
 .. index-table:: Recordings metadata
    :header: recordings
+
+Splitting the metadata across several files
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Sometimes, access to parts of the metadata should be limited
+to a list of authorized users. This can be achieved by moving confidential
+information out of the main notebook to a separate CSV file to
+be only delivered to authorized users. These additional files
+should be placed according to the table below:
+
+
+.. csv-table:: Additional metadata
+   :header: data,main notebook,location of additional notebooks
+
+   children,``metadata/children.csv``,``metadata/children/``
+   recordings,``metadata/recordings.csv``,``metadata/recordings/``
+
+There can be as many additional notebooks as necessary, and recursion
+is permitted.
+
+.. note::
+
+   In case two or more notebooks contain the same column, the files
+   whose names come first in alphabetical order will prevail while
+   loading the dataset with our package. For instance, if
+   ``child_dob`` is specified in both  ``metadata/recordings/0_private.csv``
+   and ``metadata/recordings/1_public.csv``, the values in the former file will prevail if it is available.
+   This is useful when anonymized values for a certain parameter still need to be shared,
+   but should be replaced with the true values for those who have access to the full dataset.
+
+.. warning::
+
+   For recursive metadata, two dataframes cannot share the same basename.
+   For instance, if one dataframe is located at `metadata/children/dates-of-birth.csv`,
+   an error will be thrown if another dataframe exists at
+   `metadata/children/private/dates-of-birth.csv `.
 
 Annotations
 -----------
