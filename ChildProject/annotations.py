@@ -45,14 +45,14 @@ class AnnotationManager:
         IndexColumn(name = 'raw_filename', description = 'raw annotation path relative, relative to `annotations/<set>/raw`', required = True),
         IndexColumn(name = 'segment_onset', description = 'segment start time in milliseconds', regex = r"([0-9]+)", required = True),
         IndexColumn(name = 'segment_offset', description = 'segment end time in milliseconds', regex = r"([0-9]+)", required = True),
-        IndexColumn(name = 'speaker_id', description = 'identity of speaker in the annotation', required = True),
-        IndexColumn(name = 'speaker_type', description = 'class of speaker (FEM, MAL, CHI, OCH)', choices = ['FEM', 'MAL', 'CHI', 'OCH', 'SPEECH'] + ['TVN', 'TVF', 'FUZ', 'FEF', 'MAF', 'SIL', 'CXF', 'NON', 'OLN', 'OLF', 'CHF', 'NA'], required = True),
-        IndexColumn(name = 'ling_type', description = '1 if the vocalization contains at least a vowel (ie canonical or non-canonical), 0 if crying or laughing', choices = ['1', '0', 'NA'], required = True),
-        IndexColumn(name = 'vcm_type', description = 'vocal maturity defined as: C (canonical), N (non-canonical), Y (crying) L (laughing), J (junk)', choices = ['C', 'N', 'Y', 'L', 'J', 'NA'], required = True),
-        IndexColumn(name = 'lex_type', description = 'W if meaningful, 0 otherwise', choices = ['W', '0', 'NA'], required = True),
-        IndexColumn(name = 'mwu_type', description = 'M if multiword, 1 if single word -- only filled if lex_type==W', choices = ['M', '1', 'NA'], required = True),
-        IndexColumn(name = 'addresseee', description = 'T if target-child-directed, C if other-child-directed, A if adult-directed, U if uncertain or other', choices = ['T', 'C', 'A', 'U', 'NA'], required = True),
-        IndexColumn(name = 'transcription', description = 'orthographic transcription of the speach', required = True),
+        IndexColumn(name = 'speaker_id', description = 'identity of speaker in the annotation'),
+        IndexColumn(name = 'speaker_type', description = 'class of speaker (FEM, MAL, CHI, OCH)', choices = ['FEM', 'MAL', 'CHI', 'OCH', 'SPEECH'] + ['TVN', 'TVF', 'FUZ', 'FEF', 'MAF', 'SIL', 'CXF', 'NON', 'OLN', 'OLF', 'CHF', 'NA']),
+        IndexColumn(name = 'ling_type', description = '1 if the vocalization contains at least a vowel (ie canonical or non-canonical), 0 if crying or laughing', choices = ['1', '0', 'NA']),
+        IndexColumn(name = 'vcm_type', description = 'vocal maturity defined as: C (canonical), N (non-canonical), Y (crying) L (laughing), J (junk)', choices = ['C', 'N', 'Y', 'L', 'J', 'NA']),
+        IndexColumn(name = 'lex_type', description = 'W if meaningful, 0 otherwise', choices = ['W', '0', 'NA']),
+        IndexColumn(name = 'mwu_type', description = 'M if multiword, 1 if single word -- only filled if lex_type==W', choices = ['M', '1', 'NA']),
+        IndexColumn(name = 'addresseee', description = 'T if target-child-directed, C if other-child-directed, A if adult-directed, U if uncertain or other', choices = ['T', 'C', 'A', 'U', 'NA']),
+        IndexColumn(name = 'transcription', description = 'orthographic transcription of the speach'),
         IndexColumn(name = 'phonemes', description = 'amount of phonemes', regex = r'(\d+(\.\d+)?)'),
         IndexColumn(name = 'syllables', description = 'amount of syllables', regex = r'(\d+(\.\d+)?)'),
         IndexColumn(name = 'words', description = 'amount of words', regex = r'(\d+(\.\d+)?)'),
@@ -242,15 +242,7 @@ class AnnotationManager:
                     'segment_offset': int(round(1000*float(interval[1]))),
                     'speaker_id': tier_name,
                     'ling_type': ling_type(interval[2]),
-                    'speaker_type': self.SPEAKER_ID_TO_TYPE[tier_name] if tier_name in self.SPEAKER_ID_TO_TYPE else 'NA',
-                    'vcm_type': 'NA',
-                    'lex_type': 'NA',
-                    'mwu_type': 'NA',
-                    'addresseee': 'NA',
-                    'transcription': 'NA',
-                    'phonemes': 'NA',
-                    'syllables': 'NA',
-                    'words':'NA'
+                    'speaker_type': self.SPEAKER_ID_TO_TYPE[tier_name] if tier_name in self.SPEAKER_ID_TO_TYPE else 'NA'
                 }
 
                 segments.append(segment)
@@ -277,15 +269,12 @@ class AnnotationManager:
                     'segment_onset': int(round(start_t)),
                     'segment_offset': int(round(end_t)),
                     'speaker_id': tier_name,
-                    'ling_type': 'NA',
                     'speaker_type': self.SPEAKER_ID_TO_TYPE[tier_name] if tier_name in self.SPEAKER_ID_TO_TYPE else 'NA',
                     'vcm_type': 'NA',
                     'lex_type': 'NA',
                     'mwu_type': 'NA',
                     'addresseee': 'NA',
                     'transcription': value if value != '0' else '0.',
-                    'phonemes': 'NA',
-                    'syllables': 'NA',
                     'words':'NA'
                 }
 
@@ -428,16 +417,7 @@ class AnnotationManager:
                 segments.append({
                     'segment_onset': int(round(onset*1000)),
                     'segment_offset': int(round(offset*1000)),
-                    'speaker_id': 'NA',
-                    'ling_type': 'NA',
                     'speaker_type': self.LENA_SPEAKER_TYPE_TRANSLATION[seg.get('spkr')],
-                    'vcm_type': 'NA',
-                    'lex_type': 'NA',
-                    'mwu_type': 'NA',
-                    'addresseee': 'NA',
-                    'transcription': 'NA',
-                    'phonemes': 'NA',
-                    'syllables': 'NA',
                     'words': words,
                     'lena_block_number': lena_block_number,
                     'lena_block_type': lena_block_type,
@@ -470,17 +450,7 @@ class AnnotationManager:
         df = rttm
         df['segment_onset'] = df['tbeg'].mul(1000).round().astype(int)
         df['segment_offset'] = (df['tbeg']+df['tdur']).mul(1000).round().astype(int)
-        df['speaker_id'] = 'NA'
-        df['ling_type'] = 'NA'
         df['speaker_type'] = df['name'].map(self.VTC_SPEAKER_TYPE_TRANSLATION)
-        df['vcm_type'] = 'NA'
-        df['lex_type'] = 'NA'
-        df['mwu_type'] = 'NA'
-        df['addresseee'] = 'NA'
-        df['transcription'] = 'NA'
-        df['phonemes'] = 'NA'
-        df['syllables'] = 'NA'
-        df['words'] = 'NA'
 
         if source_file:
             df = df[df['file'] == source_file]
@@ -499,17 +469,8 @@ class AnnotationManager:
         df = rttm
         df['segment_onset'] = df['tbeg'].mul(1000).round().astype(int)
         df['segment_offset'] = (df['tbeg']+df['tdur']).mul(1000).round().astype(int)
-        df['speaker_id'] = 'NA'
-        df['ling_type'] = 'NA'
         df['speaker_type'] = df['name'].map(self.VCM_SPEAKER_TYPE_TRANSLATION)
         df['vcm_type'] = df['name'].map(self.VCM_VCM_TRANSLATION)
-        df['lex_type'] = 'NA'
-        df['mwu_type'] = 'NA'
-        df['addresseee'] = 'NA'
-        df['transcription'] = 'NA'
-        df['phonemes'] = 'NA'
-        df['syllables'] = 'NA'
-        df['words'] = 'NA'
 
         if source_file:
             df = df[df['file'] == source_file]
@@ -525,14 +486,6 @@ class AnnotationManager:
             names = ['file', 'phonemes', 'syllables', 'words'],
             engine = 'python'
         )
-        df['speaker_id'] = 'NA'
-        df['ling_type'] = 'NA'
-        df['speaker_type'] = 'NA'
-        df['vcm_type'] = 'NA'
-        df['lex_type'] = 'NA'
-        df['mwu_type'] = 'NA'
-        df['addresseee'] = 'NA'
-        df['transcription'] = 'NA'
 
         if source_file:
             df = df[df['file'].str.contains(source_file)]
@@ -597,7 +550,11 @@ class AnnotationManager:
 
         df = self.clip_segments(df, annotation['range_onset'], annotation['range_offset'])
 
-        df.sort_values(['segment_onset', 'segment_offset', 'speaker_id', 'speaker_type'], inplace = True)
+        sort_columns = ['segment_onset', 'segment_offset']
+        if 'speaker_type' in df.columns:
+            sort_columns.append('speaker_type')
+
+        df.sort_values(sort_columns, inplace = True)
 
         os.makedirs(os.path.dirname(os.path.join(self.project.path, output_filename)), exist_ok = True)
         df.to_csv(os.path.join(self.project.path, output_filename), index = False)
