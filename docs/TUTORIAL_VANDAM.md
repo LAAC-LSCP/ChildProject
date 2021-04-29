@@ -124,6 +124,8 @@ The validation fails, because the metadata is missing. We need to store the meta
 
 ## Create the metadata
 
+There is only one child in the dataset, so we have decided that that child should have ID '1' -- we will use this information below.
+
 Let's start with the recordings metadata. `metadata/recordings.csv` should at least have the following columns: experiment, child_id, date_iso, start_time, recording_device_type, filename.
 The .its file contains (`annotations/its/raw/BN32_010007.its`) precious information about when the recording started:
 
@@ -131,16 +133,25 @@ The .its file contains (`annotations/its/raw/BN32_010007.its`) precious informat
 <Recording num="1" startClockTime="2010-07-24T11:58:16Z" endClockTime="2010-07-25T01:59:20Z" startTime="PT0.00S" endTime="PT50464.24S">
 ```
 
- Make sure that `metadata/recordings.csv` contains the following text:
+So we'll create a file that contains the key information:
 
+```bash
+echo "experiment,child_id,date_iso,start_time,recording_device_type,recording_filename" > metadata/recordings.csv
+echo "vandam-daylong,1,2010-07-24,11:58,lena,BN32_010007.mp3" >> metadata/recordings.csv
 ```
-experiment,child_id,date_iso,start_time,recording_device_type,filename
+Those two lines just send the header and one row of data to a file.
+
+Next, we make sure that `metadata/recordings.csv` contains the right text with:
+
+```bash
+cat metadata/recordings.csv
+```
+It'll look like:
+
+> experiment,child_id,date_iso,start_time,recording_device_type,recording_filename
 vandam-daylong,1,2010-07-24,11:58,lena,BN32_010007.mp3
-```
 
-(we have decided that the only child of the dataset should have ID '1')
-
-Now the children metadata.
+Now we'll create the children metadata.
 The only fields that are required are: experiment, child_id and child_dob.
 The .its file also contains some information about the child:
 
@@ -150,13 +161,23 @@ The .its file also contains some information about the child:
 
 She was a 12 month old girl at the time of the recording. We can thus assign her a calculated date of birth: 2009-07-24. We will set `dob_criterion` to "extrapolated" to keep track of the fact that the date of birth was calculated from the approximate age at recording. We will also set `dob_accuracy` to 'month' for that child.
 
+So as above we'll create a file that contains the key information:
 
-This is what `metadata/children.csv` should look like:
-
+```bash
+echo "experiment,child_id,child_dob,dob_criterion,dob_accuracy" > metadata/children.csv
+echo "vandam-daylong,1,2009-07-24,extrapolated,month" >> metadata/children.csv
 ```
-experiment,child_id,child_dob,dob_criterion,dob_accuracy
+Those two lines just send the header and one row of data to a file.
+
+Next, we make sure that `metadata/children.csv` contains the right text with:
+
+```bash
+cat metadata/children.csv
+```
+It'll look like:
+
+> experiment,child_id,child_dob,dob_criterion,dob_accuracy
 vandam-daylong,1,2009-07-24,extrapolated,month
-```
 
 We can now make sure that they are no errors by running the validation command again:
 
@@ -164,7 +185,11 @@ We can now make sure that they are no errors by running the validation command a
 child-project validate .
 ```
 
-No error occurs.
+We get:
+
+> validation successfully completed with 0 warning(s).
+
+So no error occurs.
 
 ## Save the changes locally
 
@@ -179,6 +204,14 @@ The rules to decide what files should be stored which way can be set in the `.gi
 scripts/* annex.largefiles=nothing
 metadata/* annex.largefiles=nothing
 recordings/converted/* annex.largefiles=((mimeencoding=binary))
+```
+
+The first two lines are actually already there, so we use the `echo` command to add the ones that are missing:
+
+```bash
+echo "scripts/* annex.largefiles=nothing" >> .gitattributes
+echo "metadata/* annex.largefiles=nothing" >> .gitattributes
+echo "recordings/converted/* annex.largefiles=((mimeencoding=binary))" >> .gitattributes
 ```
 
 These rules will version all the files under `scripts/` and `metadata/`, as well as the text files inside of `recordings/converted/`. By default, the other files will be put in the annex.
