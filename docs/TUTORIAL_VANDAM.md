@@ -21,12 +21,13 @@ This tutorial will guide you through the steps for the conversion of an existing
 
 ## Create a dataset
 
-The first step is to create a new dataset named vandam-data :
+The first step is to create a new dataset named vandam-data:[^1]
 
 ```bash
 datalad create vandam-data
 cd vandam-data
 ```
+[^1]: Should that step fail, remember to check instructions for [installing ChildProject](https://childproject.readthedocs.io/en/latest/install.html), and that you are in the right environment, which may mean doing `source ~/ChildProjectVenv/bin/activate`
 
 So far, the dataset contains nothing but hidden files:
 
