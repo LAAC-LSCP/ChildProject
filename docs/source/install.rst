@@ -6,6 +6,32 @@ Installation
 You'll need to install our package and git-annex, following the
 instructions we provide next.
 
+Install DataLad
+~~~~~~~~~~~~~~~
+
+In order to store and deliver the datasets, we recommend the use of DataLad,
+"a decentralized system for integrated discovery, management, and publication of digital objects of science",
+which we already use for several corpora.
+
+DataLad is a python package, but it also requires git-annex to be installed.
+
+For most MacOS and Linux users, these can be installed with:
+
+.. code:: bash
+
+    pip3 install datalad
+    apt-get install git-annex || brew install git-annex
+
+
+Detailed instructions for Windows, Linux and MacOS users are given in 
+`DataLad's handbook <http://handbook.datalad.org/en/latest/intro/installation.html>`_,
+including instructions to install DataLad via conda.
+
+.. note::
+
+    After installing, please make sure your version of git-annex
+    is recent (we recommend 8.2 and later), with ``git-annex version``.
+
 Install our package via pip
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -41,30 +67,22 @@ any of the following :
     source ~/ChildProjectVenv/bin/activate
     pip3 install git+https://github.com/LAAC-LSCP/ChildProject.git
 
-Install git-annex
-~~~~~~~~~~~~~~~~~
-
-The package also requires git-annex in order to retrieve the datasets.
-It can be installed via ``apt install git-annex`` (Linux) or
-``brew install git-annex`` (Mac). It is encouraged to use a recent version of
-git-annex (8.2+).
-
 Install ffmpeg
 ~~~~~~~~~~~~~~
 
 Operations on the audio will require ffmpeg.
 It is usually installed on most systems. You can check by typing ``ffmpeg -version``.
 If not, it can be installed via ``apt install ffmpeg`` (Linux) or
-``brew install ffmpeg`` (Mac).
+``brew install ffmpeg`` (Mac), or ``conda install ffmpeg`` for conda users.
 
 Check the setup
 ~~~~~~~~~~~~~~~
 
-You can check the setup by issuing the following commands :
+You can now make sure the packages have been successfully installed:
 
 .. clidoc::
 
-   datalad --version
+    datalad --version
 
 .. clidoc::
 
@@ -74,5 +92,8 @@ You can check the setup by issuing the following commands :
 .. note::
 
     We recommend that you regularly keep DataLad and our package up to date. 
-    This can be achieved with the commands ``pip3 install datalad --upgrade``
-    and ``pip3 install git+https://github.com/LAAC-LSCP/ChildProject.git --upgrade``.
+    To force-upgrade this package, do ``pip3 uninstall ChildProject``
+    and then ``pip3 install git+https://github.com/LAAC-LSCP/ChildProject.git``.
+    
+    DataLad can be upgraded with ``pip3 install datalad --upgrade``
+    (see DataLad's documentation for more details).

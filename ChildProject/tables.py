@@ -111,15 +111,14 @@ class IndexTable:
                         elif column_attr.required or str(row[column_name]) != 'NA':
                                 warnings.append(self.msg(message))
 
-                if column_attr.choices and str(row[column_name]) not in column_attr.choices:
+                elif column_attr.choices and str(row[column_name]) not in column_attr.choices:
                     message = "'{}' is not a permitted value for column '{}' on line {}, should be any of [{}]".format(row[column_name], column_name, line_number, ",".join(column_attr.choices))
                     if column_attr.required and str(row[column_name]) != 'NA':
                             errors.append(self.msg(message))
                     elif column_attr.required or str(row[column_name]) != 'NA':
                             warnings.append(self.msg(message))
 
-
-                if column_attr.datetime:
+                elif column_attr.datetime:
                     try:
                         dt = datetime.datetime.strptime(row[column_name], column_attr.datetime)
                     except:

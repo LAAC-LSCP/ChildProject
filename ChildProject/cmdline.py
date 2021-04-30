@@ -204,26 +204,71 @@ def import_data(args):
     datalad.api.run_procedure(spec = cmd, dataset = ds)
 
 @subcommand([
-    arg("source", help = "source data path"),
-    arg("--stats", help = "stats to retrieve (comma-separated)", required = False, default = "")
+    arg("source", help = "source data path")
 ])
-def stats(args):
-    """print statistics about a given dataset"""
+def overview(args):
+    """prints an overview of the contents of a given dataset"""
     
     project = ChildProject(args.source)
-
-    errors, warnings = project.validate()
+    errors, warnings = project.validate(ignore_files = True)
 
     if len(errors) > 0:
         print("validation failed, {} error(s) occured".format(len(errors)), file = sys.stderr)
-        sys.exit(1)
 
-    stats = project.get_stats()
-    args.stats = args.stats.split(',') if args.stats else []
+    am = AnnotationManager(project)
+    project.read()
 
-    for stat in stats:
-        if not args.stats or stat in args.stats:
-            print("{}: {}".format(stat, stats[stat]))
+    print('\n\033[1mrecordings\033[0m:')
+    _recordings = project.recordings.dropna(subset = ['recording_filename'])\
+        .sort_values(['recording_device_type', 'date_iso'])\
+        .groupby('recording_device_type')
+
+    for recording_device_type, recordings in _recordings:
+        if 'duration' in recordings.columns:
+            duration = "{:.2f} hours".format(recordings['duration'].sum()/(3600*1000))
+        else:
+            duration = 'unknown duration'
+
+        available = recordings['recording_filename'].apply(lambda recording_filename:
+            1 if os.path.exists(os.path.join(
+                project.path,
+                'recordings',
+                'raw',
+                recording_filename
+            )) else 0
+        ).sum()
+
+        print('\033[94m{}\033[0m: {}, {}/{} files locally available'.format(
+            recording_device_type,
+            duration,
+            available,
+            len(recordings)
+        ))
+        
+    print('\n\033[1mannotations\033[0m:')
+    _annotations = am.annotations.dropna(subset = ['annotation_filename'])\
+        .sort_values(['set', 'imported_at'])\
+        .drop_duplicates(['set', 'annotation_filename'], keep = 'last')\
+        .groupby('set')
+
+    for annotation_set, annotations in _annotations:
+        duration_covered = annotations['range_offset'].sum()-annotations['range_onset'].sum()
+        available = annotations['annotation_filename'].apply(lambda annotation_filename:
+            1 if os.path.exists(os.path.join(
+                project.path,
+                'annotations',
+                annotation_set,
+                'converted',
+                annotation_filename
+            )) else 0
+        ).sum()
+
+        print('\033[94m{}\033[0m: {:.2f} hours, {}/{} files locally available'.format(
+            annotation_set,
+            duration_covered/(3600*1000),
+            available,
+            len(annotations)
+        ))
 
 @subcommand([
     arg("source", help = "source data path"),

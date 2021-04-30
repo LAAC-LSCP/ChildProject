@@ -12,8 +12,8 @@ import subprocess
 import sys
 
 def standardize_dataframe(df, columns):
-    df = df[columns]
-    return df.sort_index(axis = 1).sort_values(columns).reset_index(drop = True)
+    df = df[list(columns)]
+    return df.sort_index(axis = 1).sort_values(list(columns)).reset_index(drop = True)
 
 @pytest.fixture(scope='function')
 def project(request):
@@ -110,11 +110,12 @@ def test_import(project):
     for dataset in ['eaf', 'textgrid', 'eaf_solis']:
         annotations = am.annotations[am.annotations['set'] == dataset]
         segments = am.get_segments(annotations)
-        segments.drop(columns = annotations.columns, inplace = True)
+        segments.drop(columns = set(annotations.columns) - {'raw_filename'}, inplace = True)
+        truth = pd.read_csv('tests/truth/{}.csv'.format(dataset))
 
         pd.testing.assert_frame_equal(
-            standardize_dataframe(segments, segments.columns.tolist()),
-            standardize_dataframe(pd.read_csv('tests/truth/{}.csv'.format(dataset)), segments.columns.tolist()),
+            standardize_dataframe(segments, set(truth.columns.tolist())),
+            standardize_dataframe(truth, set(truth.columns.tolist())),
             check_less_precise = True
         )
 
@@ -164,14 +165,17 @@ def test_merge(project):
     am.merge_sets(
         left_set = 'vtc_rttm',
         right_set = 'alice',
-        left_columns = ['speaker_id','ling_type','speaker_type','vcm_type','lex_type','mwu_type','addressee','transcription'],
+        left_columns = ['speaker_type'],
         right_columns = ['phonemes','syllables','words'],
         output_set = 'alice_vtc'
     )
     am.read()
 
     segments = am.get_segments(am.annotations[am.annotations['set'] == 'alice_vtc'])
-    assert segments.shape == am.get_segments(am.annotations[am.annotations['set'] == 'vtc_rttm']).shape
+    vtc_segments = am.get_segments(am.annotations[am.annotations['set'] == 'vtc_rttm'])
+    assert segments.shape[0] == vtc_segments.shape[0]
+    assert segments.shape[1] == vtc_segments.shape[1] + 3
+
 
     adult_segments = segments[segments['speaker_type'].isin(['FEM', 'MAL'])].sort_values(['segment_onset', 'segment_offset']).reset_index(drop = True)
     alice = am.get_segments(am.annotations[am.annotations['set'] == 'alice']).sort_values(['segment_onset', 'segment_offset']).reset_index(drop = True)
@@ -211,6 +215,8 @@ def test_rename(project):
     assert am.annotations[am.annotations['set'] == 'renamed'].shape[0] == tg_count
 
 def custom_function(filename):
+    from ChildProject.converters import VtcConverter
+    
     df = pd.read_csv(
         filename,
         sep = " ",
@@ -219,17 +225,7 @@ def custom_function(filename):
 
     df['segment_onset'] = 1000*df['tbeg'].astype(int)
     df['segment_offset'] = (1000*(df['tbeg']+df['tdur'])).astype(int)
-    df['speaker_id'] = 'NA'
-    df['ling_type'] = 'NA'
-    df['speaker_type'] = df['name'].map(AnnotationManager.VTC_SPEAKER_TYPE_TRANSLATION)
-    df['vcm_type'] = 'NA'
-    df['lex_type'] = 'NA'
-    df['mwu_type'] = 'NA'
-    df['addressee'] = 'NA'
-    df['transcription'] = 'NA'
-    df['phonemes'] = 'NA'
-    df['syllables'] = 'NA'
-    df['words'] = 'NA'
+    df['speaker_type'] = df['name'].map(VtcConverter.SPEAKER_TYPE_TRANSLATION)
 
     df.drop(['type', 'file', 'chnl', 'tbeg', 'tdur', 'ortho', 'stype', 'name', 'conf', 'unk'], axis = 1, inplace = True)
     return df

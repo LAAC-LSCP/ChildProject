@@ -56,16 +56,16 @@ class ChildProject:
         IndexColumn(name = 'date_iso', description = 'date in which recording was started in ISO (eg 2020-09-17)', required = True, datetime = '%Y-%m-%d'),
         IndexColumn(name = 'start_time', description = 'local time in which recording was started in format 24-hour (H)H:MM; if minutes are unknown, use 00. Set as ‘NA’ if unknown.', required = True, datetime = '%H:%M'),
         IndexColumn(name = 'recording_device_type', description = 'lena, usb, olympus, babylogger (lowercase)', required = True, choices = ['lena', 'usb', 'olympus', 'babylogger']),
-        IndexColumn(name = 'recording_filename', description = 'the path to the file from the root of “recordings”), set to ‘NA’ if no valid recording available. It is unique (two recordings cannot point towards the same file).', required = True, filename = True, unique = True),
+        IndexColumn(name = 'recording_filename', description = 'the path to the file from the root of “recordings”). It MUST be unique (two recordings cannot point towards the same file).', required = True, filename = True, unique = True),
         IndexColumn(name = 'duration', description = 'duration of the audio, in milliseconds', regex = r'([0-9]+)'),
         IndexColumn(name = 'session_id', description = 'identifier of the recording session.'),
         IndexColumn(name = 'session_offset', description = 'offset (in milliseconds) of the recording with respect to other recordings that are part of the same session. Each recording session is identified by their `session_id`.', regex = r'[0-9]+'),
         IndexColumn(name = 'recording_device_id', description = 'unique ID of the recording device'),
         IndexColumn(name = 'experimenter', description = 'who collected the data (could be anonymized ID)'),
         IndexColumn(name = 'location_id', description = 'unique location ID -- can be specified at the level of the child (if children do not change locations)'),
-        IndexColumn(name = 'its_filename', description = 'its_filename', filename = True),
-        IndexColumn(name = 'upl_filename', description = 'upl_filename', filename = True),
-        IndexColumn(name = 'trs_filename', description = 'trs_filename', filename = True),
+        IndexColumn(name = 'its_filename', description = 'its_filename'),
+        IndexColumn(name = 'upl_filename', description = 'upl_filename'),
+        IndexColumn(name = 'trs_filename', description = 'trs_filename'),
         IndexColumn(name = 'lena_id', description = ''),
         IndexColumn(name = 'might_feature_gaps', description = '1 if the audio cannot be guaranteed to be a continuous block with no time jumps, 0 or NA or undefined otherwise.', function = is_boolean),
         IndexColumn(name = 'start_time_accuracy', description = 'Accuracy of start_time for this recording. If not specified, assumes minute-accuray.', choices = ['minute', 'hour', 'reliable']),
@@ -96,9 +96,57 @@ class ChildProject:
         self.children = None
         self.recordings = None
 
+        self.children_metadata_origin = None
+        self.recordings_metadata_origin = None
+
         self.converted_recordings_hashtable = {}
+
+    def accumulate_metadata(self, table: str, df: pd.DataFrame, columns: list, merge_column: str, verbose = False) -> pd.DataFrame:
+        md_path = os.path.join(self.path, 'metadata', table)
+
+        if not os.path.exists(md_path):
+            return df
+        
+        md = pd.DataFrame([
+            {'path': f, 'basename':  os.path.basename(f)}
+            for f in glob.glob(os.path.join(md_path, '**/*.csv'), recursive = True)
+        ])
+        
+        if not len(md):
+            return df
+
+        md.sort_values('basename', ascending = False, inplace = True)
+
+        duplicates = md.groupby('basename').agg(
+            paths = ('path', list),
+            count = ('path', len),
+        )
+        duplicates = duplicates[duplicates['count'] >= 2].reset_index()
+
+        if len(duplicates):
+            raise Exception("ambiguous filenames detected:\n{}".format(
+                '\n'.join(duplicates.apply(lambda d: "{} found as {}".format(','.join(d['basename']), d['paths']), axis = 1).tolist())
+            ))
+
+        for md in md['path'].tolist():
+            table = IndexTable(table, md, columns)
+            dataframe = table.read()
+
+            replaced_columns = (set(df.columns) & set(dataframe.columns)) - {merge_column}
+            if verbose and len(replaced_columns):
+                print('column(s) {} overwritten by {}'.format(','.join(replaced_columns), md))
+
+            df['line'] = df.index
+            df = df[(set(df.columns) - set(dataframe.columns)) | {merge_column}].merge(
+                dataframe,
+                how = 'left',
+                left_on = merge_column,
+                right_on = merge_column
+            ).set_index('line')
+
+        return df
     
-    def read(self):
+    def read(self, verbose = False):
         """Read the metadata
         """
         self.ct = IndexTable('children', os.path.join(self.path, 'metadata/children.csv'), self.CHILDREN_COLUMNS)
@@ -106,6 +154,13 @@ class ChildProject:
 
         self.children = self.ct.read()
         self.recordings = self.rt.read()
+
+        # accumulate additional metadata (optional)
+        self.ct.df = self.accumulate_metadata('children', self.children, self.CHILDREN_COLUMNS, 'child_id', verbose)
+        self.rt.df = self.accumulate_metadata('recordings', self.recordings, self.RECORDINGS_COLUMNS, 'recording_filename', verbose)
+
+        self.children = self.ct.df
+        self.recordings = self.rt.df
 
     def validate(self, ignore_files: bool = False) -> tuple:
         """Validate a dataset, returning all errors and warnings.
@@ -127,7 +182,7 @@ class ChildProject:
                 self.errors.append("missing directory {}.".format(rd))
 
         # check tables
-        self.read()
+        self.read(verbose = True)
         
         errors, warnings = self.ct.validate()
         self.errors += errors
@@ -183,6 +238,27 @@ class ChildProject:
 
         return self.errors, self.warnings
 
+    def get_recording_path(self, recording_filename: str, profile: str = None) -> str:
+        """return the path to a recording
+
+        :param recording_filename: recording filename, as in the metadata
+        :type recording_filename: str
+        :param profile: name of the conversion profile, defaults to None
+        :type profile: str, optional
+        :return: path to the recording
+        :rtype: str
+        """
+
+        if profile:
+            return os.path.join(
+                self.path,
+                self.CONVERTED_RECORDINGS,
+                profile,
+                self.project.get_converted_recording_filename(profile, recording_filename)
+            )
+        else:
+            return os.path.join(self.path, self.RAW_RECORDINGS, recording_filename)
+
     def get_converted_recording_filename(self, profile: str, recording_filename: str) -> str:
         """retrieve the converted filename of a recording under a given ``profile``,
         from its original filename.
@@ -215,26 +291,8 @@ class ChildProject:
             self.converted_recordings_hashtable[key] = None
             return None
 
-
-    def get_stats(self) -> dict:
-        """return statistics extracted from the dataset
-
-        :return: A dictionary with various statistics (total_recordings, total_children, audio_duration, etc.)
-        :rtype: dict
-        """
-        stats = {}
-        recordings = self.recordings.merge(self.compute_recordings_duration(), left_on = 'recording_filename', right_on = 'recording_filename')
-        recordings['exists'] = recordings['recording_filename'].map(lambda f: os.path.exists(os.path.join(self.path, self.RAW_RECORDINGS, f)))
-
-        stats['total_recordings'] = recordings.shape[0]
-        stats['total_existing_recordings'] = recordings[recordings['exists'] == True].shape[0]
-        stats['audio_duration'] = recordings['duration'].sum()
-        stats['total_children'] = self.children.shape[0]
-
-        return stats
-
     def compute_recordings_duration(self, profile: str = None) -> pd.DataFrame:
-        """[summary]
+        """compute recordings duration
 
         :param profile: name of the profile of recordings to compute the duration from. If None, raw recordings are used. defaults to None
         :type profile: str, optional
@@ -244,8 +302,7 @@ class ChildProject:
         recordings = self.recordings[['recording_filename']]
 
         recordings = recordings.assign(duration = recordings['recording_filename'].map(lambda f:
-            get_audio_duration(os.path.join(self.path, self.CONVERTED_RECORDINGS, profile, f)) if profile
-            else get_audio_duration(os.path.join(self.path, self.RAW_RECORDINGS, f))
+            get_audio_duration(self.get_recording_path(f))
         ))
         recordings['duration'].fillna(0, inplace = True)
         recordings['duration'] = (recordings['duration']*1000).astype(int)

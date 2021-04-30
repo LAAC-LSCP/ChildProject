@@ -4,7 +4,7 @@
    contain the root `toctree` directive.
 
 Welcome to ChildProject's documentation!
-======================================
+========================================
 
 .. toctree::
    :maxdepth: 2

@@ -1,8 +1,15 @@
+.. _samplers:
+
 Samplers
 --------
 
 Overview
 ~~~~~~~~
+
+.. figure:: images/sampler_diagram.png
+   :alt: Sampling recordings
+
+   Sampling audio segments to be annotated with ChildProject.
 
 A sampler draws segments from each recording, according to the algorithm and the parameters defined by the user.
 The sampler will produce two files into the `destination` folder :
@@ -13,6 +20,7 @@ The sampler will produce two files into the `destination` folder :
 If the folder `destination` does not exist, it is automatically created in the process.
 
 Several samplers are implemented in our package, which are listed below.
+The samples can then feed following pipelines such as the :ref:`zooniverse` pipeline.
 
 .. clidoc::
 
