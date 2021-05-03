@@ -71,6 +71,22 @@ pulished - just like with git commit !*
 More: `datalad
 save <http://docs.datalad.org/en/stable/generated/man/datalad-save.html>`__
 
+Removing a local copy of a dataset
+~~~~~~~~~~~~~~~~~~
+
+.. code:: bash
+
+   datalad remove [-h] [-d DATASET] [-r] [--nocheck] [--nosave] [-m MESSAGE] [--if-dirty {fail,save-before,ignore}] [PATH [PATH ...]]
+
+Example:
+
+.. code:: bash
+
+   datalad remove -d bergelson-data/
+
+More: `datalad
+remove <http://docs.datalad.org/en/stable/generated/man/datalad-remove.html>`__
+
 Publishing changes
 ~~~~~~~~~~~~~~~~~~
 
