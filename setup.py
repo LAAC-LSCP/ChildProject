@@ -3,6 +3,7 @@ import ChildProject
 
 requires = {
     'core': ['pandas>=0.25.0', 'xlrd', 'jinja2', 'numpy>=1.16.5', 'pympi-ling', 'lxml', 'sox', 'datalad', 'requests<2.25.0'],
+    'metrics': ['pygamma-agreement'],
     'samplers': ['PyYAML'],
     'zooniverse': ['panoptes-client', 'pydub'],
     'eaf-builder': ['importlib-resources']

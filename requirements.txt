@@ -12,4 +12,5 @@ pydub
 panoptes_client
 sphinx
 sphinx_rtd_theme
+pygamma-agreement
 PyYAML
