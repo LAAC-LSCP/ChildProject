@@ -512,11 +512,11 @@ class AnnotationManager:
         annotations.drop(columns = ['raw_filename'], inplace = True)
 
         segments = pd.concat([
-            pd.read_csv(os.path.join(self.project.path, 'annotations', a['set'], 'converted', a['annotation_filename'])).assign(annotation_filename = a['annotation_filename'])
+            pd.read_csv(os.path.join(self.project.path, 'annotations', a['set'], 'converted', a['annotation_filename'])).assign(set = a['set'], annotation_filename = a['annotation_filename'])
             for a in annotations.to_dict(orient = 'records')
         ])
 
-        return segments.merge(annotations, how = 'left', left_on = 'annotation_filename', right_on = 'annotation_filename')
+        return segments.merge(annotations, how = 'left', left_on = ['set', 'annotation_filename'], right_on = ['set', 'annotation_filename'])
 
     def intersection(self, left: pd.DataFrame, right: pd.DataFrame) -> tuple:
         """Compute the intersection of all ``left`` and ``right`` annotations,

@@ -1,6 +1,6 @@
 requests==2.21.0
 chardet==3.0.4
-pandas
+pandas>=0.25.0
 jinja2
 numpy>=1.16.5
 pympi-ling
