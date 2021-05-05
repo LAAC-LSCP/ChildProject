@@ -27,7 +27,7 @@ setup(
         'Topic :: Scientific/Engineering',
     ],
     packages=find_packages(),
-    install_requires=requires['core'] + requires['samplers'] + requires['zooniverse'] + requires['eaf-builder'],
+    install_requires=requires['core'] + requires['metric'] + requires['samplers'] + requires['zooniverse'] + requires['eaf-builder'],
     include_package_data=True,
     package_data={'ChildProject': ['templates/*.*']},
     entry_points={
