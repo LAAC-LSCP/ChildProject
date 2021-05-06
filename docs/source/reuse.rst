@@ -1,146 +1,97 @@
-How to reuse extant LAAC datasets
-=================================
+How to reuse GIN datasets
+=========================
 
--  `How to reuse extant LAAC
-   datasets <#how-to-reuse-extant-laac-datasets>`__
-
-   -  `How it works <#how-it-works>`__
-   -  `Installing datalad <#installing-datalad>`__
-   -  `Installing a dataset <#installing-a-dataset>`__
-
-      -  `Setting up your ssh access to
-         GitHub <#setting-up-your-ssh-access-to-github>`__
-      -  `Setting up your ssh access to
-         Oberon <#setting-up-your-ssh-access-to-oberon>`__
-      -  `Cloning the dataset <#datalad-way-using-only-datalad>`__
-
-   -  `Downloading large files <#downloading-large-files>`__
-   -  `Updating a dataset <#updating-a-dataset>`__
-   -  `Installing all our datasets at
-      once <#installing-all-our-datasets-at-once>`__
-   -  `Contributing <#contributing>`__
-
-      -  `Pushing changes to a
-         dataset <#pushing-changes-to-a-dataset>`__
-
-Our datasets rely on `datalad <https://www.datalad.org/>`__. Datalad
+Our datasets are managed with `datalad <https://www.datalad.org/>`__. Datalad
 allows the versioning and distribution of large datasets. Datalad relies
 on another tool called
 `git-annex <https://git-annex.branchable.com/>`__, which itself is an
 extension of git providing support for large file versioning with a high
 flexibility.
 
-How it works
-------------
-
-Our dataset are distributed on two “siblings”. Siblings are analogous to
-git and git-annex remotes. The github remote doesn’t include large
-files, only pointers refering to them. The large files are stored in a
-sibling hosted on Oberon, our lab cluster:
-
-.. figure:: images/infrastructure.png
-   :alt: Dataset infrastructure
-
-   LAAC datasets storage infrastructure
+We host the data on `GIN <http://gin.g-node.org/>`__. GIN's interface
+is really similar to GitHub, but unlike the latter, GIN can handle
+our large files.
 
 Installing datalad
 ------------------
 
-*Important: datasets are hosted on github and oberon. This means you are
-required access to our private github repositories as well as ssh access
-to oberon. You will be prompted for credentials everytime you issue
-datalad commands, so we recommand using SSH keys and enabling the
-Keychain (append ``~/.ssh/config`` with ``UseKeychain yes``).*
+The DataLad handbook provides extensive instructions for the
+installation of DataLad in their `handbook <http://handbook.datalad.org/en/latest/intro/installation.html#install>`__.
+
+If you have admin rights and are working on Linux or Mac, the following
+should work:
 
 1. Install git-annex using ``apt install git-annex`` (linux) or
    ``brew install git-annex`` (mac). Git-annex is available by default
    on Oberon.
-2. Install datalad with pip : ``pip install datalad`` (or
-   ``pip install datalad --user`` in case of permission issues)
+2. Install datalad with pip : ``pip3 install datalad``
 
-If you are still having permission issues, consider using python virtual
-environments or conda. Otherwise, refer to your system administrator.
+.. note::
+   
+   If you are still having permission issues, consider using python virtual
+   environments or conda (see `DataLad's handbook <http://handbook.datalad.org/en/latest/intro/installation.html#install>`__).
+   Otherwise, refer to your system administrator. 
 
-Installing a dataset
---------------------
+Setup your GIN account
+----------------------
 
-Setting up your ssh access to GitHub
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Most repositories are private, and thus require authentication.
+We recommend that you always use SSH authentication and we will only
+provide instructions for this case.
 
-This step shall only be done once for all. Since our datasets are
-partially hosted on GitHub private repositories, authentication is
-needed to access them. I highly recommend that you use SSH
-authentication, for security and simplicity. I will only provide
-instructions for SSH authentication, and leave HTTPS authentication to
-consenting adults. Here are the steps:
+Before anything, you will need to create an account on `GIN <https://gin.g-node.org/>`_,
+and to link your `SSH public key <https://gin.g-node.org/user/settings/ssh>`_ to your
+GIN account.
 
-1. Copy your SSH public key (usually located in ``~/.ssh/id_rsa.pub``)
-2. Go to `GitHub.com > Settings > SSH and GPG
-   Keys <https://github.com/settings/keys>`__
-3. Click on the green button ‘New SSH key’ and paste your public key
+1. Create an account on GIN
+2. Copy your SSH public key (usually located in ``~/.ssh/id_rsa.pub``)
+3. Go to `GIN > Settings > SSH Keys <https://gin.g-node.org/user/settings/ssh>`__
+4. Click on the blue button ‘Add a key’ and paste your public key
    where requested.
 
-.. _reuse-oberon-ssh:
+.. note::
+
+   Remember to communicate your username to the data administrator
+   before you try to access the data 
+   in order for him to grant you permissions.
+
+.. note::
+
+   You can configure as many keys as necessary. This is useful when you
+   need to access GIN from different locations with different SSH keys
+   (e.g. from your lab cluster, or from your own laptop).
+
+.. note::
+
+   You may consider enabling the Keychain
+   (append ``~/.ssh/config`` with ``UseKeychain yes``)
+   if you are prompted for your SSH passphrase everytime.
+
+Installing a dataset
+~~~~~~~~~~~~~~~~~~~~
+
+Installing a dataset can be done with the `datalad install` command.
+The input is the SSH location of the dataset. It can be found on
+the page of the repository on GIN.
 
 
-Setting up your ssh access to Oberon
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. code:: bash
 
-The actual content of the large files (e.g. recordings) is stored on the
-lab cluster (Oberon). Therefore, you need ssh access to the cluster to
-retrieve them.
+   datalad install git@gin.g-node.org:/LAAC-LSCP/vandam-data.git
+   cd vandam-data
 
-If you can already ssh into Oberon with an alias by doing
-``ssh foberon`` or ``ssh oberon`` or similar, skip this step. Otherwise,
-follow these instructions to setup ssh properly:
+Datasets that contain subdatasets can be installed recursively using the -r switch.
+This is the case of the EL1000 dataset:
 
-1. Add the following lines to your ``~/.ssh/config`` file, replacing
-   ``<username>`` by your actual username:
+.. code:: bash
 
-::
+   datalad install git@gin.g-node.org:/EL1000/EL1000.git
+   cd EL1000
 
-   Host flores
-      Hostname cognitive-ml.fr
-      User <username>
-
-   Host foberon
-      Hostname oberon
-      User <username>
-      ProxyJump flores
-
-   Host *
-   ForwardX11 yes
-   UseKeychain yes
-
-2. Try to SSH into oberon by typing ``ssh foberon``. You will be
-   prompted for your credentials.
-
-Cloning the dataset
-~~~~~~~~~~~~~~~~~~~
-
-
-1. The first step is to clone the dataset from github, for instance :
-
-::
-
-   datalad install git@github.com:LAAC-LSCP/namibia-data.git
-   cd namibia-data
-
-2. The next step is configure the access to the cluster (where large
-   files are stored). If you are installing the dataset on oberon, you
-   just have to type :
-
-::
-
-   datalad run-procedure setup
-
-Otherwise, you need to specify the SSH alias for Oberon on your system.
-If you followed the previous steps to setup your SSH access to Oberon,
-it should be ``foberon`` :
-
-::
-
-   datalad run-procedure setup foberon
+.. warning::
+   
+   Some datasets may require additional configuration steps.
+   Pay attention to the README before you start using a dataset. 
 
 That’s it ! Your dataset is ready to go. By default, large files do not
 get downloaded automatically. See the next section for help with
@@ -174,20 +125,6 @@ with ``dataset update``.
 Installing all our datasets at once
 -----------------------------------
 
-In order to install the superdataset, run the following commands :
-
-::
-
-   datalad install -r git@github.com:LAAC-LSCP/datasets.git
-   cd datasets
-   datalad run-procedure setup <oberon_alias>
-
-Make sure to replace ``<oberon_alias>`` with whatever alias you use to
-ssh into Oberon. If you have followed our instructions (:ref:`reuse-oberon-ssh`),
-it should be ``foberon``.
-
-You’re good to go. You can download data from any dataset, e.g. by doing
-``datalad get solomon-data/annotations``.
 
 Contributing
 ------------
