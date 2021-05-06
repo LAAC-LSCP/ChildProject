@@ -18,7 +18,7 @@ Installing datalad
 The DataLad handbook provides extensive instructions for the
 installation of DataLad in their `handbook <http://handbook.datalad.org/en/latest/intro/installation.html#install>`__.
 
-If you have admin rights and are working on Linux or Mac, the following
+If you have admin rights and you are working on Linux or Mac, the following
 should work:
 
 1. Install git-annex using ``apt install git-annex`` (linux) or
@@ -28,7 +28,7 @@ should work:
 
 .. note::
    
-   If you are still having permission issues, consider using python virtual
+   If you are having permission issues, consider using python virtual
    environments or conda (see `DataLad's handbook <http://handbook.datalad.org/en/latest/intro/installation.html#install>`__).
    Otherwise, refer to your system administrator. 
 
@@ -72,8 +72,15 @@ Installing a dataset
 
 Installing a dataset can be done with the `datalad install` command.
 The input is the SSH location of the dataset. It can be found on
-the page of the repository on GIN.
+the page of the repository on GIN:
 
+.. figure:: images/gin.png
+   :alt: Where to find the SSH url of a dataset on GIN
+
+   A GIN dataset.
+
+For instance, the VanDam public dataset (available on `GIN <https://gin.g-node.org/LAAC-LSCP/vandam-data>`__)
+can be installed with the following command:
 
 .. code:: bash
 
