@@ -3,7 +3,7 @@ import ChildProject
 
 requires = {
     'core': ['pandas>=0.25.0', 'xlrd', 'jinja2', 'numpy>=1.16.5', 'pympi-ling', 'lxml', 'sox', 'datalad', 'requests<2.25.0'],
-    'metrics': ['pygamma-agreement'],
+    'metrics': ['pyannote.core', 'pyannote.metrics', 'pygamma-agreement; python_version >= "3.6.0"'],
     'samplers': ['PyYAML'],
     'zooniverse': ['panoptes-client', 'pydub'],
     'eaf-builder': ['importlib-resources']
@@ -14,7 +14,7 @@ setup(
     version = ChildProject.__version__,
     description='LAAC@LSCP',
     url='https://github.com/LAAC-LSCP/ChildProject',
-    author='Lucas',
+    author='Lucas Gautheron',
     author_email='lucas.gautheron@gmail.com',
     license='MIT',
     classifiers=[
@@ -27,7 +27,7 @@ setup(
         'Topic :: Scientific/Engineering',
     ],
     packages=find_packages(),
-    install_requires=requires['core'] + requires['metric'] + requires['samplers'] + requires['zooniverse'] + requires['eaf-builder'],
+    install_requires=requires['core'] + requires['metrics'] + requires['samplers'] + requires['zooniverse'] + requires['eaf-builder'],
     include_package_data=True,
     package_data={'ChildProject': ['templates/*.*']},
     entry_points={
