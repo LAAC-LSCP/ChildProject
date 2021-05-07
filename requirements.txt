@@ -12,6 +12,6 @@ pydub
 panoptes_client
 sphinx
 sphinx_rtd_theme
-pyannote
-pygamma-agreement
+pyannote.metrics
+pygamma-agreement; python_version >= "3.6.0"
 PyYAML
