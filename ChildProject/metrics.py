@@ -31,8 +31,6 @@ def gamma(segments: pd.DataFrame, column: str, alpha = 1, beta = 1, precision_le
                                               alpha = alpha,
                                               beta = beta)
 
-    best_alignment = continuum.get_best_alignment(dissim)
     gamma_results = continuum.compute_gamma(dissim, precision_level = precision_level)
-
     return gamma_results.gamma
 
