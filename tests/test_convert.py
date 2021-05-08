@@ -1,14 +1,15 @@
 from ChildProject.projects import ChildProject
-from ChildProject.pipelines.conversion import ConversionPipeline
+from ChildProject.pipelines.converters import AudioConversionPipeline
 import numpy as np
 import os
-import pandas
+import pandas as pd
 import shutil
 
 def test_convert():
     shutil.copytree(src = "examples/valid_raw_data", dst = "output/convert")
 
-    profile = ConversionPipeline().run(
+    converted, parameters = AudioConversionPipeline().run(
+        converter = 'basic',
         path = 'output/convert',
         name = 'test',
         format = 'wav',
@@ -20,7 +21,7 @@ def test_convert():
     project.read()
 
     recordings = project.recordings
-    converted_recordings = profile.recordings
+    converted_recordings = pd.read_csv(converted)
 
     assert np.isclose(4000, project.compute_recordings_duration()['duration'].sum()), "audio duration equals expected value"
     assert os.path.exists(os.path.join("output/convert/", ChildProject.CONVERTED_RECORDINGS, "test")), "missing converted recordings folder"
@@ -31,4 +32,15 @@ def test_convert():
         for f in converted_recordings['converted_filename'].tolist()
     ]), "recording files are missing"
 
+    pd.DataFrame([{
+        'recording_filename': 'sound.wav',
+        'segment_onset': 1000,
+        'segment_offset': 3000
+    }]).to_csv('output/convert/segments.csv')
 
+    AudioConversionPipeline().run(
+        converter = 'vetting',
+        path = 'output/convert',
+        name = 'vetted',
+        segments_path = 'output/convert/segments.csv'
+    )
