@@ -1,5 +1,8 @@
 import pandas as pd
 
+from pyannote.core import Annotation, Segment
+from nltk.metrics.agreement import AnnotationTask
+
 def gamma(segments: pd.DataFrame, column: str, alpha = 1, beta = 1, precision_level = 0.05) -> float:
     """compute gamma agreement on `segments`. (10.1162/COLI_a_00227,https://hal.archives-ouvertes.fr/hal-03144116) 
 
@@ -35,8 +38,6 @@ def gamma(segments: pd.DataFrame, column: str, alpha = 1, beta = 1, precision_le
     return gamma_results.gamma
 
 def segments_to_annotation(segments: pd.DataFrame, column: str) -> Annotation:
-    from pyannote.core import Annotation, Segment
-
     annotation = Annotation()
     
     for segment in segments.to_dict(orient = 'records'):
@@ -60,3 +61,17 @@ def pyannote_metric(segments: pd.DataFrame, reference: str, hypothesis: str, met
     hyp = segments_to_annotation(segments[segments['set'] == hypothesis], column)
 
     return metric(ref, hyp, detailed = True)
+
+def segments_to_grid(
+    range_onset: int,
+    range_offset: int,
+    segments: pd.DataFrame,
+    column: str,
+    timescale: int = 100) -> float:
+
+    # align on the grid
+    segments['segment_onset'] -= range_onset
+    segments['segment_offset'] -= range_onset
+
+    
+
