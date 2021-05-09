@@ -548,7 +548,7 @@ class AnnotationManager:
         annotation['range_onset'] = int(annotation['range_onset'])
         annotation['range_offset'] = int(annotation['range_offset'])
 
-        df = self.clip_segments(df, annotation['range_onset'], annotation['range_offset'])
+        df = AnnotationManager.clip_segments(df, annotation['range_onset'], annotation['range_offset'])
 
         sort_columns = ['segment_onset', 'segment_offset']
         if 'speaker_type' in df.columns:
@@ -860,7 +860,7 @@ class AnnotationManager:
         """get all segments associated to the annotations referenced in ``annotations``.
 
         :param annotations: dataframe of annotations, according to :ref:`format-annotations`
-        :type annotations: pd.DataFramef
+        :type annotations: pd.DataFrame
         :return: dataframe of all the segments merged (as specified in :ref:`format-annotations-segments`), merged with ``annotations``. 
         :rtype: pd.DataFrame
         """
@@ -941,7 +941,8 @@ class AnnotationManager:
 
         return pd.concat(a_stack), pd.concat(b_stack)
 
-    def clip_segments(self, segments: pd.DataFrame, start: int, stop: int) -> pd.DataFrame:
+    @staticmethod
+    def clip_segments(segments: pd.DataFrame, start: int, stop: int) -> pd.DataFrame:
         """Clip all segments onsets and offsets within ``start`` and ``stop``.
         Segments outside of the range [``start``,``stop``] will be removed.
 
