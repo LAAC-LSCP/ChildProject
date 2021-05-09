@@ -1,7 +1,18 @@
 import pandas as pd
+from functools import reduce
 
 from pyannote.core import Annotation, Segment
 from nltk.metrics.agreement import AnnotationTask
+
+from .annotations import AnnotationManager
+
+def get_annotations_intersection(am: AnnotationManager, sets: list):
+    annotations = am.annotations[am.annotations['set'].isin(sets)]
+
+    intersection = AnnotationManager.intersection(annotations)
+    
+    return intersection
+    
 
 def gamma(segments: pd.DataFrame, column: str, alpha = 1, beta = 1, precision_level = 0.05) -> float:
     """compute gamma agreement on `segments`. (10.1162/COLI_a_00227,https://hal.archives-ouvertes.fr/hal-03144116) 
@@ -73,5 +84,5 @@ def segments_to_grid(
     segments['segment_onset'] -= range_onset
     segments['segment_offset'] -= range_onset
 
-    
+
 

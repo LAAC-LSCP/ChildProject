@@ -134,10 +134,12 @@ def test_intersect(project):
     input_annotations = pd.read_csv('examples/valid_raw_data/annotations/intersect.csv')
     am.import_annotations(input_annotations)
 
-    a, b = am.intersection(
-        am.annotations[am.annotations['set'] == 'textgrid'],
-        am.annotations[am.annotations['set'] == 'vtc_rttm']
-    )
+    intersection = AnnotationManager.intersection(
+        am.annotations[am.annotations['set'].isin(['textgrid', 'vtc_rttm'])]
+    ).convert_dtypes()
+    
+    a = intersection[intersection['set'] == 'textgrid']
+    b = intersection[intersection['set'] == 'vtc_rttm']
 
     columns = a.columns.tolist()
     columns.remove('imported_at')
@@ -145,12 +147,12 @@ def test_intersect(project):
         
     pd.testing.assert_frame_equal(
         standardize_dataframe(a, columns),
-        standardize_dataframe(pd.read_csv('tests/truth/intersect_a.csv'), columns)
+        standardize_dataframe(pd.read_csv('tests/truth/intersect_a.csv'), columns).convert_dtypes()
     )
 
     pd.testing.assert_frame_equal(
         standardize_dataframe(b, columns),
-        standardize_dataframe(pd.read_csv('tests/truth/intersect_b.csv'), columns)
+        standardize_dataframe(pd.read_csv('tests/truth/intersect_b.csv'), columns).convert_dtypes()
     )
 
 def test_merge(project):
@@ -175,7 +177,6 @@ def test_merge(project):
     vtc_segments = am.get_segments(am.annotations[am.annotations['set'] == 'vtc_rttm'])
     assert segments.shape[0] == vtc_segments.shape[0]
     assert segments.shape[1] == vtc_segments.shape[1] + 3
-
 
     adult_segments = segments[segments['speaker_type'].isin(['FEM', 'MAL'])].sort_values(['segment_onset', 'segment_offset']).reset_index(drop = True)
     alice = am.get_segments(am.annotations[am.annotations['set'] == 'alice']).sort_values(['segment_onset', 'segment_offset']).reset_index(drop = True)

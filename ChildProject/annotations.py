@@ -828,13 +828,16 @@ class AnnotationManager:
         assert union.issubset(all_columns), "left_columns and right_columns have unexpected values"
         assert required_columns.issubset(union), "left_columns and right_columns have missing values"
 
-        left_annotations = self.annotations[self.annotations['set'] == left_set]
-        right_annotations = self.annotations[self.annotations['set'] == right_set]
+        annotations = self.annotations[self.annotations['set'].isin([left_set, right_set])]
+        annotations = annotations[annotations['error'].isnull()]
 
-        left_annotations = left_annotations[left_annotations['error'].isnull()]
-        right_annotations = right_annotations[right_annotations['error'].isnull()]
-
-        left_annotations, right_annotations = self.intersection(left_annotations, right_annotations)
+        intersection = AnnotationManager.intersection(
+            annotations,
+            sets = [left_set, right_set]
+        )
+        left_annotations = intersection[intersection['set'] == left_set]
+        right_annotations = intersection[intersection['set'] == right_set]
+        
         left_annotations = left_annotations.reset_index(drop = True).rename_axis('interval').reset_index()
         right_annotations = right_annotations.reset_index(drop = True).rename_axis('interval').reset_index()
 
@@ -874,72 +877,63 @@ class AnnotationManager:
 
         return segments.merge(annotations, how = 'left', left_on = ['set', 'annotation_filename'], right_on = ['set', 'annotation_filename'])
 
-    def intersection(self, left: pd.DataFrame, right: pd.DataFrame) -> tuple:
-        """Compute the intersection of all ``left`` and ``right`` annotations,
+    @staticmethod
+    def intersection(annotations: list, sets: list = None) -> tuple:
+        """Compute the intersection of all annotations for all sets and recordings,
         based on their ``recording_filename``, ``time_seek``, ``range_onset`` and ``range_offset``
         attributes. (Only these columns are required, but more can be passed and they
         will be preserved).
 
-        :param left: dataframe of annotations, according to :ref:`format-annotations`
-        :type left: pd.DataFrame
-        :param right: dataframe of annotations, according to :ref:`format-annotations`
-        :type right: pd.DataFrame
+        :param annotations: dataframe of annotations, according to :ref:`format-annotations`
+        :type annotations: pd.DataFrame
         :return: dataframe of annotations, according to :ref:`format-annotations`
         :rtype: tuple
         """
-        recordings = set(left['recording_filename'].unique()) & set(right['recording_filename'].unique())
-        recordings = list(recordings)
-
-        a_stack = []
-        b_stack = []
+        stack = []
+        recordings = list(annotations['recording_filename'].unique())
+        
+        if sets is None:
+            sets = list(annotations['set'].unique())
 
         for recording in recordings:
-            a = left[left['recording_filename'] == recording].copy()
-            b = right[right['recording_filename'] == recording].copy()
+            _annotations = annotations[annotations['recording_filename'] == recording]
+            _annotations = _annotations.assign(
+                abs_range_onset = lambda r: r['range_onset']+r['time_seek'],
+                abs_range_offset = lambda r: r['range_offset']+r['time_seek']    
+            )
+            _annotations = _annotations.sort_values(['abs_range_onset', 'abs_range_offset'])
+            
+            segments = []
+            for s in sets:
+                ann = _annotations[_annotations['set'] == s]
+                segments.append(
+                    (Segment(onset, offset) for (onset, offset) in ann[['abs_range_onset', 'abs_range_offset']].values.tolist())
+                )
 
-            for bound in ('onset', 'offset'):
-                a['abs_range_' + bound] = a['range_' + bound] + a['time_seek']
-                b['abs_range_' + bound] = b['range_' + bound] + b['time_seek']
+            segments = reduce(
+                intersect_ranges,
+                segments
+            )
 
-            a_ranges = a[['abs_range_onset', 'abs_range_offset']].sort_values(['abs_range_onset', 'abs_range_offset']).values.tolist()
-            b_ranges = b[['abs_range_onset', 'abs_range_offset']].sort_values(['abs_range_onset', 'abs_range_offset']).values.tolist()
-
-            segments = list(intersect_ranges(
-                (Segment(onset, offset) for (onset, offset) in a_ranges),
-                (Segment(onset, offset) for (onset, offset) in b_ranges)
-            ))
-
-            a_out = []
-            b_out = []
-
+            result = []
             for segment in segments:
-                a_row = a[(a['abs_range_onset'] <= segment.start) & (a['abs_range_offset'] >= segment.stop)].to_dict(orient = 'records')[0]
-                a_row['abs_range_onset'] = segment.start
-                a_row['abs_range_offset'] = segment.stop
-                a_out.append(a_row)
+                ann = _annotations.copy()
+                ann['abs_range_onset'].clip(lower = segment.start, upper = segment.stop, inplace = True)
+                ann['abs_range_offset'].clip(lower = segment.start, upper = segment.stop, inplace = True)
+                ann = ann[(ann['abs_range_offset'] - ann['abs_range_onset']) > 0]
+                result.append(ann)
 
-                b_row = b[(b['abs_range_onset'] <= segment.start) & (b['abs_range_offset'] >= segment.stop)].to_dict(orient = 'records')[0]
-                b_row['abs_range_onset'] = segment.start
-                b_row['abs_range_offset'] = segment.stop
-                b_out.append(b_row)
-
-            if not a_out or not b_out:
+            _annotations = pd.concat(result)
+            if not len(_annotations):
                 continue
 
-            a_out = pd.DataFrame(a_out)
-            b_out = pd.DataFrame(b_out)
-
             for bound in ('onset', 'offset'):
-                a_out['range_' + bound] = a_out['abs_range_' + bound] - a_out['time_seek']
-                b_out['range_' + bound] = b_out['abs_range_' + bound] - b_out['time_seek']
+                _annotations['range_' + bound] =_annotations['abs_range_' + bound].astype(int) - _annotations['time_seek']
 
-            a_out.drop(['abs_range_onset', 'abs_range_offset'], axis = 1, inplace = True)
-            b_out.drop(['abs_range_onset', 'abs_range_offset'], axis = 1, inplace = True)
+            _annotations.drop(['abs_range_onset', 'abs_range_offset'], axis = 1, inplace = True)
+            stack.append(_annotations)
 
-            a_stack.append(a_out)
-            b_stack.append(b_out)
-
-        return pd.concat(a_stack), pd.concat(b_stack)
+        return pd.concat(stack)
 
     @staticmethod
     def clip_segments(segments: pd.DataFrame, start: int, stop: int) -> pd.DataFrame:
