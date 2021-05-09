@@ -923,9 +923,10 @@ class AnnotationManager:
                 ann = ann[(ann['abs_range_offset'] - ann['abs_range_onset']) > 0]
                 result.append(ann)
 
-            _annotations = pd.concat(result)
-            if not len(_annotations):
+            if not len(result):
                 continue
+
+            _annotations = pd.concat(result)
 
             for bound in ('onset', 'offset'):
                 _annotations['range_' + bound] =_annotations['abs_range_' + bound].astype(int) - _annotations['time_seek']
@@ -933,7 +934,7 @@ class AnnotationManager:
             _annotations.drop(['abs_range_onset', 'abs_range_offset'], axis = 1, inplace = True)
             stack.append(_annotations)
 
-        return pd.concat(stack)
+        return pd.concat(stack) if len(stack) else pd.DataFrame()
 
     @staticmethod
     def clip_segments(segments: pd.DataFrame, start: int, stop: int) -> pd.DataFrame:
