@@ -3,6 +3,7 @@ chardet==3.0.4
 pandas>=0.25.0
 xlrd
 jinja2
+librosa
 numpy>=1.16.5
 pympi-ling
 lxml
@@ -12,4 +13,5 @@ pydub
 panoptes_client
 sphinx
 sphinx_rtd_theme
+pysoundfile
 PyYAML
