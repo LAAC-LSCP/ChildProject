@@ -300,7 +300,7 @@ def compute_durations(args):
     recordings.to_csv(os.path.join(project.path, 'metadata/recordings.csv'), index = False)
 
 def main():
-    register_pipeline('convert', ConversionPipeline)
+    register_pipeline('converters', AudioConversionPipeline)
     register_pipeline('sampler', SamplerPipeline)
     register_pipeline('zooniverse', ZooniversePipeline)
     register_pipeline('eaf-builder', EafBuilderPipeline)

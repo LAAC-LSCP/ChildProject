@@ -3,6 +3,7 @@ chardet==3.0.4
 pandas>=0.25.0
 xlrd
 jinja2
+librosa
 numpy>=1.16.5
 pympi-ling
 lxml
@@ -14,4 +15,5 @@ sphinx
 sphinx_rtd_theme
 pyannote.metrics; python_version >= "3.7.0"
 pygamma-agreement; python_version >= "3.6.0"
+pysoundfile
 PyYAML
