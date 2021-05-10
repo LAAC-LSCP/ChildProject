@@ -1,7 +1,9 @@
 import pandas as pd
+import numpy as np
 
 from .annotations import AnnotationManager
 
+#from nltk.metrics.agreement import AnnotationTask
 
 def gamma(segments: pd.DataFrame, column: str, alpha = 1, beta = 1, precision_level = 0.05) -> float:
     """compute gamma agreement on `segments`. (doi:10.1162/COLI_a_00227,https://hal.archives-ouvertes.fr/hal-03144116) 
@@ -38,8 +40,6 @@ def gamma(segments: pd.DataFrame, column: str, alpha = 1, beta = 1, precision_le
 
     return gamma_results.gamma
 
-    
-
 def segments_to_annotation(segments: pd.DataFrame, column: str):
     from pyannote.core import Annotation, Segment
     annotation = Annotation()
@@ -58,18 +58,52 @@ def pyannote_metric(segments: pd.DataFrame, reference: str, hypothesis: str, met
 
     return metric(ref, hyp, detailed = True)
 
-def segments_to_grid(
+def segments_to_grids(
+    segments: pd.DataFrame,
     range_onset: int,
     range_offset: int,
-    segments: pd.DataFrame,
+    timescale: int,
     column: str,
-    timescale: int = 100) -> float:
+    sets: list) -> float:
 
-    from nltk.metrics.agreement import AnnotationTask
+
+    units = int(np.ceil((range_offset-range_onset)/timescale))
+
+    segments = segments[segments['set'].isin(sets)]
 
     # align on the grid
     segments['segment_onset'] -= range_onset
     segments['segment_offset'] -= range_onset
 
+    segments['onset_index'] = (segments['segment_onset'] // timescale).astype(int)
+    segments['offset_index'] = (segments['segment_offset'] // timescale).astype(int)
 
+    categories = sorted(segments[column].unique())
+    categories.append('overlap')
+    categories.append('none')
 
+    category_table = {
+        category: categories.index(category)
+        for category in categories
+    }
+
+    data = {
+        s: np.zeros((units, len(categories)), dtype = int)
+        for s in sets
+    }
+
+    segments = segments.sort_values(['segment_onset', 'segment_offset'])
+
+    for segment in segments.to_dict(orient = 'records'):
+        s = segment['set']
+        category = segment[column]
+        category_index = category_table[category]
+
+        data[s][segment['onset_index']:segment['offset_index'], category_index] = 1
+
+    for s in sets:
+        data[s][:,-2] = np.count_nonzero(data[s][:,:-3], axis = 1)
+        data[s][:,-1] = data[s][:,-2] == 0
+        data[s][:,-2] = data[s][:,-2] > 1
+
+    return categories, data
