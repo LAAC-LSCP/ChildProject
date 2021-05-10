@@ -881,7 +881,7 @@ class AnnotationManager:
                     continue
             
                 for c in annotation.keys():
-                    segs[c] = annotation[c]
+                    segs.loc[:,c] = annotation[c]
                 
                 segments.append(segs)
 
@@ -889,7 +889,7 @@ class AnnotationManager:
     
     def get_collapsed_segments(self, annotations: pd.DataFrame) -> pd.DataFrame:
         """get all segments associated to the annotations referenced in ``annotations``,
-        and collapses them as if they were part of a same contiguous block.
+        and collapses into one virtual timeline.
 
         :param annotations: dataframe of annotations, according to :ref:`format-annotations`
         :type annotations: pd.DataFrame
@@ -902,9 +902,8 @@ class AnnotationManager:
 
         annotations = annotations.sort_values(['recording_filename', 'abs_range_onset', 'abs_range_offset', 'set'])
         annotations['position'] = annotations.groupby('set')['duration']\
-            .shift(1)\
-            .fillna(0)\
             .transform(pd.Series.cumsum)
+        annotations['position'] = annotations.groupby('set')['position'].shift(1).fillna(0)
 
         segments = self.get_segments(annotations)
 
