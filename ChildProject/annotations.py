@@ -908,8 +908,8 @@ class AnnotationManager:
 
         segments = self.get_segments(annotations)
 
-        segments['segment_onset'] += segments['time_seek'] + segments['position']
-        segments['segment_offset'] += segments['time_seek'] + segments['position']
+        segments['segment_onset'] += segments['position']-segments['range_onset']
+        segments['segment_offset'] += segments['position']-segments['range_onset']
 
         return segments
 
