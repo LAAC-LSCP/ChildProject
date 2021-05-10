@@ -1,21 +1,10 @@
 import pandas as pd
-from functools import reduce
-
-from pyannote.core import Annotation, Segment
-from nltk.metrics.agreement import AnnotationTask
 
 from .annotations import AnnotationManager
 
-def get_annotations_intersection(am: AnnotationManager, sets: list):
-    annotations = am.annotations[am.annotations['set'].isin(sets)]
-
-    intersection = AnnotationManager.intersection(annotations)
-    
-    return intersection
-    
 
 def gamma(segments: pd.DataFrame, column: str, alpha = 1, beta = 1, precision_level = 0.05) -> float:
-    """compute gamma agreement on `segments`. (10.1162/COLI_a_00227,https://hal.archives-ouvertes.fr/hal-03144116) 
+    """compute gamma agreement on `segments`. (doi:10.1162/COLI_a_00227,https://hal.archives-ouvertes.fr/hal-03144116) 
 
     :param segments: input segments dataframe (see :ref:`format-annotations-segments` for the dataframe format)
     :type segments: pd.DataFrame
@@ -41,27 +30,23 @@ def gamma(segments: pd.DataFrame, column: str, alpha = 1, beta = 1, precision_le
         continuum.add(segment['set'], Segment(segment['segment_onset'], segment['segment_offset']), segment[column])
 
     dissim = CombinedCategoricalDissimilarity(list(continuum.categories),
-                                              delta_empty=1,
-                                              alpha = alpha,
-                                              beta = beta)
+                                            delta_empty=1,
+                                            alpha = alpha,
+                                            beta = beta)
 
     gamma_results = continuum.compute_gamma(dissim, precision_level = precision_level)
+
     return gamma_results.gamma
 
-def segments_to_annotation(segments: pd.DataFrame, column: str) -> Annotation:
+    
+
+def segments_to_annotation(segments: pd.DataFrame, column: str):
+    from pyannote.core import Annotation, Segment
     annotation = Annotation()
     
     for segment in segments.to_dict(orient = 'records'):
         start = segment['segment_onset']
         end = segment['segment_offset']
-
-        if 'time_seek' in segment:
-            start += segment['time_seek']
-            end += segment['time_seek']
-        
-        if 'session_offset' in segment:
-            start += segment['session_offset']
-            end += segment['session_offset']
         
         annotation[Segment(start, end)] = segment[column]
 
@@ -79,6 +64,8 @@ def segments_to_grid(
     segments: pd.DataFrame,
     column: str,
     timescale: int = 100) -> float:
+
+    from nltk.metrics.agreement import AnnotationTask
 
     # align on the grid
     segments['segment_onset'] -= range_onset

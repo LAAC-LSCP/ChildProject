@@ -870,15 +870,51 @@ class AnnotationManager:
         annotations = annotations.dropna(subset = ['annotation_filename'])
         annotations.drop(columns = ['raw_filename'], inplace = True)
 
-        segments = pd.concat([
-            pd.read_csv(os.path.join(self.project.path, 'annotations', a['set'], 'converted', a['annotation_filename'])).assign(set = a['set'], annotation_filename = a['annotation_filename'])
-            for a in annotations.to_dict(orient = 'records')
-        ])
+        segments = []
+        for index, _annotations in annotations.groupby(['set', 'annotation_filename']):
+            s, annotation_filename = index
+            df = pd.read_csv(os.path.join(self.project.path, 'annotations', s, 'converted', annotation_filename))
+            
+            for annotation in _annotations.to_dict(orient = 'records'):
+                segs = AnnotationManager.clip_segments(df, annotation['range_onset'], annotation['range_offset'])
+                if not len(segs):
+                    continue
+            
+                for c in annotation.keys():
+                    segs[c] = annotation[c]
+                
+                segments.append(segs)
 
-        return segments.merge(annotations, how = 'left', left_on = ['set', 'annotation_filename'], right_on = ['set', 'annotation_filename'])
+        return pd.concat(segments)
+    
+    def get_collapsed_segments(self, annotations: pd.DataFrame) -> pd.DataFrame:
+        """get all segments associated to the annotations referenced in ``annotations``,
+        and collapses them as if they were part of a same contiguous block.
+
+        :param annotations: dataframe of annotations, according to :ref:`format-annotations`
+        :type annotations: pd.DataFrame
+        :return: dataframe of all the segments merged (as specified in :ref:`format-annotations-segments`), merged with ``annotations``
+        :rtype: pd.DataFrame
+        """
+        annotations['abs_range_onset'] = annotations['range_onset']+annotations['time_seek']
+        annotations['abs_range_offset'] = annotations['range_offset']+annotations['time_seek']
+        annotations['duration'] = (annotations['range_offset']-annotations['range_onset']).astype(float)
+
+        annotations = annotations.sort_values(['recording_filename', 'abs_range_onset', 'abs_range_offset', 'set'])
+        annotations['position'] = annotations.groupby('set')['duration']\
+            .shift(1)\
+            .fillna(0)\
+            .transform(pd.Series.cumsum)
+
+        segments = self.get_segments(annotations)
+
+        segments['segment_onset'] += segments['time_seek'] + segments['position']
+        segments['segment_offset'] += segments['time_seek'] + segments['position']
+
+        return segments
 
     @staticmethod
-    def intersection(annotations: list, sets: list = None) -> tuple:
+    def intersection(annotations: pd.DataFrame, sets: list = None) -> tuple:
         """Compute the intersection of all annotations for all sets and recordings,
         based on their ``recording_filename``, ``time_seek``, ``range_onset`` and ``range_offset``
         attributes. (Only these columns are required, but more can be passed and they
@@ -894,6 +930,8 @@ class AnnotationManager:
         
         if sets is None:
             sets = list(annotations['set'].unique())
+        else:
+            annotations = annotations[annotations['set'].isin(sets)]
 
         for recording in recordings:
             _annotations = annotations[annotations['recording_filename'] == recording]
@@ -910,10 +948,7 @@ class AnnotationManager:
                     (Segment(onset, offset) for (onset, offset) in ann[['abs_range_onset', 'abs_range_offset']].values.tolist())
                 )
 
-            segments = reduce(
-                intersect_ranges,
-                segments
-            )
+            segments = reduce(intersect_ranges, segments)
 
             result = []
             for segment in segments:
