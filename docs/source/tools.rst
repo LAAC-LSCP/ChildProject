@@ -198,3 +198,24 @@ and VTC annotations altogether. This can be done with ``child-project merge-anno
    --left-columns speaker_id,ling_type,speaker_type,vcm_type,lex_type,mwu_type,addresseee,transcription \
    --right-columns phonemes,syllables,words \
    --output-set alice_vtc
+
+Intersect annotations
+~~~~~~~~~~~~~~~~~~~~~
+
+In order to combine annotations from different annotators, or to compare them,
+it is necessary to calculate which portions of the audio have been annotated by all of them.
+This can be done from the command-line interface:
+
+.. clidoc::
+
+   child-project intersect-annotations /path/to/dataset --help
+
+Example:
+
+::
+
+   child-project intersect-annotations /path/to/dataset \
+   --sets its textgrid/annotator1 textgrid/annotator2 textgrid/annotator3 \
+   --destination intersection.csv
+
+The output dataframe has the same format as the annotations index (see :ref:`format-annotations`).
