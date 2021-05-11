@@ -1,70 +1,3 @@
-Basic tools
-===========
-
-.. _tools-data-validation:
-
-Data validation
----------------
-
-This is typically done (repeatedly!) in the process of importing your
-data into our format for the first time, but you should also do this
-whenever you make a change to the dataset.
-
-Looks for errors and inconsistency in the metadata, or for missing
-audios. The validation will pass if formatting instructions are met
-(see :ref:`format`).
-
-.. clidoc::
-
-   child-project validate /path/to/dataset --help
-
-Example:
-
-::
-
-   child-project validate /path/to/dataset
-
-
-Dataset overview
-----------------
-
-An overview of the contents of a dataset can be obtained with the
-``child-project overview`` command.
-
-.. clidoc::
-
-   child-project overview --help
-
-Example:
-
-.. code:: bash
-
-   $ child-project overview .
-
-   recordings:
-   lena: 288.00 hours, 0/18 files locally available
-   olympus: 49.57 hours, 0/3 files locally available
-   usb: 223.42 hours, 0/20 files locally available
-   
-   annotations:
-   alice: 560.99 hours, 0/40 files locally available
-   alice_vtc: 560.99 hours, 0/40 files locally available
-   eaf/nk: 1.47 hours, 0/88 files locally available
-   lena: 272.00 hours, 0/17 files locally available
-   textgrid/mm: 8.75 hours, 0/525 files locally available
-   vtc: 560.99 hours, 40/40 files locally available
-
-Compute recordings duration
----------------------------
-
-Compute recordings duration and store in into a column named ‘duration’
-in the metadata.
-
-.. clidoc::
-
-<<<<<<< HEAD
-   child-project compute-durations /path/to/dataset --help
-
 Managing annotations
 --------------------
 
@@ -209,17 +142,14 @@ This can be done from the command-line interface:
 
 .. clidoc::
 
-   child-project intersect-annotations /path/to/dataset --help
+    child-project intersect-annotations /path/to/dataset --help
 
 Example:
 
 ::
 
-   child-project intersect-annotations /path/to/dataset \
-   --sets its textgrid/annotator1 textgrid/annotator2 textgrid/annotator3 \
-   --destination intersection.csv
+    child-project intersect-annotations /path/to/dataset \
+    --sets its textgrid/annotator1 textgrid/annotator2 textgrid/annotator3 \
+    --destination intersection.csv
 
 The output dataframe has the same format as the annotations index (see :ref:`format-annotations`).
-=======
-   child-project compute-durations /path/to/dataset --help
->>>>>>> master
