@@ -31,6 +31,18 @@ including instructions to install DataLad via conda.
 
     After installing, please make sure your version of git-annex
     is recent (we recommend 8.2 and later), with ``git-annex version``.
+    
+    
+At this point, you may have received a message like the following:
+
+> It is highly recommended to configure Git before using DataLad. Set both 'user.name' and 'user.email' configuration variables.
+
+You can squash this message by providing these credentials (and if you already have an account on GitHub or GitLab, you can take your name and email from your GitHub or GitLab accounts; otherwise, just provide your name and email):
+
+```
+git config --global user.name "FIRST_NAME LAST_NAME"
+git config --global user.email "MY_NAME@example.com"
+```
 
 Install our package via pip
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
