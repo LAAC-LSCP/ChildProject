@@ -41,6 +41,16 @@ def gamma(segments: pd.DataFrame, column: str, alpha = 1, beta = 1, precision_le
     return gamma_results.gamma
 
 def segments_to_annotation(segments: pd.DataFrame, column: str):
+    """Transform a dataframe of annotation segments into a pyannote.core.Annotation object
+
+    :param segments: a dataframe of input segments. It should at least have the following columns: ``segment_onset``, ``segment_offset`` and ``column``.
+    :type segments: pd.DataFrame
+    :param column: the name of the column in ``segments`` that should be used for the values of the annotations (e.g. speaker_type).
+    :type column: str
+    :return: the pyannote.core.Annotation object.
+    :rtype: pyannote.core.Annotation
+    """
+
     from pyannote.core import Annotation, Segment
     annotation = Annotation()
     
@@ -65,6 +75,46 @@ def segments_to_grid(
     timescale: int,
     column: str,
     categories: list) -> float:
+
+    """Transform a dataframe of annotation segments into a 2d matrix
+    representing the indicator function of each of the ``categories`` across
+    time.
+
+    Each row of the matrix corresponds to a unit of time of length ``timescale``
+    (in milliseconds), ranging from ``range_onset`` to ``range_offset``;
+    each column corresponds to one of the ``categories`` provided,
+    plus two special columns (overlap and none).
+
+    The value of the cell ``ij`` of the output matrix is set to 1
+    if the class ``j`` is active at time ``i``, 0 otherwise.
+
+    The penultimate column (overlap) is set to 1 if more than two
+    classes at time ``i``.
+    The last column (none) is set to one if none of the classes
+    are active at time ``i``.
+
+    The shape of the output matrix is therefore
+    ``((range_offset-range_onset)/timescale, len(categories) + 2)``.
+
+    The fraction of time a class ``j`` is active can therefore be
+    calculated as ``np.mean(grid, axis = 0)[j]``
+
+
+    :param segments: a dataframe of input segments. It should at least have the following columns: ``segment_onset``, ``segment_offset`` and ``column``.
+    :type segments: pd.DataFrame
+    :param range_onset: timestamp of the beginning of the range to consider (in milliseconds)
+    :type range_onset: int
+    :param range_offset: timestamp of the end of the range to consider (in milliseconds)
+    :type range_offset: int
+    :param timescale: length of each time unit (in milliseconds)
+    :type timescale: int
+    :param column: the name of the column in ``segments`` that should be used for the values of the annotations (e.g. speaker_type).
+    :type column: str
+    :param categories: the list of categories
+    :type categories: list
+    :return: the output grid
+    :rtype: numpy.array
+    """
 
     units = int(np.ceil((range_offset-range_onset)/timescale))
 
@@ -96,3 +146,23 @@ def segments_to_grid(
     data[:,-2] = data[:,-2] > 1
 
     return data
+
+def grid_to_categories(grid, categories):
+    """Transform a grid of active classes into a vector of labels.
+
+    :param grid: a NumPy array of shape ``(n, len(categories))``
+    :type grid: numpy.array
+    :param categories: the list of categories
+    :type categories: list
+    :return: the vector of labels (e.g. ``np.array([none FEM FEM FEM none none CHI])``)
+    :rtype: numpy.array
+    """
+    return np.vectorize(lambda x: categories[x])(grid.shape[1] - np.argmax(grid[:,::-1], axis = 1) - 1)
+
+def conf_matrix(horizontal_grid, vertical_grid, categories):
+    from sklearn.metrics import confusion_matrix
+
+    vertical = grid_to_categories(vertical_grid, categories)
+    horizontal = grid_to_categories(horizontal_grid, categories)
+
+    return confusion_matrix(vertical, horizontal, labels = categories)
