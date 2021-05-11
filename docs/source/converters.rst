@@ -1,10 +1,10 @@
-Audio post-processing
----------------------
+Audio processors
+----------------
 
 Overview
 ~~~~~~~~
 
-The package provides post-processing tools for the recordings
+The package provides several tools for processing the recordings.
 
 .. clidoc::
 
@@ -49,6 +49,12 @@ guide <https://slurm.schedmd.com/quickstart.html>`__
 
 Vetting
 ~~~~~~~
+
+The vetting pipeline mutes segments of the recordings provided by the user while preserving the duration of the audio files.
+This technique can be used to remove speech that might contain confidential information before releasing the audio.
+
+The input needs to be a CSV dataframe with the following columns: ``recording_filename``, ``segment_onset``, ``segment_onset``.
+The timestamps need to be expressed in milliseconds.
 
 .. clidoc::
 
