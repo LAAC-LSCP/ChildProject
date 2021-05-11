@@ -58,52 +58,41 @@ def pyannote_metric(segments: pd.DataFrame, reference: str, hypothesis: str, met
 
     return metric(ref, hyp, detailed = True)
 
-def segments_to_grids(
+def segments_to_grid(
     segments: pd.DataFrame,
     range_onset: int,
     range_offset: int,
     timescale: int,
     column: str,
-    sets: list) -> float:
-
+    categories: list) -> float:
 
     units = int(np.ceil((range_offset-range_onset)/timescale))
 
-    segments = segments[segments['set'].isin(sets)]
-
     # align on the grid
-    segments['segment_onset'] -= range_onset
-    segments['segment_offset'] -= range_onset
+    segments.loc[:,'segment_onset'] = segments.loc[:,'segment_onset'] - range_onset
+    segments.loc[:,'segment_offset'] = segments.loc[:,'segment_offset'] - range_onset
 
-    segments['onset_index'] = (segments['segment_onset'] // timescale).astype(int)
-    segments['offset_index'] = (segments['segment_offset'] // timescale).astype(int)
+    segments.loc[:,'onset_index'] = (segments.loc[:,'segment_onset'] // timescale).astype(int)
+    segments.loc[:,'offset_index'] = (segments.loc[:,'segment_offset'] // timescale).astype(int)
 
-    categories = sorted(segments[column].unique())
-    categories.append('overlap')
-    categories.append('none')
-
+    categories = categories.copy()
+    categories.extend(['overlap', 'none'])
     category_table = {
-        category: categories.index(category)
-        for category in categories
+        categories[i]: i
+        for i in range(len(categories))
     }
 
-    data = {
-        s: np.zeros((units, len(categories)), dtype = int)
-        for s in sets
-    }
-
-    segments = segments.sort_values(['segment_onset', 'segment_offset'])
-
+    data = np.zeros((units, len(categories)), dtype = int)
     for segment in segments.to_dict(orient = 'records'):
-        s = segment['set']
         category = segment[column]
+        if category not in category_table:
+            continue
+
         category_index = category_table[category]
+        data[segment['onset_index']:segment['offset_index'], category_index] = 1
 
-        data[s][segment['onset_index']:segment['offset_index'], category_index] = 1
+    data[:,-2] = np.count_nonzero(data[:,:-2], axis = 1)
+    data[:,-1] = data[:,-2] == 0
+    data[:,-2] = data[:,-2] > 1
 
-    for s in sets:
-        data[s][:,-2] = np.count_nonzero(data[s][:,:-3], axis = 1)
-        data[s][:,-1] = data[s][:,-2] == 0
-        data[s][:,-2] = data[s][:,-2] > 1
-
-    return categories, data
+    return data
