@@ -149,17 +149,34 @@ def segments_to_grid(
 
 def grid_to_categories(grid, categories):
     """Transform a grid of active classes into a vector of labels.
+    In case several classes are active at time i, the label is 
+    set to 'overlap'.
+
+    See :func:`ChildProject.metrics.segments_to_grid` for a description of grids.
 
     :param grid: a NumPy array of shape ``(n, len(categories))``
     :type grid: numpy.array
     :param categories: the list of categories
     :type categories: list
-    :return: the vector of labels (e.g. ``np.array([none FEM FEM FEM none none CHI])``)
+    :return: the vector of labels of length ``n`` (e.g. ``np.array([none FEM FEM FEM overlap overlap CHI])``)
     :rtype: numpy.array
     """
     return np.vectorize(lambda x: categories[x])(grid.shape[1] - np.argmax(grid[:,::-1], axis = 1) - 1)
 
 def conf_matrix(horizontal_grid, vertical_grid, categories):
+    """compute the confusion matrix (as counts) from grids of active classes.
+
+    See :func:`ChildProject.metrics.segments_to_grid` for a description of grids.
+
+    :param horizontal_grid: the grid corresponding to the horizontal axis of the confusion matrix.
+    :type horizontal_grid: numpy.array
+    :param vertical_grid: the grid corresponding to the vertical axis of the confusion matrix.
+    :type vertical_grid: numpy.array
+    :param categories: the labels corresponding to each class
+    :type categories: list of strings
+    :return: a square numpy array of counts
+    :rtype: numpy.array
+    """
     from sklearn.metrics import confusion_matrix
 
     vertical = grid_to_categories(vertical_grid, categories)
