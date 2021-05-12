@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 import ChildProject
 
 requires = {
-    'core': ['pandas>=0.25.0', 'xlrd', 'jinja2', 'numpy>=1.16.5', 'pympi-ling', 'lxml', 'sox', 'datalad', 'requests<2.25.0'],
+    'core': ['pandas>=0.25.0', 'jinja2', 'numpy>=1.16.5', 'pympi-ling', 'lxml', 'sox', 'datalad', 'requests<2.25.0'],
     'metrics': ['pyannote.metrics; python_version >= "3.7.0"', 'pygamma-agreement; python_version >= "3.6.0"', 'nltk', 'sklearn'],
     'audio': ['librosa', 'pydub', 'pysoundfile'],
     'samplers': ['PyYAML'],
