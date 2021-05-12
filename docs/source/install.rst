@@ -3,37 +3,9 @@
 Installation
 ------------
 
-You'll need to install our package and git-annex, following the
-instructions we provide next.
 
-Install DataLad
-~~~~~~~~~~~~~~~
-
-In order to store and deliver the datasets, we recommend the use of DataLad,
-"a decentralized system for integrated discovery, management, and publication of digital objects of science",
-which we already use for several corpora.
-
-DataLad is a python package, but it also requires git-annex to be installed.
-
-For most MacOS and Linux users, these can be installed with:
-
-.. code:: bash
-
-    pip3 install datalad
-    apt-get install git-annex || brew install git-annex
-
-
-Detailed instructions for Windows, Linux and MacOS users are given in 
-`DataLad's handbook <http://handbook.datalad.org/en/latest/intro/installation.html>`_,
-including instructions to install DataLad via conda.
-
-.. note::
-
-    After installing, please make sure your version of git-annex
-    is recent (we recommend 8.2 and later), with ``git-annex version``.
-
-Install our package via pip
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Install our package
+~~~~~~~~~~~~~~~~~~~
 
 The package can be installed using pip :
 
@@ -68,12 +40,39 @@ any of the following :
     pip3 install git+https://github.com/LAAC-LSCP/ChildProject.git
 
 Install ffmpeg
-~~~~~~~~~~~~~~
+==============
 
-Operations on the audio will require ffmpeg.
+Some of the tools for audio processing (e.g. conversion to another format)
+will require ffmpeg.
 It is usually installed on most systems. You can check by typing ``ffmpeg -version``.
-If not, it can be installed via ``apt install ffmpeg`` (Linux) or
+If it is not yet, it can be installed via ``apt install ffmpeg`` (Linux) or
 ``brew install ffmpeg`` (Mac), or ``conda install ffmpeg`` for conda users.
+
+Installing DataLad
+~~~~~~~~~~~~~~~~~~
+
+In order to store and deliver the datasets, we recommend the use of DataLad,
+"a decentralized system for integrated discovery, management, and publication of digital objects of science",
+which we already use for several corpora.
+
+DataLad is a python package, but it also requires git-annex to be installed.
+
+For most MacOS and Linux users, these can be installed with:
+
+.. code:: bash
+
+    pip3 install datalad
+    apt-get install git-annex || brew install git-annex
+
+
+Detailed instructions for Windows, Linux and MacOS users are given in 
+`DataLad's handbook <http://handbook.datalad.org/en/latest/intro/installation.html>`_,
+including instructions to install DataLad via conda.
+
+.. note::
+
+    After installing, please make sure your version of git-annex
+    is recent (we recommend 8.2 and later), with ``git-annex version``.
 
 Check the setup
 ~~~~~~~~~~~~~~~

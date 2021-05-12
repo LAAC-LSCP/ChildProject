@@ -22,10 +22,12 @@ from .utils import Segment, intersect_ranges
 class AnnotationManager:
     """Manage annotations of a dataset. 
 
-    Attributes:
-        :param project: :class:`ChildProject.projects.ChildProject` instance of the target dataset.
-        :type project: :class:`ChildProject.projects.ChildProject`
+    :ivar project: instance of the current project
+    :type project: :class:`ChildProject.projects.ChildProject`
+    :ivar annotations: index of the annotations
+    :type annotations: pd.DataFrame
     """
+
     INDEX_COLUMNS = [
         IndexColumn(name = 'set', description = 'name of the annotation set (e.g. VTC, annotator1, etc.)', required = True),
         IndexColumn(name = 'recording_filename', description = 'recording filename as specified in the recordings index', required = True),
@@ -179,6 +181,13 @@ class AnnotationManager:
         self.errors, self.warnings = self.read()
 
     def read(self) -> tuple:
+        """Read the index of annotations from ``metadata/annotations.csv`` and store it into
+        self.annotations.
+
+
+        :return: [description]
+        :rtype: tuple
+        """
         table = IndexTable('input', path = os.path.join(self.project.path, 'metadata/annotations.csv'), columns = self.INDEX_COLUMNS)
         self.annotations = table.read()
         errors, warnings = table.validate()
@@ -631,8 +640,8 @@ class AnnotationManager:
             
 
     def remove_set(self, annotation_set: str, recursive: bool = False):
-        """Remove a set of annotations, deleting every file and removing
-        them from the index.
+        """Remove a set of annotations, deleting every converted file and removing
+        them from the index. This preserves raw annotations.
 
         :param annotation_set: set of annotations to remove
         :type annotation_set: str

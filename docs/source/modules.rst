@@ -1,4 +1,4 @@
-ChildProject
+API Reference
 ============
 
 .. toctree::

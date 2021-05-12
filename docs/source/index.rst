@@ -38,8 +38,10 @@ Welcome to ChildProject's documentation!
    :maxdepth: 2
    :caption: Package reference
 
-   modules
+   api-annotations
+   api-metrics
    examples
+   modules
 
 * :ref:`genindex`
 * :ref:`modindex`
