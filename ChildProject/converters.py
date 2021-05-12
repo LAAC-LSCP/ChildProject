@@ -392,11 +392,13 @@ class EafConverter(Converter):
 
         return pd.DataFrame(segments.values())
 
-def ChatConverter(Converter):
+class ChatConverter(Converter):
+
     @staticmethod
     def convert(filename: str,
-    speaker_id_to_type: dict = None,
-    addressee_table: dict = None) -> pd.DataFrame:
+        speaker_id_to_type: dict = None,
+        addressee_table: dict = None) -> pd.DataFrame:
+
         import pylangacq
 
         if speaker_id_to_type is None:

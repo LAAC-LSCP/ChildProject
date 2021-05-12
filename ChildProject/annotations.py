@@ -136,7 +136,6 @@ class AnnotationManager:
         :return: output annotation dictionary (attributes defined according to :ref:`ChildProject.annotations.AnnotationManager.SEGMENTS_COLUMNS`)
         :rtype: dict
         """
-        from .converters import TextGridConverter,EafConverter,VtcConverter,VcmConverter,ItsConverter,AliceConverter,ChatConverter
 
         source_recording = os.path.splitext(annotation['recording_filename'])[0]
         annotation_filename = "{}_{}_{}.csv".format(source_recording, annotation['time_seek'], annotation['range_onset'])
@@ -152,18 +151,25 @@ class AnnotationManager:
             if callable(import_function):
                 df = import_function(path)
             elif annotation_format == 'TextGrid':
+                from .converters import TextGridConverter
                 df = TextGridConverter.convert(path)
             elif annotation_format == 'eaf':
+                from .converters import EafConverter
                 df = EafConverter.convert(path)
             elif annotation_format == 'vtc_rttm':
+                from .converters import VtcConverter
                 df = VtcConverter.convert(path, source_file = filter)
             elif annotation_format == 'vcm_rttm':
+                from .converters import VcmConverter
                 df = VcmConverter.convert(path, source_file = filter)
             elif annotation_format == 'its':
+                from .converters import ItsConverter
                 df = ItsConverter.convert(path, recording_num = filter)
             elif annotation_format == 'alice':
+                from .converters import AliceConverter
                 df = AliceConverter.convert(path, source_file = filter)
             elif annotation_format == 'chat':
+                from .converters import ChatConverter
                 df = ChatConverter.convert(path)
             else:
                 raise ValueError("file format '{}' unknown for '{}'".format(annotation_format, path))
