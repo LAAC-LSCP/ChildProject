@@ -1,10 +1,6 @@
 import pandas as pd
 import numpy as np
 
-from .annotations import AnnotationManager
-
-#from nltk.metrics.agreement import AnnotationTask
-
 def segments_to_annotation(segments: pd.DataFrame, column: str):
     """Transform a dataframe of annotation segments into a pyannote.core.Annotation object
 
@@ -168,7 +164,7 @@ def vectors_to_annotation_task(*args):
     return agreement.AnnotationTask(data = data)
 
 def gamma(segments: pd.DataFrame, column: str, alpha = 1, beta = 1, precision_level = 0.05) -> float:
-    """compute gamma agreement on `segments`. (doi:10.1162/COLI_a_00227,https://hal.archives-ouvertes.fr/hal-03144116) 
+    """compute gamma agreement on `segments`. (doi:10.1162/COLI_a_00227, https://hal.archives-ouvertes.fr/hal-03144116) 
 
     :param segments: input segments dataframe (see :ref:`format-annotations-segments` for the dataframe format)
     :type segments: pd.DataFrame

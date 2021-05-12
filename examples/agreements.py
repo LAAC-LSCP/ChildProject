@@ -34,10 +34,10 @@ task = vectors_to_annotation_task(*vectors)
 
 
 alpha = task.alpha()
-print(f'alpha = {alpha:.2f}')
+print(f'Krippendorff\'s alpha = {alpha:.2f}')
 
-kappa = task.kappa()
-print(f'kappa = {kappa:.2f}')
+kappa = task.multi_kappa()
+print(f'Fleiss\' kappa = {kappa:.2f}')
 
 gamma = gamma(segments, 'speaker_type')
-print(f'gamma = {gamma:.2f}')
+print(f'Mathet et al.\'s gamma = {gamma:.2f}')
