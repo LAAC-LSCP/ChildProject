@@ -1,19 +1,20 @@
-requests==2.21.0
 chardet==3.0.4
-pandas>=0.25.0
-xlrd
+datalad
 jinja2
 librosa
-numpy>=1.16.5
-pympi-ling
 lxml
-sox
-datalad
+nltk
+numpy>=1.16.5
 pydub
+pandas>=0.25.0
 panoptes_client
-sphinx
-sphinx_rtd_theme
 pyannote.metrics; python_version >= "3.7.0"
 pygamma-agreement; python_version >= "3.6.0"
+pympi-ling
 pysoundfile
 PyYAML
+requests==2.21.0
+sklearn
+sox
+sphinx
+sphinx_rtd_theme
