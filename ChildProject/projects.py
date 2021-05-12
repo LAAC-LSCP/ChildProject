@@ -129,6 +129,9 @@ class ChildProject:
             ))
 
         for md in md['path'].tolist():
+            if not os.path.exists(md):
+                continue
+               
             table = IndexTable(table, md, columns)
             dataframe = table.read()
 

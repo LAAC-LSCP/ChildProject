@@ -10,6 +10,7 @@ from panoptes_client import Panoptes, Project, Subject, SubjectSet, Classificati
 import shutil
 import subprocess
 import sys
+import traceback
 from yaml import dump
 
 from pydub import AudioSegment
@@ -285,7 +286,15 @@ class ZooniversePipeline(Pipeline):
             subject.links.project = zooniverse_project
             subject.add_location(os.path.join(os.path.dirname(self.chunks_file), 'chunks', chunk['mp3']))
             subject.metadata['date_extracted'] = chunk['date_extracted']
-            subject.save()
+
+            try:
+                subject.save()
+            except Exception as e:
+                print("failed to save chunk {}. an exception has occured:\n{}".format(chunk_index, str(e)))
+                print(traceback.format_exc())
+                print("subject upload halting here.")
+                break
+            
             subjects.append(subject)
 
             chunk['index'] = chunk_index

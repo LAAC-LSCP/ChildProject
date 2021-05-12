@@ -4,8 +4,9 @@ import ChildProject
 requires = {
     'core': ['pandas>=0.25.0', 'jinja2', 'numpy>=1.16.5', 'sox', 'datalad', 'requests<2.25.0'],
     'annotations': ['lxml', 'pympi-ling', 'pylangacq', 'python-dateutil>=2.8.1'],
+    'audio': ['librosa', 'pydub', 'pysoundfile'],
     'samplers': ['PyYAML'],
-    'zooniverse': ['panoptes-client', 'pydub'],
+    'zooniverse': ['panoptes-client'],
     'eaf-builder': ['importlib-resources']
 }
 
@@ -27,7 +28,7 @@ setup(
         'Topic :: Scientific/Engineering',
     ],
     packages=find_packages(),
-    install_requires=requires['core'] + requires['annotations'] + requires['samplers'] + requires['zooniverse'] + requires['eaf-builder'],
+    install_requires=requires['core'] + requires['annotations'] + requires['audio'] + requires['samplers'] + requires['zooniverse'] + requires['eaf-builder'],
     include_package_data=True,
     package_data={'ChildProject': ['templates/*.*']},
     entry_points={

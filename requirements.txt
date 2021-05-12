@@ -2,6 +2,7 @@ requests==2.21.0
 chardet==3.0.4
 pandas>=0.25.0
 jinja2
+librosa
 numpy>=1.16.5
 pympi-ling
 lxml
@@ -11,6 +12,7 @@ pydub
 panoptes_client
 sphinx
 sphinx_rtd_theme
-python-dateutil>=2.8.1
 pylangacq
+pysoundfile
+python-dateutil>=2.8.1
 PyYAML

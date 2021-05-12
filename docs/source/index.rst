@@ -27,6 +27,8 @@ Welcome to ChildProject's documentation!
    :caption: Command-line tools
 
    tools
+   annotations
+   converters
    samplers
    elan
    zooniverse
