@@ -191,6 +191,18 @@ class AnnotationManager:
         table = IndexTable('input', path = os.path.join(self.project.path, 'metadata/annotations.csv'), columns = self.INDEX_COLUMNS)
         self.annotations = table.read()
         errors, warnings = table.validate()
+
+        duplicates = self.annotations.groupby(['set', 'annotation_filename']).agg(count = ('range_offset', 'count'))
+        duplicates = duplicates[duplicates['count'] > 1]
+
+        if len(duplicates):
+            errors.extend([
+                "duplicate reference to annotations/{}/converted/{} (appears {} times)".format(
+                    dup['set'], dup['annotation_filename'], dup['count']
+                )
+                for dup in duplicates.to_dict(orient = 'records')
+            ])
+
         return errors, warnings
 
     def validate_annotation(self, annotation: dict) -> Tuple[List[str], List[str]]:
@@ -461,13 +473,12 @@ class AnnotationManager:
         return df
 
     def load_vtc_rttm(self, filename: str, source_file: str = '') -> pd.DataFrame:
-        rttm = pd.read_csv(
+        df = pd.read_csv(
             filename,
             sep = " ",
             names = ['type', 'file', 'chnl', 'tbeg', 'tdur', 'ortho', 'stype', 'name', 'conf', 'unk']
         )
 
-        df = rttm
         df['segment_onset'] = df['tbeg'].mul(1000).round().astype(int)
         df['segment_offset'] = (df['tbeg']+df['tdur']).mul(1000).round().astype(int)
         df['speaker_type'] = df['name'].map(self.VTC_SPEAKER_TYPE_TRANSLATION)
@@ -480,13 +491,12 @@ class AnnotationManager:
         return df
 
     def load_vcm_rttm(self, filename: str, source_file: str = '') -> pd.DataFrame:
-        rttm = pd.read_csv(
+        df = pd.read_csv(
             filename,
             sep = " ",
             names = ['type', 'file', 'chnl', 'tbeg', 'tdur', 'ortho', 'stype', 'name', 'conf', 'unk']
         )
 
-        df = rttm
         df['segment_onset'] = df['tbeg'].mul(1000).round().astype(int)
         df['segment_offset'] = (df['tbeg']+df['tdur']).mul(1000).round().astype(int)
         df['speaker_type'] = df['name'].map(self.VCM_SPEAKER_TYPE_TRANSLATION)

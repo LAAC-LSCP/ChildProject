@@ -50,7 +50,7 @@ def segments_to_grid(
     if the class ``j`` is active at time ``i``, 0 otherwise.
 
     The penultimate column (overlap) is set to 1 if more than two
-    classes at time ``i``.
+    classes are active at time ``i``.
     The last column (none) is set to one if none of the classes
     are active at time ``i``.
 
@@ -163,17 +163,25 @@ def vectors_to_annotation_task(*args):
 
     return agreement.AnnotationTask(data = data)
 
-def gamma(segments: pd.DataFrame, column: str, alpha = 1, beta = 1, precision_level = 0.05) -> float:
-    """compute gamma agreement on `segments`. (doi:10.1162/COLI_a_00227, https://hal.archives-ouvertes.fr/hal-03144116) 
+def gamma(segments: pd.DataFrame, column: str, alpha: float = 1, beta: float = 1, precision_level: float = 0.05) -> float:
+    """Compute Mathet et al. gamma agreement on `segments`. 
+    
+    The gamma measure evaluates the reliability of both the segmentation
+    and the categorization simultaneously; a extensive description
+    of the method and its parameters can be found in Mathet et al., 2015
+    (`doi:10.1162/COLI_a_00227 <https://dx.doi.org/10.1162/COLI_a_00227>`_)
+
+    This function uses the `pyagreement-agreement package <https://pygamma-agreement.readthedocs.io/en/latest/>`_
+    by `Titeux et al <https://hal.archives-ouvertes.fr/hal-03144116>`_.
 
     :param segments: input segments dataframe (see :ref:`format-annotations-segments` for the dataframe format)
     :type segments: pd.DataFrame
     :param column: name of the categorical column of the segments to consider, e.g. 'speaker_type'
     :type column: str
     :param alpha: gamma agreement time alignment weight, defaults to 1
-    :type alpha: int, optional
+    :type alpha: float, optional
     :param beta: gamma agreement categorical weight, defaults to 1
-    :type beta: int, optional
+    :type beta: float, optional
     :param precision_level: level of precision (see pygamma-agreement's documentation), defaults to 0.05
     :type precision_level: float, optional
     :return: gamma agreement

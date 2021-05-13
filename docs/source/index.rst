@@ -36,7 +36,7 @@ Welcome to ChildProject's documentation!
 
 .. toctree::
    :maxdepth: 2
-   :caption: Package reference
+   :caption: Python API
 
    api-annotations
    api-metrics
