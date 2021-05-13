@@ -20,13 +20,13 @@ def test_conf_matrix():
     segments = pd.read_csv('tests/data/confmatrix.csv')
     categories = ['CHI', 'FEM']
 
-    matrix = conf_matrix(
+    confmat = conf_matrix(
         segments_to_grid(segments[segments['set'] == 'Alice'], 0, 20, 1, 'speaker_type', categories),
         segments_to_grid(segments[segments['set'] == 'Bob'], 0, 20, 1, 'speaker_type', categories),
         categories + ['overlap', 'none']
     )
 
-    assert np.testing.assert_array_equal(
-        matrix,
-        [[5, 5, 0, 0], [0, 2, 0, 3], [0, 0, 0, 0], [0, 0, 0, 5]]
+    np.testing.assert_array_equal(
+        confmat,
+        np.array([[5, 5, 0, 0], [0, 2, 0, 3], [0, 0, 0, 0], [0, 0, 0, 5]])
     )
