@@ -209,9 +209,20 @@ class AnnotationManager:
 
         return segments.validate()
 
-    def validate(self, annotations: pd.DataFrame = None, threads: int = -1) -> Tuple[List[str], List[str]]:
+    def validate(self, annotations: pd.DataFrame = None, threads: int = 0) -> Tuple[List[str], List[str]]:
+        """check all indexed annotations for errors
+
+        :param annotations: annotations to validate, defaults to None. If None, the whole index will be scanned.
+        :type annotations: pd.DataFrame, optional
+        :param threads: how many threads to run the tests with, defaults to 0. If <= 0, all available CPU cores will be used.
+        :type threads: int, optional
+        :return: a tuple containg the list of errors and the list of warnings detected
+        :rtype: Tuple[List[str], List[str]]
+        """
         if not isinstance(annotations, pd.DataFrame):
             annotations = self.annotations
+
+        annotations = annotations.dropna(subset = ['annotation_filename'])
 
         errors, warnings = [], []
 
