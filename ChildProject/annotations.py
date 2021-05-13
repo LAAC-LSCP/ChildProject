@@ -12,7 +12,7 @@ from functools import reduce, partial
 import shutil
 import sys
 import traceback
-from typing import Callable
+from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
 
 from . import __version__
 from .projects import ChildProject
@@ -180,20 +180,20 @@ class AnnotationManager:
 
         self.errors, self.warnings = self.read()
 
-    def read(self) -> tuple:
+    def read(self) -> Tuple[List[str], List[str]]:
         """Read the index of annotations from ``metadata/annotations.csv`` and store it into
         self.annotations.
 
 
-        :return: [description]
-        :rtype: tuple
+        :return: a tuple containing the list of errors and the list of warnings generated while reading the index
+        :rtype: Tuple[List[str],List[str]]
         """
         table = IndexTable('input', path = os.path.join(self.project.path, 'metadata/annotations.csv'), columns = self.INDEX_COLUMNS)
         self.annotations = table.read()
         errors, warnings = table.validate()
         return errors, warnings
 
-    def validate_annotation(self, annotation: dict) -> tuple:
+    def validate_annotation(self, annotation: dict) -> Tuple[List[str], List[str]]:
         print("validating {}...".format(annotation['annotation_filename']))
 
         segments = IndexTable(
@@ -209,7 +209,7 @@ class AnnotationManager:
 
         return segments.validate()
 
-    def validate(self, annotations: pd.DataFrame = None, threads: int = -1) -> tuple:
+    def validate(self, annotations: pd.DataFrame = None, threads: int = -1) -> Tuple[List[str], List[str]]:
         if not isinstance(annotations, pd.DataFrame):
             annotations = self.annotations
 
@@ -611,7 +611,7 @@ class AnnotationManager:
 
         return imported
 
-    def get_subsets(self, annotation_set: str, recursive: bool = False) -> list:
+    def get_subsets(self, annotation_set: str, recursive: bool = False) -> List[str]:
         """Retrieve the list of subsets belonging to a given set of annotations.
 
         :param annotation_set: input set
@@ -807,7 +807,7 @@ class AnnotationManager:
         return annotations
 
     def merge_sets(self, left_set: str, right_set: str,
-        left_columns: list, right_columns: list,
+        left_columns: List[str], right_columns: List[str],
         output_set: str, columns: dict = {},
         threads = -1
     ):
@@ -820,9 +820,9 @@ class AnnotationManager:
         :param right_set: Right set of annotations.
         :type right_set: str
         :param left_columns: Columns which values will be based on the left set.
-        :type left_columns: list
+        :type left_columns: List
         :param right_columns: Columns which values will be based on the right set.
-        :type right_columns: list
+        :type right_columns: List
         :param output_set: Name of the output annotations set.
         :type output_set: str
         :return: [description]
