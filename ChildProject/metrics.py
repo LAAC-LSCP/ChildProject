@@ -77,6 +77,7 @@ def segments_to_grid(
     :rtype: numpy.array
     """
 
+    categories = list(map(str, categories))
     units = int(np.ceil((range_offset-range_onset)/timescale))
 
     # align on the grid
@@ -87,7 +88,7 @@ def segments_to_grid(
     segments.loc[:,'offset_index'] = (segments.loc[:,'segment_offset'] // timescale).astype(int)
 
     categories = categories.copy()
-    categories.extend(['overlap', 'none'])
+    categories += ['overlap', 'none']
     category_table = {
         categories[i]: i
         for i in range(len(categories))
@@ -95,7 +96,7 @@ def segments_to_grid(
 
     data = np.zeros((units, len(categories)), dtype = int)
     for segment in segments.to_dict(orient = 'records'):
-        category = segment[column]
+        category = str(segment[column])
         if category not in category_table:
             continue
 
@@ -146,7 +147,7 @@ def conf_matrix(horizontal_grid, vertical_grid, categories):
     return confusion_matrix(vertical, horizontal, labels = categories)
 
 
-def vectors_to_annotation_task(*args):
+def vectors_to_annotation_task(*args, drop = []):
     """transform vectors of labels into a nltk AnnotationTask object.
 
     :return: the AnnotationTask object
@@ -156,10 +157,18 @@ def vectors_to_annotation_task(*args):
 
     v = np.vstack(args)
     it = np.nditer(v, flags = ['multi_index'])
-    data = [
-        (it.multi_index[0], it.multi_index[1], str(x))
-        for x in it
-    ]
+
+    if len(drop):
+        data = [
+            (it.multi_index[0], it.multi_index[1], str(x))
+            for x in it
+            if str(x) not in drop
+        ]
+    else:
+        data = [
+            (it.multi_index[0], it.multi_index[1], str(x))
+            for x in it
+        ]
 
     return agreement.AnnotationTask(data = data)
 
