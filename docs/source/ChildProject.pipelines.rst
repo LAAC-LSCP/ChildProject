@@ -12,10 +12,10 @@ ChildProject.pipelines.anonymize module
    :undoc-members:
    :show-inheritance:
 
-ChildProject.pipelines.conversion module
+ChildProject.pipelines.converters module
 ----------------------------------------
 
-.. automodule:: ChildProject.pipelines.conversion
+.. automodule:: ChildProject.pipelines.converters
    :members:
    :undoc-members:
    :show-inheritance:

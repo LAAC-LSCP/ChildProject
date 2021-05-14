@@ -3,11 +3,52 @@
 Installation
 ------------
 
-You'll need to install our package and git-annex, following the
-instructions we provide next.
+Installing our package
+~~~~~~~~~~~~~~~~~~~~~~
 
-Install DataLad
-~~~~~~~~~~~~~~~
+The package can be installed using pip :
+
+::
+
+    pip3 install git+https://github.com/LAAC-LSCP/ChildProject.git
+
+.. warning::
+    
+    Important: the package requires Python 3+. If the above command 
+    does not work, try `pip` instead of `pip3`, but make sure that `pip`
+    points to a python3 installation. You can do so by typing
+    ``pip --version``. If you have accidentally installed the package on  
+    the wrong environment, remove it with ``pip uninstall datalad``.
+
+If you are having permissions issues - or any other issue -, you can try
+any of the following :
+
+-  Use the ``--user`` flag:
+
+::
+
+    pip3 install git+https://github.com/LAAC-LSCP/ChildProject.git --user
+
+-  Create and activate a virtual python environment beforehand. You will
+   have to activate it everytime you need to use the package or datalad.
+
+::
+
+    python3 -m venv ~/ChildProjectVenv
+    source ~/ChildProjectVenv/bin/activate
+    pip3 install git+https://github.com/LAAC-LSCP/ChildProject.git
+
+Install ffmpeg
+==============
+
+Some of the tools for audio processing (e.g. conversion to another format)
+will require ffmpeg.
+It is usually installed on most systems. You can check by typing ``ffmpeg -version``.
+If it is not yet, it can be installed via ``apt install ffmpeg`` (Linux) or
+``brew install ffmpeg`` (Mac), or ``conda install ffmpeg`` for conda users.
+
+Installing DataLad
+~~~~~~~~~~~~~~~~~~
 
 In order to store and deliver the datasets, we recommend the use of DataLad,
 "a decentralized system for integrated discovery, management, and publication of digital objects of science",
@@ -43,49 +84,6 @@ You can squash this message by providing these credentials (and if you already h
 git config --global user.name "FIRST_NAME LAST_NAME"
 git config --global user.email "MY_NAME@example.com"
 ```
-
-Install our package via pip
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The package can be installed using pip :
-
-::
-
-    pip3 install git+https://github.com/LAAC-LSCP/ChildProject.git
-
-.. warning::
-    
-    Important: the package requires Python 3+. If the above command 
-    does not work, try `pip` instead of `pip3`, but make sure that `pip`
-    points to a python3 installation. You can do so by typing
-    ``pip --version``. If you have accidentally installed the package on  
-    the wrong environment, remove it with ``pip uninstall datalad``.
-
-If you are having permissions issues - or any other issue -, you can try
-any of the following :
-
--  Use the ``--user`` flag:
-
-::
-
-    pip3 install git+https://github.com/LAAC-LSCP/ChildProject.git --user
-
--  Create and activate a virtual python environment beforehand. You will
-   have to activate it everytime you need to use the package or datalad.
-
-::
-
-    python3 -m venv ~/ChildProjectVenv
-    source ~/ChildProjectVenv/bin/activate
-    pip3 install git+https://github.com/LAAC-LSCP/ChildProject.git
-
-Install ffmpeg
-~~~~~~~~~~~~~~
-
-Operations on the audio will require ffmpeg.
-It is usually installed on most systems. You can check by typing ``ffmpeg -version``.
-If not, it can be installed via ``apt install ffmpeg`` (Linux) or
-``brew install ffmpeg`` (Mac), or ``conda install ffmpeg`` for conda users.
 
 Check the setup
 ~~~~~~~~~~~~~~~

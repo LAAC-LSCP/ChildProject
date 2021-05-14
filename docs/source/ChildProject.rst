@@ -5,8 +5,10 @@ Subpackages
 -----------
 
 .. toctree::
+   :maxdepth: 4
 
    ChildProject.pipelines
+   ChildProject.templates
 
 Submodules
 ----------
@@ -23,6 +25,14 @@ ChildProject.cmdline module
 ---------------------------
 
 .. automodule:: ChildProject.cmdline
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+ChildProject.metrics module
+---------------------------
+
+.. automodule:: ChildProject.metrics
    :members:
    :undoc-members:
    :show-inheritance:
@@ -50,7 +60,6 @@ ChildProject.utils module
    :members:
    :undoc-members:
    :show-inheritance:
-
 
 Module contents
 ---------------

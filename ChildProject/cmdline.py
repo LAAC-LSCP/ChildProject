@@ -136,6 +136,26 @@ def merge_annotations(args):
 
 @subcommand([
     arg("source", help = "project path"),
+    arg("--destination", help = "output CSV dataframe destination", required = True),
+    arg("--sets", help = "annotation sets to intersect", nargs = '+', required = True),
+    arg("--annotations", help = "path a custom input CSV dataframe of annotations to intersect. By default, the whole index of the project will be used.", default = None)
+])
+def intersect_annotations(args):
+    """calculate the intersection of the annotations belonging to the given sets"""
+    
+    if args.annotations:
+        annotations = pd.read_csv(args.annotations)
+    else:
+        project = ChildProject(args.source)
+        am = AnnotationManager(project)
+        am.read()
+        annotations = am.annotations
+
+    intersection = AnnotationManager.intersection(annotations, args.sets)
+    intersection.to_csv(args.destination, index = False)
+
+@subcommand([
+    arg("source", help = "project path"),
     arg("--set", help = "set to remove", required = True),
     arg("--recursive", help = "enable recursive mode", action = 'store_true'),
 ])

@@ -1,0 +1,17 @@
+set,segment_onset,segment_offset,speaker_type
+Alex,2,9,1
+Alex,11,17,2
+Alex,24,30,5
+Alex,32,36,6
+Alex,36,44,6
+Alex,44,60,7
+Paul,2,9,1
+Paul,11,17,3
+Paul,19,25,5
+Paul,32,44,6
+Suzan,2,9,1
+Suzan,11,17,4
+Suzan,21,27,5
+Suzan,32,36,6
+Suzan,36,40,6
+Suzan,40,44,6

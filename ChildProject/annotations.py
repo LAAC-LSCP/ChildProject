@@ -12,7 +12,7 @@ from functools import reduce, partial
 import shutil
 import sys
 import traceback
-from typing import Callable
+from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
 
 from . import __version__
 from .projects import ChildProject
@@ -22,10 +22,12 @@ from .utils import Segment, intersect_ranges
 class AnnotationManager:
     """Manage annotations of a dataset. 
 
-    Attributes:
-        :param project: :class:`ChildProject.projects.ChildProject` instance of the target dataset.
-        :type project: :class:`ChildProject.projects.ChildProject`
+    :ivar project: instance of the current project
+    :type project: :class:`ChildProject.projects.ChildProject`
+    :ivar annotations: index of the annotations
+    :type annotations: pd.DataFrame
     """
+
     INDEX_COLUMNS = [
         IndexColumn(name = 'set', description = 'name of the annotation set (e.g. VTC, annotator1, etc.)', required = True),
         IndexColumn(name = 'recording_filename', description = 'recording filename as specified in the recordings index', required = True),
@@ -178,13 +180,32 @@ class AnnotationManager:
 
         self.errors, self.warnings = self.read()
 
-    def read(self) -> tuple:
+    def read(self) -> Tuple[List[str], List[str]]:
+        """Read the index of annotations from ``metadata/annotations.csv`` and store it into
+        self.annotations.
+
+
+        :return: a tuple containing the list of errors and the list of warnings generated while reading the index
+        :rtype: Tuple[List[str],List[str]]
+        """
         table = IndexTable('input', path = os.path.join(self.project.path, 'metadata/annotations.csv'), columns = self.INDEX_COLUMNS)
         self.annotations = table.read()
         errors, warnings = table.validate()
+
+        duplicates = self.annotations.groupby(['set', 'annotation_filename']).agg(count = ('range_offset', 'count'))
+        duplicates = duplicates[duplicates['count'] > 1]
+
+        if len(duplicates):
+            errors.extend([
+                "duplicate reference to annotations/{}/converted/{} (appears {} times)".format(
+                    dup['set'], dup['annotation_filename'], dup['count']
+                )
+                for dup in duplicates.to_dict(orient = 'records')
+            ])
+
         return errors, warnings
 
-    def validate_annotation(self, annotation: dict) -> tuple:
+    def validate_annotation(self, annotation: dict) -> Tuple[List[str], List[str]]:
         print("validating {}...".format(annotation['annotation_filename']))
 
         segments = IndexTable(
@@ -200,9 +221,20 @@ class AnnotationManager:
 
         return segments.validate()
 
-    def validate(self, annotations: pd.DataFrame = None, threads: int = -1) -> tuple:
+    def validate(self, annotations: pd.DataFrame = None, threads: int = 0) -> Tuple[List[str], List[str]]:
+        """check all indexed annotations for errors
+
+        :param annotations: annotations to validate, defaults to None. If None, the whole index will be scanned.
+        :type annotations: pd.DataFrame, optional
+        :param threads: how many threads to run the tests with, defaults to 0. If <= 0, all available CPU cores will be used.
+        :type threads: int, optional
+        :return: a tuple containg the list of errors and the list of warnings detected
+        :rtype: Tuple[List[str], List[str]]
+        """
         if not isinstance(annotations, pd.DataFrame):
             annotations = self.annotations
+
+        annotations = annotations.dropna(subset = ['annotation_filename'])
 
         errors, warnings = [], []
 
@@ -441,13 +473,12 @@ class AnnotationManager:
         return df
 
     def load_vtc_rttm(self, filename: str, source_file: str = '') -> pd.DataFrame:
-        rttm = pd.read_csv(
+        df = pd.read_csv(
             filename,
             sep = " ",
             names = ['type', 'file', 'chnl', 'tbeg', 'tdur', 'ortho', 'stype', 'name', 'conf', 'unk']
         )
 
-        df = rttm
         df['segment_onset'] = df['tbeg'].mul(1000).round().astype(int)
         df['segment_offset'] = (df['tbeg']+df['tdur']).mul(1000).round().astype(int)
         df['speaker_type'] = df['name'].map(self.VTC_SPEAKER_TYPE_TRANSLATION)
@@ -460,13 +491,12 @@ class AnnotationManager:
         return df
 
     def load_vcm_rttm(self, filename: str, source_file: str = '') -> pd.DataFrame:
-        rttm = pd.read_csv(
+        df = pd.read_csv(
             filename,
             sep = " ",
             names = ['type', 'file', 'chnl', 'tbeg', 'tdur', 'ortho', 'stype', 'name', 'conf', 'unk']
         )
 
-        df = rttm
         df['segment_onset'] = df['tbeg'].mul(1000).round().astype(int)
         df['segment_offset'] = (df['tbeg']+df['tdur']).mul(1000).round().astype(int)
         df['speaker_type'] = df['name'].map(self.VCM_SPEAKER_TYPE_TRANSLATION)
@@ -602,7 +632,7 @@ class AnnotationManager:
 
         return imported
 
-    def get_subsets(self, annotation_set: str, recursive: bool = False) -> list:
+    def get_subsets(self, annotation_set: str, recursive: bool = False) -> List[str]:
         """Retrieve the list of subsets belonging to a given set of annotations.
 
         :param annotation_set: input set
@@ -631,8 +661,8 @@ class AnnotationManager:
             
 
     def remove_set(self, annotation_set: str, recursive: bool = False):
-        """Remove a set of annotations, deleting every file and removing
-        them from the index.
+        """Remove a set of annotations, deleting every converted file and removing
+        them from the index. This preserves raw annotations.
 
         :param annotation_set: set of annotations to remove
         :type annotation_set: str
@@ -798,7 +828,7 @@ class AnnotationManager:
         return annotations
 
     def merge_sets(self, left_set: str, right_set: str,
-        left_columns: list, right_columns: list,
+        left_columns: List[str], right_columns: List[str],
         output_set: str, columns: dict = {},
         threads = -1
     ):
@@ -811,9 +841,9 @@ class AnnotationManager:
         :param right_set: Right set of annotations.
         :type right_set: str
         :param left_columns: Columns which values will be based on the left set.
-        :type left_columns: list
+        :type left_columns: List
         :param right_columns: Columns which values will be based on the right set.
-        :type right_columns: list
+        :type right_columns: List
         :param output_set: Name of the output annotations set.
         :type output_set: str
         :return: [description]
@@ -828,13 +858,16 @@ class AnnotationManager:
         assert union.issubset(all_columns), "left_columns and right_columns have unexpected values"
         assert required_columns.issubset(union), "left_columns and right_columns have missing values"
 
-        left_annotations = self.annotations[self.annotations['set'] == left_set]
-        right_annotations = self.annotations[self.annotations['set'] == right_set]
+        annotations = self.annotations[self.annotations['set'].isin([left_set, right_set])]
+        annotations = annotations[annotations['error'].isnull()]
 
-        left_annotations = left_annotations[left_annotations['error'].isnull()]
-        right_annotations = right_annotations[right_annotations['error'].isnull()]
-
-        left_annotations, right_annotations = self.intersection(left_annotations, right_annotations)
+        intersection = AnnotationManager.intersection(
+            annotations,
+            sets = [left_set, right_set]
+        )
+        left_annotations = intersection[intersection['set'] == left_set]
+        right_annotations = intersection[intersection['set'] == right_set]
+        
         left_annotations = left_annotations.reset_index(drop = True).rename_axis('interval').reset_index()
         right_annotations = right_annotations.reset_index(drop = True).rename_axis('interval').reset_index()
 
@@ -867,79 +900,105 @@ class AnnotationManager:
         annotations = annotations.dropna(subset = ['annotation_filename'])
         annotations.drop(columns = ['raw_filename'], inplace = True)
 
-        segments = pd.concat([
-            pd.read_csv(os.path.join(self.project.path, 'annotations', a['set'], 'converted', a['annotation_filename'])).assign(set = a['set'], annotation_filename = a['annotation_filename'])
-            for a in annotations.to_dict(orient = 'records')
-        ])
+        segments = []
+        for index, _annotations in annotations.groupby(['set', 'annotation_filename']):
+            s, annotation_filename = index
+            df = pd.read_csv(os.path.join(self.project.path, 'annotations', s, 'converted', annotation_filename))
+            
+            for annotation in _annotations.to_dict(orient = 'records'):
+                segs = AnnotationManager.clip_segments(df, annotation['range_onset'], annotation['range_offset'])
+                if not len(segs):
+                    continue
+            
+                for c in annotation.keys():
+                    segs.loc[:,c] = annotation[c]
+                
+                segments.append(segs)
 
-        return segments.merge(annotations, how = 'left', left_on = ['set', 'annotation_filename'], right_on = ['set', 'annotation_filename'])
+        return pd.concat(segments)
+    
+    def get_collapsed_segments(self, annotations: pd.DataFrame) -> pd.DataFrame:
+        """get all segments associated to the annotations referenced in ``annotations``,
+        and collapses into one virtual timeline.
 
-    def intersection(self, left: pd.DataFrame, right: pd.DataFrame) -> tuple:
-        """Compute the intersection of all ``left`` and ``right`` annotations,
+        :param annotations: dataframe of annotations, according to :ref:`format-annotations`
+        :type annotations: pd.DataFrame
+        :return: dataframe of all the segments merged (as specified in :ref:`format-annotations-segments`), merged with ``annotations``
+        :rtype: pd.DataFrame
+        """
+        annotations['abs_range_onset'] = annotations['range_onset']+annotations['time_seek']
+        annotations['abs_range_offset'] = annotations['range_offset']+annotations['time_seek']
+        annotations['duration'] = (annotations['range_offset']-annotations['range_onset']).astype(float)
+
+        annotations = annotations.sort_values(['recording_filename', 'abs_range_onset', 'abs_range_offset', 'set'])
+        annotations['position'] = annotations.groupby('set')['duration']\
+            .transform(pd.Series.cumsum)
+        annotations['position'] = annotations.groupby('set')['position'].shift(1).fillna(0)
+
+        segments = self.get_segments(annotations)
+
+        segments['segment_onset'] += segments['position']-segments['range_onset']
+        segments['segment_offset'] += segments['position']-segments['range_onset']
+
+        return segments
+
+    @staticmethod
+    def intersection(annotations: pd.DataFrame, sets: list = None) -> tuple:
+        """Compute the intersection of all annotations for all sets and recordings,
         based on their ``recording_filename``, ``time_seek``, ``range_onset`` and ``range_offset``
         attributes. (Only these columns are required, but more can be passed and they
         will be preserved).
 
-        :param left: dataframe of annotations, according to :ref:`format-annotations`
-        :type left: pd.DataFrame
-        :param right: dataframe of annotations, according to :ref:`format-annotations`
-        :type right: pd.DataFrame
+        :param annotations: dataframe of annotations, according to :ref:`format-annotations`
+        :type annotations: pd.DataFrame
         :return: dataframe of annotations, according to :ref:`format-annotations`
         :rtype: tuple
         """
-        recordings = set(left['recording_filename'].unique()) & set(right['recording_filename'].unique())
-        recordings = list(recordings)
-
-        a_stack = []
-        b_stack = []
+        stack = []
+        recordings = list(annotations['recording_filename'].unique())
+        
+        if sets is None:
+            sets = list(annotations['set'].unique())
+        else:
+            annotations = annotations[annotations['set'].isin(sets)]
 
         for recording in recordings:
-            a = left[left['recording_filename'] == recording].copy()
-            b = right[right['recording_filename'] == recording].copy()
+            _annotations = annotations[annotations['recording_filename'] == recording]
+            _annotations = _annotations.assign(
+                abs_range_onset = lambda r: r['range_onset']+r['time_seek'],
+                abs_range_offset = lambda r: r['range_offset']+r['time_seek']    
+            )
+            _annotations = _annotations.sort_values(['abs_range_onset', 'abs_range_offset'])
+            
+            segments = []
+            for s in sets:
+                ann = _annotations[_annotations['set'] == s]
+                segments.append(
+                    (Segment(onset, offset) for (onset, offset) in ann[['abs_range_onset', 'abs_range_offset']].values.tolist())
+                )
 
-            for bound in ('onset', 'offset'):
-                a['abs_range_' + bound] = a['range_' + bound] + a['time_seek']
-                b['abs_range_' + bound] = b['range_' + bound] + b['time_seek']
+            segments = reduce(intersect_ranges, segments)
 
-            a_ranges = a[['abs_range_onset', 'abs_range_offset']].sort_values(['abs_range_onset', 'abs_range_offset']).values.tolist()
-            b_ranges = b[['abs_range_onset', 'abs_range_offset']].sort_values(['abs_range_onset', 'abs_range_offset']).values.tolist()
-
-            segments = list(intersect_ranges(
-                (Segment(onset, offset) for (onset, offset) in a_ranges),
-                (Segment(onset, offset) for (onset, offset) in b_ranges)
-            ))
-
-            a_out = []
-            b_out = []
-
+            result = []
             for segment in segments:
-                a_row = a[(a['abs_range_onset'] <= segment.start) & (a['abs_range_offset'] >= segment.stop)].to_dict(orient = 'records')[0]
-                a_row['abs_range_onset'] = segment.start
-                a_row['abs_range_offset'] = segment.stop
-                a_out.append(a_row)
+                ann = _annotations.copy()
+                ann['abs_range_onset'].clip(lower = segment.start, upper = segment.stop, inplace = True)
+                ann['abs_range_offset'].clip(lower = segment.start, upper = segment.stop, inplace = True)
+                ann = ann[(ann['abs_range_offset'] - ann['abs_range_onset']) > 0]
+                result.append(ann)
 
-                b_row = b[(b['abs_range_onset'] <= segment.start) & (b['abs_range_offset'] >= segment.stop)].to_dict(orient = 'records')[0]
-                b_row['abs_range_onset'] = segment.start
-                b_row['abs_range_offset'] = segment.stop
-                b_out.append(b_row)
-
-            if not a_out or not b_out:
+            if not len(result):
                 continue
 
-            a_out = pd.DataFrame(a_out)
-            b_out = pd.DataFrame(b_out)
+            _annotations = pd.concat(result)
 
             for bound in ('onset', 'offset'):
-                a_out['range_' + bound] = a_out['abs_range_' + bound] - a_out['time_seek']
-                b_out['range_' + bound] = b_out['abs_range_' + bound] - b_out['time_seek']
+                _annotations['range_' + bound] =_annotations['abs_range_' + bound].astype(int) - _annotations['time_seek']
 
-            a_out.drop(['abs_range_onset', 'abs_range_offset'], axis = 1, inplace = True)
-            b_out.drop(['abs_range_onset', 'abs_range_offset'], axis = 1, inplace = True)
+            _annotations.drop(['abs_range_onset', 'abs_range_offset'], axis = 1, inplace = True)
+            stack.append(_annotations)
 
-            a_stack.append(a_out)
-            b_stack.append(b_out)
-
-        return pd.concat(a_stack), pd.concat(b_stack)
+        return pd.concat(stack) if len(stack) else pd.DataFrame()
 
     @staticmethod
     def clip_segments(segments: pd.DataFrame, start: int, stop: int) -> pd.DataFrame:
