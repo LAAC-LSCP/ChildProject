@@ -128,21 +128,57 @@ We can now compute the confusion matrix:
 
 .. code-block:: python
 
->>> speakers.extend(['overlap', 'none'])
->>> confusion_counts = conf_matrix(its, vtc, speakers)
->>> confusion_counts
-array([[ 17802,   5139,   2537,    566,      0,  17392],
-       [   178,   1329,    129,     65,      0,   1947],
-       [   998,    818,  14530,   1964,      0,  16010],
-       [   158,    155,   1984,  14613,      0,  10918],
-       [  2852,   2407,   4390,   3203,      0,   5138],
-       [  3053,   2158,   3674,   2464,      0, 365000]])
->>> 
+    >>> speakers.extend(['overlap', 'none'])
+    >>> confusion_counts = conf_matrix(its, vtc, speakers)
+    >>> confusion_counts
+    array([[ 17802,   5139,   2537,    566,      0,  17392],
+        [   178,   1329,    129,     65,      0,   1947],
+        [   998,    818,  14530,   1964,      0,  16010],
+        [   158,    155,   1984,  14613,      0,  10918],
+        [  2852,   2407,   4390,   3203,      0,   5138],
+        [  3053,   2158,   3674,   2464,      0, 365000]])
+    >>> 
 
 Using pyannote.metrics
 ----------------------
 
-Many metrics are then used to measure the performance (recall, precision, accuracy, etc.).
+Confusion matrices are still dimensional data
+(with :math:`n \times n` components for :math:`n` labels),
+which renders performance comparisons of several annotators
+difficult: it is hard to tell which one of two classifiers
+is the closest to the ground truth using confusion matrices.
+
+As a result, in Machine Learning, many scalar measures are used
+in order to assess the overall performance of a classifier.
+These include recall, precision, accuracy, etc.
+
+The `pyannote-metrics package <https://pyannote.github.io/pyannote-metrics/>`_
+implements many of the metrics that are typically used in speech processing.
+ChildProject interfaces well with pyannote-metrics. Below, we show how 
+to use both packages to compute recall and precision.
+
+The first step is to convert the dataframe of segments into one :meth:`pyannote.core.Annotation`
+object per annotator:
+
+.. code-block:: python
+
+    >>> from ChildProject.metrics import segments_to_annotation
+    >>> ref = segments_to_annotation(segments[segments['set'] == 'vtc'], 'speaker_type')
+    >>> hyp = segments_to_annotation(segments[segments['set'] == 'its'], 'speaker_type')
+    >>>
+
+Now, any pyannote metric can be instantianted and used with these annotations:
+
+.. code-block:: python
+
+    >>> from pyannote.metrics.detection import DetectionPrecisionRecallFMeasure
+    >>> metric = DetectionPrecisionRecallFMeasure()
+    >>> detail = metric.compute_components(ref, hyp)
+    >>> precision, recall, f = metric.compute_metrics(detail)
+    >>> print(f'{precision:.2f}/{recall:.2f}/{f:.2f}')
+    0.87/0.60/0.71
+
+
 
 Reliability evaluations
 ~~~~~~~~~~~~~~~~~~~~~~~
