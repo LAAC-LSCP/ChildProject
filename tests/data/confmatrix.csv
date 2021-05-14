@@ -3,11 +3,3 @@ Alice,0,5,CHI
 Alice,5,12,FEM
 Bob,0,10,CHI
 Bob,10,15,FEM
-
-
-
-CHI    5   5   0    0
-FEM    0   2   0    3
-overlap 0  0   0    0
-none    0  0   0    0
-       CHI FEM overlap none
