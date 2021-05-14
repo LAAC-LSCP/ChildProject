@@ -4,7 +4,7 @@ Installation
 ------------
 
 Installing our package
-~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
 
 The package can be installed using pip :
 

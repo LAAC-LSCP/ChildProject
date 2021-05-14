@@ -5,6 +5,17 @@ Annotations can be managed through both the command-line interface and the pytho
 API. This section documents the principle features of the API for the management
 of annotations.
 
+.. note:: 
+
+    In order to reproduce the following examples, you will need to install
+    the public VanDam corpus using datalad and its annotations:
+    
+    .. code-block:: bash
+    
+        datalad install git@gin.g-node.org:/LAAC-LSCP/vandam-data.git
+        datalad get vandam-data/annotations
+
+
 Reading annotations
 ~~~~~~~~~~~~~~~~~~~
 

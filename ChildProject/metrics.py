@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 
+from typing import List
+
 def segments_to_annotation(segments: pd.DataFrame, column: str):
     """Transform a dataframe of annotation segments into a pyannote.core.Annotation object
 
@@ -147,9 +149,13 @@ def conf_matrix(horizontal_grid, vertical_grid, categories):
     return confusion_matrix(vertical, horizontal, labels = categories)
 
 
-def vectors_to_annotation_task(*args, drop = []):
+def vectors_to_annotation_task(*args, drop: List[str] = []):
     """transform vectors of labels into a nltk AnnotationTask object.
 
+    :param *args: vector of labels for each annotator; add one argument per annotator.
+    :type *args: 1d np.array() of labels
+    :param drop: list of labels that should be ignored
+    :type drop: List[str]
     :return: the AnnotationTask object
     :rtype: nltk.metrics.agreement.AnnotationTask
     """
