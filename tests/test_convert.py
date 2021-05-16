@@ -50,3 +50,16 @@ def test_vetting(project):
         name = 'vetted',
         segments_path = os.path.join(project.path, 'segments.csv')
     )
+
+def test_channel_mapping(project, input = None):
+    AudioConversionPipeline().run(
+        converter = 'channel-mapping',
+        path = project.path,
+        name = 'mapping',
+        channels = ['0,2', '1,0'],
+        input_profile = input
+    )
+
+def test_custom_input_profile(project):
+    test_vetting(project)
+    test_channel_mapping(project, input = 'vetted')

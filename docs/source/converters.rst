@@ -59,3 +59,68 @@ The timestamps need to be expressed in milliseconds.
 .. clidoc::
 
     child-project converters /path/to/dataset test vetting --help
+
+Channel mapping
+~~~~~~~~~~~~~~~
+
+The channel mapping pipeline is meant to be used with multi-channel audio recordings,
+such as those produced by the BabyLogger.
+It allows to filter or to combine channels from the original recordings at your convenience.
+
+
+.. clidoc::
+
+   child-project converters /path/to/dataset test channel-mapping --help
+
+In mathematical terms, assuming the input recordings have :math:`n` channels
+with signals :math:`s_{j}(t)`;
+If the output recordings should have :math:`m` channels,
+the user defines a matrix of weights :math:`w_{ij}` with :math:`m` rows and :math:`n` columns,
+such as the signal of each output channel :math:`s'_{i}(t)` is:
+
+.. math::
+
+   s'_{i}(t) = \sum_{j=1}^n w_{ij} s_{j}(t)
+
+The weights matrix is defined through the ``--channels`` parameters.
+
+The weights for each output channel are separated by blanks.
+For a given output channel, the weights of each input channels should be separated by commas.
+
+For instance, if one would like to use the following weight matrix (which transforms
+4-channel recordings into 2-channel audio):
+
+.. math::
+
+   \begin{pmatrix}
+   0 & 0 & 1 & 1 \\ 
+   0.5 & 0.5 & 0 & 0
+   \end{pmatrix}
+
+Then the correct values for the --channels parameters should be:
+
+.. code-block:: bash
+
+   --channels 0,0,1,1 0.5,0.5,0,0
+
+To make things clear, we provide a couple of examples below.
+
+Muting all channels except for the first
+========================================
+
+Let's assume that the original recordings have 4 channels.
+The following command will extract the first channel from the recordings:
+
+.. code-block:: bash
+
+   child-project converters /path/to/dataset channel1 channel-mapping --channels 1,0,0,0
+
+Invert a stereo signal
+======================
+
+Let's assume that the original recordings are stereo signals, i.e. they have two channels.
+The command below will flip the two channels:
+
+.. code-block:: bash
+
+   child-project converters /path/to/dataset channel1 channel-mapping --channels 0,1 --channels 1,0
