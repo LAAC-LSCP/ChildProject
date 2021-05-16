@@ -42,6 +42,8 @@ class Converter:
         'UC6': 'OCH'
     }
 
+    THREAD_SAFE = True
+
 class VtcConverter(Converter):
 
     SPEAKER_TYPE_TRANSLATION = defaultdict(lambda: 'NA', {
@@ -393,6 +395,7 @@ class EafConverter(Converter):
         return pd.DataFrame(segments.values())
 
 class ChatConverter(Converter):
+    THREAD_SAFE = False
 
     @staticmethod
     def convert(filename: str,
@@ -440,3 +443,13 @@ class ChatConverter(Converter):
         df.fillna('NA', inplace = True)
 
         return df
+
+is_thread_safe = {
+    'its': ItsConverter.THREAD_SAFE,
+    'vtc_rttm': VtcConverter.THREAD_SAFE,
+    'vcm_rttm': VcmConverter.THREAD_SAFE,
+    'eaf': EafConverter.THREAD_SAFE,
+    'TextGrid': TextGridConverter.THREAD_SAFE,
+    'alice': AliceConverter.THREAD_SAFE,
+    'chat': ChatConverter.THREAD_SAFE
+}
