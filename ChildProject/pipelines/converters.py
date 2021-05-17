@@ -18,7 +18,7 @@ class AudioConverter(ABC):
         project: ChildProject.projects.ChildProject,
         name: str,
         input_profile: str = None,
-        threads: int = 0
+        threads: int = 1
         ):
 
         self.project = project
@@ -203,6 +203,11 @@ class VettingConverter(AudioConverter):
             os.path.splitext(recording['recording_filename'])[0] + '.wav'
         )
 
+        os.makedirs(
+            name = os.path.dirname(destination_file),
+            exist_ok = True
+        )
+
         vettoed_segments = self.segments[self.segments['recording_filename'] == recording['recording_filename']]
 
         signal, sr = librosa.load(original_file, sr = None, mono = False)
@@ -237,7 +242,7 @@ class ChannelMapper(AudioConverter):
         project: ChildProject.projects.ChildProject,
         name: str,
         channels: list,
-        threads: int = 0,
+        threads: int = 1,
         input_profile: str = None
         ):
 
@@ -262,6 +267,11 @@ class ChannelMapper(AudioConverter):
         destination_file = os.path.join(
             self.output_directory(),
             os.path.splitext(recording['recording_filename'])[0] + '.wav'
+        )
+
+        os.makedirs(
+            name = os.path.dirname(destination_file),
+            exist_ok = True
         )
 
         df = pd.DataFrame([{
@@ -294,7 +304,7 @@ class AudioConversionPipeline(Pipeline):
     def __init__(self):
         pass
 
-    def run(self, path: str, name: str, converter: str, skip_existing: bool = False, threads: int = 0, func = None, **kwargs):
+    def run(self, path: str, name: str, converter: str, skip_existing: bool = False, threads: int = 1, func = None, **kwargs):
         parameters = locals()
         parameters = [{key: parameters[key]} for key in parameters if key not in ['self', 'kwargs']]
         parameters.extend([{key: kwargs[key]} for key in kwargs])
@@ -339,7 +349,7 @@ class AudioConversionPipeline(Pipeline):
         VettingConverter.add_parser(converters)
         ChannelMapper.add_parser(converters)
 
-        parser.add_argument('--threads', help = "amount of threads running conversions in parallel (0 = uses all available cores)", required = False, default = 0, type = int)
+        parser.add_argument('--threads', help = "amount of threads running conversions in parallel (0 = uses all available cores)", required = False, default = 1, type = int)
         parser.add_argument('--input-profile', help = "profile of input recordings (process raw recordings by default)", default = None)
         parser.add_argument('--skip-existing', dest='skip_existing', required = False, default = False, action='store_true')
 
