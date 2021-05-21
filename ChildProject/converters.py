@@ -433,7 +433,8 @@ class ChatConverter(AnnotationConverter):
         df = pd.DataFrame(reader.utterances())
 
         ### extract tiers
-        df['tiers'] = df['tiers'].apply(lambda d: {k.replace('%', ''): d[k] for k in d.keys()})
+        df['transcription'] = df.apply(lambda r: r['tiers'][r['participant']], axis = 1)
+        df['tiers'] = df['tiers'].apply(lambda d: {k.replace('%', ''): d[k] for k in d.keys() if k[0] == '%'})
         df = pd.concat([df.drop(['tiers'], axis = 1), df['tiers'].apply(pd.Series)], axis = 1)
 
         df['segment_onset'] = df['time_marks'].apply(lambda tm: tm[0] if tm else 'NA')
@@ -442,14 +443,14 @@ class ChatConverter(AnnotationConverter):
         df['speaker_id'] = df['participant']
         df['speaker_type'] = df['speaker_id'].replace(speaker_id_to_type)
 
-        df['transcription'] = df[df['participant']]
+        df['words'] = df['tokens'].apply(lambda l: len([t['word'] for t in l if t['word'] != '.']))
 
         if 'add' in df.columns:
             df['addressee'] = df['add'].str.split(',')\
                 .apply(lambda l: ','.join(sorted([addressee_table[x.strip()] for x in l])))
 
         df = df[(df['segment_onset'] != 'NA') & (df['segment_offset'] != 'NA')]
-        df.drop(columns = ['tokens', 'time_marks'], inplace = True)
+        df.drop(columns = ['participant', 'tokens', 'time_marks'], inplace = True)
         df.fillna('NA', inplace = True)
 
         return df
