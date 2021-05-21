@@ -27,6 +27,8 @@ Welcome to ChildProject's documentation!
    :caption: Command-line tools
 
    tools
+   annotations
+   converters
    samplers
    elan
    zooniverse
@@ -34,10 +36,12 @@ Welcome to ChildProject's documentation!
 
 .. toctree::
    :maxdepth: 2
-   :caption: Package reference
+   :caption: Python API
 
-   modules
+   api-annotations
+   api-metrics
    examples
+   modules
 
 * :ref:`genindex`
 * :ref:`modindex`
