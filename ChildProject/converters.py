@@ -449,7 +449,7 @@ class ChatConverter(AnnotationConverter):
 
         if 'add' in df.columns:
             df['addressee'] = df['add'].str.split(',')\
-                .apply(lambda l: ','.join(sorted([addressee_table[x.strip()] for x in l])))
+                .apply(lambda l: ','.join(sorted([addressee_table[x.strip()] for x in l] if hasattr(l, '__iter__') else 'NA')))
 
         df = df[(df['segment_onset'] != 'NA') & (df['segment_offset'] != 'NA')]
         df.drop(columns = ['participant', 'tokens', 'time_marks'], inplace = True)
@@ -464,5 +464,5 @@ is_thread_safe = {
     'eaf': EafConverter.THREAD_SAFE,
     'TextGrid': TextGridConverter.THREAD_SAFE,
     'alice': AliceConverter.THREAD_SAFE,
-    'chat': ChatConverter.THREAD_SAFE
+    'cha': ChatConverter.THREAD_SAFE
 }
