@@ -130,8 +130,13 @@ def test_import(project):
 
 
 def test_chat():
-    df = ChatConverter.convert('tests/data/vandam.cha')
-    df.to_csv('test.csv')
+    converted = ChatConverter.convert('tests/data/vandam.cha')
+    truth = pd.read_csv('tests/truth/cha.csv')
+
+    pd.testing.assert_frame_equal(
+        standardize_dataframe(converted, converted.columns),
+        standardize_dataframe(truth, converted.columns)
+    )
 
 def test_intersect(project):
     am = AnnotationManager(project)
