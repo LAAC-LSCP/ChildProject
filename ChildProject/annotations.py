@@ -193,9 +193,10 @@ class AnnotationManager:
         errors, warnings = table.validate()
 
         duplicates = self.annotations.groupby(['set', 'annotation_filename']).agg(count = ('range_offset', 'count'))
-        duplicates = duplicates[duplicates['count'] > 1]
+        duplicates = duplicates[duplicates['count'] > 1].reset_index()
 
         if len(duplicates):
+            print(duplicates)
             errors.extend([
                 "duplicate reference to annotations/{}/converted/{} (appears {} times)".format(
                     dup['set'], dup['annotation_filename'], dup['count']
