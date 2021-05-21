@@ -1,6 +1,7 @@
 from ChildProject.projects import ChildProject
 from ChildProject.annotations import AnnotationManager
 from ChildProject.tables import IndexTable
+from ChildProject.converters import *
 import glob
 import json
 import pandas as pd
@@ -126,7 +127,11 @@ def test_import(project):
         truth = pd.read_csv(os.path.join('tests/truth/its', "{}_ITS_Segments.csv".format(os.path.splitext(raw_filename)[0])))
 
         check_its(segments, truth)
-    
+
+
+def test_chat():
+    df = ChatConverter.convert('tests/data/vandam.cha')
+    df.to_csv('test.csv')
 
 def test_intersect(project):
     am = AnnotationManager(project)
