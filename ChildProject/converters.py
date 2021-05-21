@@ -448,8 +448,8 @@ class ChatConverter(AnnotationConverter):
         df['words'] = df['tokens'].apply(lambda l: len([t['word'] for t in l if t['word'] != '.']))
 
         if 'add' in df.columns:
-            df['addressee'] = df['add'].str.split(',')\
-                .apply(lambda l: ','.join(sorted([addressee_table[x.strip()] for x in l] if hasattr(l, '__iter__') else 'NA')))
+            df['addressee'] = df['add'].fillna('')\
+                .apply(lambda s: ','.join(sorted([addressee_table[x.strip()] for x in str(s).split(',')])))
 
         df = df[(df['segment_onset'] != 'NA') & (df['segment_offset'] != 'NA')]
         df.drop(columns = ['participant', 'tokens', 'time_marks'], inplace = True)
