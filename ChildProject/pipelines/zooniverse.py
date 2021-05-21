@@ -359,8 +359,11 @@ class ZooniversePipeline(Pipeline):
         classifications['user_id'] = classifications['links'].apply(lambda s: s['user'])
         classifications['subject_id'] = classifications['links'].apply(lambda s: s['subjects'][0])
         classifications['workflow_id'] = classifications['links'].apply(lambda s: s['workflow'])
-        classifications['task_id'] = classifications['annotations'].apply(lambda s: str(s[0]['task']))
-        classifications['answer_id'] = classifications['annotations'].apply(lambda s: str(s[0]['value']))
+        classifications['tasks'] = classifications['annotations'].apply(lambda s: [(str(r['task']), str(r['value'])) for r in s])
+        classifications = classifications.explode('tasks')
+        classifications['task_id'] = classifications['tasks'].str[0]
+        classifications['answer_id'] = classifications['tasks'].str[1]
+        classifications.drop(columns = ['tasks'], inplace = True)
 
         classifications = classifications[['id', 'user_id', 'subject_id', 'task_id', 'answer_id', 'workflow_id']]
         classifications = classifications.merge(
