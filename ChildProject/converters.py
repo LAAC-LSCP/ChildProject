@@ -322,7 +322,7 @@ class TextGridConverter(AnnotationConverter):
                     'segment_offset': int(round(1000*float(interval[1]))),
                     'speaker_id': tier_name,
                     'ling_type': ling_type(interval[2]),
-                    'speaker_type': Converter.SPEAKER_ID_TO_TYPE[tier_name] if tier_name in Converter.SPEAKER_ID_TO_TYPE else 'NA'
+                    'speaker_type': AnnotationConverter.SPEAKER_ID_TO_TYPE[tier_name] if tier_name in AnnotationConverter.SPEAKER_ID_TO_TYPE else 'NA'
                 }
 
                 segments.append(segment)
@@ -340,7 +340,7 @@ class EafConverter(AnnotationConverter):
         for tier_name in eaf.tiers:
             annotations = eaf.tiers[tier_name][0]
 
-            if tier_name not in Converter.SPEAKER_ID_TO_TYPE and len(annotations) > 0:
+            if tier_name not in AnnotationConverter.SPEAKER_ID_TO_TYPE and len(annotations) > 0:
                 print("warning: unknown tier '{}' will be ignored in '{}'".format(tier_name, filename))
                 continue
 
@@ -352,7 +352,7 @@ class EafConverter(AnnotationConverter):
                     'segment_onset': int(round(start_t)),
                     'segment_offset': int(round(end_t)),
                     'speaker_id': tier_name,
-                    'speaker_type': Converter.SPEAKER_ID_TO_TYPE[tier_name] if tier_name in Converter.SPEAKER_ID_TO_TYPE else 'NA',
+                    'speaker_type': AnnotationConverter.SPEAKER_ID_TO_TYPE[tier_name] if tier_name in AnnotationConverter.SPEAKER_ID_TO_TYPE else 'NA',
                     'vcm_type': 'NA',
                     'lex_type': 'NA',
                     'mwu_type': 'NA',
@@ -371,7 +371,7 @@ class EafConverter(AnnotationConverter):
 
             reference_annotations = eaf.tiers[tier_name][1]
 
-            if ref not in Converter.SPEAKER_ID_TO_TYPE:
+            if ref not in AnnotationConverter.SPEAKER_ID_TO_TYPE:
                 continue
 
             for aid in reference_annotations:
