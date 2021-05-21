@@ -28,7 +28,7 @@ Welcome to ChildProject's documentation!
 
    tools
    annotations
-   converters
+   processors
    samplers
    elan
    zooniverse

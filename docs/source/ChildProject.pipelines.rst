@@ -12,14 +12,6 @@ ChildProject.pipelines.anonymize module
    :undoc-members:
    :show-inheritance:
 
-ChildProject.pipelines.converters module
-----------------------------------------
-
-.. automodule:: ChildProject.pipelines.converters
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 ChildProject.pipelines.eafbuilder module
 ----------------------------------------
 
@@ -35,6 +27,15 @@ ChildProject.pipelines.pipeline module
    :members:
    :undoc-members:
    :show-inheritance:
+
+ChildProject.pipelines.processors module
+----------------------------------------
+
+.. automodule:: ChildProject.pipelines.processors
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   
 
 ChildProject.pipelines.samplers module
 --------------------------------------

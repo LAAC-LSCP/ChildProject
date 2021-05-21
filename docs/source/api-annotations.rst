@@ -8,7 +8,7 @@ of annotations.
 .. note:: 
 
     In order to reproduce the following examples, you will need to install
-    the public VanDam corpus using datalad and its annotations:
+    the public VanDam corpus and its annotations using datalad:
     
     .. code-block:: bash
     

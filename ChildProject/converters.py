@@ -2,7 +2,7 @@ from collections import defaultdict
 import pandas as pd
 import re
 
-class Converter:
+class AnnotationConverter:
     SPEAKER_ID_TO_TYPE = {
         'C1': 'OCH',
         'C2': 'OCH',
@@ -39,12 +39,18 @@ class Converter:
         'UC3': 'OCH',
         'UC4': 'OCH',
         'UC5': 'OCH',
-        'UC6': 'OCH'
+        'UC6': 'OCH',
+        'EE1': 'ELE',
+        'EE2': 'ELE',
+        'FAE': 'ELE',
+        'MAE': 'ELE',
+        'FCE': 'ELE',
+        'MCE': 'ELE'
     }
 
     THREAD_SAFE = True
 
-class VtcConverter(Converter):
+class VtcConverter(AnnotationConverter):
 
     SPEAKER_TYPE_TRANSLATION = defaultdict(lambda: 'NA', {
         'CHI': 'OCH',
@@ -74,7 +80,7 @@ class VtcConverter(Converter):
 
         return df
 
-class VcmConverter(Converter):
+class VcmConverter(AnnotationConverter):
 
     SPEAKER_TYPE_TRANSLATION = defaultdict(lambda: 'NA', {
         'CHI': 'OCH',
@@ -114,7 +120,7 @@ class VcmConverter(Converter):
 
         return df
 
-class AliceConverter(Converter):
+class AliceConverter(AnnotationConverter):
 
     @staticmethod
     def convert(filename: str, source_file: str = '') -> pd.DataFrame:
@@ -137,7 +143,7 @@ class AliceConverter(Converter):
 
         return df
 
-class ItsConverter(Converter):
+class ItsConverter(AnnotationConverter):
 
     SPEAKER_TYPE_TRANSLATION = {
         'CHN': 'CHI',
@@ -284,7 +290,7 @@ class ItsConverter(Converter):
         
         return df
 
-class TextGridConverter(Converter):
+class TextGridConverter(AnnotationConverter):
 
     @staticmethod
     def convert(filename: str) -> pd.DataFrame:
@@ -323,7 +329,7 @@ class TextGridConverter(Converter):
 
         return pd.DataFrame(segments)
 
-class EafConverter(Converter):
+class EafConverter(AnnotationConverter):
     
     @staticmethod
     def convert(filename: str) -> pd.DataFrame:
@@ -394,8 +400,21 @@ class EafConverter(Converter):
 
         return pd.DataFrame(segments.values())
 
-class ChatConverter(Converter):
+class ChatConverter(AnnotationConverter):
     THREAD_SAFE = False
+
+    SPEAKER_ID_TO_TYPE = {
+        'MOT': 'FEM',
+        'FAT': 'MAL',
+        'SIS': 'OCH'
+    }
+
+    ADDRESSEE_TABLE = defaultdict(lambda: 'NA', {
+        'MOT': 'A',
+        'FAT': 'A',
+        'SIS': 'C',
+        'CHI': 'T'
+    })
 
     @staticmethod
     def convert(filename: str,
@@ -405,19 +424,10 @@ class ChatConverter(Converter):
         import pylangacq
 
         if speaker_id_to_type is None:
-            speaker_id_to_type = {
-                'MOT': 'FEM',
-                'FAT': 'MAL',
-                'SIS': 'OCH'
-            }
+            speaker_id_to_type = ChatConverter.SPEAKER_ID_TO_TYPE
 
         if addressee_table is None:
-            addressee_table = defaultdict(lambda: 'NA', {
-                'MOT': 'A',
-                'FAT': 'A',
-                'SIS': 'C',
-                'CHI': 'T'
-            })
+            addressee_table = ChatConverter.ADDRESSEE_TABLE
 
         reader = pylangacq.Reader.from_files([filename])
         df = pd.DataFrame(reader.utterances())
@@ -432,7 +442,7 @@ class ChatConverter(Converter):
         df['speaker_id'] = df['participant']
         df['speaker_type'] = df['speaker_id'].replace(speaker_id_to_type)
 
-        df['transcription'] = df['tokens'].apply(lambda l: ' '.join([t['word'] for t in l]))
+        df['transcription'] = df[df['participant']]
 
         if 'add' in df.columns:
             df['addressee'] = df['add'].str.split(',')\

@@ -13,10 +13,29 @@ from yaml import dump
 import ChildProject
 from ChildProject.pipelines.pipeline import Pipeline
 
-class AudioConverter(ABC):
-    def __init__(self, project: ChildProject.projects.ChildProject, name: str):
+class AudioProcessor(ABC):
+    def __init__(self,
+        project: ChildProject.projects.ChildProject,
+        name: str,
+        input_profile: str = None,
+        threads: int = 1
+        ):
+
         self.project = project
         self.name = name
+        self.threads = int(threads)
+
+        self.input_profile = input_profile
+
+        if self.input_profile:
+            input_path = os.path.join(
+                self.project.path,
+                ChildProject.projects.ChildProject.CONVERTED_RECORDINGS,
+                self.input_profile
+            )
+
+            assert os.path.exists(input_path), \
+                f'provided input profile {input_profile} does not exist'
 
         self.converted = pd.DataFrame()
 
@@ -39,15 +58,25 @@ class AudioConverter(ABC):
     def process_recording(self, recording):
         pass
 
-    @abstractmethod
     def process(self):
-        pass
+        os.makedirs(
+            name = self.output_directory(),
+            exist_ok = True
+        )
+
+        pool = mp.Pool(processes = self.threads if self.threads > 0 else mp.cpu_count())
+        self.converted = pool.map(
+            self.process_recording,
+            self.project.recordings.to_dict('records')
+        )
+        self.converted = pd.concat(self.converted)
+        self.export_metadata()
 
     @staticmethod
     def add_parser(parsers):
         pass
 
-class BasicConverter(AudioConverter):
+class BasicProcessor(AudioProcessor):
     def __init__(self,
         project: ChildProject.projects.ChildProject,
         name: str,
@@ -55,16 +84,16 @@ class BasicConverter(AudioConverter):
         codec: str,
         sampling: int,
         split: str = None,
-        threads: int = 0,
-        skip_existing: bool = False
+        threads: int = None,
+        skip_existing: bool = False,
+        input_profile: str = None
         ):
 
-        super().__init__(project, name)
+        super().__init__(project, name, threads = threads, input_profile = input_profile)
         
         self.format = format
         self.codec = str(codec)
         self.sampling = int(sampling)
-        self.threads = int(threads)
         self.skip_existing = bool(skip_existing)
 
         if split is not None:
@@ -79,10 +108,9 @@ class BasicConverter(AudioConverter):
         if recording['recording_filename'] == 'NA':
             return pd.DataFrame()
 
-        original_file = os.path.join(
-            self.project.path,
-            ChildProject.projects.ChildProject.RAW_RECORDINGS,
-            recording['recording_filename']
+        original_file = self.project.get_recording_path(
+            recording['recording_filename'],
+            self.input_profile
         )
 
         destination_file = os.path.join(
@@ -140,54 +168,44 @@ class BasicConverter(AudioConverter):
             'converted_filename': cf,
             'success': True
         } for cf in converted_files])
-            
-    def process(self):
-        os.makedirs(
-            name = self.output_directory(),
-            exist_ok = True
-        )
-
-        pool = mp.Pool(processes = self.threads if self.threads > 0 else mp.cpu_count())
-        self.converted = pool.map(
-            self.process_recording,
-            self.project.recordings.to_dict('records')
-        )
-        self.converted = pd.concat(self.converted)
-        self.export_metadata()
 
     @staticmethod
-    def add_parser(converters):
-        parser = converters.add_parser('basic', help = 'basic audio conversion')
+    def add_parser(processors):
+        parser = processors.add_parser('basic', help = 'basic audio conversion')
         parser.add_argument("--format", help = "audio format (e.g. wav)", required = True)
         parser.add_argument("--codec", help = "audio codec (e.g. pcm_s16le)", required = True)
         parser.add_argument("--sampling", help = "sampling frequency (e.g. 16000)", required = True, type = int)
         parser.add_argument("--split", help = "split duration (e.g. 15:00:00)", required = False, default = None)
 
-class VettingConverter(AudioConverter):
+class VettingProcessor(AudioProcessor):
     def __init__(self,
         project: ChildProject.projects.ChildProject,
         name: str,
         segments_path: str,
-        threads: int = 0
+        threads: int = None,
+        input_profile: str = None
         ):
 
-        super().__init__(project, name)
+        super().__init__(project, name, threads = threads, input_profile = input_profile)
         self.segments = pd.read_csv(segments_path)
-        self.threads = int(threads)
 
     def process_recording(self, recording):
         import librosa
         import soundfile
 
-        original_file = os.path.join(
-            self.project.path,
-            ChildProject.projects.ChildProject.RAW_RECORDINGS,
-            recording['recording_filename']
-        )
+        original_file = self.project.get_recording_path(
+            recording['recording_filename'],
+            self.input_profile
+        )        
 
         destination_file = os.path.join(
             self.output_directory(),
             os.path.splitext(recording['recording_filename'])[0] + '.wav'
+        )
+
+        os.makedirs(
+            name = os.path.dirname(destination_file),
+            exist_ok = True
         )
 
         vettoed_segments = self.segments[self.segments['recording_filename'] == recording['recording_filename']]
@@ -200,11 +218,13 @@ class VettingConverter(AudioConverter):
         if signal.ndim == 1:
             for i in range(len(onsets)):
                 signal[onsets[i]:offsets[i]] = 0
+
+            soundfile.write(destination_file, signal, samplerate = sr)
         else:
             for i in range(len(onsets)):
                 signal[:,onsets[i]:offsets[i]] = 0
-
-        soundfile.write(destination_file, signal, samplerate = sr)
+            
+            soundfile.write(destination_file, np.transpose(signal), samplerate = sr)
 
         return pd.DataFrame([{
             'original_filename': recording['recording_filename'],
@@ -212,31 +232,79 @@ class VettingConverter(AudioConverter):
             'success': True
         }])
 
-    def process(self):
+    @staticmethod
+    def add_parser(processors):
+        parser = processors.add_parser('vetting', help = 'vetting')
+        parser.add_argument("--segments-path", help = "path to the CSV dataframe containing the segments to be vetted", required = True)
+
+class ChannelMapper(AudioProcessor):
+    def __init__(self,
+        project: ChildProject.projects.ChildProject,
+        name: str,
+        channels: list,
+        threads: int = 1,
+        input_profile: str = None
+        ):
+
+        super().__init__(project, name, threads = threads, input_profile = input_profile)
+    
+        self.channels = [
+            list(map(float, channel.split(',')))
+            for channel in channels
+        ]
+
+        self.channels = np.array(self.channels)
+
+    def process_recording(self, recording):
+        import librosa
+        import soundfile
+
+        original_file = self.project.get_recording_path(
+            recording['recording_filename'],
+            self.input_profile
+        )        
+
+        destination_file = os.path.join(
+            self.output_directory(),
+            os.path.splitext(recording['recording_filename'])[0] + '.wav'
+        )
+
         os.makedirs(
-            name = self.output_directory(),
+            name = os.path.dirname(destination_file),
             exist_ok = True
         )
 
-        pool = mp.Pool(processes = self.threads if self.threads > 0 else mp.cpu_count())
-        self.converted = pool.map(
-            self.process_recording,
-            self.project.recordings.to_dict('records')
-        )
-        self.converted = pd.concat(self.converted)
-        self.export_metadata()
+        df = pd.DataFrame([{
+            'original_filename': recording['recording_filename'],
+            'converted_filename': os.path.splitext(recording['recording_filename'])[0] + '.wav'
+        }])
+
+        signal, sr = librosa.load(original_file, sr = None, mono = False)
+
+        if self.channels.shape[1] != signal.shape[0]:
+            print("skipping '{}' due to channel mismatch (expected {} channels, got {})".format(
+                recording['recording_filename'],
+                self.channels.shape[1],
+                signal.shape[0]
+            ))
+            return df.assign(success = False)
+
+        output = np.matmul(self.channels, signal)
+        soundfile.write(destination_file, np.transpose(output), samplerate = sr)
+
+        return df.assign(success = True)
 
     @staticmethod
-    def add_parser(converters):
-        parser = converters.add_parser('vetting', help = 'vetting')
-        parser.add_argument("--segments-path", help = "path to the CSV dataframe containing the segments to be vetted", required = True)
+    def add_parser(processors):
+        parser = processors.add_parser('channel-mapping', help = 'channel mapping')
+        parser.add_argument("--channels", help = "lists of weigths for each channel", nargs = '+')
 
 
-class AudioConversionPipeline(Pipeline):
+class AudioProcessingPipeline(Pipeline):
     def __init__(self):
         pass
 
-    def run(self, path: str, name: str, converter: str, skip_existing: bool = False, threads: int = 0, func = None, **kwargs):
+    def run(self, path: str, name: str, processor: str, skip_existing: bool = False, threads: int = 1, func = None, **kwargs):
         parameters = locals()
         parameters = [{key: parameters[key]} for key in parameters if key not in ['self', 'kwargs']]
         parameters.extend([{key: kwargs[key]} for key in kwargs])
@@ -244,39 +312,44 @@ class AudioConversionPipeline(Pipeline):
         self.project = ChildProject.projects.ChildProject(path)
         self.project.read()
 
-        cnvrtr = None
-        if converter == 'basic':
-            cnvrtr = BasicConverter(self.project, name, threads = threads, **kwargs)
-        elif converter == 'vetting':
-            cnvrtr = VettingConverter(self.project, name, threads = threads, **kwargs)
+        proc = None
+        if processor == 'basic':
+            proc = BasicProcessor(self.project, name, threads = threads, **kwargs)
+        elif processor == 'vetting':
+            proc = VettingProcessor(self.project, name, threads = threads, **kwargs)
+        elif processor == 'channel-mapping':
+            proc = ChannelMapper(self.project, name, threads = threads, **kwargs)
 
-        if cnvrtr is None:
-            raise Exception('invalid converter')
+        if proc is None:
+            raise Exception('invalid processor')
 
-        cnvrtr.process()
+        proc.process()
 
-        print("exported audio to {}".format(cnvrtr.output_directory()))
+        print("exported audio to {}".format(proc.output_directory()))
 
         date = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-        parameters_path = os.path.join(cnvrtr.output_directory(), 'parameters_{}.yml'.format(date))
+        parameters_path = os.path.join(proc.output_directory(), 'parameters_{}.yml'.format(date))
         dump({
             'parameters': parameters,
             'package_version': ChildProject.__version__,
             'date': date
         }, open(parameters_path, 'w+'))
-        print("exported converter parameters to {}".format(parameters_path))
+        print("exported processor parameters to {}".format(parameters_path))
 
-        return os.path.join(cnvrtr.output_directory(), 'recordings.csv'), parameters_path
+        return os.path.join(proc.output_directory(), 'recordings.csv'), parameters_path
 
     @staticmethod
     def setup_parser(parser):
         parser.add_argument('path', help = 'path to the dataset')
         parser.add_argument('name', help = 'name of the export profile')
 
-        converters = parser.add_subparsers(help = 'converter', dest = 'converter')
-        BasicConverter.add_parser(converters)
-        VettingConverter.add_parser(converters)
+        processors = parser.add_subparsers(help = 'processor', dest = 'processor')
 
-        parser.add_argument('--threads', help = "amount of threads running conversions in parallel (0 = uses all available cores)", required = False, default = 0, type = int)
+        BasicProcessor.add_parser(processors)
+        VettingProcessor.add_parser(processors)
+        ChannelMapper.add_parser(processors)
+
+        parser.add_argument('--threads', help = "amount of threads running conversions in parallel (0 = uses all available cores)", required = False, default = 1, type = int)
+        parser.add_argument('--input-profile', help = "profile of input recordings (process raw recordings by default)", default = None)
         parser.add_argument('--skip-existing', dest='skip_existing', required = False, default = False, action='store_true')
 
