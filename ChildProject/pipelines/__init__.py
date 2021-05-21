@@ -1,5 +1,5 @@
 from .samplers import SamplerPipeline
 from .eafbuilder import EafBuilderPipeline
 from .zooniverse import ZooniversePipeline
-from .converters import AudioConversionPipeline
+from .processors import AudioProcessingPipeline
 from .anonymize import AnonymizationPipeline
