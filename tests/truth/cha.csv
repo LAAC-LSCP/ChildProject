@@ -1,21 +1,21 @@
 transcription,segment_onset,segment_offset,speaker_id,speaker_type,words
-&=vocalizes . [+ nc] 0_12414,0,12414,CHI,CHI,0
-&=vocalizes . [+ nc] 12414_17804,12414,17804,CHI,CHI,0
-&=vocalizes . [+ nc] 17804_30429,17804,30429,CHI,CHI,0
-&=babbles . [+ c] 30429_33578,30429,33578,CHI,CHI,0
-&=whines . [+ r] 33578_37359,33578,37359,CHI,CHI,0
-&=grunts . [+ nc] 37508_59836,37508,59836,CHI,CHI,0
-let's change your diaper . [+ id] 59836_66554,59836,66554,MOT,FEM,4
-&=coos . [+ nc] 66554_71117,66554,71117,CHI,CHI,0
-xxx xxx girl . [+ id] 71117_73039,71117,73039,MOT,FEM,1
-xxx girl . [+ id] 73039_76789,73039,76789,MOT,FEM,1
-xxx girl [=! whispers] . [+ id] 76789_82211,76789,82211,MOT,FEM,1
-&=vocalizes . [+ r] 82211_86339,82211,86339,CHI,CHI,0
-yyy a mama [=! babbles] . [+ c] 86339_90557,86339,90557,CHI,CHI,2
-xxx Natasha [=! whispers] . 90882_93117,90882,93117,MOT,FEM,1
-&=whines . [+ r] 93117_103086,93117,103086,CHI,CHI,0
-&=grunts . [+ nc] 103086_114242,103086,114242,CHI,CHI,0
-xxx xxx girl . [+ id] 114242_118336,114242,118336,MOT,FEM,1
-&=vocalizes . [+ r] 118336_119758,118336,119758,CHI,CHI,0
-&=babbles . [+ c] 119758_126586,119758,126586,CHI,CHI,0
-I think xxx xxx xxx . [+ id] 126586_136789,126586,136789,MOT,FEM,2
+&=vocalizes . [+ nc] ,0,12414,CHI,CHI,0
+&=vocalizes . [+ nc] ,12414,17804,CHI,CHI,0
+&=vocalizes . [+ nc] ,17804,30429,CHI,CHI,0
+&=babbles . [+ c] ,30429,33578,CHI,CHI,0
+&=whines . [+ r] ,33578,37359,CHI,CHI,0
+&=grunts . [+ nc] ,37508,59836,CHI,CHI,0
+let's change your diaper . [+ id] ,59836,66554,MOT,FEM,4
+&=coos . [+ nc] ,66554,71117,CHI,CHI,0
+xxx xxx girl . [+ id] ,71117,73039,MOT,FEM,1
+xxx girl . [+ id] ,73039,76789,MOT,FEM,1
+xxx girl [=! whispers] . [+ id] ,76789,82211,MOT,FEM,1
+&=vocalizes . [+ r] ,82211,86339,CHI,CHI,0
+yyy a mama [=! babbles] . [+ c] ,86339,90557,CHI,CHI,2
+xxx Natasha [=! whispers] . ,90882,93117,MOT,FEM,1
+&=whines . [+ r] ,93117,103086,CHI,CHI,0
+&=grunts . [+ nc] ,103086,114242,CHI,CHI,0
+xxx xxx girl . [+ id] ,114242,118336,MOT,FEM,1
+&=vocalizes . [+ r] ,118336,119758,CHI,CHI,0
+&=babbles . [+ c] ,119758,126586,CHI,CHI,0
+I think xxx xxx xxx . [+ id] ,126586,136789,MOT,FEM,2

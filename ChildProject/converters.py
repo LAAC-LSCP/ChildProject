@@ -433,7 +433,9 @@ class ChatConverter(AnnotationConverter):
         df = pd.DataFrame(reader.utterances())
 
         ### extract tiers
-        df['transcription'] = df.apply(lambda r: r['tiers'][r['participant']], axis = 1)
+        df['transcription'] = df.apply(lambda r: r['tiers'][r['participant']], axis = 1)\
+            .str.replace(r"([\x00-\x1f\x7f-\x9f]+[0-9]+\_[0-9]+[\x00-\x1f\x7f-\x9f])$", '', regex = True)
+
         df['tiers'] = df['tiers'].apply(lambda d: {k.replace('%', ''): d[k] for k in d.keys() if k[0] == '%'})
         df = pd.concat([df.drop(['tiers'], axis = 1), df['tiers'].apply(pd.Series)], axis = 1)
 
