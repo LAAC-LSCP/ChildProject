@@ -571,7 +571,11 @@ class AnnotationManager:
                 
                 segments.append(segs)
 
-        return pd.concat(segments) if segments else pd.DataFrame(columns = [c.name for c in AnnotationManager.SEGMENTS_COLUMNS if c.required])
+        return pd.concat(segments) if segments\
+            else pd.DataFrame(
+                columns = [c.name for c in AnnotationManager.SEGMENTS_COLUMNS if c.required]\
+                    + [c.name for c in AnnotationManager.INDEX_COLUMNS if c.required]
+            )
     
     def get_collapsed_segments(self, annotations: pd.DataFrame) -> pd.DataFrame:
         """get all segments associated to the annotations referenced in ``annotations``,
