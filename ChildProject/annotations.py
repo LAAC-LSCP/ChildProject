@@ -430,10 +430,11 @@ class AnnotationManager:
             raise Exception('the following annotations from the right set are missing: {}'.format(','.join(right_missing_annotations)))
 
         left_segments = self.get_segments(left_annotations)
+        right_segments = self.get_segments(right_annotations)
+
         left_segments['segment_onset'] = left_segments['segment_onset'] + left_segments['time_seek']
         left_segments['segment_offset'] = left_segments['segment_offset'] + left_segments['time_seek']
 
-        right_segments = self.get_segments(right_annotations)
         right_segments['segment_onset'] = right_segments['segment_onset'] + right_segments['time_seek']
         right_segments['segment_offset'] = right_segments['segment_offset'] + right_segments['time_seek']
 
@@ -570,7 +571,7 @@ class AnnotationManager:
                 
                 segments.append(segs)
 
-        return pd.concat(segments)
+        return pd.concat(segments) if segments else pd.DataFrame(columns = [c.name for c in AnnotationManager.SEGMENTS_COLUMNS if c.required])
     
     def get_collapsed_segments(self, annotations: pd.DataFrame) -> pd.DataFrame:
         """get all segments associated to the annotations referenced in ``annotations``,
