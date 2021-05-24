@@ -576,8 +576,7 @@ class AnnotationManager:
 
         return pd.concat(segments) if segments\
             else pd.DataFrame(
-                columns = [c.name for c in AnnotationManager.SEGMENTS_COLUMNS if c.required]\
-                    + [c.name for c in AnnotationManager.INDEX_COLUMNS if c.required]
+                columns = set([c.name for c in AnnotationManager.SEGMENTS_COLUMNS if c.required] + list(annotations.columns))
             )
     
     def get_collapsed_segments(self, annotations: pd.DataFrame) -> pd.DataFrame:
@@ -720,3 +719,4 @@ class AnnotationManager:
             turns = ('turn', 'sum'),
             cds_dur = ('cds', 'sum')
         ).astype(int)
+
