@@ -13,7 +13,7 @@ from yaml import dump
 import ChildProject
 from ChildProject.pipelines.pipeline import Pipeline
 
-class AudioConverter(ABC):
+class AudioProcessor(ABC):
     def __init__(self,
         project: ChildProject.projects.ChildProject,
         name: str,
@@ -76,7 +76,7 @@ class AudioConverter(ABC):
     def add_parser(parsers):
         pass
 
-class BasicConverter(AudioConverter):
+class BasicProcessor(AudioProcessor):
     def __init__(self,
         project: ChildProject.projects.ChildProject,
         name: str,
@@ -170,14 +170,14 @@ class BasicConverter(AudioConverter):
         } for cf in converted_files])
 
     @staticmethod
-    def add_parser(converters):
-        parser = converters.add_parser('basic', help = 'basic audio conversion')
+    def add_parser(processors):
+        parser = processors.add_parser('basic', help = 'basic audio conversion')
         parser.add_argument("--format", help = "audio format (e.g. wav)", required = True)
         parser.add_argument("--codec", help = "audio codec (e.g. pcm_s16le)", required = True)
         parser.add_argument("--sampling", help = "sampling frequency (e.g. 16000)", required = True, type = int)
         parser.add_argument("--split", help = "split duration (e.g. 15:00:00)", required = False, default = None)
 
-class VettingConverter(AudioConverter):
+class VettingProcessor(AudioProcessor):
     def __init__(self,
         project: ChildProject.projects.ChildProject,
         name: str,
@@ -233,11 +233,11 @@ class VettingConverter(AudioConverter):
         }])
 
     @staticmethod
-    def add_parser(converters):
-        parser = converters.add_parser('vetting', help = 'vetting')
+    def add_parser(processors):
+        parser = processors.add_parser('vetting', help = 'vetting')
         parser.add_argument("--segments-path", help = "path to the CSV dataframe containing the segments to be vetted", required = True)
 
-class ChannelMapper(AudioConverter):
+class ChannelMapper(AudioProcessor):
     def __init__(self,
         project: ChildProject.projects.ChildProject,
         name: str,
@@ -295,16 +295,16 @@ class ChannelMapper(AudioConverter):
         return df.assign(success = True)
 
     @staticmethod
-    def add_parser(converters):
-        parser = converters.add_parser('channel-mapping', help = 'channel mapping')
+    def add_parser(processors):
+        parser = processors.add_parser('channel-mapping', help = 'channel mapping')
         parser.add_argument("--channels", help = "lists of weigths for each channel", nargs = '+')
 
 
-class AudioConversionPipeline(Pipeline):
+class AudioProcessingPipeline(Pipeline):
     def __init__(self):
         pass
 
-    def run(self, path: str, name: str, converter: str, skip_existing: bool = False, threads: int = 1, func = None, **kwargs):
+    def run(self, path: str, name: str, processor: str, skip_existing: bool = False, threads: int = 1, func = None, **kwargs):
         parameters = locals()
         parameters = [{key: parameters[key]} for key in parameters if key not in ['self', 'kwargs']]
         parameters.extend([{key: kwargs[key]} for key in kwargs])
@@ -312,42 +312,42 @@ class AudioConversionPipeline(Pipeline):
         self.project = ChildProject.projects.ChildProject(path)
         self.project.read()
 
-        cnvrtr = None
-        if converter == 'basic':
-            cnvrtr = BasicConverter(self.project, name, threads = threads, **kwargs)
-        elif converter == 'vetting':
-            cnvrtr = VettingConverter(self.project, name, threads = threads, **kwargs)
-        elif converter == 'channel-mapping':
-            cnvrtr = ChannelMapper(self.project, name, threads = threads, **kwargs)
+        proc = None
+        if processor == 'basic':
+            proc = BasicProcessor(self.project, name, threads = threads, **kwargs)
+        elif processor == 'vetting':
+            proc = VettingProcessor(self.project, name, threads = threads, **kwargs)
+        elif processor == 'channel-mapping':
+            proc = ChannelMapper(self.project, name, threads = threads, **kwargs)
 
-        if cnvrtr is None:
-            raise Exception('invalid converter')
+        if proc is None:
+            raise Exception('invalid processor')
 
-        cnvrtr.process()
+        proc.process()
 
-        print("exported audio to {}".format(cnvrtr.output_directory()))
+        print("exported audio to {}".format(proc.output_directory()))
 
         date = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-        parameters_path = os.path.join(cnvrtr.output_directory(), 'parameters_{}.yml'.format(date))
+        parameters_path = os.path.join(proc.output_directory(), 'parameters_{}.yml'.format(date))
         dump({
             'parameters': parameters,
             'package_version': ChildProject.__version__,
             'date': date
         }, open(parameters_path, 'w+'))
-        print("exported converter parameters to {}".format(parameters_path))
+        print("exported processor parameters to {}".format(parameters_path))
 
-        return os.path.join(cnvrtr.output_directory(), 'recordings.csv'), parameters_path
+        return os.path.join(proc.output_directory(), 'recordings.csv'), parameters_path
 
     @staticmethod
     def setup_parser(parser):
         parser.add_argument('path', help = 'path to the dataset')
         parser.add_argument('name', help = 'name of the export profile')
 
-        converters = parser.add_subparsers(help = 'converter', dest = 'converter')
+        processors = parser.add_subparsers(help = 'processor', dest = 'processor')
 
-        BasicConverter.add_parser(converters)
-        VettingConverter.add_parser(converters)
-        ChannelMapper.add_parser(converters)
+        BasicProcessor.add_parser(processors)
+        VettingProcessor.add_parser(processors)
+        ChannelMapper.add_parser(processors)
 
         parser.add_argument('--threads', help = "amount of threads running conversions in parallel (0 = uses all available cores)", required = False, default = 1, type = int)
         parser.add_argument('--input-profile', help = "profile of input recordings (process raw recordings by default)", default = None)

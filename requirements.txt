@@ -11,8 +11,10 @@ pandas>=0.25.0
 panoptes_client
 pyannote.metrics; python_version >= "3.7.0"
 pygamma-agreement; python_version >= "3.6.0"
+pylangacq
 pympi-ling
 pysoundfile
+python-dateutil>=2.8.1
 PyYAML
 requests==2.21.0
 sklearn

@@ -1,0 +1,51 @@
+@UTF8
+@PID:	11312/a-00016392-1
+@Begin
+@Languages:	eng
+@Participants:	CHI Natasha Target_Child, MOT Mother, SIS Sicilia Sister,
+	FAT Robert Father
+@ID:	eng|VanDam-Daylong|CHI||female|TD||Target_Child|||
+@ID:	eng|VanDam-Daylong|MOT||female|||Mother|||
+@ID:	eng|VanDam-Daylong|SIS||female|||Sister|||
+@ID:	eng|VanDam-Daylong|FAT||male|||Father|||
+@Media:	BN32_010007, audio
+@Comment:	old media file name is e20100728_143446_003489
+@Comment:	For the "group" field of the Target_Child, identify (if
+	known) HH=hard-of-hearing, CI=cochlear implant, TD=typically
+	developing
+@Comment:	Direction postcodes apply to all speakers except target
+	child (CHI). Direction: Child-Directed utterance (adult to the
+	target child) = [+ id]; Other-Directed utterance (adult to other
+	children, adults) = [+ od]; Child-Directed-from-child
+	(target child-directed speech from another child) = [+ ccd]; Unknown
+	= [+ un]
+@Comment:	For non-word infant utterances produced by the
+	target-infant, we identify Vocalization Type; Canonical (contains
+	canonical syllable) = [+ c]; Reflexive (laugh, cry) = [+ r];
+	Non-Canon/Non-Reflex = [+nc]
+@Comment:	For vetted utterances, use the postcodes [+ cut1] or
+	[+ cut2]; the postcode must be followed by a space, and it is placed
+	at the end of the utterance after the final delimter but before the
+	bullet marking the time values; see Vetting Manual for more details
+@Date:	12-SEP-2016
+@Transcriber:	H. Heid
+*CHI:	&=vocalizes . [+ nc] 0_12414
+*CHI:	&=vocalizes . [+ nc] 12414_17804
+*CHI:	&=vocalizes . [+ nc] 17804_30429
+*CHI:	&=babbles . [+ c] 30429_33578
+*CHI:	&=whines . [+ r] 33578_37359
+*CHI:	&=grunts . [+ nc] 37508_59836
+*MOT:	let's change your diaper . [+ id] 59836_66554
+*CHI:	&=coos . [+ nc] 66554_71117
+*MOT:	xxx xxx girl . [+ id] 71117_73039
+*MOT:	xxx girl . [+ id] 73039_76789
+*MOT:	xxx girl [=! whispers] . [+ id] 76789_82211
+*CHI:	&=vocalizes . [+ r] 82211_86339
+*CHI:	yyy a mama [=! babbles] . [+ c] 86339_90557
+*MOT:	xxx Natasha [=! whispers] . 90882_93117
+*CHI:	&=whines . [+ r] 93117_103086
+*CHI:	&=grunts . [+ nc] 103086_114242
+*MOT:	xxx xxx girl . [+ id] 114242_118336
+*CHI:	&=vocalizes . [+ r] 118336_119758
+*CHI:	&=babbles . [+ c] 119758_126586
+*MOT:	I think xxx xxx xxx . [+ id] 126586_136789

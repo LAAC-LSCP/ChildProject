@@ -1,5 +1,5 @@
 from ChildProject.projects import ChildProject
-from ChildProject.pipelines.converters import AudioConversionPipeline
+from ChildProject.pipelines.processors import AudioProcessingPipeline
 import numpy as np
 import os
 import pandas as pd
@@ -8,16 +8,16 @@ import shutil
 
 @pytest.fixture(scope='function')
 def project(request):
-    if not os.path.exists("output/convert"):
-            shutil.copytree(src = "examples/valid_raw_data", dst = "output/convert")
+    if not os.path.exists("output/process"):
+            shutil.copytree(src = "examples/valid_raw_data", dst = "output/process")
 
-    project = ChildProject("output/convert")
+    project = ChildProject("output/process")
     project.read()
     yield project
 
 def test_basic(project):
-    converted, parameters = AudioConversionPipeline().run(
-        converter = 'basic',
+    processed, parameters = AudioProcessingPipeline().run(
+        processor = 'basic',
         path = project.path,
         name = 'test',
         format = 'wav',
@@ -26,12 +26,12 @@ def test_basic(project):
     )
 
     recordings = project.recordings
-    converted_recordings = pd.read_csv(converted)
+    converted_recordings = pd.read_csv(processed)
 
     assert np.isclose(4000, project.compute_recordings_duration()['duration'].sum()), "audio duration equals expected value"
-    assert os.path.exists(os.path.join(project.path, ChildProject.CONVERTED_RECORDINGS, "test")), "missing converted recordings folder"
+    assert os.path.exists(os.path.join(project.path, ChildProject.CONVERTED_RECORDINGS, "test")), "missing processed recordings folder"
     assert recordings.shape[0] == converted_recordings.shape[0], "conversion table is incomplete"
-    assert all(converted_recordings['success'].tolist()), "not all recordings were successfully converted"
+    assert all(converted_recordings['success'].tolist()), "not all recordings were successfully processed"
     assert all([
         os.path.exists(os.path.join(project.path, ChildProject.CONVERTED_RECORDINGS, "test", f))
         for f in converted_recordings['converted_filename'].tolist()
@@ -44,16 +44,16 @@ def test_vetting(project):
         'segment_offset': 3000
     }]).to_csv(os.path.join(project.path, 'segments.csv'))
 
-    AudioConversionPipeline().run(
-        converter = 'vetting',
+    AudioProcessingPipeline().run(
+        processor = 'vetting',
         path = project.path,
         name = 'vetted',
         segments_path = os.path.join(project.path, 'segments.csv')
     )
 
 def test_channel_mapping(project, input = None):
-    AudioConversionPipeline().run(
-        converter = 'channel-mapping',
+    AudioProcessingPipeline().run(
+        processor = 'channel-mapping',
         path = project.path,
         name = 'mapping',
         channels = ['0,2', '1,0'],

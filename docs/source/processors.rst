@@ -8,7 +8,7 @@ The package provides several tools for processing the recordings.
 
 .. clidoc::
 
-   child-project converters --help
+   child-project process --help
 
 Basic audio conversion
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -18,13 +18,13 @@ audios are stored into ``recordings/converted/<profile-name>``.
 
 .. clidoc::
 
-   child-project converters /path/to/dataset test basic --help
+   child-project process /path/to/dataset test basic --help
 
 Example:
 
 ::
 
-   child-project converters /path/to/dataset 16kHz basic --format=wav --sampling=16000 --codec=pcm_s16le
+   child-project process /path/to/dataset 16kHz basic --format=wav --sampling=16000 --codec=pcm_s16le
 
 We typically run the following, to split long sound files every 15
 hours, because the software we use for human annotation (ELAN, Praat)
@@ -32,7 +32,7 @@ works better with audio that is maximally 15h long:
 
 ::
 
-   child-project converters /path/to/dataset 16kHz basic --split=15:00:00 --format=wav --sampling=16000 --codec=pcm_s16le
+   child-project process /path/to/dataset 16kHz basic --split=15:00:00 --format=wav --sampling=16000 --codec=pcm_s16le
 
 Multi-core audio conversion with slurm on a cluster
 ===================================================
@@ -45,7 +45,7 @@ guide <https://slurm.schedmd.com/quickstart.html>`__
 
 ::
 
-   sbatch --mem=64G --time=5:00:00 --cpus-per-task=4 --ntasks=1 -o namibia.txt child-project converters --threads 4 /path/to/dataset 16kHz basic --split=15:00:00 --format=wav --sampling=16000 --codec=pcm_s16le
+   sbatch --mem=64G --time=5:00:00 --cpus-per-task=4 --ntasks=1 -o namibia.txt child-project process --threads 4 /path/to/dataset 16kHz basic --split=15:00:00 --format=wav --sampling=16000 --codec=pcm_s16le
 
 Vetting
 ~~~~~~~
@@ -58,7 +58,7 @@ The timestamps need to be expressed in milliseconds.
 
 .. clidoc::
 
-    child-project converters /path/to/dataset test vetting --help
+    child-project process /path/to/dataset test vetting --help
 
 Channel mapping
 ~~~~~~~~~~~~~~~
@@ -70,7 +70,7 @@ It allows to filter or to combine channels from the original recordings at your 
 
 .. clidoc::
 
-   child-project converters /path/to/dataset test channel-mapping --help
+   child-project process /path/to/dataset test channel-mapping --help
 
 In mathematical terms, assuming the input recordings have :math:`n` channels
 with signals :math:`s_{j}(t)`;
@@ -113,7 +113,7 @@ The following command will extract the first channel from the recordings:
 
 .. code-block:: bash
 
-   child-project converters /path/to/dataset channel1 channel-mapping --channels 1,0,0,0
+   child-project process /path/to/dataset channel1 channel-mapping --channels 1,0,0,0
 
 Invert a stereo signal
 ======================
@@ -123,4 +123,4 @@ The command below will flip the two channels:
 
 .. code-block:: bash
 
-   child-project converters /path/to/dataset channel1 channel-mapping --channels 0,1 --channels 1,0
+   child-project process /path/to/dataset channel1 channel-mapping --channels 0,1 --channels 1,0

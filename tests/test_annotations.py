@@ -1,6 +1,7 @@
 from ChildProject.projects import ChildProject
 from ChildProject.annotations import AnnotationManager
 from ChildProject.tables import IndexTable
+from ChildProject.converters import *
 import glob
 import json
 import pandas as pd
@@ -126,7 +127,16 @@ def test_import(project):
         truth = pd.read_csv(os.path.join('tests/truth/its', "{}_ITS_Segments.csv".format(os.path.splitext(raw_filename)[0])))
 
         check_its(segments, truth)
-    
+
+
+def test_chat():
+    converted = ChatConverter.convert('tests/data/vandam.cha')
+    truth = pd.read_csv('tests/truth/cha.csv')
+
+    pd.testing.assert_frame_equal(
+        standardize_dataframe(converted, converted.columns),
+        standardize_dataframe(truth, converted.columns)
+    )
 
 def test_intersect(project):
     am = AnnotationManager(project)
@@ -216,6 +226,8 @@ def test_rename(project):
     assert am.annotations[am.annotations['set'] == 'renamed'].shape[0] == tg_count
 
 def custom_function(filename):
+    from ChildProject.converters import VtcConverter
+    
     df = pd.read_csv(
         filename,
         sep = " ",
@@ -224,7 +236,7 @@ def custom_function(filename):
 
     df['segment_onset'] = 1000*df['tbeg'].astype(int)
     df['segment_offset'] = (1000*(df['tbeg']+df['tdur'])).astype(int)
-    df['speaker_type'] = df['name'].map(AnnotationManager.VTC_SPEAKER_TYPE_TRANSLATION)
+    df['speaker_type'] = df['name'].map(VtcConverter.SPEAKER_TYPE_TRANSLATION)
 
     df.drop(['type', 'file', 'chnl', 'tbeg', 'tdur', 'ortho', 'stype', 'name', 'conf', 'unk'], axis = 1, inplace = True)
     return df
