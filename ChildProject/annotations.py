@@ -222,6 +222,7 @@ class AnnotationManager:
         df['segment_onset'] = df['segment_onset'].astype(int)
         df['segment_offset'] = df['segment_offset'].astype(int)
 
+        annotation['time_seek'] = int(annotation['time_seek'])
         annotation['range_onset'] = int(annotation['range_onset'])
         annotation['range_offset'] = int(annotation['range_offset'])
 
