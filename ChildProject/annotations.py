@@ -440,8 +440,11 @@ class AnnotationManager:
 
         merge_columns = ['interval', 'segment_onset', 'segment_offset']
 
-        output_segments = left_segments[merge_columns + left_columns + ['raw_filename', 'time_seek']].merge(
-            right_segments[merge_columns + right_columns + ['raw_filename']],
+        lc = set(merge_columns + left_columns + ['raw_filename', 'time_seek']) & set(left_segments.columns)
+        rc = set(merge_columns + right_columns + ['raw_filename']) & set(right_segments.columns)
+
+        output_segments = left_segments[list(lc)].merge(
+            right_segments[list(rc)],
             how = 'outer',
             left_on = merge_columns,
             right_on = merge_columns
