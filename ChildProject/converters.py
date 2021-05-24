@@ -445,7 +445,7 @@ class ChatConverter(AnnotationConverter):
         df['speaker_id'] = df['participant']
         df['speaker_type'] = df['speaker_id'].replace(speaker_id_to_type)
 
-        df['words'] = df['tokens'].apply(lambda l: len([t['word'] for t in l if t['word'] != '.']))
+        df['words'] = df['tokens'].apply(lambda l: len([t['word'] for t in l if re.search('[^\W\d_]', t['word'], re.UNICODE)]))
 
         if 'add' in df.columns:
             df['addressee'] = df['add'].fillna('')\
