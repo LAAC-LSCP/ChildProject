@@ -569,12 +569,14 @@ class AnnotationManager:
             df = pd.read_csv(os.path.join(self.project.path, 'annotations', s, 'converted', annotation_filename))
             
             for annotation in _annotations.to_dict(orient = 'records'):
-                segs = AnnotationManager.clip_segments(df, annotation['range_onset'], annotation['range_offset'])
+                segs = df.copy()
+                segs = AnnotationManager.clip_segments(segs, annotation['range_onset'], annotation['range_offset'])
+
                 if not len(segs):
                     continue
             
                 for c in annotation.keys():
-                    segs.loc[:,c] = annotation[c]
+                    segs[c] = annotation[c]
                 
                 segments.append(segs)
 
