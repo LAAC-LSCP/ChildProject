@@ -79,3 +79,20 @@ Installation
 ------------
 
 You can find instructions to install and use our package in our [documentation](https://childproject.readthedocs.io/en/latest/install.html).
+
+Citation
+--------
+
+If you are using this project for your research, please cite our [introductory paper](https://psyarxiv.com/w8trm):
+
+```tex
+@article{gautheron_rochat_cristia_2021,
+    title={Managing, storing, and sharing long-form recordings and their annotations},
+    url={https://psyarxiv.com/w8trm},
+    DOI={10.31234/osf.io/w8trm},
+    publisher={PsyArXiv},
+    author={Gautheron, Lucas and Rochat, Nicolas and Cristia, Alejandrina},
+    year={2021},
+    month={May}
+}
+```

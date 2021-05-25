@@ -70,3 +70,20 @@ In this context, we provide tools and a procedure to:
 -  Sample segments of the recordings to annotate from a set of sampling algorithms
 -  Add clips to an annotation pipeline in Zooniverse, and retrieve the
    ensuing annotations
+
+Citing this work
+----------------
+
+If you are using this project for your research, please cite our `introductory paper <https://psyarxiv.com/w8trm>`_:
+
+.. code-block:: tex 
+
+   @article{gautheron_rochat_cristia_2021,
+      title={Managing, storing, and sharing long-form recordings and their annotations},
+      url={https://psyarxiv.com/w8trm},
+      DOI={10.31234/osf.io/w8trm},
+      publisher={PsyArXiv},
+      author={Gautheron, Lucas and Rochat, Nicolas and Cristia, Alejandrina},
+      year={2021},
+      month={May}
+   }
