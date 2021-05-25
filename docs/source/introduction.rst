@@ -72,7 +72,7 @@ In this context, we provide tools and a procedure to:
    ensuing annotations
 
 Citing this work
-----------------
+~~~~~~~~~~~~~~~~
 
 If you are using this project for your research, please cite our `introductory paper <https://psyarxiv.com/w8trm>`_:
 
