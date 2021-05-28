@@ -253,7 +253,7 @@ class EnergyDetectionSampler(Sampler):
     def compute_energy_loudness(self, chunk, sampling_frequency: int):
         if self.low_freq > 0 or self.high_freq < 100000:
             chunk_fft = np.fft.fft(chunk)
-            freq = np.fft.fftfreq(len(chunk_fft), 1/sampling_frequency)
+            freq = np.abs(np.fft.fftfreq(len(chunk_fft), 1/sampling_frequency))
             chunk_fft = chunk_fft[(freq > self.low_freq) & (freq < self.high_freq)]
             return np.sum(np.abs(chunk_fft)**2)/len(chunk)
         else:
