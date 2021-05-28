@@ -283,8 +283,7 @@ class EnergyDetectionSampler(Sampler):
             channel_energies = np.zeros(channels)
 
             for channel in range(channels):
-                data = chunk[channel::channels]
-                data = np.array([x/max_value for x in data])
+                data = np.array(chunk[channel::channels])/max_value
                 channel_energies[channel] = self.compute_energy_loudness(data, frequency)
 
             window = {
