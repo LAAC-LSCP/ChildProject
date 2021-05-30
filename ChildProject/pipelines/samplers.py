@@ -4,14 +4,14 @@ import datetime
 import multiprocessing as mp
 import numpy as np
 import os
-import sys
 import pandas as pd
 from pydub import AudioSegment
+import sys
+import traceback
 from yaml import dump
 
 import ChildProject
 from ChildProject.pipelines.pipeline import Pipeline
-
 
 class Sampler(ABC):
     def __init__(self, project: ChildProject.projects.ChildProject):
@@ -265,6 +265,7 @@ class EnergyDetectionSampler(Sampler):
         try:
             audio = AudioSegment.from_file(recording_path)
         except:
+            print(traceback.format_exc(), file = sys.stderr)
             print("failed to read '{}', is it a valid audio file ?".format(recording_path), file = sys.stderr)
             return pd.DataFrame()
 
