@@ -4,14 +4,14 @@ import datetime
 import multiprocessing as mp
 import numpy as np
 import os
-import sys
 import pandas as pd
 from pydub import AudioSegment
+import sys
+import traceback
 from yaml import dump
 
 import ChildProject
 from ChildProject.pipelines.pipeline import Pipeline
-
 
 class Sampler(ABC):
     def __init__(self, project: ChildProject.projects.ChildProject):
@@ -253,7 +253,7 @@ class EnergyDetectionSampler(Sampler):
     def compute_energy_loudness(self, chunk, sampling_frequency: int):
         if self.low_freq > 0 or self.high_freq < 100000:
             chunk_fft = np.fft.fft(chunk)
-            freq = np.fft.fftfreq(len(chunk_fft), 1/sampling_frequency)
+            freq = np.abs(np.fft.fftfreq(len(chunk_fft), 1/sampling_frequency))
             chunk_fft = chunk_fft[(freq > self.low_freq) & (freq < self.high_freq)]
             return np.sum(np.abs(chunk_fft)**2)/len(chunk)
         else:
@@ -265,6 +265,7 @@ class EnergyDetectionSampler(Sampler):
         try:
             audio = AudioSegment.from_file(recording_path)
         except:
+            print(traceback.format_exc(), file = sys.stderr)
             print("failed to read '{}', is it a valid audio file ?".format(recording_path), file = sys.stderr)
             return pd.DataFrame()
 
@@ -283,8 +284,7 @@ class EnergyDetectionSampler(Sampler):
             channel_energies = np.zeros(channels)
 
             for channel in range(channels):
-                data = chunk[channel::channels]
-                data = np.array([x/max_value for x in data])
+                data = np.array(chunk[channel::channels])/max_value
                 channel_energies[channel] = self.compute_energy_loudness(data, frequency)
 
             window = {
