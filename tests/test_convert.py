@@ -9,7 +9,7 @@ import shutil
 @pytest.fixture(scope='function')
 def project(request):
     if not os.path.exists("output/process"):
-            shutil.copytree(src = "examples/valid_raw_data", dst = "output/process")
+        shutil.copytree(src = "examples/valid_raw_data", dst = "output/process")
 
     project = ChildProject("output/process")
     project.read()

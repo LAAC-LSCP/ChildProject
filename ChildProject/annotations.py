@@ -694,8 +694,8 @@ class AnnotationManager:
 
     def get_vc_stats(self, segments: pd.DataFrame, turntakingthresh: int = 1000):
         segments = segments.sort_values(['segment_onset', 'segment_offset'])
-        segments = segments[segments['speaker_type'] != 'SPEECH']
-        segments['duration'] = segments['segment_offset']-segments['segment_onset']
+        segments = segments[segments['speaker_type'].isin(['FEM', 'MAL', 'CHI', 'OCH'])]
+        segments['duration'] = segments['segment_offset'] - segments['segment_onset']
         segments['iti'] = segments['segment_onset'] - segments['segment_offset'].shift(1)
         segments['prev_speaker_type'] = segments['speaker_type'].shift(1)
 
