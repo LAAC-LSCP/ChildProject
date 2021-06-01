@@ -44,7 +44,7 @@ class AnnotationManager:
         IndexColumn(name = 'segment_onset', description = 'segment start time in milliseconds', regex = r"([0-9]+)", required = True),
         IndexColumn(name = 'segment_offset', description = 'segment end time in milliseconds', regex = r"([0-9]+)", required = True),
         IndexColumn(name = 'speaker_id', description = 'identity of speaker in the annotation'),
-        IndexColumn(name = 'speaker_type', description = 'class of speaker (FEM = female adult, MAL = male adult, CHI = key child, OCH = other child)', choices = ['FEM', 'MAL', 'CHI', 'OCH', 'SPEECH'] + ['TVN', 'TVF', 'FUZ', 'FEF', 'MAF', 'SIL', 'CXF', 'NON', 'OLN', 'OLF', 'CHF', 'NA'] + ['ELE']),
+        IndexColumn(name = 'speaker_type', description = 'class of speaker (FEM = female adult, MAL = male adult, CHI = key child, OCH = other child)', choices = ['FEM', 'MAL', 'CHI', 'OCH', 'NA']),
         IndexColumn(name = 'ling_type', description = '1 if the vocalization contains at least a vowel (ie canonical or non-canonical), 0 if crying or laughing', choices = ['1', '0', 'NA']),
         IndexColumn(name = 'vcm_type', description = 'vocal maturity defined as: C (canonical), N (non-canonical), Y (crying) L (laughing), J (junk)', choices = ['C', 'N', 'Y', 'L', 'J', 'NA']),
         IndexColumn(name = 'lex_type', description = 'W if meaningful, 0 otherwise', choices = ['W', '0', 'NA']),
@@ -694,8 +694,8 @@ class AnnotationManager:
 
     def get_vc_stats(self, segments: pd.DataFrame, turntakingthresh: int = 1000):
         segments = segments.sort_values(['segment_onset', 'segment_offset'])
-        segments = segments[segments['speaker_type'] != 'SPEECH']
-        segments['duration'] = segments['segment_offset']-segments['segment_onset']
+        segments = segments[segments['speaker_type'].isin(['FEM', 'MAL', 'CHI', 'OCH'])]
+        segments['duration'] = segments['segment_offset'] - segments['segment_onset']
         segments['iti'] = segments['segment_onset'] - segments['segment_offset'].shift(1)
         segments['prev_speaker_type'] = segments['speaker_type'].shift(1)
 
