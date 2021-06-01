@@ -3,7 +3,7 @@ import pandas as pd
 import re
 
 class AnnotationConverter:
-    SPEAKER_ID_TO_TYPE = {
+    SPEAKER_ID_TO_TYPE = defaultdict(lambda: 'NA', {
         'C1': 'OCH',
         'C2': 'OCH',
         'CHI': 'CHI',
@@ -40,13 +40,13 @@ class AnnotationConverter:
         'UC4': 'OCH',
         'UC5': 'OCH',
         'UC6': 'OCH',
-        'EE1': 'ELE',
-        'EE2': 'ELE',
-        'FAE': 'ELE',
-        'MAE': 'ELE',
-        'FCE': 'ELE',
-        'MCE': 'ELE'
-    }
+        'EE1': 'NA',
+        'EE2': 'NA',
+        'FAE': 'NA',
+        'MAE': 'NA',
+        'FCE': 'NA',
+        'MCE': 'NA'
+    })
 
     THREAD_SAFE = True
 
@@ -56,8 +56,7 @@ class VtcConverter(AnnotationConverter):
         'CHI': 'OCH',
         'KCHI': 'CHI',
         'FEM': 'FEM',
-        'MAL':'MAL',
-        'SPEECH': 'SPEECH'
+        'MAL': 'MAL'
     })
 
     @staticmethod
@@ -88,8 +87,7 @@ class VcmConverter(AnnotationConverter):
         'NCS': 'CHI',
         'CNS': 'CHI',
         'FEM': 'FEM',
-        'MAL':'MAL',
-        'SPEECH': 'SPEECH'
+        'MAL':'MAL'
     })
 
     VCM_TRANSLATION = defaultdict(lambda: 'NA', {
@@ -145,24 +143,12 @@ class AliceConverter(AnnotationConverter):
 
 class ItsConverter(AnnotationConverter):
 
-    SPEAKER_TYPE_TRANSLATION = {
+    SPEAKER_TYPE_TRANSLATION = defaultdict(lambda: 'NA', {
         'CHN': 'CHI',
         'CXN': 'OCH',
         'FAN': 'FEM',
-        'MAN': 'MAL',
-        'OLN': 'OLN',
-        'TVN': 'TVN',
-        'NON': 'NON',
-        'SIL': 'SIL',
-        'FUZ': 'FUZ',
-        'TVF': 'TVF',
-        'CXF': 'CXF',
-        'NOF': 'NON',
-        'OLF': 'OLN',
-        'CHF': 'CHF',
-        'MAF': 'MAF',
-        'FAF': 'FEF'
-    }
+        'MAN': 'MAL'
+    })
 
     @staticmethod
     def convert(filename: str, recording_num: int = None) -> pd.DataFrame:
@@ -322,7 +308,7 @@ class TextGridConverter(AnnotationConverter):
                     'segment_offset': int(round(1000*float(interval[1]))),
                     'speaker_id': tier_name,
                     'ling_type': ling_type(interval[2]),
-                    'speaker_type': AnnotationConverter.SPEAKER_ID_TO_TYPE[tier_name] if tier_name in AnnotationConverter.SPEAKER_ID_TO_TYPE else 'NA'
+                    'speaker_type': AnnotationConverter.SPEAKER_ID_TO_TYPE[tier_name]
                 }
 
                 segments.append(segment)
@@ -352,7 +338,7 @@ class EafConverter(AnnotationConverter):
                     'segment_onset': int(round(start_t)),
                     'segment_offset': int(round(end_t)),
                     'speaker_id': tier_name,
-                    'speaker_type': AnnotationConverter.SPEAKER_ID_TO_TYPE[tier_name] if tier_name in AnnotationConverter.SPEAKER_ID_TO_TYPE else 'NA',
+                    'speaker_type': AnnotationConverter.SPEAKER_ID_TO_TYPE[tier_name],
                     'vcm_type': 'NA',
                     'lex_type': 'NA',
                     'mwu_type': 'NA',
@@ -403,33 +389,78 @@ class EafConverter(AnnotationConverter):
 class ChatConverter(AnnotationConverter):
     THREAD_SAFE = False
 
-    SPEAKER_ID_TO_TYPE = {
-        'MOT': 'FEM',
-        'FAT': 'MAL',
-        'SIS': 'OCH'
-    }
+    SPEAKER_ROLE_TO_TYPE = defaultdict(lambda: 'NA', {
+        'Target_Child': 'CHI', # Use of this role is very important for CHILDES and PhonBank transcripts, because it allows users to search and analyze the output from the children who are the focus of many of the studies.
+        'Target_Adult': 'NA', # This role serves a similar function to Target_Child by making it clear who which speaker was at the focus of the data collection. 
+        'Child': 'OCH', # This role is used mostly in transcripts studying large groups of children, when it is not easy to determine whether a child is a boy or girl or perhaps a relative.
+        'Mother': 'FEM', # This should be the mother of the Target_Child.
+        'Father': 'MAL', # This should be the father of the Target_Child.
+        'Brother': 'OCH', # This should be a brother of the Target_Child.
+        'Sister': 'OCH', # This should be a sister of the Target_Child.
+        'Sibling': 'OCH', # This should be a sibling of the Target_Child.
+        'Grandfather': 'MAL', # This should be the grandfather of the Target_Child.  Further details such as Paternal_Grandfather can be placed into the Specific Role field.
+        'Grandmother': 'FEM', # This should be the grandmother of the Target_Child.  Further details such as Paternal_Grandmother can be placed into the Specific Role field.
+        'Relative': 'NA', # This role is designed to include all other relations, including Aunt, Uncle, Cousin, Father_in_Law etc. which can then be entered into the Specific Role field.
+        'Participant': 'CHI', # This is the generic role for adult participants in interviews and other conversations.  Usually, these are coded as having a Participant and an Investigator.  Other forms of this role include Patient, Informant, and Subject which can be listed in the Specific Role field or else just omitted.
+        'Investigator': 'NA', #  Other terms for this role can be listed in the Specific Roles.  These include Researcher, Clinician, Therapist, Observer, Camera_Operator, and so on. 
+        'Partner': 'NA', #  This is the role for the person accompanying the Participant to the interview or conversation.
+        'Boy': 'OCH', #  This is a generic role.
+        'Girl': 'OCH', # This is a generic role.
+        'Adult': 'NA', #  This is a very generic role for use when little else is known.
+        'Teenager': 'NA', # This is a generic role.
+        'Male': 'MAL', # Use this role when all we know is that the participant is an adult male.
+        'Female': 'FEM', #  Use this role when all we know is that the participant is an adult female.
+        'Visitor': 'NA', #  This role assumes that the visitor is coming to a conversation in the home.
+        'Friend': 'OCH', # This is a role for a Friend of the target participants.
+        'Playmate': 'OCH', #  This is a role for a child that the Target_Child plays with.
+        'Caretaker': 'NA', #  This person takes care of the child. Other names for the Specific Role field include Housekeeper, Nursemaid, or Babysitter.
+        'Environment': 'NA', # This role is used in the SBCSAE corpus.
+        'Group': 'NA', # This role is used when transcribing simultaneous productions from a whole group.
+        'Unidentified': 'NA', #  This is a role for unidentifiable participants.
+        'Uncertain': 'NA', # This role can be used when it is not clear who produced an utterance.
+        'Other': 'NA', # This is a generic role.  When it is used, there should be further specification in the Specific Role field. Roles defined by jobs such as Technician, Patron, Policeman, etc can be listed as Other and the details given in the Specific Role field.
+        'Text': 'NA', # This role is used for written segments of TalkBank.
+        'Media': 'NA', #  This role is used for speech from televisions, computers, or talking toys.
+        'PlayRole': 'NA', # This role is used when speakers pretend to be something, such as an animal or another person.
+        'LENA': 'NA', # This role is used in HomeBank LENA recordings.  The specific LENA role is then listed in the Specific Role field.
+        'Justice': 'NA', #  This is role is used in the SCOTUS corpus. It also includes the role of Judge.
+        'Attorney': 'NA', # This is the general role for attorneys, lawyers, prosecutors, etc.
+        'Doctor': 'NA', # This is the general role for doctors.
+        'Nurse': 'FEM', # This is the general role for nurses.
+        'Student': 'NA', #  Specific forms of this general role include Graduate Student, Senior, High_Schooler, and so on.
+        'Teacher': 'NA', # This is the general role for Teachers. Specific forms of this general role include Instuctor, Advisor, Faculty, Professor, Tutor, or T_A.
+        'Host': 'NA', #  Specific forms of this general role include ShowHost, Interviewer, and CallTaker.
+        'Guest': 'NA', # Specific forms of this general role include ShowGuest, Interviewee, and Caller.
+        'Leader': 'NA', # Specific forms of this general role include Group_Leader, Panel_Moderator, Committee_Chair, Facilitator, Tour_Guide, Tour_Leader, Peer_Leader, Chair, or Discussion_Leader.
+        'Member': 'NA', # Specific forms of this general role include Committee_Member, Group_Member, Panelist, and Tour_Participant.
+        'Narrator': 'NA', # This is a role for presentations of stories.
+        'Speaker': 'NA', # Specific forms of this general role include Lecturer, Presenter, Introducer, Welcomer, and Main_Speaker.
+        'Audience': 'NA' # This is the general role for single audience members.
+    })
 
     ADDRESSEE_TABLE = defaultdict(lambda: 'NA', {
-        'MOT': 'A',
-        'FAT': 'A',
-        'SIS': 'C',
+        'FEM': 'A',
+        'MAL': 'A',
+        'OCH': 'C',
         'CHI': 'T'
     })
 
     @staticmethod
     def convert(filename: str,
-        speaker_id_to_type: dict = None,
         addressee_table: dict = None) -> pd.DataFrame:
 
         import pylangacq
-
-        if speaker_id_to_type is None:
-            speaker_id_to_type = ChatConverter.SPEAKER_ID_TO_TYPE
 
         if addressee_table is None:
             addressee_table = ChatConverter.ADDRESSEE_TABLE
 
         reader = pylangacq.Reader.from_files([filename])
+        participants = reader.headers()[0]['Participants']
+        roles = defaultdict(lambda: 'NA', {
+            p: participants[p]['role']
+            for p in reader.headers()[0]['Participants']
+        })
+
         df = pd.DataFrame(reader.utterances())
 
         ### extract tiers
@@ -443,13 +474,14 @@ class ChatConverter(AnnotationConverter):
         df['segment_offset'] = df['time_marks'].apply(lambda tm: tm[1] if tm else 'NA')
 
         df['speaker_id'] = df['participant']
-        df['speaker_type'] = df['speaker_id'].replace(speaker_id_to_type)
+        df['speaker_role'] = df['participant'].replace(roles)
+        df['speaker_type'] = df['speaker_role'].map(ChatConverter.SPEAKER_ROLE_TO_TYPE)
 
         df['words'] = df['tokens'].apply(lambda l: len([t['word'] for t in l if re.search('[^\W\d_]', t['word'], re.UNICODE)]))
 
         if 'add' in df.columns:
-            df['addressee'] = df['add'].fillna('')\
-                .apply(lambda s: ','.join(sorted([addressee_table[x.strip()] for x in str(s).split(',')])))
+            df['addressee'] = df['speaker_type'].fillna('')\
+                .apply(lambda s: ','.join(sorted([addressee_table[SPEAKER_ROLE_TO_TYPE[roles[x.strip()]]] for x in str(s).split(',')])))
 
         df = df[(df['segment_onset'] != 'NA') & (df['segment_offset'] != 'NA')]
         df.drop(columns = ['participant', 'tokens', 'time_marks'], inplace = True)
