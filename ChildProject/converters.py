@@ -426,7 +426,7 @@ class ChatConverter(AnnotationConverter):
         'Justice': 'NA', #  This is role is used in the SCOTUS corpus. It also includes the role of Judge.
         'Attorney': 'NA', # This is the general role for attorneys, lawyers, prosecutors, etc.
         'Doctor': 'NA', # This is the general role for doctors.
-        'Nurse': 'FEM', # This is the general role for nurses.
+        'Nurse': 'NA', # This is the general role for nurses.
         'Student': 'NA', #  Specific forms of this general role include Graduate Student, Senior, High_Schooler, and so on.
         'Teacher': 'NA', # This is the general role for Teachers. Specific forms of this general role include Instuctor, Advisor, Faculty, Professor, Tutor, or T_A.
         'Host': 'NA', #  Specific forms of this general role include ShowHost, Interviewer, and CallTaker.
@@ -446,13 +446,13 @@ class ChatConverter(AnnotationConverter):
     })
 
     @staticmethod
-    def convert(filename: str,
-        addressee_table: dict = None) -> pd.DataFrame:
+    def role_to_addressee(role):
+        return ChatConverter.ADDRESSEE_TABLE[ChatConverter.SPEAKER_ROLE_TO_TYPE[role]]
+
+    @staticmethod
+    def convert(filename: str) -> pd.DataFrame:
 
         import pylangacq
-
-        if addressee_table is None:
-            addressee_table = ChatConverter.ADDRESSEE_TABLE
 
         reader = pylangacq.Reader.from_files([filename])
         participants = reader.headers()[0]['Participants']
@@ -480,8 +480,8 @@ class ChatConverter(AnnotationConverter):
         df['words'] = df['tokens'].apply(lambda l: len([t['word'] for t in l if re.search('[^\W\d_]', t['word'], re.UNICODE)]))
 
         if 'add' in df.columns:
-            df['addressee'] = df['speaker_type'].fillna('')\
-                .apply(lambda s: ','.join(sorted([addressee_table[SPEAKER_ROLE_TO_TYPE[roles[x.strip()]]] for x in str(s).split(',')])))
+            df['addressee'] = df['speaker_type'].fillna('').replace({'NA': ''})\
+                .apply(lambda s: ','.join(sorted([role_to_addressee(roles[x.strip()]) for x in str(s).split(',')])))
 
         df = df[(df['segment_onset'] != 'NA') & (df['segment_offset'] != 'NA')]
         df.drop(columns = ['participant', 'tokens', 'time_marks'], inplace = True)
