@@ -25,9 +25,9 @@ class Sampler(ABC):
         self.annotation_set = ''
         self.target_speaker_type = []
 
-        self.recordings = None
-
-        if isinstance(recordings, pd.DataFrame):
+        if recordings is None:
+            self.recordings = None
+        elif isinstance(recordings, pd.DataFrame):
             self.recordings = recordings
         elif isinstance(recordings, list):
             self.recordings = pd.DataFrame({'recording_filename': list(recordings)})
