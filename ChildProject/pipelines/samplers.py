@@ -591,6 +591,6 @@ class SamplerPipeline(Pipeline):
         EnergyDetectionSampler.add_parser(samplers)
 
         parser.add_argument('--recordings',
-            help = 'recordings to sample from (by default, all recordings will be sampled)',
+            help = "path to a CSV dataframe containing the list of recordings to sample from (by default, all recordings will be sampled). The CSV should have one column named recording_filename.",
             default = None
         )
