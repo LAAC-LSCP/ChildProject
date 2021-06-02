@@ -14,8 +14,11 @@ import ChildProject
 from ChildProject.pipelines.pipeline import Pipeline
 
 class Sampler(ABC):
-    def __init__(self, project: ChildProject.projects.ChildProject):
+    def __init__(self,
+        project: ChildProject.projects.ChildProject):
+
         self.project = project
+
         self.segments = pd.DataFrame()
         self.annotation_set = ''
         self.target_speaker_type = []
@@ -78,7 +81,10 @@ class Sampler(ABC):
                 seg.export(output_path, 'wav')
 
 class CustomSampler(Sampler):
-    def __init__(self, project: ChildProject.projects.ChildProject, segments_path: str):
+    def __init__(self,
+        project: ChildProject.projects.ChildProject,
+        segments_path: str):
+
         super().__init__(project)
         self.segments_path = segments_path
 
@@ -168,15 +174,17 @@ class RandomVocalizationSampler(Sampler):
         annotation_set: str,
         target_speaker_type: list,
         sample_size: int,
-        threads: int = 1):
+        threads: int = 1,
+        by: str = 'recording_filename'):
 
         super().__init__(project)
         self.annotation_set = annotation_set
         self.target_speaker_type = target_speaker_type
         self.sample_size = sample_size
         self.threads = threads
+        self.by = by
 
-    def _sample_recording(self, recording):
+    def _get_segments(self, recording):
         segments = self.retrieve_segments(recording['recording_filename'])
 
         if segments is None:
@@ -186,11 +194,19 @@ class RandomVocalizationSampler(Sampler):
             ))
             return pd.DataFrame(columns = ['segment_onset', 'segment_offset', 'recording_filename'])
 
-        return segments.sample(frac = 1).head(self.sample_size)
-        
+        return segments
+
+    def _sample_unit(self, group):
+        unit, recordings = group
+        recordings[self.by] = unit
+        segments = pd.concat([self._get_segments(r) for r in recordings.to_dict(orient = 'records')])
+
+        return segments.sample(frac = 1)\
+            .head(self.sample_size)
+
     def sample(self):
         pool = mp.Pool(processes = self.threads if self.threads >= 1 else mp.cpu_count())
-        self.segments = pool.map(self._sample_recording, self.project.recordings.to_dict(orient = 'records'))
+        self.segments = pool.map(self._sample_unit, self.project.recordings.groupby(self.by))
         self.segments = pd.concat(self.segments)
         return self.segments
 
@@ -201,7 +217,12 @@ class RandomVocalizationSampler(Sampler):
         parser.add_argument('--target-speaker-type', help = 'speaker type to get chunks from', choices=['CHI', 'OCH', 'FEM', 'MAL'], nargs = '+', default = ['CHI'])
         parser.add_argument('--sample-size', help = 'how many samples per recording', required = True, type = int)
         parser.add_argument('--threads', help = 'amount of threads to run on', default = 1, type = int)
-
+        parser.add_argument(
+            '--by',
+            help = 'units to sample from',
+            choices = ['recording_filename', 'session_id', 'child_id'],
+            default = 'recording_filename'
+        )
 
 class EnergyDetectionSampler(Sampler):
     """Sample windows within each recording, targetting those
@@ -236,7 +257,8 @@ class EnergyDetectionSampler(Sampler):
         low_freq: int = 0,
         high_freq: int = 100000,
         threads: int = 1,
-        profile: str = ''
+        profile: str = '',
+        by: str = 'recording_filename'
         ):
 
         super().__init__(project)
@@ -249,6 +271,7 @@ class EnergyDetectionSampler(Sampler):
         self.high_freq = high_freq
         self.threads = threads
         self.profile = profile
+        self.by = by
 
     def compute_energy_loudness(self, chunk, sampling_frequency: int):
         if self.low_freq > 0 or self.high_freq < 100000:
@@ -293,6 +316,9 @@ class EnergyDetectionSampler(Sampler):
                 'recording_filename': recording['recording_filename'],
                 'energy': np.sum(channel_energies)
             }
+
+            window[self.by] = str(recording[self.by])
+
             window.update({
                 'channel_{}'.format(channel): channel_energies[channel]
                 for channel in range(channels)
@@ -305,14 +331,14 @@ class EnergyDetectionSampler(Sampler):
     def sample(self):
         recordings = self.project.recordings[self.project.recordings['recording_filename'] != 'NA']
         pool = mp.Pool(processes = self.threads if self.threads >= 1 else mp.cpu_count())
-        windows = pd.concat(pool.map(self.get_recording_windows, recordings.to_dict(orient = 'records'))).set_index('recording_filename')
+        windows = pd.concat(pool.map(self.get_recording_windows, recordings.to_dict(orient = 'records'))).set_index(self.by)
         windows = windows.merge(
-            windows.groupby('recording_filename').agg(energy_threshold = ('energy', lambda a: np.quantile(a, self.threshold))),
+            windows.groupby(self.by).agg(energy_threshold = ('energy', lambda a: np.quantile(a, self.threshold))),
             left_index = True,
             right_index = True
         )
         windows = windows[windows['energy'] >= windows['energy_threshold']]
-        self.segments = windows.groupby('recording_filename').sample(frac = 1).head(self.windows_count)
+        self.segments = windows.groupby(self.by).sample(frac = 1).head(self.windows_count)
         self.segments.reset_index(inplace = True)
         self.segments.drop_duplicates(['recording_filename', 'segment_onset', 'segment_offset'], inplace = True)
 
@@ -328,7 +354,12 @@ class EnergyDetectionSampler(Sampler):
         parser.add_argument('--high-freq', help = 'remove all frequencies above high-freq before calculating each window\'s energy. (in Hz)', default = 100000, type = int)
         parser.add_argument('--threads', help = 'amount of threads to run on', default = 1, type = int)
         parser.add_argument('--profile', help = 'name of the profile of recordings to use (uses raw recordings if empty)', default = '', type = str)
-
+        parser.add_argument(
+            '--by',
+            help = 'units to sample from',
+            choices = ['recording_filename', 'session_id', 'child_id'],
+            default = 'recording_filename'
+        )
 
 
 class HighVolubilitySampler(Sampler):
@@ -356,7 +387,8 @@ class HighVolubilitySampler(Sampler):
         metric: str,
         windows_length: int,
         windows_count: int,
-        threads: int = 1):
+        threads: int = 1,
+        by: str = 'recording_filename'):
 
         super().__init__(project)
         self.annotation_set = annotation_set
@@ -364,6 +396,7 @@ class HighVolubilitySampler(Sampler):
         self.windows_length = windows_length
         self.windows_count = windows_count
         self.threads = threads
+        self.by = by
 
     def _segment_scores(self, recording):
         segments = self.retrieve_segments(recording['recording_filename'])
@@ -422,11 +455,20 @@ class HighVolubilitySampler(Sampler):
         else:
             raise ValueError("unknown metric '{}'".format(self.metric))
 
-        return segments.sort_values(self.metric, ascending = False).head(self.windows_count).reset_index(drop = True)
+        return segments
+
+    def _sample_unit(self, group):
+        unit, recordings = group
+        recordings[self.by] = unit
+        segments = pd.concat([self._segment_scores(r) for r in recordings.to_dict(orient = 'records')])
+
+        return segments.sort_values(self.metric, ascending = False)\
+            .head(self.windows_count)\
+            .reset_index(drop = True)
 
     def sample(self):
         pool = mp.Pool(processes = self.threads if self.threads >= 1 else mp.cpu_count())
-        self.segments = pool.map(self._segment_scores, self.project.recordings.to_dict(orient = 'records'))
+        self.segments = pool.map(self._sample_unit, self.project.recordings.groupby(self.by))
         self.segments = pd.concat(self.segments)
 
     @staticmethod
@@ -437,6 +479,12 @@ class HighVolubilitySampler(Sampler):
         parser.add_argument('--windows-length', help = 'window length (milliseconds)', required = True, type = int)
         parser.add_argument('--windows-count', help = 'how many windows to be sampled', required = True, type = int)
         parser.add_argument('--threads', help = 'amount of threads to run on', default = 1, type = int)
+        parser.add_argument(
+            '--by',
+            help = 'units to sample from',
+            choices = ['recording_filename', 'session_id', 'child_id'],
+            default = 'recording_filename'
+        )
 
 
 class SamplerPipeline(Pipeline):
@@ -499,4 +547,3 @@ class SamplerPipeline(Pipeline):
         RandomVocalizationSampler.add_parser(samplers)
         HighVolubilitySampler.add_parser(samplers)
         EnergyDetectionSampler.add_parser(samplers)
-
