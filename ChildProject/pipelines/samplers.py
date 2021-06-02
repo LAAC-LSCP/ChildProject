@@ -215,11 +215,11 @@ class RandomVocalizationSampler(Sampler):
         parser = samplers.add_parser('random-vocalizations', help = 'random sampling')
         parser.add_argument('--annotation-set', help = 'annotation set', default = 'vtc')
         parser.add_argument('--target-speaker-type', help = 'speaker type to get chunks from', choices=['CHI', 'OCH', 'FEM', 'MAL'], nargs = '+', default = ['CHI'])
-        parser.add_argument('--sample-size', help = 'how many samples per recording', required = True, type = int)
+        parser.add_argument('--sample-size', help = 'how many samples per unit (recording, session, or child)', required = True, type = int)
         parser.add_argument('--threads', help = 'amount of threads to run on', default = 1, type = int)
         parser.add_argument(
             '--by',
-            help = 'units to sample from',
+            help = 'units to sample from (default behavior is to sample by recording)',
             choices = ['recording_filename', 'session_id', 'child_id'],
             default = 'recording_filename'
         )
@@ -347,7 +347,7 @@ class EnergyDetectionSampler(Sampler):
         parser = samplers.add_parser('energy-detection', help = 'energy based activity detection')
         parser.add_argument('--windows-length', help = 'length of each window (in milliseconds)', required = True, type = int)
         parser.add_argument('--windows-spacing', help = 'spacing between the start of two consecutive windows (in milliseconds)', required = True, type = int)
-        parser.add_argument('--windows-count', help = 'how many windows to sample from', required = True, type = int)
+        parser.add_argument('--windows-count', help = 'how many windows to sample from each unit (recording, session, or child)', required = True, type = int)
         parser.add_argument('--windows-offset', help = 'start of the first window (in milliseconds)', type = int, default = 0)
         parser.add_argument('--threshold', help = 'lowest energy quantile to sample from. default is 0.8 (i.e., sample from the 20%% windows with the highest energy).', default = 0.8, type = float)
         parser.add_argument('--low-freq', help = 'remove all frequencies below low-freq before calculating each window\'s energy. (in Hz)', default = 0, type = int)
@@ -356,7 +356,7 @@ class EnergyDetectionSampler(Sampler):
         parser.add_argument('--profile', help = 'name of the profile of recordings to use (uses raw recordings if empty)', default = '', type = str)
         parser.add_argument(
             '--by',
-            help = 'units to sample from',
+            help = 'units to sample from (default behavior is to sample by recording)',
             choices = ['recording_filename', 'session_id', 'child_id'],
             default = 'recording_filename'
         )
@@ -477,11 +477,11 @@ class HighVolubilitySampler(Sampler):
         parser.add_argument('--annotation-set', help = 'annotation set', required = True)
         parser.add_argument('--metric', help = 'which metric should be used to evaluate volubility', required = True, choices = ['ctc', 'cvc', 'awc'])
         parser.add_argument('--windows-length', help = 'window length (milliseconds)', required = True, type = int)
-        parser.add_argument('--windows-count', help = 'how many windows to be sampled', required = True, type = int)
+        parser.add_argument('--windows-count', help = 'how many windows to be sampled from each unit (recording, session, or child)', required = True, type = int)
         parser.add_argument('--threads', help = 'amount of threads to run on', default = 1, type = int)
         parser.add_argument(
             '--by',
-            help = 'units to sample from',
+            help = 'units to sample from (default behavior is to sample by recording)',
             choices = ['recording_filename', 'session_id', 'child_id'],
             default = 'recording_filename'
         )
