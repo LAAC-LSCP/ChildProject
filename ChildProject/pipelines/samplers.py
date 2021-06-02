@@ -8,6 +8,7 @@ import pandas as pd
 from pydub import AudioSegment
 import sys
 import traceback
+from typing import Union, List
 from yaml import dump
 
 import ChildProject
@@ -15,13 +16,32 @@ from ChildProject.pipelines.pipeline import Pipeline
 
 class Sampler(ABC):
     def __init__(self,
-        project: ChildProject.projects.ChildProject):
+        project: ChildProject.projects.ChildProject,
+        recordings: Union[str, List[str], pd.DataFrame] = None):
 
         self.project = project
 
         self.segments = pd.DataFrame()
         self.annotation_set = ''
         self.target_speaker_type = []
+
+        self.recordings = None
+
+        if isinstance(recordings, pd.DataFrame):
+            self.recordings = recordings
+        elif isinstance(recordings, list):
+            self.recordings = pd.DataFrame({'recording_filename': list(recordings)})
+        else:
+            if not os.path.exists(recordings):
+                raise ValueError(
+                    "'recordings' is neither a pandas dataframe,"
+                    "nor a list or a path to an existing dataframe."
+                )
+
+            self.recordings = pd.read_csv(recordings)
+
+        if self.recordings is not None:
+            self.recordings.drop_duplicates('recording_filename', keep = 'first', inplace = True)
 
     @abstractmethod
     def sample(self):
@@ -30,6 +50,19 @@ class Sampler(ABC):
     @staticmethod
     def add_parser(parsers):
         pass
+
+    def get_recordings(self):
+        recordings = self.project.recordings.copy()
+
+        if self.recordings is not None:
+            recordings = recordings.merge(
+                self.recordings[['recording_filename']],
+                how = 'inner',
+                left_on = 'recording_filename',
+                right_on = 'recording_filename'
+            )
+        
+        return recordings
 
     def retrieve_segments(self, recording_filename = None):
         am = ChildProject.annotations.AnnotationManager(self.project)
@@ -115,16 +148,17 @@ class PeriodicSampler(Sampler):
     """
     def __init__(self,
         project: ChildProject.projects.ChildProject,
-        length: int, period: int, offset: int = 0
+        length: int, period: int, offset: int = 0,
+        recordings: Union[str, List[str], pd.DataFrame] = None
         ):
 
-        super().__init__(project)
+        super().__init__(project, recordings)
         self.length = int(length)
         self.period = int(period)
         self.offset = int(offset)
 
     def sample(self):
-        recordings = self.project.recordings
+        recordings = self.get_recordings()
         
         if not 'duration' in recordings.columns:
             print("""recordings duration was not found in the metadata
@@ -175,9 +209,10 @@ class RandomVocalizationSampler(Sampler):
         target_speaker_type: list,
         sample_size: int,
         threads: int = 1,
-        by: str = 'recording_filename'):
+        by: str = 'recording_filename',
+        recordings: Union[str, List[str], pd.DataFrame] = None):
 
-        super().__init__(project)
+        super().__init__(project, recordings)
         self.annotation_set = annotation_set
         self.target_speaker_type = target_speaker_type
         self.sample_size = sample_size
@@ -205,8 +240,10 @@ class RandomVocalizationSampler(Sampler):
             .head(self.sample_size)
 
     def sample(self):
+        recordings = self.get_recordings()
+
         pool = mp.Pool(processes = self.threads if self.threads >= 1 else mp.cpu_count())
-        self.segments = pool.map(self._sample_unit, self.project.recordings.groupby(self.by))
+        self.segments = pool.map(self._sample_unit, recordings.groupby(self.by))
         self.segments = pd.concat(self.segments)
         return self.segments
 
@@ -258,10 +295,11 @@ class EnergyDetectionSampler(Sampler):
         high_freq: int = 100000,
         threads: int = 1,
         profile: str = '',
-        by: str = 'recording_filename'
+        by: str = 'recording_filename',
+        recordings: Union[str, List[str], pd.DataFrame] = None
         ):
 
-        super().__init__(project)
+        super().__init__(project, recordings)
         self.windows_length = int(windows_length)
         self.windows_count = int(windows_count)
         self.windows_spacing = int(windows_spacing)
@@ -329,7 +367,7 @@ class EnergyDetectionSampler(Sampler):
         
 
     def sample(self):
-        recordings = self.project.recordings[self.project.recordings['recording_filename'] != 'NA']
+        recordings = self.get_recordings()
         pool = mp.Pool(processes = self.threads if self.threads >= 1 else mp.cpu_count())
         windows = pd.concat(pool.map(self.get_recording_windows, recordings.to_dict(orient = 'records'))).set_index(self.by)
         windows = windows.merge(
@@ -388,9 +426,11 @@ class HighVolubilitySampler(Sampler):
         windows_length: int,
         windows_count: int,
         threads: int = 1,
-        by: str = 'recording_filename'):
+        by: str = 'recording_filename',
+        recordings: Union[str, List[str], pd.DataFrame] = None
+        ):
 
-        super().__init__(project)
+        super().__init__(project, recordings)
         self.annotation_set = annotation_set
         self.metric = metric
         self.windows_length = windows_length
@@ -467,8 +507,10 @@ class HighVolubilitySampler(Sampler):
             .reset_index(drop = True)
 
     def sample(self):
+        recordings = self.get_recordings()
+
         pool = mp.Pool(processes = self.threads if self.threads >= 1 else mp.cpu_count())
-        self.segments = pool.map(self._sample_unit, self.project.recordings.groupby(self.by))
+        self.segments = pool.map(self._sample_unit, recordings.groupby(self.by))
         self.segments = pd.concat(self.segments)
 
     @staticmethod
@@ -547,3 +589,8 @@ class SamplerPipeline(Pipeline):
         RandomVocalizationSampler.add_parser(samplers)
         HighVolubilitySampler.add_parser(samplers)
         EnergyDetectionSampler.add_parser(samplers)
+
+        parser.add_argument('--recordings',
+            help = 'recordings to sample from (by default, all recordings will be sampled)',
+            default = None
+        )
