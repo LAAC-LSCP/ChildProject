@@ -145,6 +145,8 @@ class PeriodicSampler(Sampler):
     :type period: int
     :param offset: offset of the first segment, in milliseconds, defaults to 0
     :type offset: int
+    :param recordings: recordings to sample from; if None, all recordings will be sampled, defaults to None
+    :type recordings: Union[str, List[str], pd.DataFrame], optional
     """
     def __init__(self,
         project: ChildProject.projects.ChildProject,
@@ -200,6 +202,10 @@ class RandomVocalizationSampler(Sampler):
     :type target_speaker_type: list
     :param sample_size: Amount of vocalizations to sample, per recording.
     :type sample_size: int
+    :param by: units to sample from, defaults to 'recording_filename'
+    :type by: str, optional
+    :param recordings: recordings to sample from; if None, all recordings will be sampled, defaults to None
+    :type recordings: Union[str, List[str], pd.DataFrame], optional
     :param threads: amount of threads to run on, defaults to 1
     :type threads: int, optional
     """
@@ -281,6 +287,10 @@ class EnergyDetectionSampler(Sampler):
     :type low_freq: int, optional
     :param high_freq: if < 100000, frequencies above will be filtered before calculating the energy, defaults to 100000
     :type high_freq: int, optional
+    :param by: units to sample from, defaults to 'recording_filename'
+    :type by: str, optional
+    :param recordings: recordings to sample from; if None, all recordings will be sampled, defaults to None
+    :type recordings: Union[str, List[str], pd.DataFrame], optional
     :param threads: amount of threads to run on, defaults to 1
     :type threads: int, optional
     """
@@ -415,6 +425,10 @@ class HighVolubilitySampler(Sampler):
     :type windows_length: int
     :param windows_count: amount of top regions to extract per recording
     :type windows_count: int
+    :param by: units to sample from, defaults to 'recording_filename'
+    :type by: str, optional
+    :param recordings: recordings to sample from; if None, all recordings will be sampled, defaults to None
+    :type recordings: Union[str, List[str], pd.DataFrame], optional
     :param threads: amount of threads to run the sampler on
     :type threads: int
     """
