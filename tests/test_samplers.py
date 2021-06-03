@@ -53,17 +53,44 @@ def test_energy_detection(project):
         windows_length = 100,
         windows_spacing = 100,
         windows_count = 1,
-        threshold = 0.95,
+        threshold = 0.98,
         low_freq = 200,
         high_freq = 1000,
-        recordings = ['sound.wav'],
+        threads = 1,
+        by = 'recording_filename'
+    )
+    sampler.sample()
+
+    print(sampler.segments)
+
+    np.testing.assert_array_equal(
+        sampler.segments[['segment_onset', 'segment_offset']].astype(str).values,
+        [['1900', '2000'], ['1900', '2000']]
+    )
+    
+def test_groupby(project):
+    project = ChildProject('output/samplers')
+    project.read()
+
+    sampler = EnergyDetectionSampler(
+        project = project,
+        windows_length = 100,
+        windows_spacing = 100,
+        windows_count = 1,
+        threshold = 0.98,
+        low_freq = 200,
+        high_freq = 1000,
+        by = 'child_id',
         threads = 1
     )
     sampler.sample()
 
+    print(sampler.segments)
+
     np.testing.assert_array_equal(
-        sampler.segments[['segment_onset', 'segment_offset']].values,
-        [[1800, 1900]]
+        sampler.segments[['recording_filename', 'segment_onset', 'segment_offset']].astype(str).values,
+        [['sound.wav', '1900', '2000']]
     )
     
+
 

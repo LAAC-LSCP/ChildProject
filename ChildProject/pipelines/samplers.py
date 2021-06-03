@@ -394,7 +394,7 @@ class EnergyDetectionSampler(Sampler):
         )
         windows = windows[windows['energy'] >= windows['energy_threshold']]
         
-        self.segments = windows.groupby(self.by).sample(frac = 1).head(self.windows_count)
+        self.segments = windows.sample(frac = 1).groupby(self.by).head(self.windows_count)
         self.segments.reset_index(inplace = True)
         self.segments.drop_duplicates(['recording_filename', 'segment_onset', 'segment_offset'], inplace = True)
 
