@@ -28,7 +28,7 @@ class Sampler(ABC):
         if recordings is None:
             self.recordings = None
         elif isinstance(recordings, pd.DataFrame):
-            self.recordings = recordings[['recording_filename']].tolist()
+            self.recordings = recordings['recording_filename'].tolist()
         elif isinstance(recordings, pd.Series):
             self.recordings = recordings.tolist()
         elif isinstance(recordings, list):
@@ -40,7 +40,7 @@ class Sampler(ABC):
                     "nor a list or a path to an existing dataframe."
                 )
 
-            self.recordings = pd.read_csv(recordings)[['recording_filename']].tolist()
+            self.recordings = pd.read_csv(recordings)['recording_filename'].tolist()
 
         if self.recordings is not None:
             self.recordings = list(set(self.recordings))

@@ -65,10 +65,7 @@ def test_energy_detection(project):
         pd.DataFrame([[1900, 2000], [1900, 2000]], columns = ['segment_onset', 'segment_offset'])
     )
     
-def test_groupby(project):
-    project = ChildProject('output/samplers')
-    project.read()
-
+    # group by child_id
     sampler = EnergyDetectionSampler(
         project = project,
         windows_length = 100,
@@ -85,7 +82,7 @@ def test_groupby(project):
     pd.testing.assert_frame_equal(
         sampler.segments[['recording_filename', 'segment_onset', 'segment_offset']],
         pd.DataFrame([['sound.wav', 1900, 2000]], columns = ['recording_filename', 'segment_onset', 'segment_offset'])
-    )
+    ) 
 
 def test_filter(project):
     project = ChildProject('output/samplers')
@@ -128,5 +125,3 @@ def test_filter(project):
     )
     recordings = sampler.get_recordings()
     assert recordings['recording_filename'].tolist() == ['sound.wav']
-    
-
