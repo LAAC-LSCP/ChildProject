@@ -1,4 +1,3 @@
-import numpy as np
 import os
 import pandas as pd
 import pytest
@@ -63,9 +62,9 @@ def test_energy_detection(project):
 
     print(sampler.segments)
 
-    np.testing.assert_array_equal(
-        sampler.segments[['segment_onset', 'segment_offset']].astype(str).values,
-        [['1900', '2000'], ['1900', '2000']]
+    pd.testing.assert_frame_equal(
+        sampler.segments[['segment_onset', 'segment_offset']],
+        pd.DataFrame([[1900, 2000], [1900, 2000]], columns = ['segment_onset', 'segment_offset'])
     )
     
 def test_groupby(project):
@@ -77,7 +76,7 @@ def test_groupby(project):
         windows_length = 100,
         windows_spacing = 100,
         windows_count = 1,
-        threshold = 0.98,
+        threshold = 0.99,
         low_freq = 200,
         high_freq = 1000,
         by = 'child_id',
@@ -87,10 +86,7 @@ def test_groupby(project):
 
     print(sampler.segments)
 
-    np.testing.assert_array_equal(
-        sampler.segments[['recording_filename', 'segment_onset', 'segment_offset']].astype(str).values,
-        [['sound.wav', '1900', '2000']]
+    pd.testing.assert_frame_equal(
+        sampler.segments[['recording_filename', 'segment_onset', 'segment_offset']],
+        pd.DataFrame([['sound.wav', 1900, 2000]], columns = ['recording_filename', 'segment_onset', 'segment_offset'])
     )
-    
-
-
