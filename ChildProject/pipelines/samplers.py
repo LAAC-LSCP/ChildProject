@@ -28,9 +28,11 @@ class Sampler(ABC):
         if recordings is None:
             self.recordings = None
         elif isinstance(recordings, pd.DataFrame):
-            self.recordings = recordings
+            self.recordings = recordings[['recording_filename']].tolist()
+        elif isinstance(recordings, pd.Series):
+            self.recordings = recordings.tolist()
         elif isinstance(recordings, list):
-            self.recordings = pd.DataFrame({'recording_filename': list(recordings)})
+            self.recordings = recordings
         else:
             if not os.path.exists(recordings):
                 raise ValueError(
@@ -38,10 +40,10 @@ class Sampler(ABC):
                     "nor a list or a path to an existing dataframe."
                 )
 
-            self.recordings = pd.read_csv(recordings)
+            self.recordings = pd.read_csv(recordings)[['recording_filename']].tolist()
 
         if self.recordings is not None:
-            self.recordings.drop_duplicates('recording_filename', keep = 'first', inplace = True)
+            self.recordings = list(set(self.recordings))
 
     @abstractmethod
     def sample(self):
@@ -55,12 +57,7 @@ class Sampler(ABC):
         recordings = self.project.recordings.copy()
 
         if self.recordings is not None:
-            recordings = recordings.merge(
-                self.recordings[['recording_filename']],
-                how = 'inner',
-                left_on = 'recording_filename',
-                right_on = 'recording_filename'
-            )
+            recordings = recordings[recordings['recording_filename'].isin(self.recordings)]
         
         return recordings
 
@@ -378,14 +375,25 @@ class EnergyDetectionSampler(Sampler):
 
     def sample(self):
         recordings = self.get_recordings()
-        pool = mp.Pool(processes = self.threads if self.threads >= 1 else mp.cpu_count())
-        windows = pd.concat(pool.map(self.get_recording_windows, recordings.to_dict(orient = 'records'))).set_index(self.by)
-        windows = windows.merge(
-            windows.groupby(self.by).agg(energy_threshold = ('energy', lambda a: np.quantile(a, self.threshold))),
+
+        if self.threads == 1:
+            windows = pd.concat([self.get_recording_windows(r) for r in recordings.to_dict(orient = 'records')])
+        else:
+            pool = mp.Pool(processes = self.threads if self.threads >= 1 else mp.cpu_count())
+            windows = pd.concat(pool.map(self.get_recording_windows, recordings.to_dict(orient = 'records')))
+
+        windows = windows.set_index(self.by).merge(
+            windows.groupby(self.by).agg(
+                energy_threshold = (
+                    'energy',
+                    lambda a: np.quantile(a, self.threshold)
+                )
+            ),
             left_index = True,
             right_index = True
         )
         windows = windows[windows['energy'] >= windows['energy_threshold']]
+        
         self.segments = windows.groupby(self.by).sample(frac = 1).head(self.windows_count)
         self.segments.reset_index(inplace = True)
         self.segments.drop_duplicates(['recording_filename', 'segment_onset', 'segment_offset'], inplace = True)
