@@ -63,8 +63,9 @@ it is set to 0.8, i.e, only the windows with the 20% highest energies are sample
 
 The sampling is performed unit by unit, where the unit is set through 
 the ``--by`` option and can be any either ``recording_filename``
-(for a uniform sampling across recordings), ``session_id`` (to sample uniformly across
-observation days), or ``child_id`` (to sample uniformly across children).
+(to sample an equal amount of windows from each recording),
+``session_id`` (to equally from each observing day),
+or ``child_id`` (to sample equally from each child).
 
 
 .. clidoc::
