@@ -29,6 +29,14 @@ ChildProject.cmdline module
    :undoc-members:
    :show-inheritance:
 
+ChildProject.converters module
+---------------------------
+
+.. automodule:: ChildProject.converters
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 ChildProject.metrics module
 ---------------------------
 
