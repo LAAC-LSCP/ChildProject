@@ -28,7 +28,7 @@ def test_basic(project):
     recordings = project.recordings
     converted_recordings = pd.read_csv(processed)
 
-    assert np.isclose(4000, project.compute_recordings_duration()['duration'].sum()), "audio duration equals expected value"
+    assert np.isclose(8000, project.compute_recordings_duration()['duration'].sum()), "audio duration equals expected value"
     assert os.path.exists(os.path.join(project.path, ChildProject.CONVERTED_RECORDINGS, "test")), "missing processed recordings folder"
     assert recordings.shape[0] == converted_recordings.shape[0], "conversion table is incomplete"
     assert all(converted_recordings['success'].tolist()), "not all recordings were successfully processed"

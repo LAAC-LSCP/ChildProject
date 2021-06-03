@@ -8,17 +8,42 @@ import pandas as pd
 from pydub import AudioSegment
 import sys
 import traceback
+from typing import Union, List
 from yaml import dump
 
 import ChildProject
 from ChildProject.pipelines.pipeline import Pipeline
 
 class Sampler(ABC):
-    def __init__(self, project: ChildProject.projects.ChildProject):
+    def __init__(self,
+        project: ChildProject.projects.ChildProject,
+        recordings: Union[str, List[str], pd.DataFrame] = None):
+
         self.project = project
+
         self.segments = pd.DataFrame()
         self.annotation_set = ''
         self.target_speaker_type = []
+
+        if recordings is None:
+            self.recordings = None
+        elif isinstance(recordings, pd.DataFrame):
+            self.recordings = recordings['recording_filename'].tolist()
+        elif isinstance(recordings, pd.Series):
+            self.recordings = recordings.tolist()
+        elif isinstance(recordings, list):
+            self.recordings = recordings
+        else:
+            if not os.path.exists(recordings):
+                raise ValueError(
+                    "'recordings' is neither a pandas dataframe,"
+                    "nor a list or a path to an existing dataframe."
+                )
+
+            self.recordings = pd.read_csv(recordings)['recording_filename'].tolist()
+
+        if self.recordings is not None:
+            self.recordings = list(set(self.recordings))
 
     @abstractmethod
     def sample(self):
@@ -27,6 +52,14 @@ class Sampler(ABC):
     @staticmethod
     def add_parser(parsers):
         pass
+
+    def get_recordings(self):
+        recordings = self.project.recordings.copy()
+
+        if self.recordings is not None:
+            recordings = recordings[recordings['recording_filename'].isin(self.recordings)]
+        
+        return recordings
 
     def retrieve_segments(self, recording_filename = None):
         am = ChildProject.annotations.AnnotationManager(self.project)
@@ -78,7 +111,10 @@ class Sampler(ABC):
                 seg.export(output_path, 'wav')
 
 class CustomSampler(Sampler):
-    def __init__(self, project: ChildProject.projects.ChildProject, segments_path: str):
+    def __init__(self,
+        project: ChildProject.projects.ChildProject,
+        segments_path: str):
+
         super().__init__(project)
         self.segments_path = segments_path
 
@@ -106,19 +142,22 @@ class PeriodicSampler(Sampler):
     :type period: int
     :param offset: offset of the first segment, in milliseconds, defaults to 0
     :type offset: int
+    :param recordings: recordings to sample from; if None, all recordings will be sampled, defaults to None
+    :type recordings: Union[str, List[str], pd.DataFrame], optional
     """
     def __init__(self,
         project: ChildProject.projects.ChildProject,
-        length: int, period: int, offset: int = 0
+        length: int, period: int, offset: int = 0,
+        recordings: Union[str, List[str], pd.DataFrame] = None
         ):
 
-        super().__init__(project)
+        super().__init__(project, recordings)
         self.length = int(length)
         self.period = int(period)
         self.offset = int(offset)
 
     def sample(self):
-        recordings = self.project.recordings
+        recordings = self.get_recordings()
         
         if not 'duration' in recordings.columns:
             print("""recordings duration was not found in the metadata
@@ -160,6 +199,10 @@ class RandomVocalizationSampler(Sampler):
     :type target_speaker_type: list
     :param sample_size: Amount of vocalizations to sample, per recording.
     :type sample_size: int
+    :param by: units to sample from, defaults to 'recording_filename'
+    :type by: str, optional
+    :param recordings: recordings to sample from; if None, all recordings will be sampled, defaults to None
+    :type recordings: Union[str, List[str], pd.DataFrame], optional
     :param threads: amount of threads to run on, defaults to 1
     :type threads: int, optional
     """
@@ -168,15 +211,18 @@ class RandomVocalizationSampler(Sampler):
         annotation_set: str,
         target_speaker_type: list,
         sample_size: int,
-        threads: int = 1):
+        threads: int = 1,
+        by: str = 'recording_filename',
+        recordings: Union[str, List[str], pd.DataFrame] = None):
 
-        super().__init__(project)
+        super().__init__(project, recordings)
         self.annotation_set = annotation_set
         self.target_speaker_type = target_speaker_type
         self.sample_size = sample_size
         self.threads = threads
+        self.by = by
 
-    def _sample_recording(self, recording):
+    def _get_segments(self, recording):
         segments = self.retrieve_segments(recording['recording_filename'])
 
         if segments is None:
@@ -186,11 +232,21 @@ class RandomVocalizationSampler(Sampler):
             ))
             return pd.DataFrame(columns = ['segment_onset', 'segment_offset', 'recording_filename'])
 
-        return segments.sample(frac = 1).head(self.sample_size)
-        
+        return segments
+
+    def _sample_unit(self, group):
+        unit, recordings = group
+        recordings[self.by] = unit
+        segments = pd.concat([self._get_segments(r) for r in recordings.to_dict(orient = 'records')])
+
+        return segments.sample(frac = 1)\
+            .head(self.sample_size)
+
     def sample(self):
+        recordings = self.get_recordings()
+
         pool = mp.Pool(processes = self.threads if self.threads >= 1 else mp.cpu_count())
-        self.segments = pool.map(self._sample_recording, self.project.recordings.to_dict(orient = 'records'))
+        self.segments = pool.map(self._sample_unit, recordings.groupby(self.by))
         self.segments = pd.concat(self.segments)
         return self.segments
 
@@ -199,9 +255,14 @@ class RandomVocalizationSampler(Sampler):
         parser = samplers.add_parser('random-vocalizations', help = 'random sampling')
         parser.add_argument('--annotation-set', help = 'annotation set', default = 'vtc')
         parser.add_argument('--target-speaker-type', help = 'speaker type to get chunks from', choices=['CHI', 'OCH', 'FEM', 'MAL'], nargs = '+', default = ['CHI'])
-        parser.add_argument('--sample-size', help = 'how many samples per recording', required = True, type = int)
+        parser.add_argument('--sample-size', help = 'how many samples per unit (recording, session, or child)', required = True, type = int)
         parser.add_argument('--threads', help = 'amount of threads to run on', default = 1, type = int)
-
+        parser.add_argument(
+            '--by',
+            help = 'units to sample from (default behavior is to sample by recording)',
+            choices = ['recording_filename', 'session_id', 'child_id'],
+            default = 'recording_filename'
+        )
 
 class EnergyDetectionSampler(Sampler):
     """Sample windows within each recording, targetting those
@@ -223,6 +284,10 @@ class EnergyDetectionSampler(Sampler):
     :type low_freq: int, optional
     :param high_freq: if < 100000, frequencies above will be filtered before calculating the energy, defaults to 100000
     :type high_freq: int, optional
+    :param by: units to sample from, defaults to 'recording_filename'
+    :type by: str, optional
+    :param recordings: recordings to sample from; if None, all recordings will be sampled, defaults to None
+    :type recordings: Union[str, List[str], pd.DataFrame], optional
     :param threads: amount of threads to run on, defaults to 1
     :type threads: int, optional
     """
@@ -236,10 +301,12 @@ class EnergyDetectionSampler(Sampler):
         low_freq: int = 0,
         high_freq: int = 100000,
         threads: int = 1,
-        profile: str = ''
+        profile: str = '',
+        by: str = 'recording_filename',
+        recordings: Union[str, List[str], pd.DataFrame] = None
         ):
 
-        super().__init__(project)
+        super().__init__(project, recordings)
         self.windows_length = int(windows_length)
         self.windows_count = int(windows_count)
         self.windows_spacing = int(windows_spacing)
@@ -249,6 +316,7 @@ class EnergyDetectionSampler(Sampler):
         self.high_freq = high_freq
         self.threads = threads
         self.profile = profile
+        self.by = by
 
     def compute_energy_loudness(self, chunk, sampling_frequency: int):
         if self.low_freq > 0 or self.high_freq < 100000:
@@ -293,6 +361,9 @@ class EnergyDetectionSampler(Sampler):
                 'recording_filename': recording['recording_filename'],
                 'energy': np.sum(channel_energies)
             }
+
+            window[self.by] = str(recording[self.by])
+
             window.update({
                 'channel_{}'.format(channel): channel_energies[channel]
                 for channel in range(channels)
@@ -303,16 +374,27 @@ class EnergyDetectionSampler(Sampler):
         
 
     def sample(self):
-        recordings = self.project.recordings[self.project.recordings['recording_filename'] != 'NA']
-        pool = mp.Pool(processes = self.threads if self.threads >= 1 else mp.cpu_count())
-        windows = pd.concat(pool.map(self.get_recording_windows, recordings.to_dict(orient = 'records'))).set_index('recording_filename')
-        windows = windows.merge(
-            windows.groupby('recording_filename').agg(energy_threshold = ('energy', lambda a: np.quantile(a, self.threshold))),
+        recordings = self.get_recordings()
+
+        if self.threads == 1:
+            windows = pd.concat([self.get_recording_windows(r) for r in recordings.to_dict(orient = 'records')])
+        else:
+            pool = mp.Pool(processes = self.threads if self.threads >= 1 else mp.cpu_count())
+            windows = pd.concat(pool.map(self.get_recording_windows, recordings.to_dict(orient = 'records')))
+
+        windows = windows.set_index(self.by).merge(
+            windows.groupby(self.by).agg(
+                energy_threshold = (
+                    'energy',
+                    lambda a: np.quantile(a, self.threshold)
+                )
+            ),
             left_index = True,
             right_index = True
         )
         windows = windows[windows['energy'] >= windows['energy_threshold']]
-        self.segments = windows.groupby('recording_filename').sample(frac = 1).head(self.windows_count)
+        
+        self.segments = windows.sample(frac = 1).groupby(self.by).head(self.windows_count)
         self.segments.reset_index(inplace = True)
         self.segments.drop_duplicates(['recording_filename', 'segment_onset', 'segment_offset'], inplace = True)
 
@@ -321,14 +403,19 @@ class EnergyDetectionSampler(Sampler):
         parser = samplers.add_parser('energy-detection', help = 'energy based activity detection')
         parser.add_argument('--windows-length', help = 'length of each window (in milliseconds)', required = True, type = int)
         parser.add_argument('--windows-spacing', help = 'spacing between the start of two consecutive windows (in milliseconds)', required = True, type = int)
-        parser.add_argument('--windows-count', help = 'how many windows to sample from', required = True, type = int)
+        parser.add_argument('--windows-count', help = 'how many windows to sample from each unit (recording, session, or child)', required = True, type = int)
         parser.add_argument('--windows-offset', help = 'start of the first window (in milliseconds)', type = int, default = 0)
         parser.add_argument('--threshold', help = 'lowest energy quantile to sample from. default is 0.8 (i.e., sample from the 20%% windows with the highest energy).', default = 0.8, type = float)
         parser.add_argument('--low-freq', help = 'remove all frequencies below low-freq before calculating each window\'s energy. (in Hz)', default = 0, type = int)
         parser.add_argument('--high-freq', help = 'remove all frequencies above high-freq before calculating each window\'s energy. (in Hz)', default = 100000, type = int)
         parser.add_argument('--threads', help = 'amount of threads to run on', default = 1, type = int)
         parser.add_argument('--profile', help = 'name of the profile of recordings to use (uses raw recordings if empty)', default = '', type = str)
-
+        parser.add_argument(
+            '--by',
+            help = 'units to sample from (default behavior is to sample by recording)',
+            choices = ['recording_filename', 'session_id', 'child_id'],
+            default = 'recording_filename'
+        )
 
 
 class HighVolubilitySampler(Sampler):
@@ -346,6 +433,10 @@ class HighVolubilitySampler(Sampler):
     :type windows_length: int
     :param windows_count: amount of top regions to extract per recording
     :type windows_count: int
+    :param by: units to sample from, defaults to 'recording_filename'
+    :type by: str, optional
+    :param recordings: recordings to sample from; if None, all recordings will be sampled, defaults to None
+    :type recordings: Union[str, List[str], pd.DataFrame], optional
     :param threads: amount of threads to run the sampler on
     :type threads: int
     """
@@ -356,14 +447,18 @@ class HighVolubilitySampler(Sampler):
         metric: str,
         windows_length: int,
         windows_count: int,
-        threads: int = 1):
+        threads: int = 1,
+        by: str = 'recording_filename',
+        recordings: Union[str, List[str], pd.DataFrame] = None
+        ):
 
-        super().__init__(project)
+        super().__init__(project, recordings)
         self.annotation_set = annotation_set
         self.metric = metric
         self.windows_length = windows_length
         self.windows_count = windows_count
         self.threads = threads
+        self.by = by
 
     def _segment_scores(self, recording):
         segments = self.retrieve_segments(recording['recording_filename'])
@@ -422,11 +517,22 @@ class HighVolubilitySampler(Sampler):
         else:
             raise ValueError("unknown metric '{}'".format(self.metric))
 
-        return segments.sort_values(self.metric, ascending = False).head(self.windows_count).reset_index(drop = True)
+        return segments
+
+    def _sample_unit(self, group):
+        unit, recordings = group
+        recordings[self.by] = unit
+        segments = pd.concat([self._segment_scores(r) for r in recordings.to_dict(orient = 'records')])
+
+        return segments.sort_values(self.metric, ascending = False)\
+            .head(self.windows_count)\
+            .reset_index(drop = True)
 
     def sample(self):
+        recordings = self.get_recordings()
+
         pool = mp.Pool(processes = self.threads if self.threads >= 1 else mp.cpu_count())
-        self.segments = pool.map(self._segment_scores, self.project.recordings.to_dict(orient = 'records'))
+        self.segments = pool.map(self._sample_unit, recordings.groupby(self.by))
         self.segments = pd.concat(self.segments)
 
     @staticmethod
@@ -435,8 +541,14 @@ class HighVolubilitySampler(Sampler):
         parser.add_argument('--annotation-set', help = 'annotation set', required = True)
         parser.add_argument('--metric', help = 'which metric should be used to evaluate volubility', required = True, choices = ['ctc', 'cvc', 'awc'])
         parser.add_argument('--windows-length', help = 'window length (milliseconds)', required = True, type = int)
-        parser.add_argument('--windows-count', help = 'how many windows to be sampled', required = True, type = int)
+        parser.add_argument('--windows-count', help = 'how many windows to be sampled from each unit (recording, session, or child)', required = True, type = int)
         parser.add_argument('--threads', help = 'amount of threads to run on', default = 1, type = int)
+        parser.add_argument(
+            '--by',
+            help = 'units to sample from (default behavior is to sample by recording)',
+            choices = ['recording_filename', 'session_id', 'child_id'],
+            default = 'recording_filename'
+        )
 
 
 class SamplerPipeline(Pipeline):
@@ -500,3 +612,7 @@ class SamplerPipeline(Pipeline):
         HighVolubilitySampler.add_parser(samplers)
         EnergyDetectionSampler.add_parser(samplers)
 
+        parser.add_argument('--recordings',
+            help = "path to a CSV dataframe containing the list of recordings to sample from (by default, all recordings will be sampled). The CSV should have one column named recording_filename.",
+            default = None
+        )

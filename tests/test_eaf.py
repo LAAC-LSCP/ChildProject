@@ -12,7 +12,7 @@ def test_periodic():
     project = ChildProject('examples/valid_raw_data')
     project.read()
 
-    sampler = PeriodicSampler(project, 500, 500, 250)
+    sampler = PeriodicSampler(project, 500, 500, 250, recordings = ['sound.wav'])
     sampler.sample()
     sampler.segments.to_csv('output/eaf/segments.csv')
 
