@@ -60,8 +60,6 @@ def test_energy_detection(project):
     )
     sampler.sample()
 
-    print(sampler.segments)
-
     pd.testing.assert_frame_equal(
         sampler.segments[['segment_onset', 'segment_offset']],
         pd.DataFrame([[1900, 2000], [1900, 2000]], columns = ['segment_onset', 'segment_offset'])
@@ -84,9 +82,51 @@ def test_groupby(project):
     )
     sampler.sample()
 
-    print(sampler.segments)
-
     pd.testing.assert_frame_equal(
         sampler.segments[['recording_filename', 'segment_onset', 'segment_offset']],
         pd.DataFrame([['sound.wav', 1900, 2000]], columns = ['recording_filename', 'segment_onset', 'segment_offset'])
     )
+
+def test_filter(project):
+    project = ChildProject('output/samplers')
+    project.read()
+
+    sampler = PeriodicSampler(
+        project = project,
+        length = 1000,
+        period = 1000,
+        recordings = ['sound.wav']
+    )
+    recordings = sampler.get_recordings()
+    assert recordings['recording_filename'].tolist() == ['sound.wav']
+
+    sampler = PeriodicSampler(
+        project = project,
+        length = 1000,
+        period = 1000,
+        recordings = pd.Series(['sound.wav'])
+    )
+    recordings = sampler.get_recordings()
+    assert recordings['recording_filename'].tolist() == ['sound.wav']
+
+    sampler = PeriodicSampler(
+        project = project,
+        length = 1000,
+        period = 1000,
+        recordings = pd.DataFrame({'recording_filename': ['sound.wav']})
+    )
+    recordings = sampler.get_recordings()
+    assert recordings['recording_filename'].tolist() == ['sound.wav']
+
+    recordings = pd.DataFrame({'recording_filename': ['sound.wav']})\
+        .to_csv('output/samplers/filter.csv')
+    sampler = PeriodicSampler(
+        project = project,
+        length = 1000,
+        period = 1000,
+        recordings = 'output/samplers/filter.csv'
+    )
+    recordings = sampler.get_recordings()
+    assert recordings['recording_filename'].tolist() == ['sound.wav']
+    
+
