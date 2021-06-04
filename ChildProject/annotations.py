@@ -108,7 +108,6 @@ class AnnotationManager:
         duplicates = duplicates[duplicates['count'] > 1].reset_index()
 
         if len(duplicates):
-            print(duplicates)
             errors.extend([
                 "duplicate reference to annotations/{}/converted/{} (appears {} times)".format(
                     dup['set'], dup['annotation_filename'], dup['count']
