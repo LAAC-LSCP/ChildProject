@@ -2,6 +2,8 @@ from collections import defaultdict
 import pandas as pd
 import re
 
+converters = {}
+
 class AnnotationConverter:
     SPEAKER_ID_TO_TYPE = defaultdict(lambda: 'NA', {
         'C1': 'OCH',
@@ -50,7 +52,12 @@ class AnnotationConverter:
 
     THREAD_SAFE = True
 
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        converters[cls.FORMAT] = cls
+
 class VtcConverter(AnnotationConverter):
+    FORMAT = 'vtc_rttm'
 
     SPEAKER_TYPE_TRANSLATION = defaultdict(lambda: 'NA', {
         'CHI': 'OCH',
@@ -80,6 +87,7 @@ class VtcConverter(AnnotationConverter):
         return df
 
 class VcmConverter(AnnotationConverter):
+    FORMAT = 'vcm_rttm'
 
     SPEAKER_TYPE_TRANSLATION = defaultdict(lambda: 'NA', {
         'CHI': 'OCH',
@@ -119,6 +127,7 @@ class VcmConverter(AnnotationConverter):
         return df
 
 class AliceConverter(AnnotationConverter):
+    FORMAT = 'alice'
 
     @staticmethod
     def convert(filename: str, source_file: str = '') -> pd.DataFrame:
@@ -142,6 +151,7 @@ class AliceConverter(AnnotationConverter):
         return df
 
 class ItsConverter(AnnotationConverter):
+    FORMAT = 'its'
 
     SPEAKER_TYPE_TRANSLATION = defaultdict(lambda: 'NA', {
         'CHN': 'CHI',
@@ -277,9 +287,10 @@ class ItsConverter(AnnotationConverter):
         return df
 
 class TextGridConverter(AnnotationConverter):
+    FORMAT = 'TextGrid'
 
     @staticmethod
-    def convert(filename: str) -> pd.DataFrame:
+    def convert(filename: str, filter = None) -> pd.DataFrame:
         import pympi
         textgrid = pympi.Praat.TextGrid(filename)
 
@@ -316,9 +327,10 @@ class TextGridConverter(AnnotationConverter):
         return pd.DataFrame(segments)
 
 class EafConverter(AnnotationConverter):
+    FORMAT = 'eaf'
     
     @staticmethod
-    def convert(filename: str) -> pd.DataFrame:
+    def convert(filename: str, filter = None) -> pd.DataFrame:
         import pympi
         eaf = pympi.Elan.Eaf(filename)
 
@@ -387,6 +399,7 @@ class EafConverter(AnnotationConverter):
         return pd.DataFrame(segments.values())
 
 class ChatConverter(AnnotationConverter):
+    FORMAT = 'cha'
     THREAD_SAFE = False
 
     SPEAKER_ROLE_TO_TYPE = defaultdict(lambda: 'NA', {
@@ -450,7 +463,7 @@ class ChatConverter(AnnotationConverter):
         return ChatConverter.ADDRESSEE_TABLE[ChatConverter.SPEAKER_ROLE_TO_TYPE[role]]
 
     @staticmethod
-    def convert(filename: str) -> pd.DataFrame:
+    def convert(filename: str, filter = None) -> pd.DataFrame:
 
         import pylangacq
 
@@ -488,13 +501,3 @@ class ChatConverter(AnnotationConverter):
         df.fillna('NA', inplace = True)
 
         return df
-
-is_thread_safe = {
-    'its': ItsConverter.THREAD_SAFE,
-    'vtc_rttm': VtcConverter.THREAD_SAFE,
-    'vcm_rttm': VcmConverter.THREAD_SAFE,
-    'eaf': EafConverter.THREAD_SAFE,
-    'TextGrid': TextGridConverter.THREAD_SAFE,
-    'alice': AliceConverter.THREAD_SAFE,
-    'cha': ChatConverter.THREAD_SAFE
-}

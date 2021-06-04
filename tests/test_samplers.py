@@ -22,9 +22,6 @@ def project(request):
     yield project
 
 def test_periodic(project):
-    project = ChildProject('output/samplers')
-    project.read()
-    
     project.recordings = project.recordings.merge(
         project.compute_recordings_duration(),
         left_on = 'recording_filename',
@@ -44,9 +41,6 @@ def test_periodic(project):
     assert len(sampler.segments) == int(duration/(1000+1000))
 
 def test_energy_detection(project):
-    project = ChildProject('output/samplers')
-    project.read()
-
     sampler = EnergyDetectionSampler(
         project = project,
         windows_length = 100,
@@ -85,9 +79,6 @@ def test_energy_detection(project):
     ) 
 
 def test_filter(project):
-    project = ChildProject('output/samplers')
-    project.read()
-
     sampler = PeriodicSampler(
         project = project,
         length = 1000,
@@ -96,6 +87,7 @@ def test_filter(project):
     )
     recordings = sampler.get_recordings()
     assert recordings['recording_filename'].tolist() == ['sound.wav']
+
 
     sampler = PeriodicSampler(
         project = project,
@@ -106,6 +98,7 @@ def test_filter(project):
     recordings = sampler.get_recordings()
     assert recordings['recording_filename'].tolist() == ['sound.wav']
 
+
     sampler = PeriodicSampler(
         project = project,
         length = 1000,
@@ -115,8 +108,10 @@ def test_filter(project):
     recordings = sampler.get_recordings()
     assert recordings['recording_filename'].tolist() == ['sound.wav']
 
+
     recordings = pd.DataFrame({'recording_filename': ['sound.wav']})\
         .to_csv('output/samplers/filter.csv')
+
     sampler = PeriodicSampler(
         project = project,
         length = 1000,
@@ -125,3 +120,20 @@ def test_filter(project):
     )
     recordings = sampler.get_recordings()
     assert recordings['recording_filename'].tolist() == ['sound.wav']
+    
+
+    recordings = pd.DataFrame({'filename': ['sound.wav']})\
+        .to_csv('output/samplers/filter.csv')
+
+    caught_value_error = False
+    try:
+        sampler = PeriodicSampler(
+            project = project,
+            length = 1000,
+            period = 1000,
+            recordings = 'output/samplers/filter.csv'
+        )
+    except ValueError:
+        caught_value_error = True
+    
+    assert caught_value_error == True

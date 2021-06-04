@@ -28,6 +28,8 @@ class Sampler(ABC):
         if recordings is None:
             self.recordings = None
         elif isinstance(recordings, pd.DataFrame):
+            if 'recording_filename' not in recordings.columns:
+                raise ValueError("recordings dataframe is missing a 'recording_filename' column")
             self.recordings = recordings['recording_filename'].tolist()
         elif isinstance(recordings, pd.Series):
             self.recordings = recordings.tolist()
@@ -39,8 +41,13 @@ class Sampler(ABC):
                     "'recordings' is neither a pandas dataframe,"
                     "nor a list or a path to an existing dataframe."
                 )
-
-            self.recordings = pd.read_csv(recordings)['recording_filename'].tolist()
+            
+            df = pd.read_csv(recordings)
+            if 'recording_filename' not in df.columns:
+                raise ValueError(
+                    f"'{recordings}' is missing a 'recording_filename' column"
+                )
+            self.recordings = df['recording_filename'].tolist()
 
         if self.recordings is not None:
             self.recordings = list(set(self.recordings))

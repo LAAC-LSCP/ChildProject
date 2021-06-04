@@ -154,6 +154,7 @@ def test_intersect(project):
     columns = a.columns.tolist()
     columns.remove('imported_at')
     columns.remove('package_version')
+    columns.remove('type')
         
     pd.testing.assert_frame_equal(
         standardize_dataframe(a, columns),

@@ -20,17 +20,9 @@ The package can be installed using pip :
     ``pip --version``. If you have accidentally installed the package on  
     the wrong environment, remove it with ``pip uninstall datalad``.
 
-If you are having permissions issues - or any other issue -, you can try
-any of the following :
-
--  Use the ``--user`` flag:
-
-::
-
-    pip3 install git+https://github.com/LAAC-LSCP/ChildProject.git --user
-
--  Create and activate a virtual python environment beforehand. You will
-   have to activate it everytime you need to use the package or datalad.
+If you are having permissions issues - or any other issue -, you can
+install the package in a virtual python environment beforehand. You will
+have to activate it everytime you need to use the package or datalad.
 
 ::
 

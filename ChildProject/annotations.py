@@ -11,7 +11,7 @@ from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
 
 from . import __version__
 from .projects import ChildProject
-from .converters import is_thread_safe
+from .converters import *
 from .tables import IndexTable, IndexColumn
 from .utils import Segment, intersect_ranges
 
@@ -31,10 +31,11 @@ class AnnotationManager:
         IndexColumn(name = 'range_onset', description = 'covered range start time in milliseconds, measured since `time_seek`', regex = r"([0-9]+)", required = True),
         IndexColumn(name = 'range_offset', description = 'covered range end time in milliseconds, measured since `time_seek`', regex = r"([0-9]+)", required = True),
         IndexColumn(name = 'raw_filename', description = 'annotation input filename location, relative to `annotations/<set>/raw`', filename = True, required = True),
-        IndexColumn(name = 'format', description = 'input annotation format', choices = ['TextGrid', 'eaf', 'vtc_rttm', 'vcm_rttm', 'alice', 'its', 'cha'], required = False),
+        IndexColumn(name = 'format', description = 'input annotation format', choices = [*converters.keys(), 'NA'], required = False),
         IndexColumn(name = 'filter', description = 'source file to filter in (for rttm and alice only)', required = False),
         IndexColumn(name = 'annotation_filename', description = 'output formatted annotation location, relative to `annotations/<set>/converted (automatic column, don\'t specify)', filename = True, required = False, generated = True),
         IndexColumn(name = 'imported_at', description = 'importation date (automatic column, don\'t specify)', datetime = "%Y-%m-%d %H:%M:%S", required = False, generated = True),
+        IndexColumn(name = 'type', description = 'annotation storage format', choices = ['csv', 'gz'], required = False),
         IndexColumn(name = 'package_version', description = 'version of the package used when the importation was performed', regex = r"[0-9]+\.[0-9]+\.[0-9]+", required = False, generated = True),
         IndexColumn(name = 'error', description = 'error message in case the annotation could not be imported', required = False, generated = True)
     ]
@@ -117,19 +118,32 @@ class AnnotationManager:
 
         return errors, warnings
 
+    def write(self):
+        """Update the annotations index,
+        while enforcing its good shape.
+        """
+        self.annotations[['time_seek', 'range_onset', 'range_offset']].fillna(0, inplace = True)
+        self.annotations[['time_seek', 'range_onset', 'range_offset']] = self.annotations[['time_seek', 'range_onset', 'range_offset']].astype(int)
+        self.annotations.to_csv(os.path.join(self.project.path, 'metadata/annotations.csv'), index = False)
+
     def validate_annotation(self, annotation: dict) -> Tuple[List[str], List[str]]:
-        print("validating {}...".format(annotation['annotation_filename']))
+        print("validating {} from {}...".format(annotation['annotation_filename'], annotation['set']))
 
         segments = IndexTable(
             'segments',
-            path = os.path.join(self.project.path, 'annotations', annotation['set'], 'converted', str(annotation['annotation_filename'])),
+            path = os.path.join(self.project.path, 'annotations', annotation['set'], 'converted', annotation['annotation_filename']),
             columns = self.SEGMENTS_COLUMNS
         )
 
         try:
             segments.read()
         except Exception as e:
-            return [str(e)], []
+            error_message = "error while trying to read {} from {}:\n\t{}".format(
+                annotation['annotation_filename'],
+                annotation['set'],
+                str(e)
+            )
+            return [error_message], []
 
         return segments.validate()
 
@@ -158,6 +172,32 @@ class AnnotationManager:
 
         return errors, warnings
 
+    def _read_annotation(self, set: str, filename: str, annotation_type: str = None):
+        path = os.path.join(self.project.path, 'annotations', set, 'converted', filename)
+        ext = os.path.splitext(filename)[1]
+
+        if ext == '.gz':
+            return pd.read_csv(path, compression = 'gzip')
+        elif ext == '.csv':
+            return pd.read_csv(path)
+        else:
+            raise ValueError(f"invalid extension '{ext}' for annotation {set}/{filename}'")
+
+    def _write_annotation(self, df: pd.DataFrame, set: str, filename: str):
+        path = os.path.join(self.project.path, 'annotations', set, 'converted', filename)
+        ext = os.path.splitext(filename)[1]
+
+        os.makedirs(os.path.dirname(path), exist_ok = True)
+
+        if ext == '.gz':
+            df.to_csv(path, index = False, compression = 'gzip')
+        elif ext == '.csv':
+            df.to_csv(path, index = False)
+        else:
+            raise ValueError(f"invalid extension '{ext}' for annotation {set}/{filename}'")
+  
+
+        return os.path.basename(path)
 
     def _import_annotation(self, import_function: Callable[[str], pd.DataFrame], annotation: dict):
         """import and convert ``annotation``. This function should not be called outside of this class.
@@ -171,9 +211,6 @@ class AnnotationManager:
         """
 
         source_recording = os.path.splitext(annotation['recording_filename'])[0]
-        annotation_filename = "{}_{}_{}.csv".format(source_recording, annotation['time_seek'], annotation['range_onset'])
-        output_filename = os.path.join('annotations', annotation['set'], 'converted', annotation_filename)
-
         path = os.path.join(self.project.path, 'annotations', annotation['set'], 'raw', annotation['raw_filename'])
         annotation_format = annotation['format']
 
@@ -183,27 +220,9 @@ class AnnotationManager:
         try:
             if callable(import_function):
                 df = import_function(path)
-            elif annotation_format == 'TextGrid':
-                from .converters import TextGridConverter
-                df = TextGridConverter.convert(path)
-            elif annotation_format == 'eaf':
-                from .converters import EafConverter
-                df = EafConverter.convert(path)
-            elif annotation_format == 'vtc_rttm':
-                from .converters import VtcConverter
-                df = VtcConverter.convert(path, source_file = filter)
-            elif annotation_format == 'vcm_rttm':
-                from .converters import VcmConverter
-                df = VcmConverter.convert(path, source_file = filter)
-            elif annotation_format == 'its':
-                from .converters import ItsConverter
-                df = ItsConverter.convert(path, recording_num = filter)
-            elif annotation_format == 'alice':
-                from .converters import AliceConverter
-                df = AliceConverter.convert(path, source_file = filter)
-            elif annotation_format == 'cha':
-                from .converters import ChatConverter
-                df = ChatConverter.convert(path)
+            elif annotation_format in converters:
+                converter = converters[annotation_format]
+                df = converter.convert(path, filter)
             else:
                 raise ValueError("file format '{}' unknown for '{}'".format(annotation_format, path))
         except:
@@ -233,12 +252,28 @@ class AnnotationManager:
 
         df.sort_values(sort_columns, inplace = True)
 
-        os.makedirs(os.path.dirname(os.path.join(self.project.path, output_filename)), exist_ok = True)
-        df.to_csv(os.path.join(self.project.path, output_filename), index = False)
+        if 'type' not in annotation or pd.isnull(annotation['type']):
+            annotation['type'] = 'csv'
+
+        annotation_filename = "{}_{}_{}.{}".format(
+            source_recording,
+            annotation['time_seek'],
+            annotation['range_onset'],
+            annotation['type']
+        )
+
+        self._write_annotation(
+            df,
+            annotation['set'],
+            annotation_filename
+        )
 
         annotation['annotation_filename'] = annotation_filename
         annotation['imported_at'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         annotation['package_version'] = __version__
+
+        if pd.isnull(annotation['format']):
+            annotation['format'] = 'NA'
 
         return annotation
 
@@ -264,8 +299,8 @@ class AnnotationManager:
         input['range_onset'] = input['range_onset'].astype(int)
         input['range_offset'] = input['range_offset'].astype(int)
 
-        builtin = input[input['format'].isin(is_thread_safe.keys())]
-        if not builtin['format'].map(is_thread_safe).all():
+        builtin = input[input['format'].isin(converters.keys())]
+        if not builtin['format'].map(lambda f: converters[f].THREAD_SAFE).all():
             print('warning: some of the converters do not support multithread importation; running on 1 thread')
             threads = 1
 
@@ -283,7 +318,7 @@ class AnnotationManager:
 
         self.read()
         self.annotations = pd.concat([self.annotations, imported], sort = False)
-        self.annotations.to_csv(os.path.join(self.project.path, 'metadata/annotations.csv'), index = False)
+        self.write()
 
         return imported
 
@@ -342,7 +377,7 @@ class AnnotationManager:
             pass
 
         self.annotations = self.annotations[self.annotations['set'] != annotation_set]
-        self.annotations.to_csv(os.path.join(self.project.path, 'metadata/annotations.csv'), index = False)
+        self.write()
 
     def rename_set(self, annotation_set: str, new_set: str, recursive: bool = False, ignore_errors: bool = False):
         """Rename a set of annotations, moving all related files
@@ -395,20 +430,20 @@ class AnnotationManager:
             move(os.path.join(current_path, 'converted'), os.path.join(new_path, 'converted'))
 
         self.annotations.loc[(self.annotations['set'] == annotation_set), 'set'] = new_set
+        self.write()
 
-        self.annotations.to_csv(os.path.join(self.project.path, 'metadata/annotations.csv'), index = False)
-
-    def merge_annotations(self, left_columns, right_columns, columns, output_set, input):
+    def merge_annotations(self, left_columns, right_columns, columns, output_set, type, input):
         left_annotations = input['left_annotations']
         right_annotations = input['right_annotations']
         
         annotations = left_annotations.copy()
         annotations['format'] = ''
         annotations['annotation_filename'] = annotations.apply(
-            lambda annotation: "{}_{}_{}.csv".format(
+            lambda annotation: "{}_{}_{}.{}".format(
                 os.path.splitext(annotation['recording_filename'])[0],
                 annotation['time_seek'],
-                annotation['range_onset']
+                annotation['range_onset'],
+                type
             )
         , axis = 1)
 
@@ -482,9 +517,11 @@ class AnnotationManager:
 
             segments = output_segments[output_segments['interval'] == interval]
             segments.drop(columns = list(set(segments.columns)-{c.name for c in self.SEGMENTS_COLUMNS}), inplace = True)
-            segments.to_csv(
-                os.path.join(self.project.path, 'annotations', annotation_set, 'converted', annotation_filename),
-                index = False
+
+            self._write_annotation(
+                segments,
+                annotation_set,
+                annotation_filename
             )
 
         return annotations
@@ -492,6 +529,7 @@ class AnnotationManager:
     def merge_sets(self, left_set: str, right_set: str,
         left_columns: List[str], right_columns: List[str],
         output_set: str, columns: dict = {},
+        type = 'csv',
         threads = -1
     ):
         """Merge columns from ``left_set`` and ``right_set`` annotations, 
@@ -541,15 +579,19 @@ class AnnotationManager:
             for recording in left_annotations['recording_filename'].unique()
         ]
             
-        pool = mp.Pool(processes = threads if threads > 0 else mp.cpu_count())
-        annotations = pool.map(partial(self.merge_annotations, left_columns, right_columns, columns, output_set), input_annotations)
+        with mp.Pool(processes = threads if threads > 0 else mp.cpu_count()) as pool:
+            annotations = pool.map(
+                partial(self.merge_annotations, left_columns, right_columns, columns, output_set, type),
+                input_annotations
+            )
+
         annotations = pd.concat(annotations)
         annotations.drop(columns = list(set(annotations.columns)-{c.name for c in self.INDEX_COLUMNS}), inplace = True)
         annotations.fillna({'raw_filename': 'NA'}, inplace = True)
         
         self.read()
         self.annotations = pd.concat([self.annotations, annotations], sort = False)
-        self.annotations.to_csv(os.path.join(self.project.path, 'metadata/annotations.csv'), index = False)
+        self.write()
 
     def get_segments(self, annotations: pd.DataFrame) -> pd.DataFrame:
         """get all segments associated to the annotations referenced in ``annotations``.
@@ -565,7 +607,8 @@ class AnnotationManager:
         segments = []
         for index, _annotations in annotations.groupby(['set', 'annotation_filename']):
             s, annotation_filename = index
-            df = pd.read_csv(os.path.join(self.project.path, 'annotations', s, 'converted', annotation_filename))
+            annotation_type = _annotations['type'].iloc[0] if 'type' in _annotations.columns else 'csv'
+            df = self._read_annotation(s, annotation_filename, annotation_type)
             
             for annotation in _annotations.to_dict(orient = 'records'):
                 segs = df.copy()
