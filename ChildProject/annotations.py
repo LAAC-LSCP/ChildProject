@@ -163,6 +163,13 @@ class AnnotationManager:
 
         return errors, warnings
 
+    def write(self):
+        """Update the annotations index,
+        while enforcing its good shape.
+        """
+        self.annotations[['time_seek', 'range_onset', 'range_offset']].fillna(0, inplace = True)
+        self.annotations[['time_seek', 'range_onset', 'range_offset']] = self.annotations[['time_seek', 'range_onset', 'range_offset']].astype(int)
+        self.annotations.to_csv(os.path.join(self.project.path, 'metadata/annotations.csv'), index = False)
 
     def _import_annotation(self, import_function: Callable[[str], pd.DataFrame], annotation: dict):
         """import and convert ``annotation``. This function should not be called outside of this class.
@@ -291,11 +298,7 @@ class AnnotationManager:
 
         self.read()
         self.annotations = pd.concat([self.annotations, imported], sort = False)
-
-        self.annotations.fillna(subset = ['time_seek', 'range_onset', 'range_offset'], 0, inplace = True)
-        self.annotations[['time_seek', 'range_onset', 'range_offset']] = self.annotations[['time_seek', 'range_onset', 'range_offset']].astype(int)
-
-        self.annotations.to_csv(os.path.join(self.project.path, 'metadata/annotations.csv'), index = False)
+        self.write()
 
         return imported
 
@@ -354,7 +357,7 @@ class AnnotationManager:
             pass
 
         self.annotations = self.annotations[self.annotations['set'] != annotation_set]
-        self.annotations.to_csv(os.path.join(self.project.path, 'metadata/annotations.csv'), index = False)
+        self.write()
 
     def rename_set(self, annotation_set: str, new_set: str, recursive: bool = False, ignore_errors: bool = False):
         """Rename a set of annotations, moving all related files
@@ -407,8 +410,7 @@ class AnnotationManager:
             move(os.path.join(current_path, 'converted'), os.path.join(new_path, 'converted'))
 
         self.annotations.loc[(self.annotations['set'] == annotation_set), 'set'] = new_set
-
-        self.annotations.to_csv(os.path.join(self.project.path, 'metadata/annotations.csv'), index = False)
+        self.write()
 
     def merge_annotations(self, left_columns, right_columns, columns, output_set, input):
         left_annotations = input['left_annotations']
@@ -561,7 +563,7 @@ class AnnotationManager:
         
         self.read()
         self.annotations = pd.concat([self.annotations, annotations], sort = False)
-        self.annotations.to_csv(os.path.join(self.project.path, 'metadata/annotations.csv'), index = False)
+        self.write()
 
     def get_segments(self, annotations: pd.DataFrame) -> pd.DataFrame:
         """get all segments associated to the annotations referenced in ``annotations``.
