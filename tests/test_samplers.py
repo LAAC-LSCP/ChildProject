@@ -88,6 +88,7 @@ def test_filter(project):
     recordings = sampler.get_recordings()
     assert recordings['recording_filename'].tolist() == ['sound.wav']
 
+
     sampler = PeriodicSampler(
         project = project,
         length = 1000,
@@ -96,6 +97,7 @@ def test_filter(project):
     )
     recordings = sampler.get_recordings()
     assert recordings['recording_filename'].tolist() == ['sound.wav']
+
 
     sampler = PeriodicSampler(
         project = project,
@@ -106,8 +108,10 @@ def test_filter(project):
     recordings = sampler.get_recordings()
     assert recordings['recording_filename'].tolist() == ['sound.wav']
 
+
     recordings = pd.DataFrame({'recording_filename': ['sound.wav']})\
         .to_csv('output/samplers/filter.csv')
+
     sampler = PeriodicSampler(
         project = project,
         length = 1000,
@@ -116,3 +120,20 @@ def test_filter(project):
     )
     recordings = sampler.get_recordings()
     assert recordings['recording_filename'].tolist() == ['sound.wav']
+    
+
+    recordings = pd.DataFrame({'filename': ['sound.wav']})\
+        .to_csv('output/samplers/filter.csv')
+
+    caught_value_error = False
+    try:
+        sampler = PeriodicSampler(
+            project = project,
+            length = 1000,
+            period = 1000,
+            recordings = 'output/samplers/filter.csv'
+        )
+    except ValueError:
+        caught_value_error = True
+    
+    assert caught_value_error == True
