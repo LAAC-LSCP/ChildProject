@@ -31,7 +31,7 @@ class AnnotationManager:
         IndexColumn(name = 'range_onset', description = 'covered range start time in milliseconds, measured since `time_seek`', regex = r"([0-9]+)", required = True),
         IndexColumn(name = 'range_offset', description = 'covered range end time in milliseconds, measured since `time_seek`', regex = r"([0-9]+)", required = True),
         IndexColumn(name = 'raw_filename', description = 'annotation input filename location, relative to `annotations/<set>/raw`', filename = True, required = True),
-        IndexColumn(name = 'format', description = 'input annotation format', choices = ['TextGrid', 'eaf', 'vtc_rttm', 'vcm_rttm', 'alice', 'its', 'cha'], required = False),
+        IndexColumn(name = 'format', description = 'input annotation format', choices = ['TextGrid', 'eaf', 'vtc_rttm', 'vcm_rttm', 'alice', 'its', 'cha', 'NA'], required = False),
         IndexColumn(name = 'filter', description = 'source file to filter in (for rttm and alice only)', required = False),
         IndexColumn(name = 'annotation_filename', description = 'output formatted annotation location, relative to `annotations/<set>/converted (automatic column, don\'t specify)', filename = True, required = False, generated = True),
         IndexColumn(name = 'imported_at', description = 'importation date (automatic column, don\'t specify)', datetime = "%Y-%m-%d %H:%M:%S", required = False, generated = True),
@@ -118,7 +118,7 @@ class AnnotationManager:
         return errors, warnings
 
     def validate_annotation(self, annotation: dict) -> Tuple[List[str], List[str]]:
-        print("validating {}...".format(annotation['annotation_filename']))
+        print("validating {} from {}...".format(annotation['annotation_filename'], annotation['set']))
 
         segments = IndexTable(
             'segments',
@@ -129,7 +129,12 @@ class AnnotationManager:
         try:
             segments.read()
         except Exception as e:
-            return [str(e)], []
+            error_message = "error while trying to read {} from {}:\n\t{}".format(
+                annotation['annotation_filename'],
+                annotation['set'],
+                str(e)
+            )
+            return [error_message], []
 
         return segments.validate()
 
@@ -239,6 +244,9 @@ class AnnotationManager:
         annotation['annotation_filename'] = annotation_filename
         annotation['imported_at'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         annotation['package_version'] = __version__
+
+        if pd.isnull(annotation['format']):
+            annotation['format'] = 'NA'
 
         return annotation
 
