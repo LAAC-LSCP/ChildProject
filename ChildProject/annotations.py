@@ -291,6 +291,10 @@ class AnnotationManager:
 
         self.read()
         self.annotations = pd.concat([self.annotations, imported], sort = False)
+
+        self.annotations.fillna(subset = ['time_seek', 'range_onset', 'range_offset'], 0, inplace = True)
+        self.annotations[['time_seek', 'range_onset', 'range_offset']] = self.annotations[['time_seek', 'range_onset', 'range_offset']].astype(int)
+
         self.annotations.to_csv(os.path.join(self.project.path, 'metadata/annotations.csv'), index = False)
 
         return imported
