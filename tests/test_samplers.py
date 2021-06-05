@@ -22,9 +22,6 @@ def project(request):
     yield project
 
 def test_periodic(project):
-    project = ChildProject('output/samplers')
-    project.read()
-    
     project.recordings = project.recordings.merge(
         project.compute_recordings_duration(),
         left_on = 'recording_filename',
@@ -44,9 +41,6 @@ def test_periodic(project):
     assert len(sampler.segments) == int(duration/(1000+1000))
 
 def test_energy_detection(project):
-    project = ChildProject('output/samplers')
-    project.read()
-
     sampler = EnergyDetectionSampler(
         project = project,
         windows_length = 100,
@@ -85,9 +79,6 @@ def test_energy_detection(project):
     ) 
 
 def test_filter(project):
-    project = ChildProject('output/samplers')
-    project.read()
-
     sampler = PeriodicSampler(
         project = project,
         length = 1000,
