@@ -11,7 +11,7 @@ from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
 
 from . import __version__
 from .projects import ChildProject
-from .converters import is_thread_safe
+from .converters import *
 from .tables import IndexTable, IndexColumn
 from .utils import Segment, intersect_ranges
 
@@ -264,8 +264,8 @@ class AnnotationManager:
         input['range_onset'] = input['range_onset'].astype(int)
         input['range_offset'] = input['range_offset'].astype(int)
 
-        builtin = input[input['format'].isin(is_thread_safe.keys())]
-        if not builtin['format'].map(is_thread_safe).all():
+        builtin = input[input['format'].isin(converters.keys())]
+        if not builtin['format'].map(lambda f: converters[f].THREAD_SAFE).all():
             print('warning: some of the converters do not support multithread importation; running on 1 thread')
             threads = 1
 
