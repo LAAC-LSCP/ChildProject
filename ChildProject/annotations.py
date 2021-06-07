@@ -196,9 +196,6 @@ class AnnotationManager:
         else:
             raise ValueError(f"invalid extension '{ext}' for annotation {set}/{filename}'")
   
-
-        return os.path.basename(path)
-
     def _import_annotation(self, import_function: Callable[[str], pd.DataFrame], annotation: dict):
         """import and convert ``annotation``. This function should not be called outside of this class.
 
