@@ -31,7 +31,7 @@ class AnnotationManager:
         IndexColumn(name = 'range_onset', description = 'covered range start time in milliseconds, measured since `time_seek`', regex = r"([0-9]+)", required = True),
         IndexColumn(name = 'range_offset', description = 'covered range end time in milliseconds, measured since `time_seek`', regex = r"([0-9]+)", required = True),
         IndexColumn(name = 'raw_filename', description = 'annotation input filename location, relative to `annotations/<set>/raw`', filename = True, required = True),
-        IndexColumn(name = 'format', description = 'input annotation format', choices = ['TextGrid', 'eaf', 'vtc_rttm', 'vcm_rttm', 'alice', 'its', 'cha'], required = False),
+        IndexColumn(name = 'format', description = 'input annotation format', choices = ['TextGrid', 'eaf', 'vtc_rttm', 'vcm_rttm', 'alice', 'its', 'cha', 'NA'], required = False),
         IndexColumn(name = 'filter', description = 'source file to filter in (for rttm and alice only)', required = False),
         IndexColumn(name = 'annotation_filename', description = 'output formatted annotation location, relative to `annotations/<set>/converted (automatic column, don\'t specify)', filename = True, required = False, generated = True),
         IndexColumn(name = 'imported_at', description = 'importation date (automatic column, don\'t specify)', datetime = "%Y-%m-%d %H:%M:%S", required = False, generated = True),
@@ -118,7 +118,7 @@ class AnnotationManager:
         return errors, warnings
 
     def validate_annotation(self, annotation: dict) -> Tuple[List[str], List[str]]:
-        print("validating {}...".format(annotation['annotation_filename']))
+        print("validating {} from {}...".format(annotation['annotation_filename'], annotation['set']))
 
         segments = IndexTable(
             'segments',
@@ -129,7 +129,12 @@ class AnnotationManager:
         try:
             segments.read()
         except Exception as e:
-            return [str(e)], []
+            error_message = "error while trying to read {} from {}:\n\t{}".format(
+                annotation['annotation_filename'],
+                annotation['set'],
+                str(e)
+            )
+            return [error_message], []
 
         return segments.validate()
 
@@ -158,6 +163,13 @@ class AnnotationManager:
 
         return errors, warnings
 
+    def write(self):
+        """Update the annotations index,
+        while enforcing its good shape.
+        """
+        self.annotations[['time_seek', 'range_onset', 'range_offset']].fillna(0, inplace = True)
+        self.annotations[['time_seek', 'range_onset', 'range_offset']] = self.annotations[['time_seek', 'range_onset', 'range_offset']].astype(int)
+        self.annotations.to_csv(os.path.join(self.project.path, 'metadata/annotations.csv'), index = False)
 
     def _import_annotation(self, import_function: Callable[[str], pd.DataFrame], annotation: dict):
         """import and convert ``annotation``. This function should not be called outside of this class.
@@ -240,6 +252,9 @@ class AnnotationManager:
         annotation['imported_at'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         annotation['package_version'] = __version__
 
+        if pd.isnull(annotation['format']):
+            annotation['format'] = 'NA'
+
         return annotation
 
     def import_annotations(self, input: pd.DataFrame, threads: int = -1, import_function: Callable[[str], pd.DataFrame] = None) -> pd.DataFrame:
@@ -283,7 +298,7 @@ class AnnotationManager:
 
         self.read()
         self.annotations = pd.concat([self.annotations, imported], sort = False)
-        self.annotations.to_csv(os.path.join(self.project.path, 'metadata/annotations.csv'), index = False)
+        self.write()
 
         return imported
 
@@ -342,7 +357,7 @@ class AnnotationManager:
             pass
 
         self.annotations = self.annotations[self.annotations['set'] != annotation_set]
-        self.annotations.to_csv(os.path.join(self.project.path, 'metadata/annotations.csv'), index = False)
+        self.write()
 
     def rename_set(self, annotation_set: str, new_set: str, recursive: bool = False, ignore_errors: bool = False):
         """Rename a set of annotations, moving all related files
@@ -395,8 +410,7 @@ class AnnotationManager:
             move(os.path.join(current_path, 'converted'), os.path.join(new_path, 'converted'))
 
         self.annotations.loc[(self.annotations['set'] == annotation_set), 'set'] = new_set
-
-        self.annotations.to_csv(os.path.join(self.project.path, 'metadata/annotations.csv'), index = False)
+        self.write()
 
     def merge_annotations(self, left_columns, right_columns, columns, output_set, input):
         left_annotations = input['left_annotations']
@@ -549,7 +563,7 @@ class AnnotationManager:
         
         self.read()
         self.annotations = pd.concat([self.annotations, annotations], sort = False)
-        self.annotations.to_csv(os.path.join(self.project.path, 'metadata/annotations.csv'), index = False)
+        self.write()
 
     def get_segments(self, annotations: pd.DataFrame) -> pd.DataFrame:
         """get all segments associated to the annotations referenced in ``annotations``.
