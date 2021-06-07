@@ -54,7 +54,9 @@ automated linguistic unit counter.
 
 As for manual annotation options,
 `ELAN <https://archive.mpi.nl/tla/elan>`__ can be used, for instance
-employing the `ACLEW DAS annotation scheme <https://osf.io/b2jep/>`__.
+employing the `ACLEW DAS annotation scheme <https://osf.io/b2jep/>`__;
+`CHAT annotations <https://talkbank.org/manuals/CHAT.html>`__ are also supported.
+
 Assignment of annotation to individuals and evaluation can be done using
 `Seshat <https://github.com/bootphon/seshat>`__. Finally,
 `Zooniverse <https://zooniverse.org>`__ can be used to crowd-source certain
@@ -64,12 +66,13 @@ In this context, we provide tools and a procedure to:
 
 -  Validate datasets (making sure that metadata, recordings and
    annotations are in the right place and format)
--  Convert your raw recordings into the desired format
--  Import raw annotations (from ELAN, Praat, csv, rttm from VTC and
-   ALICE) into our standardized format
+-  Perform pre-processing on the recordings (conversion, vetting, etc.)
+-  Import raw annotations (from ELAN, Praat, csv, rttm from VTC/
+   ALICE/VCM) into our standardized format
 -  Sample segments of the recordings to annotate from a set of sampling algorithms
 -  Add clips to an annotation pipeline in Zooniverse, and retrieve the
    ensuing annotations
+-  Generate .eaf files to be annotated by humans
 
 Citing this work
 ~~~~~~~~~~~~~~~~
@@ -87,3 +90,9 @@ If you are using this project for your research, please cite our `introductory p
       year={2021},
       month={May}
    }
+
+Community
+~~~~~~~~~
+
+ - You can ask for help, suggest ideas about the package or share code that relies on it with others on `GitHub discussions <https://github.com/LAAC-LSCP/ChildProject/discussions>`__.
+ - Bugs should be reported on `GitHub <https://github.com/LAAC-LSCP/ChildProject/issues>`__ too.
