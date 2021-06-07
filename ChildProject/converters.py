@@ -128,7 +128,7 @@ class VcmConverter(AnnotationConverter):
 
 class AliceConverter(AnnotationConverter):
     FORMAT = 'alice'
-    
+
     @staticmethod
     def convert(filename: str, source_file: str = '') -> pd.DataFrame:
         df = pd.read_csv(
@@ -287,10 +287,10 @@ class ItsConverter(AnnotationConverter):
         return df
 
 class TextGridConverter(AnnotationConverter):
-    FORMAT = 'textgrid'
+    FORMAT = 'TextGrid'
 
     @staticmethod
-    def convert(filename: str) -> pd.DataFrame:
+    def convert(filename: str, filter = None) -> pd.DataFrame:
         import pympi
         textgrid = pympi.Praat.TextGrid(filename)
 
@@ -330,7 +330,7 @@ class EafConverter(AnnotationConverter):
     FORMAT = 'eaf'
     
     @staticmethod
-    def convert(filename: str) -> pd.DataFrame:
+    def convert(filename: str, filter = None) -> pd.DataFrame:
         import pympi
         eaf = pympi.Elan.Eaf(filename)
 
@@ -463,7 +463,7 @@ class ChatConverter(AnnotationConverter):
         return ChatConverter.ADDRESSEE_TABLE[ChatConverter.SPEAKER_ROLE_TO_TYPE[role]]
 
     @staticmethod
-    def convert(filename: str) -> pd.DataFrame:
+    def convert(filename: str, filter = None) -> pd.DataFrame:
 
         import pylangacq
 

@@ -31,7 +31,7 @@ class AnnotationManager:
         IndexColumn(name = 'range_onset', description = 'covered range start time in milliseconds, measured since `time_seek`', regex = r"([0-9]+)", required = True),
         IndexColumn(name = 'range_offset', description = 'covered range end time in milliseconds, measured since `time_seek`', regex = r"([0-9]+)", required = True),
         IndexColumn(name = 'raw_filename', description = 'annotation input filename location, relative to `annotations/<set>/raw`', filename = True, required = True),
-        IndexColumn(name = 'format', description = 'input annotation format', choices = ['TextGrid', 'eaf', 'vtc_rttm', 'vcm_rttm', 'alice', 'its', 'cha', 'NA'], required = False),
+        IndexColumn(name = 'format', description = 'input annotation format', choices = [*converters.keys(), 'NA'], required = False),
         IndexColumn(name = 'filter', description = 'source file to filter in (for rttm and alice only)', required = False),
         IndexColumn(name = 'annotation_filename', description = 'output formatted annotation location, relative to `annotations/<set>/converted (automatic column, don\'t specify)', filename = True, required = False, generated = True),
         IndexColumn(name = 'imported_at', description = 'importation date (automatic column, don\'t specify)', datetime = "%Y-%m-%d %H:%M:%S", required = False, generated = True),
@@ -195,27 +195,9 @@ class AnnotationManager:
         try:
             if callable(import_function):
                 df = import_function(path)
-            elif annotation_format == 'TextGrid':
-                from .converters import TextGridConverter
-                df = TextGridConverter.convert(path)
-            elif annotation_format == 'eaf':
-                from .converters import EafConverter
-                df = EafConverter.convert(path)
-            elif annotation_format == 'vtc_rttm':
-                from .converters import VtcConverter
-                df = VtcConverter.convert(path, source_file = filter)
-            elif annotation_format == 'vcm_rttm':
-                from .converters import VcmConverter
-                df = VcmConverter.convert(path, source_file = filter)
-            elif annotation_format == 'its':
-                from .converters import ItsConverter
-                df = ItsConverter.convert(path, recording_num = filter)
-            elif annotation_format == 'alice':
-                from .converters import AliceConverter
-                df = AliceConverter.convert(path, source_file = filter)
-            elif annotation_format == 'cha':
-                from .converters import ChatConverter
-                df = ChatConverter.convert(path)
+            elif annotation_format in converters:
+                converter = converters[annotation_format]
+                df = converter.convert(path, filter)
             else:
                 raise ValueError("file format '{}' unknown for '{}'".format(annotation_format, path))
         except:
