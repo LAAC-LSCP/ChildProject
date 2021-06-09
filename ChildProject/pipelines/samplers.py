@@ -123,8 +123,6 @@ class Sampler(ABC):
 
         segments = []
         for recording, _segments in self.segments.groupby('recording_filename'):
-            print(recording)
-            print(_segments)
             sampled = Timeline(
                 segments = [
                     Segment(segment_onset, segment_offset)
@@ -140,7 +138,7 @@ class Sampler(ABC):
                 ]
             )
 
-            # sampled = sampled.extrude(sampled)
+            # sampled = sampled.extrude(sampled) # not released yet
             extent_tl = Timeline([sampled.extent()], uri = sampled.uri)
             truncating_support = excl.gaps(support = extent_tl)
             sampled = sampled.crop(truncating_support, mode = 'intersection')
