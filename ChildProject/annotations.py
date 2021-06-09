@@ -155,8 +155,8 @@ class AnnotationManager:
 
         errors, warnings = [], []
 
-        pool = mp.Pool(processes = threads if threads > 0 else mp.cpu_count())
-        res = pool.map(self.validate_annotation, annotations.to_dict(orient = 'records'))
+        with mp.Pool(processes = threads if threads > 0 else mp.cpu_count()) as pool:
+            res = pool.map(self.validate_annotation, annotations.to_dict(orient = 'records'))
 
         errors = reduce(lambda x,y: x+y[0], res, [])
         warnings = reduce(lambda x,y: x+y[1], res, [])
@@ -269,11 +269,11 @@ class AnnotationManager:
         if threads == 1:
             imported = input.apply(partial(self._import_annotation, import_function), axis = 1).to_dict(orient = 'records')
         else:
-            pool = mp.Pool(processes = threads if threads > 0 else mp.cpu_count())
-            imported = pool.map(
-                partial(self._import_annotation, import_function),
-                input.to_dict(orient = 'records')
-            )
+            with mp.Pool(processes = threads if threads > 0 else mp.cpu_count()) as pool:
+                imported = pool.map(
+                    partial(self._import_annotation, import_function),
+                    input.to_dict(orient = 'records')
+                )
 
         imported = pd.DataFrame(imported)
         imported.drop(list(set(imported.columns)-{c.name for c in self.INDEX_COLUMNS}), axis = 1, inplace = True)

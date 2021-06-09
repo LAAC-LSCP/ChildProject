@@ -252,8 +252,9 @@ class RandomVocalizationSampler(Sampler):
     def sample(self):
         recordings = self.get_recordings()
 
-        pool = mp.Pool(processes = self.threads if self.threads >= 1 else mp.cpu_count())
-        self.segments = pool.map(self._sample_unit, recordings.groupby(self.by))
+        with mp.Pool(processes = self.threads if self.threads >= 1 else mp.cpu_count()) as pool:
+            self.segments = pool.map(self._sample_unit, recordings.groupby(self.by))
+        
         self.segments = pd.concat(self.segments)
         return self.segments
 
@@ -386,8 +387,8 @@ class EnergyDetectionSampler(Sampler):
         if self.threads == 1:
             windows = pd.concat([self.get_recording_windows(r) for r in recordings.to_dict(orient = 'records')])
         else:
-            pool = mp.Pool(processes = self.threads if self.threads >= 1 else mp.cpu_count())
-            windows = pd.concat(pool.map(self.get_recording_windows, recordings.to_dict(orient = 'records')))
+            with mp.Pool(processes = self.threads if self.threads >= 1 else mp.cpu_count()) as pool:
+                windows = pd.concat(pool.map(self.get_recording_windows, recordings.to_dict(orient = 'records')))
 
         windows = windows.set_index(self.by).merge(
             windows.groupby(self.by).agg(
@@ -538,8 +539,9 @@ class HighVolubilitySampler(Sampler):
     def sample(self):
         recordings = self.get_recordings()
 
-        pool = mp.Pool(processes = self.threads if self.threads >= 1 else mp.cpu_count())
-        self.segments = pool.map(self._sample_unit, recordings.groupby(self.by))
+        with mp.Pool(processes = self.threads if self.threads >= 1 else mp.cpu_count()) as pool:
+            self.segments = pool.map(self._sample_unit, recordings.groupby(self.by))
+        
         self.segments = pd.concat(self.segments)
 
     @staticmethod

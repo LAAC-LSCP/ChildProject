@@ -182,8 +182,8 @@ class ZooniversePipeline(Pipeline):
         for _recording, _segments in self.segments.groupby('recording_filename'):
             segments.append(_segments.assign(recording_filename = _recording))
         
-        pool = mp.Pool(threads if threads > 0 else mp.cpu_count())
-        self.chunks = pool.map(self._split_recording, segments)
+        with mp.Pool(threads if threads > 0 else mp.cpu_count()) as pool:
+            self.chunks = pool.map(self._split_recording, segments)
         self.chunks = itertools.chain.from_iterable(self.chunks)
         self.chunks = pd.DataFrame([{
             'recording_filename': c.recording_filename,
