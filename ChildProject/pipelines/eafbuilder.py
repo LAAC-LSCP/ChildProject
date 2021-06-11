@@ -36,8 +36,9 @@ def create_eaf(etf_path: str, id: str, output_dir: str,
         eaf.add_annotation("code_num_"+eaf_type, whole_region_onset, whole_region_offset, value=codeNumVal)
         eaf.add_annotation("context_"+eaf_type, context_onset, context_offset)
 
-    os.makedirs(output_dir, exist_ok = True)
-    eaf.to_file(os.path.join(output_dir, "{}.eaf".format(id)))
+    destination = os.path.join(output_dir, "{}.eaf".format(id))
+    os.makedirs(os.path.dirname(destination), exist_ok = True)
+    eaf.to_file(destination)
     for i in eaf.get_tier_names():
         print(i,":",eaf.get_annotation_data_for_tier(i))
 
