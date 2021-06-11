@@ -155,6 +155,7 @@ class PeriodicSampler(Sampler):
     def __init__(self,
         project: ChildProject.projects.ChildProject,
         length: int, period: int, offset: int = 0,
+        profile: str = None,
         recordings: Union[str, List[str], pd.DataFrame] = None
         ):
 
@@ -162,6 +163,7 @@ class PeriodicSampler(Sampler):
         self.length = int(length)
         self.period = int(period)
         self.offset = int(offset)
+        self.profile = profile
 
     def sample(self):
         recordings = self.get_recordings()
@@ -170,7 +172,7 @@ class PeriodicSampler(Sampler):
             print("""recordings duration was not found in the metadata
             and an attempt will be made to calculate it.""")
 
-            durations = self.project.compute_recordings_duration().dropna()
+            durations = self.project.compute_recordings_duration(self.profile).dropna()
             recordings = recordings.merge(durations[durations['recording_filename'] != 'NA'], how = 'left', left_on = 'recording_filename', right_on = 'recording_filename')
 
         recordings['duration'].fillna(0, inplace = True)
@@ -194,6 +196,7 @@ class PeriodicSampler(Sampler):
         parser.add_argument('--length', help = 'length of each segment, in milliseconds', type = float, required = True)
         parser.add_argument('--period', help = 'spacing between two consecutive segments, in milliseconds', type = float, required = True)
         parser.add_argument('--offset', help = 'offset of the first segment, in milliseconds', type = float, default = 0)
+        parser.add_argument('--profile', help = 'name of the profile of recordings to use to estimate duration (uses raw recordings if empty)', default = '', type = str)
 
 class RandomVocalizationSampler(Sampler):
     """Sample vocalizations based on some input annotation set.
