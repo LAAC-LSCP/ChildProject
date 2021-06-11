@@ -172,7 +172,7 @@ class PeriodicSampler(Sampler):
             print("""recordings duration was not found in the metadata
             and an attempt will be made to calculate it.""")
 
-            durations = self.project.compute_recordings_duration(profile).dropna()
+            durations = self.project.compute_recordings_duration(self.profile).dropna()
             recordings = recordings.merge(durations[durations['recording_filename'] != 'NA'], how = 'left', left_on = 'recording_filename', right_on = 'recording_filename')
 
         recordings['duration'].fillna(0, inplace = True)
