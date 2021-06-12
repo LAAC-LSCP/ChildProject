@@ -10,13 +10,14 @@ import matplotlib.colors
 from mpl_toolkits.axes_grid1 import make_axes_locatable, axes_size
 
 from .projects import ChildProject
+from .annotations import AnnotationManager
 
 class Plot(ABC):
     def __init__(self, project):
         self.project = project
 
     @abstractmethod
-    def plot(self):
+    def plot(self, **kwargs):
         pass
 
 class AgeDistributionPlot(Plot):
@@ -82,3 +83,67 @@ class AgeDistributionPlot(Plot):
         ax.set_xlabel('age in months')
 
         return fig, ax, children_age_counts
+
+class AnnotationCoveragePlot(Plot):
+
+    def __init__(self, project, sets: list = None, colors: list = None):
+        super().__init__(project)
+
+        self.sets = set(sets) if sets is not None else None
+
+        if colors:
+            self.colors = colors
+        else:
+            self.colors = [
+                '#eee', # no recording
+                '#ff0000', # not annotated
+                '#00ff00' # annotated
+            ]
+
+    def plot(self, time_resolution = 30000, **kwargs):
+
+        am = AnnotationManager(self.project)
+        am.read()
+
+        if self.sets is not None:
+            am.annotations = am.annotations[am.annotations['set'].isin(self.sets)]
+
+        sets = list(sorted(am.annotations['set'].unique()))
+
+        recordings = self.project.recordings.sort_values(['child_id', 'recording_filename'])
+        recordings = recordings.set_index('recording_filename')
+        recs = recordings.index.values
+        
+        max_duration = self.project.recordings['duration'].max()
+
+        am.annotations['range_onset'] += am.annotations['time_seek']
+        am.annotations['range_offset'] += am.annotations['time_seek']
+
+        am.annotations['n_onset'] = am.annotations['range_onset']//time_resolution
+        am.annotations['n_offset'] = am.annotations['range_offset']//time_resolution
+
+        rows = len(sets) * len(recs)
+        data = np.zeros((rows, int(max_duration/time_resolution)))
+
+        for i, rec in enumerate(recs):
+            rec_end = recordings.loc[rec, 'duration']//time_resolution
+            data[i*len(sets):(i+1)*len(sets), rec_end:] = -1
+
+        for annotation in am.annotations.to_dict(orient = 'records'):
+            set_n = sets.index(annotation['set'])
+            rec_n = recordings.index.get_loc(annotation['recording_filename'])
+
+            row = set_n + rec_n*len(sets)
+            data[row, annotation['n_onset']:annotation['n_offset']] = 1
+
+        fig, ax = plt.subplots(
+            figsize = (10, 5*len(recs)/30),
+            **kwargs
+        )
+
+        from matplotlib.colors import ListedColormap
+        custom_cmap = ListedColormap(self.colors, name = "custom_cmap")
+
+        im = ax.imshow(data, aspect = 'auto', cmap = custom_cmap, interpolation = 'none')
+        
+        return fig, ax, data
