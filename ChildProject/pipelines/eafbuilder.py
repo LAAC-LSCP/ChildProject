@@ -8,6 +8,7 @@ from ChildProject.projects import ChildProject
 from ChildProject.pipelines.pipeline import Pipeline
 
 def create_eaf(etf_path: str, id: str, output_dir: str,
+    recording_filename: str,
     timestamps_list: list,
     eaf_type: str, contxt_on: int, contxt_off: int,
     template: str):
@@ -38,6 +39,9 @@ def create_eaf(etf_path: str, id: str, output_dir: str,
 
     destination = os.path.join(output_dir, "{}.eaf".format(id))
     os.makedirs(os.path.dirname(destination), exist_ok = True)
+
+    eaf.header['MEDIA_FILE'] = recording_filename
+
     eaf.to_file(destination)
     for i in eaf.get_tier_names():
         print(i,":",eaf.get_annotation_data_for_tier(i))
@@ -97,18 +101,19 @@ class EafBuilderPipeline(Pipeline):
         segments = pd.read_csv(segments)
 
         for recording_filename, segs in segments.groupby('recording_filename'):
-            recording_filename = os.path.splitext(recording_filename)[0]
-            output_filename = recording_filename + '_' + eaf_type + '_' + os.path.basename(template)
+            recording_prefix = os.path.splitext(recording_filename)[0]
+            output_filename = recording_prefix + '_' + eaf_type + '_' + os.path.basename(template)
             
             # TODO: This list of timestamps as tuples might not be ideal/should perhaps be optimized, but I am just replicating the original eaf creation code here.
             timestamps = [(on, off) for on, off in segs.loc[:, ['segment_onset', 'segment_offset']].values]
 
-            output_dir = os.path.join(destination, recording_filename)
+            output_dir = os.path.join(destination, recording_prefix)
 
             create_eaf(
                 etf_path,
                 output_filename,
                 output_dir,
+                recording_filename,
                 timestamps,
                 eaf_type,
                 context_onset,
@@ -124,7 +129,7 @@ class EafBuilderPipeline(Pipeline):
         parser.add_argument("--destination", help = "eaf destination")
         parser.add_argument('--segments', help = 'path to the input segments dataframe', required = True)
         # TODO: add other options here such as high-volubility, energy, etc.?
-        parser.add_argument('--eaf-type', help = 'eaf-type', choices = ['random', 'periodic', 'high-volubility'], required = True)
+        parser.add_argument('--eaf-type', help = 'eaf-type', choices = ['random', 'periodic', 'high-volubility', 'energy-detection'], required = True)
         parser.add_argument('--template', help = 'Which ACLEW templates (basic, native or non-native); otherwise, the path to the etf et pfsx templates, without the extension.', required = True)
         parser.add_argument('--context-onset', help = 'context onset and segment offset difference in milliseconds, 0 for no introductory context', type = int, default = 0)
         parser.add_argument('--context-offset', help = 'context offset and segment offset difference in milliseconds, 0 for no outro context', type = int, default = 0)
