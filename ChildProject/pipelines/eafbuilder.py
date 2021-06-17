@@ -40,7 +40,17 @@ def create_eaf(etf_path: str, id: str, output_dir: str,
     destination = os.path.join(output_dir, "{}.eaf".format(id))
     os.makedirs(os.path.dirname(destination), exist_ok = True)
 
-    eaf.add_linked_file(recording_filename, recording_filename)
+    mimetype = 'audio/x-wav'
+
+    extension = os.path.splitext(recording_filename)[1]
+    if extension:
+        mimetype = eaf.MIMES[extension[1:]]
+
+    eaf.add_linked_file(
+        file_path = recording_filename,
+        relpath = recording_filename,
+        mimetype = mimetype
+    )
 
     eaf.to_file(destination)
     for i in eaf.get_tier_names():
