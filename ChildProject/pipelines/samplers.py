@@ -84,7 +84,7 @@ class Sampler(ABC):
         except:
             return None
 
-        if len(self.target_speaker_type):
+        if len(self.target_speaker_type) and len(segments):
             segments = segments[segments['speaker_type'].isin(self.target_speaker_type)]
 
         return segments

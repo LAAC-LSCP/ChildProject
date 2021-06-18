@@ -66,7 +66,7 @@ class EafBuilderPipeline(Pipeline):
         eaf_type: str, template: str,
         context_onset: int = 0, context_offset: int = 0,
         **kwargs):
-        """generate .eaf templates based on intervals to code
+        """generate .eaf templates based on intervals to code.
 
         :param path: project path
         :type path: str

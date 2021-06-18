@@ -494,7 +494,7 @@ class ChatConverter(AnnotationConverter):
 
         if 'add' in df.columns:
             df['addressee'] = df['speaker_type'].fillna('').replace({'NA': ''})\
-                .apply(lambda s: ','.join(sorted([role_to_addressee(roles[x.strip()]) for x in str(s).split(',')])))
+                .apply(lambda s: ','.join(sorted([ChatConverter.role_to_addressee(roles[x.strip()]) for x in str(s).split(',')])))
 
         df = df[(df['segment_onset'] != 'NA') & (df['segment_offset'] != 'NA')]
         df.drop(columns = ['participant', 'tokens', 'time_marks'], inplace = True)
