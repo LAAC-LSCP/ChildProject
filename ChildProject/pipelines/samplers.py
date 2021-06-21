@@ -127,10 +127,6 @@ class CustomSampler(Sampler):
 
     def sample(self: str):
         self.segments = pd.read_csv(self.segments_path)
-
-        if 'time_seek' not in self.segments.columns:
-                self.segments['time_seek'] = 0
-
         return self.segments
 
     @staticmethod
@@ -591,10 +587,6 @@ class SamplerPipeline(Pipeline):
         splr.sample()
         splr.assert_valid()
         self.segments = splr.segments
-
-        if 'time_seek' in self.segments.columns:
-            self.segments['segment_onset'] = self.segments['segment_onset'] + self.segments['time_seek']
-            self.segments['segment_offset'] = self.segments['segment_offset'] + self.segments['time_seek']
 
         date = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
 

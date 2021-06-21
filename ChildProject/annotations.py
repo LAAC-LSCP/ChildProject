@@ -28,8 +28,8 @@ class AnnotationManager:
         IndexColumn(name = 'set', description = 'name of the annotation set (e.g. VTC, annotator1, etc.)', required = True),
         IndexColumn(name = 'recording_filename', description = 'recording filename as specified in the recordings index', required = True),
         IndexColumn(name = 'time_seek', description = 'reference time in milliseconds, e.g: 3600000. All times expressed in the annotations are relative to this time.', regex = r"(\-?)([0-9]+)", required = True),
-        IndexColumn(name = 'range_onset', description = 'covered range start time in milliseconds, measured since `time_seek`', regex = r"([0-9]+)", required = True),
-        IndexColumn(name = 'range_offset', description = 'covered range end time in milliseconds, measured since `time_seek`', regex = r"([0-9]+)", required = True),
+        IndexColumn(name = 'range_onset', description = 'covered range start time in milliseconds', regex = r"([0-9]+)", required = True),
+        IndexColumn(name = 'range_offset', description = 'covered range end time in milliseconds', regex = r"([0-9]+)", required = True),
         IndexColumn(name = 'raw_filename', description = 'annotation input filename location, relative to `annotations/<set>/raw`', filename = True, required = True),
         IndexColumn(name = 'format', description = 'input annotation format', choices = [*converters.keys(), 'NA'], required = False),
         IndexColumn(name = 'filter', description = 'source file to filter in (for rttm and alice only)', required = False),
@@ -183,7 +183,7 @@ class AnnotationManager:
         """
 
         source_recording = os.path.splitext(annotation['recording_filename'])[0]
-        annotation_filename = "{}_{}_{}.csv".format(source_recording, annotation['time_seek'], annotation['range_onset'])
+        annotation_filename = "{}_{}_{}.csv".format(source_recording, annotation['range_onset'], annotation['range_offset'])
         output_filename = os.path.join('annotations', annotation['set'], 'converted', annotation_filename)
 
         path = os.path.join(self.project.path, 'annotations', annotation['set'], 'raw', annotation['raw_filename'])
@@ -212,6 +212,9 @@ class AnnotationManager:
             df = pd.DataFrame(columns = [c.name for c in self.SEGMENTS_COLUMNS])
         
         df['raw_filename'] = annotation['raw_filename']
+
+        df['segment_onset'] += df['time_seek']
+        df['segment_offset'] += df['time_seek']
         df['segment_onset'] = df['segment_onset'].astype(int)
         df['segment_offset'] = df['segment_offset'].astype(int)
 
@@ -403,8 +406,8 @@ class AnnotationManager:
         annotations['annotation_filename'] = annotations.apply(
             lambda annotation: "{}_{}_{}.csv".format(
                 os.path.splitext(annotation['recording_filename'])[0],
-                annotation['time_seek'],
-                annotation['range_onset']
+                annotation['range_onset'],
+                annotation['range_offset']
             )
         , axis = 1)
 
@@ -428,12 +431,6 @@ class AnnotationManager:
         left_segments = self.get_segments(left_annotations)
         right_segments = self.get_segments(right_annotations)
 
-        left_segments['segment_onset'] = left_segments['segment_onset'] + left_segments['time_seek']
-        left_segments['segment_offset'] = left_segments['segment_offset'] + left_segments['time_seek']
-
-        right_segments['segment_onset'] = right_segments['segment_onset'] + right_segments['time_seek']
-        right_segments['segment_offset'] = right_segments['segment_offset'] + right_segments['time_seek']
-
         merge_columns = ['interval', 'segment_onset', 'segment_offset']
 
         lc = merge_columns + left_columns + ['raw_filename', 'time_seek']
@@ -449,8 +446,8 @@ class AnnotationManager:
             right_on = merge_columns
         )
 
-        output_segments['segment_onset'] = (output_segments['segment_onset'] - output_segments['time_seek']).fillna(0).astype(int)
-        output_segments['segment_offset'] = (output_segments['segment_offset'] - output_segments['time_seek']).fillna(0).astype(int)
+        output_segments['segment_onset'] = output_segments['segment_onset'].fillna(0).astype(int)
+        output_segments['segment_offset'] = output_segments['segment_offset'].fillna(0).astype(int)
 
         output_segments['raw_filename'] = output_segments['raw_filename_x'] + ',' + output_segments['raw_filename_y']
 
@@ -589,11 +586,9 @@ class AnnotationManager:
         :return: dataframe of all the segments merged (as specified in :ref:`format-annotations-segments`), merged with ``annotations``
         :rtype: pd.DataFrame
         """
-        annotations['abs_range_onset'] = annotations['range_onset']+annotations['time_seek']
-        annotations['abs_range_offset'] = annotations['range_offset']+annotations['time_seek']
         annotations['duration'] = (annotations['range_offset']-annotations['range_onset']).astype(float)
 
-        annotations = annotations.sort_values(['recording_filename', 'abs_range_onset', 'abs_range_offset', 'set'])
+        annotations = annotations.sort_values(['recording_filename', 'range_onset', 'range_offset', 'set'])
         annotations['position'] = annotations.groupby('set')['duration']\
             .transform(pd.Series.cumsum)
         annotations['position'] = annotations.groupby('set')['position'].shift(1).fillna(0)
@@ -608,7 +603,7 @@ class AnnotationManager:
     @staticmethod
     def intersection(annotations: pd.DataFrame, sets: list = None) -> tuple:
         """Compute the intersection of all annotations for all sets and recordings,
-        based on their ``recording_filename``, ``time_seek``, ``range_onset`` and ``range_offset``
+        based on their ``recording_filename``, ``range_onset`` and ``range_offset``
         attributes. (Only these columns are required, but more can be passed and they
         will be preserved).
 
@@ -627,17 +622,13 @@ class AnnotationManager:
 
         for recording in recordings:
             _annotations = annotations[annotations['recording_filename'] == recording]
-            _annotations = _annotations.assign(
-                abs_range_onset = lambda r: r['range_onset']+r['time_seek'],
-                abs_range_offset = lambda r: r['range_offset']+r['time_seek']    
-            )
-            _annotations = _annotations.sort_values(['abs_range_onset', 'abs_range_offset'])
+            _annotations = _annotations.sort_values(['range_onset', 'range_offset'])
             
             segments = []
             for s in sets:
                 ann = _annotations[_annotations['set'] == s]
                 segments.append(
-                    (Segment(onset, offset) for (onset, offset) in ann[['abs_range_onset', 'abs_range_offset']].values.tolist())
+                    (Segment(onset, offset) for (onset, offset) in ann[['range_onset', 'range_offset']].values.tolist())
                 )
 
             segments = reduce(intersect_ranges, segments)
@@ -645,20 +636,15 @@ class AnnotationManager:
             result = []
             for segment in segments:
                 ann = _annotations.copy()
-                ann['abs_range_onset'].clip(lower = segment.start, upper = segment.stop, inplace = True)
-                ann['abs_range_offset'].clip(lower = segment.start, upper = segment.stop, inplace = True)
-                ann = ann[(ann['abs_range_offset'] - ann['abs_range_onset']) > 0]
+                ann['range_onset'].clip(lower = segment.start, upper = segment.stop, inplace = True)
+                ann['range_offset'].clip(lower = segment.start, upper = segment.stop, inplace = True)
+                ann = ann[(ann['range_offset'] - ann['range_onset']) > 0]
                 result.append(ann)
 
             if not len(result):
                 continue
 
             _annotations = pd.concat(result)
-
-            for bound in ('onset', 'offset'):
-                _annotations['range_' + bound] =_annotations['abs_range_' + bound].astype(int) - _annotations['time_seek']
-
-            _annotations.drop(['abs_range_onset', 'abs_range_offset'], axis = 1, inplace = True)
             stack.append(_annotations)
 
         return pd.concat(stack) if len(stack) else pd.DataFrame()
