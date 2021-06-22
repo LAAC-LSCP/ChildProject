@@ -184,12 +184,14 @@ class Sampler(ABC):
 class CustomSampler(Sampler):
     def __init__(self,
         project: ChildProject.projects.ChildProject,
-        segments_path: str):
+        segments_path: str,
+        recordings: Union[str, List[str], pd.DataFrame] = None,
+        exclude: Union[str, pd.DataFrame] = None):
 
-        super().__init__(project)
+        super().__init__(project, recordings, exclude)
         self.segments_path = segments_path
 
-    def sample(self: str):
+    def _sample(self: str):
         self.segments = pd.read_csv(self.segments_path)
 
         if 'time_seek' not in self.segments.columns:
