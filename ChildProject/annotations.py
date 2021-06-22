@@ -213,8 +213,8 @@ class AnnotationManager:
         
         df['raw_filename'] = annotation['raw_filename']
 
-        df['segment_onset'] += df['time_seek']
-        df['segment_offset'] += df['time_seek']
+        df['segment_onset'] += annotation['time_seek']
+        df['segment_offset'] += annotation['time_seek']
         df['segment_onset'] = df['segment_onset'].astype(int)
         df['segment_offset'] = df['segment_offset'].astype(int)
 
