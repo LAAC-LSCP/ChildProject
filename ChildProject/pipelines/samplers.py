@@ -116,10 +116,10 @@ class Sampler(ABC):
         return segments
 
     def remove_excluded(self):
-        from pyannote.core import Segment, Timeline
-
         if len(self.excluded) == 0:
             return
+
+        from pyannote.core import Segment, Timeline
 
         segments = []
         for recording, _segments in self.segments.groupby('recording_filename'):
