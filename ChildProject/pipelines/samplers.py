@@ -17,7 +17,8 @@ from ChildProject.pipelines.pipeline import Pipeline
 class Sampler(ABC):
     def __init__(self,
         project: ChildProject.projects.ChildProject,
-        recordings: Union[str, List[str], pd.DataFrame] = None):
+        recordings: Union[str, List[str], pd.DataFrame] = None,
+        exclude: Union[str, pd.DataFrame] = None):
 
         self.project = project
 
@@ -52,13 +53,35 @@ class Sampler(ABC):
         if self.recordings is not None:
             self.recordings = list(set(self.recordings))
 
+        if exclude is None:
+            self.excluded = pd.DataFrame(columns = [
+                'recording_filename',
+                'segment_onset',
+                'segment_offset'
+            ])
+        else:
+            if not isinstance(exclude, pd.DataFrame):
+                exclude = pd.read_csv(exclude)
+
+            if not {'recording_filename', 'segment_onset', 'segment_offset'}\
+                .issubset(set(exclude.columns)):
+                raise ValueError("exclude dataframe is missing a 'recording_filename' column")
+
+            self.excluded = exclude
+
     @abstractmethod
-    def sample(self):
+    def _sample(self):
         pass
 
     @staticmethod
+    @abstractmethod
     def add_parser(parsers):
         pass
+
+    def sample(self):
+        self._sample()
+        self.remove_excluded()
+        return self.segments
 
     def get_recordings(self):
         recordings = self.project.recordings.copy()
@@ -87,7 +110,48 @@ class Sampler(ABC):
         if len(self.target_speaker_type) and len(segments):
             segments = segments[segments['speaker_type'].isin(self.target_speaker_type)]
 
+        segments['segment_onset'] = segments['segment_onset'] + segments['time_seek']
+        segments['segment_offset'] = segments['segment_offset'] + segments['time_seek']
+
         return segments
+
+    def remove_excluded(self):
+        if len(self.excluded) == 0:
+            return
+
+        from pyannote.core import Segment, Timeline
+
+        segments = []
+        for recording, _segments in self.segments.groupby('recording_filename'):
+            sampled = Timeline(
+                segments = [
+                    Segment(segment_onset, segment_offset)
+                    for segment_onset, segment_offset in _segments[['segment_onset', 'segment_offset']].values
+                ]
+            )
+
+            excl_segments = self.excluded.loc[self.excluded['recording_filename'] == recording]
+            excl = Timeline(
+                segments = [
+                    Segment(segment_onset, segment_offset)
+                    for segment_onset, segment_offset in excl_segments[['segment_onset', 'segment_offset']].values
+                ]
+            )
+
+            # sampled = sampled.extrude(sampled) # not released yet
+            extent_tl = Timeline([sampled.extent()], uri = sampled.uri)
+            truncating_support = excl.gaps(support = extent_tl)
+            sampled = sampled.crop(truncating_support, mode = 'intersection')
+
+            segments.append(
+                pd.DataFrame(
+                    [[recording, s.start, s.end] for s in sampled],
+                    columns = ['recording_filename', 'segment_onset', 'segment_offset']
+                )
+            )
+
+        self.segments = pd.concat(segments)
+
         
     def assert_valid(self):
         require_columns = ['recording_filename', 'segment_onset', 'segment_offset']
@@ -96,7 +160,7 @@ class Sampler(ABC):
         if missing_columns:
             raise Exception("custom segments are missing the following columns: {}".format(','.join(missing_columns)))
 
-    def export_audio(self, destination, profile = None):
+    def export_audio(self, destination, profile = None, **kwargs):
         self.assert_valid()
 
         for recording, segments in self.segments.groupby('recording_filename'):
@@ -115,17 +179,19 @@ class Sampler(ABC):
                 seg = audio[segment['segment_onset']:segment['segment_offset']]
 
                 os.makedirs(os.path.dirname(output_path), exist_ok = True)
-                seg.export(output_path, 'wav')
+                seg.export(output_path, **kwargs)
 
 class CustomSampler(Sampler):
     def __init__(self,
         project: ChildProject.projects.ChildProject,
-        segments_path: str):
+        segments_path: str,
+        recordings: Union[str, List[str], pd.DataFrame] = None,
+        exclude: Union[str, pd.DataFrame] = None):
 
-        super().__init__(project)
+        super().__init__(project, recordings, exclude)
         self.segments_path = segments_path
 
-    def sample(self: str):
+    def _sample(self: str):
         self.segments = pd.read_csv(self.segments_path)
 
         if 'time_seek' not in self.segments.columns:
@@ -156,16 +222,17 @@ class PeriodicSampler(Sampler):
         project: ChildProject.projects.ChildProject,
         length: int, period: int, offset: int = 0,
         profile: str = None,
-        recordings: Union[str, List[str], pd.DataFrame] = None
+        recordings: Union[str, List[str], pd.DataFrame] = None,
+        exclude: Union[str, pd.DataFrame] = None
         ):
 
-        super().__init__(project, recordings)
+        super().__init__(project, recordings, exclude)
         self.length = int(length)
         self.period = int(period)
         self.offset = int(offset)
         self.profile = profile
 
-    def sample(self):
+    def _sample(self):
         recordings = self.get_recordings()
         
         if not 'duration' in recordings.columns:
@@ -223,9 +290,11 @@ class RandomVocalizationSampler(Sampler):
         sample_size: int,
         threads: int = 1,
         by: str = 'recording_filename',
-        recordings: Union[str, List[str], pd.DataFrame] = None):
+        recordings: Union[str, List[str], pd.DataFrame] = None,
+        exclude: Union[str, pd.DataFrame] = None
+        ):
 
-        super().__init__(project, recordings)
+        super().__init__(project, recordings, exclude)
         self.annotation_set = annotation_set
         self.target_speaker_type = target_speaker_type
         self.sample_size = sample_size
@@ -252,13 +321,14 @@ class RandomVocalizationSampler(Sampler):
         return segments.sample(frac = 1)\
             .head(self.sample_size)
 
-    def sample(self):
+    def _sample(self):
         recordings = self.get_recordings()
 
         with mp.Pool(processes = self.threads if self.threads >= 1 else mp.cpu_count()) as pool:
             self.segments = pool.map(self._sample_unit, recordings.groupby(self.by))
         
         self.segments = pd.concat(self.segments)
+
         return self.segments
 
     @staticmethod
@@ -314,10 +384,11 @@ class EnergyDetectionSampler(Sampler):
         threads: int = 1,
         profile: str = '',
         by: str = 'recording_filename',
-        recordings: Union[str, List[str], pd.DataFrame] = None
+        recordings: Union[str, List[str], pd.DataFrame] = None,
+        exclude: Union[str, pd.DataFrame] = None
         ):
 
-        super().__init__(project, recordings)
+        super().__init__(project, recordings, exclude)
         self.windows_length = int(windows_length)
         self.windows_count = int(windows_count)
         self.windows_spacing = int(windows_spacing)
@@ -384,7 +455,7 @@ class EnergyDetectionSampler(Sampler):
         return pd.DataFrame(windows)
         
 
-    def sample(self):
+    def _sample(self):
         recordings = self.get_recordings()
 
         if self.threads == 1:
@@ -460,10 +531,11 @@ class HighVolubilitySampler(Sampler):
         windows_count: int,
         threads: int = 1,
         by: str = 'recording_filename',
-        recordings: Union[str, List[str], pd.DataFrame] = None
+        recordings: Union[str, List[str], pd.DataFrame] = None,
+        exclude: Union[str, pd.DataFrame] = None
         ):
 
-        super().__init__(project, recordings)
+        super().__init__(project, recordings, exclude)
         self.annotation_set = annotation_set
         self.metric = metric
         self.windows_length = windows_length
@@ -539,14 +611,14 @@ class HighVolubilitySampler(Sampler):
             .head(self.windows_count)\
             .reset_index(drop = True)
 
-    def sample(self):
+    def _sample(self):
         recordings = self.get_recordings()
 
         with mp.Pool(processes = self.threads if self.threads >= 1 else mp.cpu_count()) as pool:
             self.segments = pool.map(self._sample_unit, recordings.groupby(self.by))
         
         self.segments = pd.concat(self.segments)
-
+    
     @staticmethod
     def add_parser(samplers):
         parser = samplers.add_parser('high-volubility', help = 'high-volubility targeted sampling')
@@ -592,10 +664,6 @@ class SamplerPipeline(Pipeline):
         splr.assert_valid()
         self.segments = splr.segments
 
-        if 'time_seek' in self.segments.columns:
-            self.segments['segment_onset'] = self.segments['segment_onset'] + self.segments['time_seek']
-            self.segments['segment_offset'] = self.segments['segment_offset'] + self.segments['time_seek']
-
         date = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
 
         os.makedirs(destination, exist_ok = True)
@@ -626,5 +694,10 @@ class SamplerPipeline(Pipeline):
 
         parser.add_argument('--recordings',
             help = "path to a CSV dataframe containing the list of recordings to sample from (by default, all recordings will be sampled). The CSV should have one column named recording_filename.",
+            default = None
+        )
+
+        parser.add_argument('--exclude',
+            help = "path to a CSV dataframe containing the list of segments to exclude. The columns should be: recording_filename, segment_onset and segment_offset.",
             default = None
         )
