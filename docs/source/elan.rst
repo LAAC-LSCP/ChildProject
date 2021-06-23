@@ -1,3 +1,5 @@
+.. _eaf-builder:
+
 ELAN builder
 ============
 
