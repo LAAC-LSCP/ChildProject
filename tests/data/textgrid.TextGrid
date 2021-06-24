@@ -1,0 +1,158 @@
+File type = "ooTextFile"
+Object class = "TextGrid"
+
+xmin = 0 
+xmax = 10 
+tiers? <exists> 
+size = 11 
+item []: 
+    item [1]:
+        class = "IntervalTier" 
+        name = "    CHI*" 
+        xmin = 0 
+        xmax = 10 
+        intervals: size = 3 
+        intervals [1]:
+            xmin = 0 
+            xmax = 1.602202475775698 
+            text = "" 
+        intervals [2]:
+            xmin = 1.602202475775698 
+            xmax = 2.2149350364643396 
+            text = "1" 
+        intervals [3]:
+            xmin = 2.2149350364643396 
+            xmax = 10 
+            text = "" 
+    item [2]:
+        class = "IntervalTier" 
+        name = "    MOT*" 
+        xmin = 0 
+        xmax = 10 
+        intervals: size = 3 
+        intervals [1]:
+            xmin = 0 
+            xmax = 5.592624999999998 
+            text = "" 
+        intervals [2]:
+            xmin = 5.592624999999998 
+            xmax = 7.520937500000002 
+            text = "1" 
+        intervals [3]:
+            xmin = 7.520937500000002 
+            xmax = 10 
+            text = "" 
+    item [3]:
+        class = "IntervalTier" 
+        name = "    C1" 
+        xmin = 0 
+        xmax = 10 
+        intervals: size = 3 
+        intervals [1]:
+            xmin = 0 
+            xmax = 2.2149350364643396 
+            text = "" 
+        intervals [2]:
+            xmin = 2.2149350364643396 
+            xmax = 3.319749999999999 
+            text = "1" 
+        intervals [3]:
+            xmin = 3.319749999999999 
+            xmax = 10 
+            text = "" 
+    item [4]:
+        class = "IntervalTier" 
+        name = "    C2" 
+        xmin = 0 
+        xmax = 10 
+        intervals: size = 3 
+        intervals [1]:
+            xmin = 0 
+            xmax = 4.100265992429456 
+            text = "" 
+        intervals [2]:
+            xmin = 4.100265992429456 
+            xmax = 5.209750000000014 
+            text = "1" 
+        intervals [3]:
+            xmin = 5.209750000000014 
+            xmax = 10 
+            text = "" 
+    item [5]:
+        class = "IntervalTier" 
+        name = "    FA1" 
+        xmin = 0 
+        xmax = 10 
+        intervals: size = 1 
+        intervals [1]:
+            xmin = 0 
+            xmax = 10 
+            text = "" 
+    item [6]:
+        class = "IntervalTier" 
+        name = "    FA2" 
+        xmin = 0 
+        xmax = 10 
+        intervals: size = 1 
+        intervals [1]:
+            xmin = 0 
+            xmax = 10 
+            text = "" 
+    item [7]:
+        class = "IntervalTier" 
+        name = "    MA1" 
+        xmin = 0 
+        xmax = 10 
+        intervals: size = 1 
+        intervals [1]:
+            xmin = 0 
+            xmax = 10 
+            text = "" 
+    item [8]:
+        class = "IntervalTier" 
+        name = "    MA2" 
+        xmin = 0 
+        xmax = 10 
+        intervals: size = 1 
+        intervals [1]:
+            xmin = 0 
+            xmax = 10 
+            text = "" 
+    item [9]:
+        class = "IntervalTier" 
+        name = "    2POPMT" 
+        xmin = 0 
+        xmax = 10 
+        intervals: size = 1 
+        intervals [1]:
+            xmin = 0 
+            xmax = 10 
+            text = "" 
+    item [10]:
+        class = "IntervalTier" 
+        name = "    LF2P" 
+        xmin = 0 
+        xmax = 10 
+        intervals: size = 3 
+        intervals [1]:
+            xmin = 0 
+            xmax = 8.100562500000024 
+            text = "" 
+        intervals [2]:
+            xmin = 8.100562500000024 
+            xmax = 9.284926121333484 
+            text = "1" 
+        intervals [3]:
+            xmin = 9.284926121333484 
+            xmax = 10 
+            text = "" 
+    item [11]:
+        class = "IntervalTier" 
+        name = "Autre" 
+        xmin = 0 
+        xmax = 10 
+        intervals: size = 1 
+        intervals [1]:
+            xmin = 0 
+            xmax = 10 
+            text = "" 
