@@ -3,7 +3,6 @@ from ChildProject.annotations import AnnotationManager
 from ChildProject.tables import IndexTable
 from ChildProject.converters import *
 import glob
-import json
 import pandas as pd
 import numpy as np
 import os
@@ -28,68 +27,67 @@ def project(request):
     for raw_annotation in glob.glob("output/annotations/annotations/*.*/converted"):
         shutil.rmtree(raw_annotation)
 
-def gather_columns_to_dict(start_col, end_col, row):
-    n = 1
-    l = []
-    while True:
-        start_key = '{}{}'.format(start_col, n)
-        end_key = '{}{}'.format(end_col, n)
-
-        if start_key in row.keys() and not pd.isnull(row[start_key]): 
-            l.append({
-                'start': row[start_key],
-                'end': row[end_key]
-            })
-        else:
-            return l
-
-        n += 1
-
-from functools import partial
-def check_its(segments, truth):
-    segments['cries'] = segments['cries'].astype(str)
-    segments['utterances'] = segments['utterances'].apply(lambda l: [{'start': u['start'], 'end': u['end']} for u in json.loads(l.replace("'", '"'))]).astype(str)
-    segments['vfxs'] = segments['vfxs'].astype(str)
-
-    truth.rename(columns = {
-        'startTime': 'segment_onset',
-        'endTime': 'segment_offset',
-        'average_dB': 'average_db',
-        'peak_dB': 'peak_db',
-        'blkTypeId': 'lena_block_number',
-        'convTurnType': 'lena_conv_turn_type',
-        'convFloorType': 'lena_conv_floor_type'
-    }, inplace = True)
-
-    truth['words'] = truth[['maleAdultWordCnt', 'femaleAdultWordCnt']].fillna(0).sum(axis = 1)
-    truth['utterances_count'] = truth[['femaleAdultUttCnt', 'maleAdultUttCnt', 'childUttCnt']].fillna(0).sum(axis = 1)
-    truth['utterances_length'] = truth[['femaleAdultUttLen', 'maleAdultUttLen', 'childUttLen']].fillna(0).sum(axis = 1).mul(1000).astype(int)
-    truth['non_speech_length'] = truth[['femaleAdultNonSpeechLen', 'maleAdultNonSpeechLen']].fillna(0).sum(axis = 1).mul(1000).astype(int)
-
-    truth['lena_block_type'] = truth.apply(lambda row: 'pause' if row['blkType'] == 'Pause' else row['convType'], axis = 1)
-    truth['lena_response_count'] = truth['conversationInfo'].apply(lambda s: np.nan if pd.isnull(s) else s.split('|')[1:-1][3]).astype(float, errors = 'ignore')
-
-    truth['cries'] = truth.apply(partial(gather_columns_to_dict, 'startCry', 'endCry'), axis = 1).astype(str)
-    truth['utterances'] = truth.apply(partial(gather_columns_to_dict, 'startUtt', 'endUtt'), axis = 1).astype(str)
-    truth['vfxs'] = truth.apply(partial(gather_columns_to_dict, 'startVfx', 'endVfx'), axis = 1).astype(str)
-
-    truth['segment_onset'] = (truth['segment_onset']*1000).astype(int)
-    truth['segment_offset'] = (truth['segment_offset']*1000).astype(int)
-
-    columns = [
-        'segment_onset', 'segment_offset',
-        'average_db', 'peak_db',
-        'words', 'utterances_count', 'utterances_length', 'non_speech_length',
-        'lena_block_number', #'lena_block_type',
-        'lena_response_count',
-        'cries', 'utterances', 'vfxs',
-        'lena_conv_turn_type', 'lena_conv_floor_type'
-    ]
+def test_vtc():
+    converted = VtcConverter().convert('tests/data/vtc.rttm')
+    truth = pd.read_csv('tests/truth/vtc.csv').fillna('NA')
 
     pd.testing.assert_frame_equal(
-        standardize_dataframe(truth, columns),
-        standardize_dataframe(segments, columns)
+        standardize_dataframe(converted, converted.columns),
+        standardize_dataframe(truth, converted.columns)
     )
+
+def test_vcm():
+    converted = VcmConverter().convert('tests/data/vcm.rttm')
+    truth = pd.read_csv('tests/truth/vcm.csv').fillna('NA')
+
+    pd.testing.assert_frame_equal(
+        standardize_dataframe(converted, converted.columns),
+        standardize_dataframe(truth, converted.columns)
+    )
+
+def test_alice():
+    converted = AliceConverter().convert('tests/data/alice.txt')
+    truth = pd.read_csv('tests/truth/alice.csv').fillna('NA')
+
+    pd.testing.assert_frame_equal(
+        standardize_dataframe(converted, converted.columns),
+        standardize_dataframe(truth, converted.columns)
+    )
+
+def test_eaf():
+    converted = EafConverter().convert('tests/data/eaf.eaf')
+    truth = pd.read_csv('tests/truth/eaf.csv', dtype = {'transcription': str}).fillna('NA')
+
+    pd.testing.assert_frame_equal(
+        standardize_dataframe(converted, converted.columns),
+        standardize_dataframe(truth, converted.columns)
+    )
+
+def test_textgrid():
+    converted = TextGridConverter().convert('tests/data/textgrid.TextGrid')
+    truth = pd.read_csv('tests/truth/textgrid.csv', dtype = {'ling_type': str}).fillna('NA')
+
+    pd.testing.assert_frame_equal(
+        standardize_dataframe(converted, converted.columns),
+        standardize_dataframe(truth, converted.columns)
+    )
+
+def test_cha():
+    converted = ChatConverter.convert('tests/data/vandam.cha')
+    truth = pd.read_csv('tests/truth/cha.csv').fillna('NA')
+
+    pd.testing.assert_frame_equal(
+        standardize_dataframe(converted, converted.columns),
+        standardize_dataframe(truth, converted.columns)
+    )
+
+@pytest.mark.parametrize('its', ['example_lena_new', 'example_lena_old'])
+def test_its(its):
+    converted = ItsConverter().convert(os.path.join('tests/data', its + '.its'))
+    truth = pd.read_csv(
+        os.path.join('tests/truth/its', "{}_ITS_Segments.csv".format(its))
+    )#.fillna('NA')
+    check_its(converted, truth)
 
 def test_import(project):
     am = AnnotationManager(project)
@@ -108,35 +106,20 @@ def test_import(project):
     errors, warnings = am.validate()
     assert len(errors) == 0 and len(warnings) == 0, "malformed annotations detected"
 
-    for dataset in ['eaf', 'textgrid', 'eaf_solis']:
+    for dataset in ['eaf_basic', 'textgrid', 'eaf_solis']:
         annotations = am.annotations[am.annotations['set'] == dataset]
         segments = am.get_segments(annotations)
         segments.drop(columns = set(annotations.columns) - {'raw_filename'}, inplace = True)
         truth = pd.read_csv('tests/truth/{}.csv'.format(dataset))
+
+        print(segments)
+        print(truth)
 
         pd.testing.assert_frame_equal(
             standardize_dataframe(segments, set(truth.columns.tolist())),
             standardize_dataframe(truth, set(truth.columns.tolist())),
             check_less_precise = True
         )
-
-    for dataset in ['new_its', 'old_its']:
-        annotations = am.annotations[am.annotations['set'] == dataset]
-        segments = am.get_segments(annotations)
-        raw_filename = annotations['raw_filename'].tolist()[0]
-        truth = pd.read_csv(os.path.join('tests/truth/its', "{}_ITS_Segments.csv".format(os.path.splitext(raw_filename)[0])))
-
-        check_its(segments, truth)
-
-
-def test_chat():
-    converted = ChatConverter.convert('tests/data/vandam.cha')
-    truth = pd.read_csv('tests/truth/cha.csv')
-
-    pd.testing.assert_frame_equal(
-        standardize_dataframe(converted, converted.columns),
-        standardize_dataframe(truth, converted.columns)
-    )
 
 def test_intersect(project):
     am = AnnotationManager(project)
@@ -276,3 +259,71 @@ def test_vc_stats(project, turntakingthresh):
         standardize_dataframe(truth_vc, vc.columns.tolist()),
         atol = 1, rtol = 0.02
     )
+
+# its
+def gather_columns_to_dict(start_col, end_col, row):
+    n = 1
+    l = []
+    while True:
+        start_key = '{}{}'.format(start_col, n)
+        end_key = '{}{}'.format(end_col, n)
+
+        if start_key in row.keys() and not pd.isnull(row[start_key]): 
+            l.append({
+                'start': row[start_key],
+                'end': row[end_key]
+            })
+        else:
+            return l
+
+        n += 1
+
+from functools import partial
+def check_its(segments, truth):
+    segments['cries'] = segments['cries'].astype(str)
+    segments['utterances'] = segments['utterances'].apply(lambda l: [{'start': u['start'], 'end': u['end']} for u in l]).astype(str)
+    segments['vfxs'] = segments['vfxs'].astype(str)
+
+    truth.rename(columns = {
+        'startTime': 'segment_onset',
+        'endTime': 'segment_offset',
+        'average_dB': 'average_db',
+        'peak_dB': 'peak_db',
+        'blkTypeId': 'lena_block_number',
+        'convTurnType': 'lena_conv_turn_type',
+        'convFloorType': 'lena_conv_floor_type'
+    }, inplace = True)
+
+    truth['words'] = truth[['maleAdultWordCnt', 'femaleAdultWordCnt']].astype(float, errors = 'ignore').fillna(0).sum(axis = 1)
+    truth['utterances_count'] = truth[['femaleAdultUttCnt', 'maleAdultUttCnt', 'childUttCnt']].astype(float, errors = 'ignore').fillna(0).sum(axis = 1)
+    truth['utterances_length'] = truth[['femaleAdultUttLen', 'maleAdultUttLen', 'childUttLen']].astype(float, errors = 'ignore').fillna(0).sum(axis = 1).mul(1000).astype(int)
+    truth['non_speech_length'] = truth[['femaleAdultNonSpeechLen', 'maleAdultNonSpeechLen']].astype(float, errors = 'ignore').fillna(0).sum(axis = 1).mul(1000).astype(int)
+
+    truth['lena_block_type'] = truth.apply(lambda row: 'pause' if row['blkType'] == 'Pause' else row['convType'], axis = 1)
+    truth['lena_response_count'] = truth['conversationInfo'].apply(lambda s: 'NA' if pd.isnull(s) else s.split('|')[1:-1][3]).astype(str)
+
+    truth['cries'] = truth.apply(partial(gather_columns_to_dict, 'startCry', 'endCry'), axis = 1).astype(str)
+    truth['utterances'] = truth.apply(partial(gather_columns_to_dict, 'startUtt', 'endUtt'), axis = 1).astype(str)
+    truth['vfxs'] = truth.apply(partial(gather_columns_to_dict, 'startVfx', 'endVfx'), axis = 1).astype(str)
+
+    truth['segment_onset'] = (truth['segment_onset']*1000).astype(int)
+    truth['segment_offset'] = (truth['segment_offset']*1000).astype(int)
+
+    truth['lena_conv_floor_type'].fillna('NA', inplace = True)
+    truth['lena_conv_turn_type'].fillna('NA', inplace = True)
+    truth['lena_response_count'].fillna('NA', inplace = True)
+
+    columns = [
+        'segment_onset', 'segment_offset',
+        'average_db', 'peak_db',
+        'words', 'utterances_count', 'utterances_length', 'non_speech_length',
+        'lena_block_number', #'lena_block_type',
+        'lena_response_count',
+        'cries', 'utterances', 'vfxs',
+        'lena_conv_turn_type', 'lena_conv_floor_type'
+    ]
+
+    pd.testing.assert_frame_equal(
+        standardize_dataframe(truth, columns),
+        standardize_dataframe(segments, columns)
+    )   

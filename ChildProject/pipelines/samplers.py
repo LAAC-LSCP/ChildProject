@@ -193,10 +193,6 @@ class CustomSampler(Sampler):
 
     def _sample(self: str):
         self.segments = pd.read_csv(self.segments_path)
-
-        if 'time_seek' not in self.segments.columns:
-                self.segments['time_seek'] = 0
-
         return self.segments
 
     @staticmethod

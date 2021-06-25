@@ -42,14 +42,11 @@ of :class:`~ChildProject.annotations.AnnotationManager`:
     >>> from ChildProject.projects import ChildProject
     >>> from ChildProject.annotations import AnnotationManager
     >>> from ChildProject.metrics import segments_to_grid, conf_matrix
-    >>> 
     >>> speakers = ['CHI', 'OCH', 'FEM', 'MAL']
-    >>> 
     >>> project = ChildProject('vandam-data')
     >>> am = AnnotationManager(project)
     >>> am.read()
     ([], ["vandam-data/metadata/annotations.csv: 'chat' is not a permitted value for column 'format' on line 4, should be any of [TextGrid,eaf,vtc_rttm,vcm_rttm,alice,its]", "vandam-data/metadata/annotations.csv: 'custom_rttm' is not a permitted value for column 'format' on line 6, should be any of [TextGrid,eaf,vtc_rttm,vcm_rttm,alice,its]"])
-    >>> 
     >>> intersection = AnnotationManager.intersection(am.annotations, ['vtc', 'its'])
     >>> intersection
     set recording_filename  time_seek  range_onset  range_offset      raw_filename    format  filter  annotation_filename          imported_at  error package_version
@@ -110,7 +107,6 @@ categories: 'overlap' and 'none'.
     See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
     self.obj[key] = value
     >>> its = segments_to_grid(segments[segments['set'] == 'its'], 0, segments['segment_offset'].max(), 100, 'speaker_type', speakers)
-    >>> 
     >>> vtc.shape
     (503571, 6)
     >>> vtc
@@ -121,7 +117,6 @@ categories: 'overlap' and 'none'.
         [0, 0, 1, 0, 0, 0],
         [0, 0, 1, 0, 0, 0],
         [0, 0, 0, 0, 0, 1]])
-    >>> 
 
 
 We can now compute the confusion matrix:
@@ -137,7 +132,6 @@ We can now compute the confusion matrix:
         [   158,    155,   1984,  14613,      0,  10918],
         [  2852,   2407,   4390,   3203,      0,   5138],
         [  3053,   2158,   3674,   2464,      0, 365000]])
-    >>> 
 
 Using pyannote.metrics
 ----------------------
@@ -165,7 +159,6 @@ object per annotator:
     >>> from ChildProject.metrics import segments_to_annotation
     >>> ref = segments_to_annotation(segments[segments['set'] == 'vtc'], 'speaker_type')
     >>> hyp = segments_to_annotation(segments[segments['set'] == 'its'], 'speaker_type')
-    >>>
 
 Now, any pyannote metric can be instantianted and used with these annotations:
 

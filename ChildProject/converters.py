@@ -180,7 +180,7 @@ class ItsConverter(AnnotationConverter):
             for seg in segs:
                 parent = seg.getparent()
 
-                lena_block_number = parent.get('num')
+                lena_block_number = int(parent.get('num'))
                 lena_block_type = 'pause' if parent.tag.lower() == 'pause' else parent.get('type')
 
                 if not seg.get('conversationInfo'):
@@ -212,8 +212,8 @@ class ItsConverter(AnnotationConverter):
                 for attr in ['femaleAdultNonSpeechLen', 'maleAdultNonSpeechLen']:
                     non_speech_length += float(extract_from_regex(timestamp_pattern, seg.get(attr, 'P0S')))
 
-                average_db = seg.get('average_dB', 0)
-                peak_db = seg.get('peak_dB', 0)
+                average_db = float(seg.get('average_dB', 0))
+                peak_db = float(seg.get('peak_dB', 0))
 
                 utterances = seg.xpath('./UTT')
                 utterances = [dict(utt.attrib) for utt in utterances]
