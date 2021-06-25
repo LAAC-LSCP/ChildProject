@@ -27,9 +27,9 @@ class AnnotationManager:
     INDEX_COLUMNS = [
         IndexColumn(name = 'set', description = 'name of the annotation set (e.g. VTC, annotator1, etc.)', required = True),
         IndexColumn(name = 'recording_filename', description = 'recording filename as specified in the recordings index', required = True),
-        IndexColumn(name = 'time_seek', description = 'reference time in milliseconds, e.g: 3600000. All times expressed in the annotations are relative to this time.', regex = r"(\-?)([0-9]+)", required = True),
-        IndexColumn(name = 'range_onset', description = 'covered range start time in milliseconds', regex = r"([0-9]+)", required = True),
-        IndexColumn(name = 'range_offset', description = 'covered range end time in milliseconds', regex = r"([0-9]+)", required = True),
+        IndexColumn(name = 'time_seek', description = 'shift between the timestamps in the raw input annotations and the actual corresponding timestamps in the recordings (in milliseconds)', regex = r"(\-?)([0-9]+)", required = True),
+        IndexColumn(name = 'range_onset', description = 'covered range onset timestamp in milliseconds (since the start of the recording)', regex = r"([0-9]+)", required = True),
+        IndexColumn(name = 'range_offset', description = 'covered range offset timestamp in milliseconds (since the start of the recording)', regex = r"([0-9]+)", required = True),
         IndexColumn(name = 'raw_filename', description = 'annotation input filename location, relative to `annotations/<set>/raw`', filename = True, required = True),
         IndexColumn(name = 'format', description = 'input annotation format', choices = [*converters.keys(), 'NA'], required = False),
         IndexColumn(name = 'filter', description = 'source file to filter in (for rttm and alice only)', required = False),
@@ -41,8 +41,8 @@ class AnnotationManager:
 
     SEGMENTS_COLUMNS = [
         IndexColumn(name = 'raw_filename', description = 'raw annotation path relative, relative to `annotations/<set>/raw`', required = True),
-        IndexColumn(name = 'segment_onset', description = 'segment start time in milliseconds', regex = r"([0-9]+)", required = True),
-        IndexColumn(name = 'segment_offset', description = 'segment end time in milliseconds', regex = r"([0-9]+)", required = True),
+        IndexColumn(name = 'segment_onset', description = 'segment onset timestamp in milliseconds (since the start of the recording)', regex = r"([0-9]+)", required = True),
+        IndexColumn(name = 'segment_offset', description = 'segment end time in milliseconds (since the start of the recording)', regex = r"([0-9]+)", required = True),
         IndexColumn(name = 'speaker_id', description = 'identity of speaker in the annotation'),
         IndexColumn(name = 'speaker_type', description = 'class of speaker (FEM = female adult, MAL = male adult, CHI = key child, OCH = other child)', choices = ['FEM', 'MAL', 'CHI', 'OCH', 'NA']),
         IndexColumn(name = 'ling_type', description = '1 if the vocalization contains at least a vowel (ie canonical or non-canonical), 0 if crying or laughing', choices = ['1', '0', 'NA']),
