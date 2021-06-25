@@ -81,11 +81,13 @@ def test_cha():
         standardize_dataframe(truth, converted.columns)
     )
 
-def test_its():
-    for its in ['example_lena_new', 'example_lena_old']:
-        converted = ItsConverter().convert(os.path.join('tests/data', its + '.its'))
-        truth = pd.read_csv(os.path.join('tests/truth/its', "{}_ITS_Segments.csv".format(its))).fillna('NA')
-        check_its(converted, truth)
+@pytest.mark.parametrize('its', ['example_lena_new', 'example_lena_old'])
+def test_its(its):
+    converted = ItsConverter().convert(os.path.join('tests/data', its + '.its'))
+    truth = pd.read_csv(
+        os.path.join('tests/truth/its', "{}_ITS_Segments.csv".format(its))
+    )#.fillna('NA')
+    check_its(converted, truth)
 
 def test_import(project):
     am = AnnotationManager(project)
@@ -289,13 +291,13 @@ def check_its(segments, truth):
         'convFloorType': 'lena_conv_floor_type'
     }, inplace = True)
 
-    truth['words'] = truth[['maleAdultWordCnt', 'femaleAdultWordCnt']].fillna(0).sum(axis = 1)
-    truth['utterances_count'] = truth[['femaleAdultUttCnt', 'maleAdultUttCnt', 'childUttCnt']].fillna(0).sum(axis = 1)
-    truth['utterances_length'] = truth[['femaleAdultUttLen', 'maleAdultUttLen', 'childUttLen']].fillna(0).sum(axis = 1).mul(1000).astype(int)
-    truth['non_speech_length'] = truth[['femaleAdultNonSpeechLen', 'maleAdultNonSpeechLen']].fillna(0).sum(axis = 1).mul(1000).astype(int)
+    truth['words'] = truth[['maleAdultWordCnt', 'femaleAdultWordCnt']].astype(float, errors = 'ignore').fillna(0).sum(axis = 1)
+    truth['utterances_count'] = truth[['femaleAdultUttCnt', 'maleAdultUttCnt', 'childUttCnt']].astype(float, errors = 'ignore').fillna(0).sum(axis = 1)
+    truth['utterances_length'] = truth[['femaleAdultUttLen', 'maleAdultUttLen', 'childUttLen']].astype(float, errors = 'ignore').fillna(0).sum(axis = 1).mul(1000).astype(int)
+    truth['non_speech_length'] = truth[['femaleAdultNonSpeechLen', 'maleAdultNonSpeechLen']].astype(float, errors = 'ignore').fillna(0).sum(axis = 1).mul(1000).astype(int)
 
     truth['lena_block_type'] = truth.apply(lambda row: 'pause' if row['blkType'] == 'Pause' else row['convType'], axis = 1)
-    truth['lena_response_count'] = truth['conversationInfo'].apply(lambda s: np.nan if s == 'NA' else s.split('|')[1:-1][3]).astype(float, errors = 'ignore')
+    truth['lena_response_count'] = truth['conversationInfo'].apply(lambda s: 'NA' if pd.isnull(s) else s.split('|')[1:-1][3]).astype(str)
 
     truth['cries'] = truth.apply(partial(gather_columns_to_dict, 'startCry', 'endCry'), axis = 1).astype(str)
     truth['utterances'] = truth.apply(partial(gather_columns_to_dict, 'startUtt', 'endUtt'), axis = 1).astype(str)
@@ -303,6 +305,10 @@ def check_its(segments, truth):
 
     truth['segment_onset'] = (truth['segment_onset']*1000).astype(int)
     truth['segment_offset'] = (truth['segment_offset']*1000).astype(int)
+
+    truth['lena_conv_floor_type'].fillna('NA', inplace = True)
+    truth['lena_conv_turn_type'].fillna('NA', inplace = True)
+    truth['lena_response_count'].fillna('NA', inplace = True)
 
     columns = [
         'segment_onset', 'segment_offset',
@@ -317,4 +323,4 @@ def check_its(segments, truth):
     pd.testing.assert_frame_equal(
         standardize_dataframe(truth, columns),
         standardize_dataframe(segments, columns)
-    )
+    )   
