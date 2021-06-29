@@ -97,14 +97,13 @@ def segments_to_grid(
     segments.loc[:,'onset_index'] = (segments.loc[:,'segment_onset'] // timescale).astype(int)
     segments.loc[:,'offset_index'] = (segments.loc[:,'segment_offset'] // timescale).astype(int)
 
-    categories = categories.copy()
     category_table = {
         categories[i]: i
         for i in range(len(categories))
     }
 
     data = np.zeros(
-        (units, len(categories) + (1 if overlap else 0) + (1 if none else 0)),
+        (units, len(categories) + int(overlap) + int(none)),
         dtype = int
     )
 
