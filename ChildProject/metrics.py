@@ -37,7 +37,9 @@ def segments_to_grid(
     range_offset: int,
     timescale: int,
     column: str,
-    categories: list) -> float:
+    categories: list,
+    none = True,
+    overlap = False) -> float:
 
     """Transform a dataframe of annotation segments into a 2d matrix
     representing the indicator function of each of the ``categories`` across
@@ -51,13 +53,19 @@ def segments_to_grid(
     The value of the cell ``ij`` of the output matrix is set to 1
     if the class ``j`` is active at time ``i``, 0 otherwise.
 
-    The penultimate column (overlap) is set to 1 if more than two
+    
+    If `overlap` is True, an additional column is appended
+    to the grid, which set to 1 if more than two
     classes are active at time ``i``.
-    The last column (none) is set to one if none of the classes
+
+    If `none` is True, an additional column is appended to the grid,
+    which is set to one if none of the classes
     are active at time ``i``.
 
     The shape of the output matrix is therefore
-    ``((range_offset-range_onset)/timescale, len(categories) + 2)``.
+    ``((range_offset-range_onset)/timescale, len(categories) + n)``,
+    where n = 2 if both `overlap` and `none` are True, 1 if one of them is True,
+    and 0 otherwise.
 
     The fraction of time a class ``j`` is active can therefore be
     calculated as ``np.mean(grid, axis = 0)[j]``
@@ -90,13 +98,16 @@ def segments_to_grid(
     segments.loc[:,'offset_index'] = (segments.loc[:,'segment_offset'] // timescale).astype(int)
 
     categories = categories.copy()
-    categories += ['overlap', 'none']
     category_table = {
         categories[i]: i
         for i in range(len(categories))
     }
 
-    data = np.zeros((units, len(categories)), dtype = int)
+    data = np.zeros(
+        (units, len(categories) + (1 if overlap else 0) + (1 if none else 0)),
+        dtype = int
+    )
+
     for segment in segments.to_dict(orient = 'records'):
         category = str(segment[column])
         if category not in category_table:
@@ -105,10 +116,15 @@ def segments_to_grid(
         category_index = category_table[category]
         data[segment['onset_index']:segment['offset_index'], category_index] = 1
 
-    data[:,-2] = np.count_nonzero(data[:,:-2], axis = 1)
-    data[:,-1] = data[:,-2] == 0
-    data[:,-2] = data[:,-2] > 1
+    non_zero = np.count_nonzero(data, axis = 1)
 
+    if overlap:
+        overlap_index = -2 if none else -1
+        data[:, overlap_index] = non_zero > 1
+
+    if none:
+        data[:, -1] = non_zero == 0
+    
     return data
 
 def grid_to_vector(grid, categories):
@@ -127,7 +143,7 @@ def grid_to_vector(grid, categories):
     """
     return np.vectorize(lambda x: categories[x])(grid.shape[1] - np.argmax(grid[:,::-1], axis = 1) - 1)
 
-def conf_matrix(horizontal_grid, vertical_grid, categories):
+def conf_matrix(horizontal_grid, vertical_grid):
     """compute the confusion matrix (as counts) from grids of active classes.
 
     See :func:`ChildProject.metrics.segments_to_grid` for a description of grids.
@@ -141,13 +157,7 @@ def conf_matrix(horizontal_grid, vertical_grid, categories):
     :return: a square numpy array of counts
     :rtype: numpy.array
     """
-    from sklearn.metrics import confusion_matrix
-
-    vertical = grid_to_vector(vertical_grid, categories)
-    horizontal = grid_to_vector(horizontal_grid, categories)
-
-    return confusion_matrix(vertical, horizontal, labels = categories)
-
+    return horizontal_grid.T @ vertical_grid
 
 def vectors_to_annotation_task(*args, drop: List[str] = []):
     """transform vectors of labels into a nltk AnnotationTask object.
