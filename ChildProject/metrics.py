@@ -143,21 +143,21 @@ def grid_to_vector(grid, categories):
     """
     return np.vectorize(lambda x: categories[x])(grid.shape[1] - np.argmax(grid[:,::-1], axis = 1) - 1)
 
-def conf_matrix(horizontal_grid, vertical_grid):
+def conf_matrix(rows_grid, columns_grid):
     """compute the confusion matrix (as counts) from grids of active classes.
 
     See :func:`ChildProject.metrics.segments_to_grid` for a description of grids.
 
-    :param horizontal_grid: the grid corresponding to the horizontal axis of the confusion matrix.
-    :type horizontal_grid: numpy.array
-    :param vertical_grid: the grid corresponding to the vertical axis of the confusion matrix.
-    :type vertical_grid: numpy.array
+    :param rows_grid: the grid corresponding to the rows of the confusion matrix.
+    :type rows_grid: numpy.array
+    :param columns_grid: the grid corresponding to the columns of the confusion matrix.
+    :type columns_grid: numpy.array
     :param categories: the labels corresponding to each class
     :type categories: list of strings
     :return: a square numpy array of counts
     :rtype: numpy.array
     """
-    return horizontal_grid.T @ vertical_grid
+    return rows_grid.T @ columns_grid
 
 def vectors_to_annotation_task(*args, drop: List[str] = []):
     """transform vectors of labels into a nltk AnnotationTask object.

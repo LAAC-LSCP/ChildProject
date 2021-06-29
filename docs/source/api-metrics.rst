@@ -88,8 +88,8 @@ But the following will work even for sparse annotations covering several recordi
 For an efficient computation of the confusion matrix, the timeline is then split into chunks of a given length
 (in our case, we will set the time steps to 100 milliseconds).
 This is done with :func:`ChildProject.metrics.segments_to_grid`, which transforms a dataframe of segments
-into a matrix of the indicator functions of each classification category at each time unit. This function adds to more
-categories: 'overlap' and 'none'.
+into a matrix of the indicator functions of each classification category at each time unit. This function adds
+one more category ('none'), which is set to 1 when all classes are inactive.
 
 .. code-block:: python
 
@@ -123,15 +123,33 @@ We can now compute the confusion matrix:
 
 .. code-block:: python
 
-    >>> speakers.extend(['overlap', 'none'])
-    >>> confusion_counts = conf_matrix(its, vtc, speakers)
+    >>> confusion_counts = conf_matrix(vtc, its)
     >>> confusion_counts
-    array([[ 17802,   5139,   2537,    566,      0,  17392],
-        [   178,   1329,    129,     65,      0,   1947],
-        [   998,    818,  14530,   1964,      0,  16010],
-        [   158,    155,   1984,  14613,      0,  10918],
-        [  2852,   2407,   4390,   3203,      0,   5138],
-        [  3053,   2158,   3674,   2464,      0, 365000]])
+    array([[ 20503,   7285,   4296,   1191,  21062],
+    [  1435,   3354,    704,    136,   4105],
+    [  2700,   1414,  18442,   4649,  19080],
+    [   323,    229,   4600,  17654,  12415],
+    [  3053,   2158,   3674,   2464, 365000]])
+
+This means that 20503 of the 100 ms chunks were labelled as containing CHI speech
+by both the VTC and the LENA; 7285 chunks have been labelled as containing CHI speech by the VTC
+while being labelled as OCH by the LENA.
+
+It is sometimes more useful to normalize confusion matrices:
+
+    >>> import numpy as np
+    >>> normalized = confusion_counts/(np.sum(vtc, axis = 0)[:,None])
+    >>> rel
+    array([[0.37733036, 0.13407071, 0.07906215, 0.02191877, 0.38761801],
+    [0.14742141, 0.34456544, 0.07232381, 0.01397165, 0.42171769],
+    [0.05833423, 0.03054985, 0.39844442, 0.10044291, 0.41222858],
+    [0.00917067, 0.0065018 , 0.1306039 , 0.50123506, 0.35248857],
+    [0.00811215, 0.00573404, 0.00976222, 0.00654711, 0.96984448]])
+
+The top-left cell now reads as: 37,8% of the 100 ms chunks labelled as CHI by the VTC
+are also labelled as CHI by the LENA.
+
+Summing 
 
 Using pyannote.metrics
 ----------------------
