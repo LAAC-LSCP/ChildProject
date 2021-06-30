@@ -117,10 +117,10 @@ into a matrix of the indicator functions of each classification category at each
         [0, 0, 1, 0, 0],
         [0, 0, 0, 0, 1]])
 
-Note that this matrix has 5 columns, although there are only 4 categories (CHI, OCH, FEM and MAL).
-This is because :func:`~ChildProject.metrics.segments_to_grid` appends the matrix with a 'none' none,
+Note that this matrix has 5 columns, even though there are only 4 categories (CHI, OCH, FEM and MAL).
+This is because :func:`~ChildProject.metrics.segments_to_grid` appends the matrix with a 'none' column,
 which is set to 1 when all classes are inactive.
-It can be turned off by setting `none = False`. It is possible to add an 'overlap' column
+It can be turned off by setting `none = False`. It is also possible to append an 'overlap' column
 by setting `overlap=True`; this column is set to 1 when at least 2 classes are active.
 
 We can now compute the confusion matrix:
@@ -153,7 +153,6 @@ It is sometimes more useful to normalize confusion matrices:
 The top-left cell now reads as: 37,8% of the 100 ms chunks labelled as CHI by the VTC
 are also labelled as CHI by the LENA.
 
-Summing 
 
 Using pyannote.metrics
 ----------------------
