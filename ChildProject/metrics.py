@@ -115,7 +115,8 @@ def segments_to_grid(
         category_index = category_table[category]
         data[segment['onset_index']:segment['offset_index'], category_index] = 1
 
-    non_zero = np.count_nonzero(data, axis = 1)
+    if overlap or none:
+        non_zero = np.count_nonzero(data, axis = 1)
 
     if overlap:
         overlap_index = -2 if none else -1
