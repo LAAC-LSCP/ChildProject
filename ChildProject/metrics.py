@@ -53,12 +53,11 @@ def segments_to_grid(
     The value of the cell ``ij`` of the output matrix is set to 1
     if the class ``j`` is active at time ``i``, 0 otherwise.
 
-    
     If `overlap` is True, an additional column is appended
     to the grid, which set to 1 if more than two
     classes are active at time ``i``.
 
-    If `none` is True, an additional column is appended to the grid,
+    If `none` is set to True, an additional column is appended to the grid,
     which is set to one if none of the classes
     are active at time ``i``.
 
@@ -83,6 +82,10 @@ def segments_to_grid(
     :type column: str
     :param categories: the list of categories
     :type categories: list
+    :param none: append a 'none' column, default True
+    :type none: bool
+    :param overlap: append an overlap column, default False
+    :type overlap: bool
     :return: the output grid
     :rtype: numpy.array
     """
