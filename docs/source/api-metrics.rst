@@ -88,8 +88,7 @@ But the following will work even for sparse annotations covering several recordi
 For an efficient computation of the confusion matrix, the timeline is then split into chunks of a given length
 (in our case, we will set the time steps to 100 milliseconds).
 This is done with :func:`ChildProject.metrics.segments_to_grid`, which transforms a dataframe of segments
-into a matrix of the indicator functions of each classification category at each time unit. This function adds
-one more category ('none'), which is set to 1 when all classes are inactive.
+into a matrix of the indicator functions of each classification category at each time unit.
 
 .. code-block:: python
 
@@ -108,16 +107,21 @@ one more category ('none'), which is set to 1 when all classes are inactive.
     self.obj[key] = value
     >>> its = segments_to_grid(segments[segments['set'] == 'its'], 0, segments['segment_offset'].max(), 100, 'speaker_type', speakers)
     >>> vtc.shape
-    (503571, 6)
+    (503571, 5)
     >>> vtc
-    array([[0, 0, 0, 0, 0, 1],
-        [0, 0, 0, 0, 0, 1],
-        [0, 0, 0, 0, 0, 1],
+    array([[0, 0, 0, 0, 1],
+        [0, 0, 0, 0, 1],
+        [0, 0, 0, 0, 1],
         ...,
-        [0, 0, 1, 0, 0, 0],
-        [0, 0, 1, 0, 0, 0],
-        [0, 0, 0, 0, 0, 1]])
+        [0, 0, 1, 0, 0],
+        [0, 0, 1, 0, 0],
+        [0, 0, 0, 0, 1]])
 
+Note that this matrix has 5 columns, although there are only 4 categories (CHI, OCH, FEM and MAL).
+This is because :func:`~ChildProject.metrics.segments_to_grid` appends the matrix with a 'none' none,
+which is set to 1 when all classes are inactive.
+It can be turned off by setting `none = False`. It is possible to add an 'overlap' column
+by setting `overlap=True`; this column is set to 1 when at least 2 classes are active.
 
 We can now compute the confusion matrix:
 
