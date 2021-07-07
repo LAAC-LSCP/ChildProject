@@ -17,7 +17,7 @@ Public data sets
 ~~~~~~~~~~~~~~~~
 
 We have prepared a `public
-dataset <https://github.com/LAAC-LSCP/vandam-daylong-demo>`__ for
+dataset <https://gin.g-node.org/LAAC-LSCP/vandam-data>`__ for
 testing purposes which is based on the `VanDam Public Daylong HomeBank
 Corpus <https://homebank.talkbank.org/access/Public/VanDam-Daylong.html>`__;
 VanDam, Mark (2018). VanDam Public Daylong HomeBank Corpus.
@@ -29,6 +29,12 @@ From the `LAAC team <https://lscp.dec.ens.fr/en/research/teams-lscp/language-acq
 .. csv-table:: List of LAAC datasets
     :header-rows: 1
     :file: _static/datasets.csv
+
+EL1000
+~~~~~~
+
+The `EL1000 dataset <https://gin.g-node.org/EL1000/EL1000>`__ contains several corpora accessible
+upon request.
 
 Other private datasets
 ~~~~~~~~~~~~~~~~~~~~~~
