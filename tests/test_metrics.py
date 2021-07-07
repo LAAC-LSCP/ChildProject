@@ -18,7 +18,10 @@ def test_gamma():
 
 def test_segments_to_grid():
     segments = pd.read_csv('tests/data/grid.csv')
-    grid = segments_to_grid(segments, 0, 10, 1, 'speaker_type', ['CHI', 'FEM'])
+    grid_both = segments_to_grid(segments, 0, 10, 1, 'speaker_type', ['CHI', 'FEM'], overlap = True, none = True)
+    grid_none_only = segments_to_grid(segments, 0, 10, 1, 'speaker_type', ['CHI', 'FEM'], overlap = False, none = True)
+    grid_overlap_only = segments_to_grid(segments, 0, 10, 1, 'speaker_type', ['CHI', 'FEM'], overlap = True, none = False)
+    grid_bare = segments_to_grid(segments, 0, 10, 1, 'speaker_type', ['CHI', 'FEM'], overlap = False, none = False)
 
     truth = np.array([
         [1, 0, 0, 0],
@@ -34,12 +37,24 @@ def test_segments_to_grid():
     ])
 
     np.testing.assert_array_equal(
-        grid, truth
+        grid_both, truth
+    )
+
+    np.testing.assert_array_equal(
+        grid_none_only, np.delete(truth, -2, 1)
+    )
+
+    np.testing.assert_array_equal(
+        grid_overlap_only, truth[:,:-1]
+    )
+
+    np.testing.assert_array_equal(
+        grid_bare, truth[:,:-2]
     )
 
 def test_grid_to_vectors():
     segments = pd.read_csv('tests/data/grid.csv')
-    grid = segments_to_grid(segments, 0, 10, 1, 'speaker_type', ['CHI', 'FEM'])
+    grid = segments_to_grid(segments, 0, 10, 1, 'speaker_type', ['CHI', 'FEM'], overlap = True, none = True)
     vector = grid_to_vector(grid, ['CHI', 'FEM', 'overlap', 'none'])
 
     truth = np.array([
@@ -56,9 +71,18 @@ def test_conf_matrix():
     categories = ['CHI', 'FEM']
 
     confmat = conf_matrix(
-        segments_to_grid(segments[segments['set'] == 'Alice'], 0, 20, 1, 'speaker_type', categories),
-        segments_to_grid(segments[segments['set'] == 'Bob'], 0, 20, 1, 'speaker_type', categories),
-        categories + ['overlap', 'none']
+        segments_to_grid(
+            segments[segments['set'] == 'Bob'], 0, 20, 1, 'speaker_type',
+            categories,
+            overlap = True,
+            none = True
+        ),
+        segments_to_grid(
+            segments[segments['set'] == 'Alice'], 0, 20, 1, 'speaker_type',
+            categories,
+            overlap = True,
+            none = True
+        )
     )
 
     truth = np.array([
@@ -86,7 +110,9 @@ def test_alpha():
                 segments['segment_offset'].max(),
                 1,
                 'speaker_type',
-                categories
+                categories,
+                overlap = True,
+                none = True
             ),
             categories + ['overlap', 'none']
         )
