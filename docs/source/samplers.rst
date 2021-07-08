@@ -14,17 +14,23 @@ Overview
 A sampler draws segments from the recordings, according to the algorithm and the parameters defined by the user.
 The sampler will produce two files into the `destination` folder :
 
- - `segments_YYYYMMDD_HHMMSS.csv`, a CSV dataframe of all sampled segments, with three columns: ``recording_filename``, ``segment_onset`` and ``segment_offset``.
- - `parameters_YYYYMMDD_HHMMSS.yml`, a Yaml file with all the parameters that were used to generate the samples.
+ - ``segments_YYYYMMDD_HHMMSS.csv``, a CSV dataframe of all sampled segments, with three columns: ``recording_filename``, ``segment_onset`` and ``segment_offset``.
+ - ``parameters_YYYYMMDD_HHMMSS.yml``, a Yaml file with all the parameters that were used to generate the samples.
 
 If the folder `destination` does not exist, it is automatically created in the process.
 
 Several samplers are implemented in our package, which are listed below.
-The samples can then feed downstream pipelines such as the :ref:`zooniverse` pipeline.
+
+The samples can then feed downstream pipelines such as the :ref:`zooniverse` pipeline or the :ref:`eaf-builder`.
 
 .. clidoc::
 
    child-project sampler --help
+
+All samplers have a few parameters in common:
+
+- ``--recordings``, which sets the white-list of recordings to sample from
+- ``--exclude``, which defines the portions of audio to exclude from the samples *after* sampling.
 
 Periodic sampler
 ~~~~~~~~~~~~~~~~

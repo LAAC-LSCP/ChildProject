@@ -305,7 +305,7 @@ class ChildProject:
         recordings = self.recordings[['recording_filename']]
 
         recordings = recordings.assign(duration = recordings['recording_filename'].map(lambda f:
-            get_audio_duration(self.get_recording_path(f))
+            get_audio_duration(self.get_recording_path(f, profile))
         ))
         recordings['duration'].fillna(0, inplace = True)
         recordings['duration'] = (recordings['duration']*1000).astype(int)

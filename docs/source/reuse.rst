@@ -127,11 +127,7 @@ Updating a dataset
 ------------------
 
 A dataset can be updated from the sources using ``git pull`` together
-with ``dataset update``.
-
-Installing all our datasets at once
------------------------------------
-
+with ``datalad update``.
 
 Contributing
 ------------

@@ -64,11 +64,12 @@ class AudioProcessor(ABC):
             exist_ok = True
         )
 
-        pool = mp.Pool(processes = self.threads if self.threads > 0 else mp.cpu_count())
-        self.converted = pool.map(
-            self.process_recording,
-            self.project.recordings.to_dict('records')
-        )
+        with mp.Pool(processes = self.threads if self.threads > 0 else mp.cpu_count()) as pool:
+            self.converted = pool.map(
+                self.process_recording,
+                self.project.recordings.to_dict('records')
+            )
+        
         self.converted = pd.concat(self.converted)
         self.export_metadata()
 

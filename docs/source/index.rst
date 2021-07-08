@@ -12,8 +12,9 @@ Welcome to ChildProject's documentation!
 
    introduction
    install
-   getting-data
    format
+   getting-data
+   projects
 
 .. toctree::
    :maxdepth: 2

@@ -42,6 +42,12 @@ class AnnotationConverter:
         'UC4': 'OCH',
         'UC5': 'OCH',
         'UC6': 'OCH',
+        'UA1': 'NA',
+        'UA2': 'NA',
+        'UA3': 'NA',
+        'UA4': 'NA',
+        'UA5': 'NA',
+        'UA6': 'NA',
         'EE1': 'NA',
         'EE2': 'NA',
         'FAE': 'NA',
@@ -180,7 +186,7 @@ class ItsConverter(AnnotationConverter):
             for seg in segs:
                 parent = seg.getparent()
 
-                lena_block_number = parent.get('num')
+                lena_block_number = int(parent.get('num'))
                 lena_block_type = 'pause' if parent.tag.lower() == 'pause' else parent.get('type')
 
                 if not seg.get('conversationInfo'):
@@ -212,8 +218,8 @@ class ItsConverter(AnnotationConverter):
                 for attr in ['femaleAdultNonSpeechLen', 'maleAdultNonSpeechLen']:
                     non_speech_length += float(extract_from_regex(timestamp_pattern, seg.get(attr, 'P0S')))
 
-                average_db = seg.get('average_dB', 0)
-                peak_db = seg.get('peak_dB', 0)
+                average_db = float(seg.get('average_dB', 0))
+                peak_db = float(seg.get('peak_dB', 0))
 
                 utterances = seg.xpath('./UTT')
                 utterances = [dict(utt.attrib) for utt in utterances]
@@ -494,7 +500,7 @@ class ChatConverter(AnnotationConverter):
 
         if 'add' in df.columns:
             df['addressee'] = df['speaker_type'].fillna('').replace({'NA': ''})\
-                .apply(lambda s: ','.join(sorted([role_to_addressee(roles[x.strip()]) for x in str(s).split(',')])))
+                .apply(lambda s: ','.join(sorted([ChatConverter.role_to_addressee(roles[x.strip()]) for x in str(s).split(',')])))
 
         df = df[(df['segment_onset'] != 'NA') & (df['segment_offset'] != 'NA')]
         df.drop(columns = ['participant', 'tokens', 'time_marks'], inplace = True)

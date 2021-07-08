@@ -137,3 +137,34 @@ def test_filter(project):
         caught_value_error = True
     
     assert caught_value_error == True
+
+def test_exclusion(project):
+    excluded = pd.DataFrame(
+        [['sound.wav', 250, 750], ['sound.wav', 2000, 4000]],
+        columns = ['recording_filename', 'segment_onset', 'segment_offset']
+    )
+
+    sampler = PeriodicSampler(
+        project = project,
+        length = 1000,
+        period = 1000,
+        exclude = excluded      
+    )
+    segments = sampler.sample()\
+        .sort_values(['recording_filename', 'segment_onset', 'segment_offset'])
+
+    pd.testing.assert_frame_equal(
+        segments[segments['recording_filename'] == 'sound.wav'],
+        pd.DataFrame(
+            [['sound.wav', 0, 250], ['sound.wav', 750, 1000]],
+            columns = ['recording_filename', 'segment_onset', 'segment_offset']
+        )
+    )
+
+    pd.testing.assert_frame_equal(
+        segments[segments['recording_filename'] == 'sound2.wav'],
+        pd.DataFrame(
+            [['sound2.wav', 0, 1000], ['sound2.wav', 2000, 3000]],
+            columns = ['recording_filename', 'segment_onset', 'segment_offset']
+        )
+    )

@@ -24,8 +24,16 @@ segments = segments[segments['speaker_type'].isin(speakers)]
 
 vectors = [
     grid_to_vector(
-        segments_to_grid(segments[segments['set'] == s], 0, segments['segment_offset'].max(), 100, 'speaker_type', speakers),
-        speakers + ['overlap', 'none']
+        segments_to_grid(
+            segments[segments['set'] == s],
+            0,
+            segments['segment_offset'].max(),
+            100,
+            'speaker_type',
+            speakers,
+            none = False
+        ),
+        speakers
     )
     for s in args.sets
 ]
