@@ -20,8 +20,13 @@ class Metrics(ABC):
         self.project = project
         self.am = ChildProject.annotations.AnnotationManager(self.project)
 
+        recording_columns = {
+            'recording_filename', 'child_id', 'duration', 'session_id', 'session_offset'
+        }
+        recording_columns &= set(self.project.recordings.columns)
+
         self.am.annotations = self.am.annotations.merge(
-            self.project.recordings[['recording_filename', 'session_id', 'session_offset', 'child_id', 'duration']],
+            self.project.recordings[recording_columns],
             left_on = 'recording_filename',
             right_on = 'recording_filename'
         )
