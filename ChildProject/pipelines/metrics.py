@@ -91,6 +91,21 @@ class Metrics(ABC):
         return segments
 
 class LenaMetrics(Metrics):
+    """LENA metrics extractor. 
+    Extracts a number of metrics from the LENA .its annotations.
+
+    :param project: ChildProject instance of the target dataset.
+    :type project: ChildProject.projects.ChildProject
+    :param set: name of the set associated to the .its annotations
+    :type set: str
+    :param recordings: recordings to sample from; if None, all recordings will be sampled, defaults to None
+    :type recordings: Union[str, List[str], pd.DataFrame], optional
+    :param by: units to sample from, defaults to 'recording_filename'
+    :type by: str, optional
+    :param threads: amount of threads to run on, defaults to 1
+    :type threads: int, optional
+    """
+
     SUBCOMMAND = 'lena'
 
     def __init__(self,
@@ -177,7 +192,25 @@ class LenaMetrics(Metrics):
         parser.add_argument('set', help = 'name of the LENA its annotations set')
         parser.add_argument('--threads', help = 'amount of threads to run on', default = 1, type = int)
 
-class LenaMetrics(Metrics):
+class AclewMetrics(Metrics):
+    """ACLEW metrics extractor.
+    Extracts a number of metrics from the ACLEW pipeline annotations, which includes:
+
+     - The Voice Type Classifier by Lavechin et al. (arXiv:2005.12656)
+     - The Automatic LInguistic Unit Count Estimator (ALICE) by Räsänen et al. (doi:10.3758/s13428-020-01460-x)
+
+    :param project: ChildProject instance of the target dataset.
+    :type project: ChildProject.projects.ChildProject
+    :param set: name of the set associated to the .its annotations
+    :type set: str
+    :param recordings: recordings to sample from; if None, all recordings will be sampled, defaults to None
+    :type recordings: Union[str, List[str], pd.DataFrame], optional
+    :param by: units to sample from, defaults to 'recording_filename'
+    :type by: str, optional
+    :param threads: amount of threads to run on, defaults to 1
+    :type threads: int, optional
+    """
+
     SUBCOMMAND = 'aclew'
 
     def __init__(self,
