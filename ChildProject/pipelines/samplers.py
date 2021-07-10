@@ -266,7 +266,7 @@ class PeriodicSampler(Sampler):
 
     @staticmethod
     def add_parser(subparsers, subcommand):
-        parser = subparsers.add_parser(SUBCOMMAND, help = 'periodic sampling')
+        parser = subparsers.add_parser(subcommand, help = 'periodic sampling')
         parser.add_argument('--length', help = 'length of each segment, in milliseconds', type = float, required = True)
         parser.add_argument('--period', help = 'spacing between two consecutive segments, in milliseconds', type = float, required = True)
         parser.add_argument('--offset', help = 'offset of the first segment, in milliseconds', type = float, default = 0)
