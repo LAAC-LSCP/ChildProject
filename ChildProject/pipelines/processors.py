@@ -13,6 +13,8 @@ from yaml import dump
 import ChildProject
 from ChildProject.pipelines.pipeline import Pipeline
 
+pipelines = {}
+
 class AudioProcessor(ABC):
     def __init__(self,
         project: ChildProject.projects.ChildProject,
