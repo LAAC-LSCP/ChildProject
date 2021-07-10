@@ -309,7 +309,7 @@ class ChannelMapper(AudioProcessor):
 
     @staticmethod
     def add_parser(subparsers, subcommand):
-        parser = subparsers.add_parser(subcommands, help = 'channel mapping')
+        parser = subparsers.add_parser(subcommand, help = 'channel mapping')
         parser.add_argument("--channels", help = "lists of weigths for each channel", nargs = '+')
 
 
