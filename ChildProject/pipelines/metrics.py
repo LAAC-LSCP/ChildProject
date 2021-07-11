@@ -203,6 +203,7 @@ class AclewMetrics(Metrics):
 
      - The Voice Type Classifier by Lavechin et al. (arXiv:2005.12656)
      - The Automatic LInguistic Unit Count Estimator (ALICE) by Räsänen et al. (doi:10.3758/s13428-020-01460-x)
+     - The VoCalisation Maturity model (VCMNet) by Al Futaisi et al. (doi:10.1145/3340555.3353751)
 
     :param project: ChildProject instance of the target dataset.
     :type project: ChildProject.projects.ChildProject
