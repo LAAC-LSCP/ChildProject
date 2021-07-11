@@ -29,6 +29,7 @@ Welcome to ChildProject's documentation!
 
    tools
    annotations
+   metrics
    processors
    samplers
    elan

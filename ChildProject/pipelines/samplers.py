@@ -14,6 +14,8 @@ from yaml import dump
 import ChildProject
 from ChildProject.pipelines.pipeline import Pipeline
 
+pipelines = {}
+
 class Sampler(ABC):
     def __init__(self,
         project: ChildProject.projects.ChildProject,
@@ -68,6 +70,10 @@ class Sampler(ABC):
                 raise ValueError("exclude dataframe is missing a 'recording_filename' column")
 
             self.excluded = exclude
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        pipelines[cls.SUBCOMMAND] = cls
 
     @abstractmethod
     def _sample(self):
@@ -182,6 +188,8 @@ class Sampler(ABC):
                 seg.export(output_path, **kwargs)
 
 class CustomSampler(Sampler):
+    SUBCOMMAND = 'custom'
+
     def __init__(self,
         project: ChildProject.projects.ChildProject,
         segments_path: str,
@@ -196,8 +204,8 @@ class CustomSampler(Sampler):
         return self.segments
 
     @staticmethod
-    def add_parser(samplers):
-        parser = samplers.add_parser('custom', help = 'custom sampling')
+    def add_parser(subparsers, subcommand):
+        parser = subparsers.add_parser(subcommand, help = 'custom sampling')
         parser.add_argument('segments', help = 'path to selected segments datafame')
 
 class PeriodicSampler(Sampler):
@@ -214,6 +222,9 @@ class PeriodicSampler(Sampler):
     :param recordings: recordings to sample from; if None, all recordings will be sampled, defaults to None
     :type recordings: Union[str, List[str], pd.DataFrame], optional
     """
+    
+    SUBCOMMAND = 'periodic'
+
     def __init__(self,
         project: ChildProject.projects.ChildProject,
         length: int, period: int, offset: int = 0,
@@ -254,8 +265,8 @@ class PeriodicSampler(Sampler):
 
 
     @staticmethod
-    def add_parser(samplers):
-        parser = samplers.add_parser('periodic', help = 'periodic sampling')
+    def add_parser(subparsers, subcommand):
+        parser = subparsers.add_parser(subcommand, help = 'periodic sampling')
         parser.add_argument('--length', help = 'length of each segment, in milliseconds', type = float, required = True)
         parser.add_argument('--period', help = 'spacing between two consecutive segments, in milliseconds', type = float, required = True)
         parser.add_argument('--offset', help = 'offset of the first segment, in milliseconds', type = float, default = 0)
@@ -279,6 +290,9 @@ class RandomVocalizationSampler(Sampler):
     :param threads: amount of threads to run on, defaults to 1
     :type threads: int, optional
     """
+
+    SUBCOMMAND = 'random-vocalizations'
+
     def __init__(self,
         project: ChildProject.projects.ChildProject,
         annotation_set: str,
@@ -328,8 +342,8 @@ class RandomVocalizationSampler(Sampler):
         return self.segments
 
     @staticmethod
-    def add_parser(samplers):
-        parser = samplers.add_parser('random-vocalizations', help = 'random sampling')
+    def add_parser(subparsers, subcommand):
+        parser = subparsers.add_parser(subcommand, help = 'random sampling')
         parser.add_argument('--annotation-set', help = 'annotation set', default = 'vtc')
         parser.add_argument('--target-speaker-type', help = 'speaker type to get chunks from', choices=['CHI', 'OCH', 'FEM', 'MAL'], nargs = '+', default = ['CHI'])
         parser.add_argument('--sample-size', help = 'how many samples per unit (recording, session, or child)', required = True, type = int)
@@ -368,6 +382,9 @@ class EnergyDetectionSampler(Sampler):
     :param threads: amount of threads to run on, defaults to 1
     :type threads: int, optional
     """
+
+    SUBCOMMAND = 'energy-detection'
+
     def __init__(self,
         project: ChildProject.projects.ChildProject,
         windows_length: int,
@@ -477,8 +494,8 @@ class EnergyDetectionSampler(Sampler):
         self.segments.drop_duplicates(['recording_filename', 'segment_onset', 'segment_offset'], inplace = True)
 
     @staticmethod
-    def add_parser(samplers):
-        parser = samplers.add_parser('energy-detection', help = 'energy based activity detection')
+    def add_parser(subparsers, subcommand):
+        parser = subparsers.add_parser(subcommand, help = 'energy based activity detection')
         parser.add_argument('--windows-length', help = 'length of each window (in milliseconds)', required = True, type = int)
         parser.add_argument('--windows-spacing', help = 'spacing between the start of two consecutive windows (in milliseconds)', required = True, type = int)
         parser.add_argument('--windows-count', help = 'how many windows to sample from each unit (recording, session, or child)', required = True, type = int)
@@ -518,6 +535,8 @@ class HighVolubilitySampler(Sampler):
     :param threads: amount of threads to run the sampler on
     :type threads: int
     """
+
+    SUBCOMMAND = 'high-volubility'
 
     def __init__(self,
         project: ChildProject.projects.ChildProject,
@@ -616,8 +635,8 @@ class HighVolubilitySampler(Sampler):
         self.segments = pd.concat(self.segments)
     
     @staticmethod
-    def add_parser(samplers):
-        parser = samplers.add_parser('high-volubility', help = 'high-volubility targeted sampling')
+    def add_parser(subparsers, subcommand):
+        parser = subparsers.add_parser(subcommand, help = 'high-volubility targeted sampling')
         parser.add_argument('--annotation-set', help = 'annotation set', required = True)
         parser.add_argument('--metric', help = 'which metric should be used to evaluate volubility', required = True, choices = ['ctc', 'cvc', 'awc'])
         parser.add_argument('--windows-length', help = 'window length (milliseconds)', required = True, type = int)
@@ -643,18 +662,10 @@ class SamplerPipeline(Pipeline):
         self.project = ChildProject.projects.ChildProject(path)
         self.project.read()
 
-        splr = None
-        if sampler == 'periodic':
-            splr = PeriodicSampler(self.project, **kwargs)
-        elif sampler == 'random-vocalizations':
-            splr = RandomVocalizationSampler(self.project, **kwargs)
-        elif sampler == 'high-volubility':
-            splr = HighVolubilitySampler(self.project, **kwargs)
-        elif sampler == 'energy-detection':
-            splr = EnergyDetectionSampler(self.project, **kwargs)
+        if sampler not in pipelines:
+            raise NotImplementedError(f"invalid pipeline '{sampler}'")
 
-        if splr is None:
-            raise Exception('invalid sampler')
+        splr = pipelines[sampler](self.project, **kwargs)
 
         splr.sample()
         splr.assert_valid()
@@ -682,11 +693,9 @@ class SamplerPipeline(Pipeline):
         parser.add_argument('path', help = 'path to the dataset')
         parser.add_argument('destination', help = 'segments destination')
 
-        samplers = parser.add_subparsers(help = 'sampler', dest = 'sampler')
-        PeriodicSampler.add_parser(samplers)
-        RandomVocalizationSampler.add_parser(samplers)
-        HighVolubilitySampler.add_parser(samplers)
-        EnergyDetectionSampler.add_parser(samplers)
+        subparsers = parser.add_subparsers(help = 'sampler', dest = 'sampler')
+        for pipeline in pipelines:
+            pipelines[pipeline].add_parser(subparsers, pipeline)
 
         parser.add_argument('--recordings',
             help = "path to a CSV dataframe containing the list of recordings to sample from (by default, all recordings will be sampled). The CSV should have one column named recording_filename.",
