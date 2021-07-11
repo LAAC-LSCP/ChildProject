@@ -1,0 +1,2 @@
+child_id,voc_fem_ph,voc_dur_fem_ph,avg_voc_dur_fem,voc_chi_ph,voc_dur_chi_ph,avg_voc_dur_chi,wc_fem_ph,sc_fem_ph,pc_fem_ph,wc_adu_ph,sc_adu_ph,pc_adu_ph,cry_voc_chi_ph,cry_voc_dur_chi_ph,can_voc_chi_ph,can_voc_dur_chi_ph,avg_can_voc_dur_chi,non_can_voc_chi_ph,non_can_voc_dur_chi_ph,avg_non_can_voc_dur_chi,lp_n,cp_n,lp_dur,cp_dur,duration
+1,3600.0,360.0000000000002,0.10000000000000006,9000.0,900.0,0.1,3600.0,7200.0,14400.0,3600.0,7200.0,14400.0,0,0,4500.0,449.99999999999994,0.09999999999999999,4500.0,450.0,0.1,1.0,0.5,1.0,0.49999999999999994,8.0
