@@ -20,6 +20,14 @@ ChildProject.pipelines.eafbuilder module
    :undoc-members:
    :show-inheritance:
 
+ChildProject.pipelines.metrics module
+--------------------------------------
+
+.. automodule:: ChildProject.pipelines.metrics
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 ChildProject.pipelines.pipeline module
 --------------------------------------
 

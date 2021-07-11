@@ -85,9 +85,9 @@ class EafBuilderPipeline(Pipeline):
         :param template: name of the template to use (basic, native, or non-native)
         :type template: str
         :param context_onset: context onset and segment offset difference in milliseconds, 0 for no introductory context
-        :type context_onset: float
+        :type context_onset: int
         :param context_offset: context offset and segment offset difference in milliseconds, 0 for no outro context
-        :type context_offset: float
+        :type context_offset: int
         """
 
         try:

@@ -206,8 +206,12 @@ class AclewMetrics(Metrics):
 
     :param project: ChildProject instance of the target dataset.
     :type project: ChildProject.projects.ChildProject
-    :param set: name of the set associated to the .its annotations
-    :type set: str
+    :param vtc: name of the set associated to the VTC annotations
+    :type vtc: str
+    :param alice: name of the set associated to the ALICE annotations
+    :type alice: str
+    :param vcm: name of the set associated to the VCM annotations
+    :type vcm: str
     :param recordings: recordings to sample from; if None, all recordings will be sampled, defaults to None
     :type recordings: Union[str, List[str], pd.DataFrame], optional
     :param by: units to sample from, defaults to 'recording_filename'
