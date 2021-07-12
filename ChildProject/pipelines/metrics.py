@@ -175,17 +175,17 @@ class LenaMetrics(Metrics):
         metrics['child_id'] = its['child_id'].iloc[0]
         metrics['duration'] = unit_duration
 
-        return pd.DataFrame([metrics])
+        return metrics
 
     
     def extract(self):
         recordings = self.get_recordings()
 
         if self.threads == 1:
-            self.metrics = pd.concat([self._process_unit(unit) for unit in recordings[self.by].unique()])
+            self.metrics = pd.DataFrame([self._process_unit(unit) for unit in recordings[self.by].unique()])
         else:
             with mp.Pool(processes = self.threads if self.threads >= 1 else mp.cpu_count()) as pool:
-                self.metrics = pd.concat(pool.map(self._process_unit, recordings[self.by].unique()))
+                self.metrics = pd.DataFrame(pool.map(self._process_unit, recordings[self.by].unique()))
 
         self.metrics.set_index(self.by, inplace = True)
         return self.metrics
@@ -332,16 +332,16 @@ class AclewMetrics(Metrics):
         metrics['child_id'] = segments['child_id'].iloc[0]
         metrics['duration'] = unit_duration
 
-        return pd.DataFrame([metrics])
+        return metrics
 
     def extract(self):
         recordings = self.get_recordings()
 
         if self.threads == 1:
-            self.metrics = pd.concat([self._process_unit(unit) for unit in recordings[self.by].unique()])
+            self.metrics = pd.DataFrame([self._process_unit(unit) for unit in recordings[self.by].unique()])
         else:
             with mp.Pool(processes = self.threads if self.threads >= 1 else mp.cpu_count()) as pool:
-                self.metrics = pd.concat(pool.map(self._process_unit, recordings[self.by].unique()))
+                self.metrics = pd.DataFrame(pool.map(self._process_unit, recordings[self.by].unique()))
 
         self.metrics.set_index(self.by, inplace = True)
         return self.metrics
