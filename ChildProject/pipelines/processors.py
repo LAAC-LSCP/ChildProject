@@ -325,17 +325,10 @@ class AudioProcessingPipeline(Pipeline):
         self.project = ChildProject.projects.ChildProject(path)
         self.project.read()
 
-        proc = None
-        if processor == 'basic':
-            proc = BasicProcessor(self.project, name, threads = threads, **kwargs)
-        elif processor == 'vetting':
-            proc = VettingProcessor(self.project, name, threads = threads, **kwargs)
-        elif processor == 'channel-mapping':
-            proc = ChannelMapper(self.project, name, threads = threads, **kwargs)
+        if processor not in pipelines:
+            raise NotImplementedError(f"invalid pipeline '{processor}'")
 
-        if proc is None:
-            raise Exception('invalid processor')
-
+        proc = pipelines[processor](self.project, name, threads = threads, **kwargs)
         proc.process()
 
         print("exported audio to {}".format(proc.output_directory()))
