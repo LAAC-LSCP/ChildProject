@@ -10,7 +10,7 @@ The package can be installed using pip :
 
 ::
 
-    pip3 install git+https://github.com/LAAC-LSCP/ChildProject.git
+    pip3 install ChildProject
 
 .. warning::
     
@@ -28,7 +28,7 @@ have to activate it everytime you need to use the package or datalad.
 
     python3 -m venv ~/ChildProjectVenv
     source ~/ChildProjectVenv/bin/activate
-    pip3 install git+https://github.com/LAAC-LSCP/ChildProject.git
+    pip3 install ChildProject
 
 Install ffmpeg
 ==============
@@ -95,7 +95,14 @@ You can now make sure the packages have been successfully installed:
 
     We recommend that you regularly keep DataLad and our package up to date. 
     To force-upgrade this package, do ``pip3 uninstall ChildProject``
-    and then ``pip3 install git+https://github.com/LAAC-LSCP/ChildProject.git``.
+    and then ``pip3 install ChildProject --upgrade``.
+
+    You may also want to install the development version from GitHub in order
+    to receive more recent updates before their release:
+
+    ```bash
+    pip3 install git+https://github.com/LAAC-LSCP/ChildProject.git --force-reinstall
+    ```
     
-    DataLad can be upgraded with ``pip3 install datalad --upgrade``
+    DataLad can also be upgraded with ``pip3 install datalad --upgrade``
     (see DataLad's documentation for more details).
