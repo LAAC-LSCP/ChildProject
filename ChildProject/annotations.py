@@ -84,7 +84,7 @@ class AnnotationManager:
         if not isinstance(project, ChildProject):
             raise ValueError('project should derive from ChildProject')
 
-        project.read()
+        self.project.read()
 
         index_path = os.path.join(self.project.path, 'metadata/annotations.csv')
         if not os.path.exists(index_path):
