@@ -49,7 +49,7 @@ organize your files into this structure):
    └───extra
        │   notes.txt
 
-The children and recordings notebooks should be formatted according to
+The children and recordings notebooks should be CSV dataframes formatted according to
 the standards detailed right below.
 
 .. _format-metadata:
@@ -61,6 +61,8 @@ Children notebook
 ~~~~~~~~~~~~~~~~~
 
 The children metadata dataframe needs to be saved at ``metadata/children.csv``.
+It should be formatted as instructed below; you can add more fields beyond those that are
+standardized, but make sure to document them.
 
 .. index-table:: Children metadata
    :header: children
@@ -71,6 +73,8 @@ Recordings notebook
 
 The recordings metadata dataframe needs to be saved at
 ``metadata/recordings.csv``.
+It should be formatted as instructed below; you can add more fields beyond those that are
+standardized, but make sure to document them.
 
 .. index-table:: Recordings metadata
    :header: recordings
@@ -94,6 +98,10 @@ should be placed according to the table below:
 There can be as many additional notebooks as necessary, and recursion
 is permitted.
 
+This is also useful if your metadata includes many columns and you'd like to
+spread it across several dataframes. This can also be used to deliver survey data
+in a separate file.
+
 .. note::
 
    In case two or more notebooks contain the same column, the files
@@ -114,16 +122,27 @@ is permitted.
 Annotations
 -----------
 
+Upon importation, annotations are converted to standardized
+CSV dataframes (using built-in or custom ingestors)
+and registered into an index.
+The index of annotations stores the list of each interval
+that has been annotated for each annotator.
+This allows a number of functionalities
+such as the quick computation of the intersection of the
+portions of audio covered by a given set of annotators.
+
 .. _format-annotations-segments:
 
 Annotations format
 ~~~~~~~~~~~~~~~~~~
 
 The package provides functions to convert any annotation into the
-following csv format, with one row per segment :
+following CSV format, with one row per segment (e.g. per vocalization event):
 
 .. index-table:: Annotations format
    :header: annotation_segments
+
+Custom columns may be used, although they should be documented somewhere in your dataset.
 
 .. _format-annotations:
 
@@ -137,6 +156,36 @@ Annotations are indexed in one unique dataframe located at
    :header: annotations
 
 .. _format-input-annotations:
+
+The index is maintained through the package functions only;
+it should never be updated by hand.
+
+Below is shown an example of an index file
+(some uninformative columns were hidden for clarity).
+In this case, one recording has been fully
+annotated using the Voice Type Classifier (vtc),
+and partially annotated by two humans (LM and SP).
+These humans have both annotated the same seven 15 second clips.
+
+.. csv-table:: 
+   :header-rows: 1
+
+   set,recording_filename,time_seek,range_onset,range_offset,raw_filename,format,annotation_filename
+   vtc,A730/A730_001105.wav,0,0,42764250,A730/A730_001105.rttm,vtc_rttm,A730/A730_001105_0_42764250.csv
+   eaf_2021/SP,A730/A730_001105.wav,0,2910000,2925000,A730_001105.eaf,eaf,A730/A730_001105_2910000_2925000.csv
+   eaf_2021/SP,A730/A730_001105.wav,0,4680000,4695000,A730_001105.eaf,eaf,A730/A730_001105_4680000_4695000.csv
+   eaf_2021/SP,A730/A730_001105.wav,0,4695000,4710000,A730_001105.eaf,eaf,A730/A730_001105_4695000_4710000.csv
+   eaf_2021/SP,A730/A730_001105.wav,0,14055000,14070000,A730_001105.eaf,eaf,A730/A730_001105_14055000_14070000.csv
+   eaf_2021/SP,A730/A730_001105.wav,0,15030000,15045000,A730_001105.eaf,eaf,A730/A730_001105_15030000_15045000.csv
+   eaf_2021/SP,A730/A730_001105.wav,0,36465000,36480000,A730_001105.eaf,eaf,A730/A730_001105_36465000_36480000.csv
+   eaf_2021/SP,A730/A730_001105.wav,0,39450000,39465000,A730_001105.eaf,eaf,A730/A730_001105_39450000_39465000.csv
+   eaf_2021/LM,A730/A730_001105.wav,0,2910000,2925000,A730_001105.eaf,eaf,A730/A730_001105_2910000_2925000.csv
+   eaf_2021/LM,A730/A730_001105.wav,0,4680000,4695000,A730_001105.eaf,eaf,A730/A730_001105_4680000_4695000.csv
+   eaf_2021/LM,A730/A730_001105.wav,0,4695000,4710000,A730_001105.eaf,eaf,A730/A730_001105_4695000_4710000.csv
+   eaf_2021/LM,A730/A730_001105.wav,0,14055000,14070000,A730_001105.eaf,eaf,A730/A730_001105_14055000_14070000.csv
+   eaf_2021/LM,A730/A730_001105.wav,0,15030000,15045000,A730_001105.eaf,eaf,A730/A730_001105_15030000_15045000.csv
+   eaf_2021/LM,A730/A730_001105.wav,0,36465000,36480000,A730_001105.eaf,eaf,A730/A730_001105_36465000_36480000.csv
+   eaf_2021/LM,A730/A730_001105.wav,0,39450000,39465000,A730_001105.eaf,eaf,A730/A730_001105_39450000_39465000.csv
 
 Annotation importation input format
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
