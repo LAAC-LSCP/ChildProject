@@ -17,14 +17,6 @@ The list of supported metrics is shown below:
     :header: "Variable", "Description", "pipelines"
     :widths: 15, 50, 5
 
-    experiment,name of the corpus the entry belongs to,"ACLEW,LENA"
-    session_id,unique identifier for each recorded day,"ACLEW,LENA"
-    child_id,"identifier of the child wearing the recorder, within a corpus","ACLEW,LENA"
-    session_duration,"recording duration, in seconds","ACLEW,LENA"
-    date_iso,Date of the recording (YYYY-MM-DD),"ACLEW,LENA"
-    child_dob,Birth date of the child (YYYY-MM-DD),"ACLEW,LENA"
-    age,Age of the child at the time of recording (in months),"ACLEW,LENA"
-    missing_audio,"Total duration of audio gaps within the recording, in seconds","ACLEW,LENA"
     voc_fem/mal/och_ph,number of vocalizations by different talker types,"ACLEW,LENA"
     voc_dur_fem/mal/och_ph,total duration of vocalizations by different talker types,"ACLEW,LENA"
     avg_voc_dur_fem/mal/och,average vocalization length (conceptually akin to MLU) by different talker types,"ACLEW,LENA"
