@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 
 ### Added 
 
+ - CSV importer to register pre-exisiting CSV annotations into the index without performing any conversion
+
 ### Fixed
 
 ## [0.0.1] - 2021-07-14

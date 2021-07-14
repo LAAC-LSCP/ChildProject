@@ -27,6 +27,15 @@ def project(request):
     for raw_annotation in glob.glob("output/annotations/annotations/*.*/converted"):
         shutil.rmtree(raw_annotation)
 
+def test_csv():
+    converted = CsvConverter().convert('tests/data/csv.csv').fillna('NA')
+    truth = pd.read_csv('tests/truth/csv.csv').fillna('NA')
+
+    pd.testing.assert_frame_equal(
+        standardize_dataframe(converted, converted.columns),
+        standardize_dataframe(truth, converted.columns)
+    )
+
 def test_vtc():
     converted = VtcConverter().convert('tests/data/vtc.rttm')
     truth = pd.read_csv('tests/truth/vtc.csv').fillna('NA')
