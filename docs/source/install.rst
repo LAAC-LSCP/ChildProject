@@ -100,9 +100,10 @@ You can now make sure the packages have been successfully installed:
     You may also want to install the development version from GitHub in order
     to receive more recent updates before their release:
 
-    ```bash
-    pip3 install git+https://github.com/LAAC-LSCP/ChildProject.git --force-reinstall
-    ```
+    .. code:: bash
+    
+        pip3 install git+https://github.com/LAAC-LSCP/ChildProject.git --force-reinstall
+    
     
     DataLad can also be upgraded with ``pip3 install datalad --upgrade``
     (see DataLad's documentation for more details).
