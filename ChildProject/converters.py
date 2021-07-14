@@ -67,7 +67,7 @@ class CsvConverter(AnnotationConverter):
     FORMAT = 'csv'
 
     @staticmethod
-    def convert(filename: str) -> pd.DataFrame:
+    def convert(filename: str, filter = '') -> pd.DataFrame:
         return pd.read_csv(filename)
 
 class VtcConverter(AnnotationConverter):
