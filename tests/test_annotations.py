@@ -113,16 +113,13 @@ def test_import(project):
     ]), "some annotations are missing"
 
     errors, warnings = am.validate()
-    assert len(errors) == 0 and len(warnings) == 0, "malformed annotations detected"
+    assert len(errors) == 0 and len(warnings) == 0, f"malformed annotations detected ({errors} {warnings})"
 
     for dataset in ['eaf_basic', 'textgrid', 'eaf_solis']:
         annotations = am.annotations[am.annotations['set'] == dataset]
         segments = am.get_segments(annotations)
         segments.drop(columns = set(annotations.columns) - {'raw_filename'}, inplace = True)
-        truth = pd.read_csv('tests/truth/{}.csv'.format(dataset))
-
-        print(segments)
-        print(truth)
+        truth = pd.read_csv('tests/truth/{}.csv'.format(dataset), dtype = {'transcription': str})
 
         pd.testing.assert_frame_equal(
             standardize_dataframe(segments, set(truth.columns.tolist())),
