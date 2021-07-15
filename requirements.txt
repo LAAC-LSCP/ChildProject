@@ -22,3 +22,4 @@ sklearn
 sox
 sphinx
 sphinx_rtd_theme
+tables
