@@ -62,6 +62,14 @@ class AnnotationConverter:
         super().__init_subclass__(**kwargs)
         converters[cls.FORMAT] = cls
 
+
+class CsvConverter(AnnotationConverter):
+    FORMAT = 'csv'
+
+    @staticmethod
+    def convert(filename: str, filter = '') -> pd.DataFrame:
+        return pd.read_csv(filename)
+
 class VtcConverter(AnnotationConverter):
     FORMAT = 'vtc_rttm'
 

@@ -85,7 +85,7 @@ class AnnotationManager:
         if not isinstance(project, ChildProject):
             raise ValueError('project should derive from ChildProject')
 
-        project.read()
+        self.project.read()
 
         index_path = os.path.join(self.project.path, 'metadata/annotations.csv')
         if not os.path.exists(index_path):
@@ -235,8 +235,8 @@ class AnnotationManager:
         
         df['raw_filename'] = annotation['raw_filename']
 
-        df['segment_onset'] += annotation['time_seek']
-        df['segment_offset'] += annotation['time_seek']
+        df['segment_onset'] += int(annotation['time_seek'])
+        df['segment_offset'] += int(annotation['time_seek'])
         df['segment_onset'] = df['segment_onset'].astype(int)
         df['segment_offset'] = df['segment_offset'].astype(int)
 
@@ -289,7 +289,19 @@ class AnnotationManager:
         :return: dataframe of imported annotations, as in :ref:`format-annotations`.
         :rtype: pd.DataFrame
         """
-        
+
+        required_columns = {
+            c.name
+            for c in AnnotationManager.INDEX_COLUMNS
+            if c.required and not c.generated
+        }
+        missing_columns = required_columns - set(input.columns)
+
+        if len(missing_columns):
+            raise IndexError(
+                'import_annotations requires the following missing columns: {}'.format(",".join(missing_columns))
+            )
+
         missing_recordings = input[~input['recording_filename'].isin(self.project.recordings['recording_filename'].tolist())]
         missing_recordings = missing_recordings['recording_filename'].tolist()
 

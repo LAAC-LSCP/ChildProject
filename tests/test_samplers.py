@@ -22,12 +22,6 @@ def project(request):
     yield project
 
 def test_periodic(project):
-    project.recordings = project.recordings.merge(
-        project.compute_recordings_duration(),
-        left_on = 'recording_filename',
-        right_on = 'recording_filename'
-    )
-
     sampler = PeriodicSampler(
         project = project,
         length = 1000,

@@ -325,7 +325,7 @@ def main():
     register_pipeline('zooniverse', ZooniversePipeline)
     register_pipeline('eaf-builder', EafBuilderPipeline)
     register_pipeline('anonymize', AnonymizationPipeline)
-
+    register_pipeline('metrics', MetricsPipeline)
 
     args = parser.parse_args()
     args.func(args)

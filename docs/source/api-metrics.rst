@@ -1,5 +1,5 @@
-Metrics
-=======
+Reliability metrics
+===================
 
 ChildProject implements several metrics for evaluating annotations and their reliability.
 This section demonstrates how to use the python API for these purposes.

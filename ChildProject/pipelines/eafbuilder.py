@@ -40,16 +40,22 @@ def create_eaf(etf_path: str, id: str, output_dir: str,
     destination = os.path.join(output_dir, "{}.eaf".format(id))
     os.makedirs(os.path.dirname(destination), exist_ok = True)
 
-    mimetype = 'audio/x-wav'
+    mime_type = 'audio/x-wav'
+    mime_types = {
+        'mp3': 'audio/mpeg',
+        'mp4': 'audio/mp4',
+        'flac': 'audio/x-flac'
+    }
+    mime_types.update(eaf.MIMES)
 
     extension = os.path.splitext(recording_filename)[1]
     if extension:
-        mimetype = eaf.MIMES[extension[1:]]
+        mime_type = mime_types[extension[1:]]
 
     eaf.add_linked_file(
         file_path = recording_filename,
         relpath = recording_filename,
-        mimetype = mimetype
+        mimetype = mime_type
     )
 
     eaf.to_file(destination)
@@ -79,9 +85,9 @@ class EafBuilderPipeline(Pipeline):
         :param template: name of the template to use (basic, native, or non-native)
         :type template: str
         :param context_onset: context onset and segment offset difference in milliseconds, 0 for no introductory context
-        :type context_onset: float
+        :type context_onset: int
         :param context_offset: context offset and segment offset difference in milliseconds, 0 for no outro context
-        :type context_offset: float
+        :type context_offset: int
         """
 
         try:

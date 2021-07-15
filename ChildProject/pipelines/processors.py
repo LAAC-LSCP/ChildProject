@@ -13,6 +13,8 @@ from yaml import dump
 import ChildProject
 from ChildProject.pipelines.pipeline import Pipeline
 
+pipelines = {}
+
 class AudioProcessor(ABC):
     def __init__(self,
         project: ChildProject.projects.ChildProject,
@@ -38,6 +40,10 @@ class AudioProcessor(ABC):
                 f'provided input profile {input_profile} does not exist'
 
         self.converted = pd.DataFrame()
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        pipelines[cls.SUBCOMMAND] = cls
 
     def output_directory(self):
         return os.path.join(
@@ -78,6 +84,8 @@ class AudioProcessor(ABC):
         pass
 
 class BasicProcessor(AudioProcessor):
+    SUBCOMMAND = 'basic'
+
     def __init__(self,
         project: ChildProject.projects.ChildProject,
         name: str,
@@ -171,14 +179,16 @@ class BasicProcessor(AudioProcessor):
         } for cf in converted_files])
 
     @staticmethod
-    def add_parser(processors):
-        parser = processors.add_parser('basic', help = 'basic audio conversion')
+    def add_parser(subparsers, subcommand):
+        parser = subparsers.add_parser(subcommand, help = 'basic audio conversion')
         parser.add_argument("--format", help = "audio format (e.g. wav)", required = True)
         parser.add_argument("--codec", help = "audio codec (e.g. pcm_s16le)", required = True)
         parser.add_argument("--sampling", help = "sampling frequency (e.g. 16000)", required = True, type = int)
         parser.add_argument("--split", help = "split duration (e.g. 15:00:00)", required = False, default = None)
 
 class VettingProcessor(AudioProcessor):
+    SUBCOMMAND = 'vetting'
+
     def __init__(self,
         project: ChildProject.projects.ChildProject,
         name: str,
@@ -234,11 +244,13 @@ class VettingProcessor(AudioProcessor):
         }])
 
     @staticmethod
-    def add_parser(processors):
-        parser = processors.add_parser('vetting', help = 'vetting')
+    def add_parser(subparsers, subcommand):
+        parser = subparsers.add_parser(subcommand, help = 'vetting')
         parser.add_argument("--segments-path", help = "path to the CSV dataframe containing the segments to be vetted", required = True)
 
 class ChannelMapper(AudioProcessor):
+    SUBCOMMAND = 'channel-mapping'
+
     def __init__(self,
         project: ChildProject.projects.ChildProject,
         name: str,
@@ -296,8 +308,8 @@ class ChannelMapper(AudioProcessor):
         return df.assign(success = True)
 
     @staticmethod
-    def add_parser(processors):
-        parser = processors.add_parser('channel-mapping', help = 'channel mapping')
+    def add_parser(subparsers, subcommand):
+        parser = subparsers.add_parser(subcommand, help = 'channel mapping')
         parser.add_argument("--channels", help = "lists of weigths for each channel", nargs = '+')
 
 
@@ -313,17 +325,10 @@ class AudioProcessingPipeline(Pipeline):
         self.project = ChildProject.projects.ChildProject(path)
         self.project.read()
 
-        proc = None
-        if processor == 'basic':
-            proc = BasicProcessor(self.project, name, threads = threads, **kwargs)
-        elif processor == 'vetting':
-            proc = VettingProcessor(self.project, name, threads = threads, **kwargs)
-        elif processor == 'channel-mapping':
-            proc = ChannelMapper(self.project, name, threads = threads, **kwargs)
+        if processor not in pipelines:
+            raise NotImplementedError(f"invalid pipeline '{processor}'")
 
-        if proc is None:
-            raise Exception('invalid processor')
-
+        proc = pipelines[processor](self.project, name, threads = threads, **kwargs)
         proc.process()
 
         print("exported audio to {}".format(proc.output_directory()))
@@ -344,11 +349,9 @@ class AudioProcessingPipeline(Pipeline):
         parser.add_argument('path', help = 'path to the dataset')
         parser.add_argument('name', help = 'name of the export profile')
 
-        processors = parser.add_subparsers(help = 'processor', dest = 'processor')
-
-        BasicProcessor.add_parser(processors)
-        VettingProcessor.add_parser(processors)
-        ChannelMapper.add_parser(processors)
+        subparsers = parser.add_subparsers(help = 'processor', dest = 'processor')
+        for pipeline in pipelines:
+            pipelines[pipeline].add_parser(subparsers, pipeline)
 
         parser.add_argument('--threads', help = "amount of threads running conversions in parallel (0 = uses all available cores)", required = False, default = 1, type = int)
         parser.add_argument('--input-profile', help = "profile of input recordings (process raw recordings by default)", default = None)
