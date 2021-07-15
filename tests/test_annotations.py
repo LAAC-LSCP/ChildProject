@@ -98,10 +98,12 @@ def test_its(its):
     )#.fillna('NA')
     check_its(converted, truth)
 
-def test_import(project):
-    am = AnnotationManager(project)
-
+@pytest.mark.parametrize('type', ['csv', 'gz', 'h5', 'parquet'])
+def test_import(project, type):
     input_annotations = pd.read_csv('examples/valid_raw_data/annotations/input.csv')
+    input_annotations['type'] = type
+
+    am = AnnotationManager(project)
     am.import_annotations(input_annotations)
     am.read()
     
@@ -119,7 +121,9 @@ def test_import(project):
         annotations = am.annotations[am.annotations['set'] == dataset]
         segments = am.get_segments(annotations)
         segments.drop(columns = set(annotations.columns) - {'raw_filename'}, inplace = True)
-        truth = pd.read_csv('tests/truth/{}.csv'.format(dataset), dtype = {'transcription': str})
+        truth = pd.read_csv('tests/truth/{}.csv'.format(dataset), dtype = {'transcription': str, 'ling_type': str})
+
+        print(annotations)
 
         pd.testing.assert_frame_equal(
             standardize_dataframe(segments, set(truth.columns.tolist())),

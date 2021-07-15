@@ -182,6 +182,8 @@ class AnnotationManager:
             return pd.read_csv(path, compression = 'gzip')
         elif ext == '.h5':
             return pd.read_hdf(path)
+        elif ext == '.parquet':
+            return pd.read_parquet(path)
         else:
             raise ValueError(f"invalid extension '{ext}' for annotation {set}/{filename}'")
 
@@ -197,6 +199,8 @@ class AnnotationManager:
             df.to_csv(path, index = False, compression = 'gzip')
         elif ext == '.h5':
             df.to_hdf(path, key = 'segments', mode = 'w', index = False)
+        elif ext == '.parquet':
+            df.to_parquet(path, index = False)
         else:
             raise ValueError(f"invalid extension '{ext}' for annotation {set}/{filename}'")
   

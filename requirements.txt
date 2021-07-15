@@ -11,6 +11,7 @@ pydub
 pandas>=0.25.0
 panoptes_client
 pyannote.metrics; python_version >= "3.7.0"
+pyarrow
 pygamma-agreement; python_version >= "3.6.0"
 pylangacq
 pympi-ling
