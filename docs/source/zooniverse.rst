@@ -61,8 +61,8 @@ This is useful when the segments of audio provided to the pipeline may contain c
    child-project zooniverse extract-chunks /path/to/dataset --help
 
 If it does not exist, DESTINATION is created. Audio chunks are saved in
-wav and mp3 in ``DESTINATION/chunks``. Metadata is stored in a file
-named ``DESTINATION/chunks.csv``.
+wav and mp3 in ``DESTINATION/chunks``. Metadata is stored in a CSV file
+into ``DESTINATION/``.
 
 Chunk upload
 ~~~~~~~~~~~~
@@ -82,5 +82,4 @@ Classifications retrieval
 
    child-project zooniverse retrieve-classifications /path/to/dataset --help
 
-Retrieve classifications and save them into
-``DESTINATION/classifications.csv``.
+Retrieve classifications and save them as ``DESTINATION``.
