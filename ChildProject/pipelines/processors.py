@@ -185,6 +185,7 @@ class BasicProcessor(AudioProcessor):
         parser.add_argument("--codec", help = "audio codec (e.g. pcm_s16le)", required = True)
         parser.add_argument("--sampling", help = "sampling frequency (e.g. 16000)", required = True, type = int)
         parser.add_argument("--split", help = "split duration (e.g. 15:00:00)", required = False, default = None)
+        parser.add_argument('--skip-existing', dest='skip_existing', required = False, default = False, action='store_true')
 
 class VettingProcessor(AudioProcessor):
     SUBCOMMAND = 'vetting'
@@ -317,7 +318,7 @@ class AudioProcessingPipeline(Pipeline):
     def __init__(self):
         pass
 
-    def run(self, path: str, name: str, processor: str, skip_existing: bool = False, threads: int = 1, func = None, **kwargs):
+    def run(self, path: str, name: str, processor: str, threads: int = 1, func = None, **kwargs):
         parameters = locals()
         parameters = [{key: parameters[key]} for key in parameters if key not in ['self', 'kwargs']]
         parameters.extend([{key: kwargs[key]} for key in kwargs])
@@ -355,5 +356,4 @@ class AudioProcessingPipeline(Pipeline):
 
         parser.add_argument('--threads', help = "amount of threads running conversions in parallel (0 = uses all available cores)", required = False, default = 1, type = int)
         parser.add_argument('--input-profile', help = "profile of input recordings (process raw recordings by default)", default = None)
-        parser.add_argument('--skip-existing', dest='skip_existing', required = False, default = False, action='store_true')
 

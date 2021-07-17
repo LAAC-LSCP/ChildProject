@@ -10,6 +10,8 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+ - Fixed skip-existing argument of the basic audio processor
+
 ## [0.0.1] - 2021-07-14
 
 ### Added
