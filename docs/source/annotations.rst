@@ -15,8 +15,8 @@ Managing annotations
 Importation
 ~~~~~~~~~~~
 
-Single file importation
-^^^^^^^^^^^^^^^^^^^^^^^
+Single annotation importation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Annotations can be imported one by one or in bulk. Annotation
 importation does the following :
@@ -27,10 +27,7 @@ importation does the following :
 2. Registers them to the annotation index at
    ``metadata/annotations.csv``
 
-
-
-Use ``child-project import-annotations`` to import a single annotation
-file.
+Use ``child-project import-annotations`` to import a single annotation.
 
 .. clidoc::
 

@@ -103,7 +103,10 @@ You can now make sure the packages have been successfully installed:
     .. code:: bash
     
         pip3 install git+https://github.com/LAAC-LSCP/ChildProject.git --force-reinstall
-    
+
+    Since some updates may break compatibility with previous versions,
+    we advise you to read the `Change Log <https://github.com/LAAC-LSCP/ChildProject/blob/master/CHANGELOG.md>`_
+    before upgrading.
     
     DataLad can also be upgraded with ``pip3 install datalad --upgrade``
     (see DataLad's documentation for more details).
