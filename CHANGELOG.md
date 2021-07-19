@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Added 
 
  - CSV importer to register pre-exisiting CSV annotations into the index without performing any conversion
+ - Enable Zooniverse pipeline's `retrieve-classifications` to match classifications to the original chunks metadata
 
 ### Fixed
 

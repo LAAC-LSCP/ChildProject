@@ -11,6 +11,7 @@ import shutil
 import subprocess
 import sys
 import traceback
+from typing import List
 from yaml import dump
 
 from pydub import AudioSegment
@@ -314,8 +315,12 @@ class ZooniversePipeline(Pipeline):
 
     def retrieve_classifications(self, destination: str, project_id: int,
         zooniverse_login: str = '', zooniverse_pwd: str = '',
+        chunks: List[str] = [],
         **kwargs):
-        """[summary]
+        
+        """Retrieve classifications from Zooniverse as a CSV dataframe.
+        They will be matched with the original chunks metadata if the path one 
+        or more chunk metadata files is provided.
 
         :param destination: output CSV dataframe destination
         :type destination: str
@@ -325,6 +330,8 @@ class ZooniversePipeline(Pipeline):
         :type zooniverse_login: str, optional
         :param zooniverse_pwd: zooniverse password. If not specified, the program attempts to get it from the environment variable ``ZOONIVERSE_PWD`` instead, defaults to ''
         :type zooniverse_pwd: str, optional
+        :param chunks: the list of chunk metadata files to match the classifications to. If provided, only the classifications that have a match will be returned.
+        :type chunks: List[str], optional
         """
         self.get_credentials(zooniverse_login, zooniverse_pwd)
 
@@ -357,7 +364,7 @@ class ZooniversePipeline(Pipeline):
 
         classifications = pd.DataFrame(classifications)
         classifications['user_id'] = classifications['links'].apply(lambda s: s['user'])
-        classifications['subject_id'] = classifications['links'].apply(lambda s: s['subjects'][0])
+        classifications['subject_id'] = classifications['links'].apply(lambda s: s['subjects'][0]).astype(int)
         classifications['workflow_id'] = classifications['links'].apply(lambda s: s['workflow'])
         classifications['tasks'] = classifications['annotations'].apply(lambda s: [(str(r['task']), str(r['value'])) for r in s])
         classifications = classifications.explode('tasks')
@@ -371,6 +378,18 @@ class ZooniversePipeline(Pipeline):
             left_on = ['workflow_id', 'task_id', 'answer_id'],
             right_on = ['workflow_id', 'task_id', 'answer_id']
         )
+        
+        if chunks:
+            chunks = pd.concat([
+                pd.read_csv(f) for f in chunks
+            ])
+
+            classifications = classifications.merge(
+                chunks,
+                left_on = 'subject_id',
+                right_on = 'zooniverse_id'
+            )
+
         classifications.set_index('id').to_csv(destination)
 
     def run(self, action, **kwargs):
@@ -408,3 +427,4 @@ class ZooniversePipeline(Pipeline):
         parser_retrieve.add_argument('--project-id', help = 'zooniverse project id', required = True, type = int)
         parser_retrieve.add_argument('--zooniverse-login', help = 'zooniverse login. If not specified, the program attempts to get it from the environment variable ZOONIVERSE_LOGIN instead', default = '')
         parser_retrieve.add_argument('--zooniverse-pwd', help = 'zooniverse password. If not specified, the program attempts to get it from the environment variable ZOONIVERSE_PWD instead', default = '')
+        parser_retrieve.add_argument('--chunks', help = 'list of chunks', nargs = '+', required = True)

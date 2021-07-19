@@ -24,7 +24,7 @@ you’d need to do.
 6. You can visit the `stats section <https://www.zooniverse.org/projects/chiarasemenzin/maturity-of-baby-sounds/stats>`__ to look at how many annotations are being done.
 
 You can also use this code and your own knowledge to set up a new
-project of your own.
+project of your own. We provide a `tutorial <https://gin.g-node.org/LAAC-LSCP/zoo-campaign>`__ for creating a campaign of classification using Zooniverse and ChildProject.
 
 Overview
 ~~~~~~~~
@@ -42,14 +42,14 @@ It also saves a record of all these chunks into a CSV dataframe.
 This record can then be provided to the ``upload-chunks`` command, in order to upload
 the chunks to zooniverse.
 
-..note ::
+..note::
 
-   ``extract-chunks`` will require the list of segments to classify, which are provided as a CSV dataframe with three columns:
-   ``recording_filename``, ``segment_onset``, and ``segment_offset``. The path to this dataframe has to be specified with the
-   ``--segments`` parameter. 
-
-   The list of segments can be generated with any of the samplers we provide (see :ref:`samplers`), but custom lists 
-   may also be provided.
+    ``extract-chunks`` will require the list of segments to classify, which are provided as a CSV dataframe with three columns:
+    ``recording_filename``, ``segment_onset``, and ``segment_offset``. The path to this dataframe has to be specified with the
+    ``--segments`` parameter. 
+    
+    The list of segments can be generated with any of the samplers we provide (see :ref:`samplers`), but custom lists 
+    may also be provided.
 
 Optionally, the segments provided to the pipeline can be split into chunks of the desired duration.
 By setting this duration to sufficently low values (e.g. 500 milliseconds), one can ensure that
@@ -67,13 +67,18 @@ into ``DESTINATION/``.
 Chunk upload
 ~~~~~~~~~~~~
 
+Once the chunks have been extracted, the next step is to upload them to Zooniverse.
+Note that due to quotas, it is recommended to upload only a few at time (e.g. 1000 per day).
+
+You will need to provide the numerical id of your Zooniverse project, as well as your Zooniverse credentials.
+
+``child-project zooniverse upload-chunks`` uploads as many batches of audio chunks as specified to Zooniverse, and
+updates the chunks metadata accordingly.
+
 .. clidoc::
 
    child-project zooniverse upload-chunks /path/to/dataset --help
 
-
-Uploads as many batches of audio chunks as specified to Zooniverse, and
-updates ``chunks.csv`` accordingly.
 
 Classifications retrieval
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -83,3 +88,8 @@ Classifications retrieval
    child-project zooniverse retrieve-classifications /path/to/dataset --help
 
 Retrieve classifications and save them as ``DESTINATION``.
+The optional ``--chunks`` parameter can be used to match the classifications with the chunks metadata. Only the classifications
+that match the metadata will be saved.
+
+.. warning::
+   Retrieving chunks may take a long time for large projects.
