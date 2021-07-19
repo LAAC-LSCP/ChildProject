@@ -64,6 +64,25 @@ If it does not exist, DESTINATION is created. Audio chunks are saved in
 wav and mp3 in ``DESTINATION/chunks``. Metadata is stored in a CSV file
 into ``DESTINATION/``.
 
+The output dataframe will contain the following columns:
+
+.. csv-table:: 
+   
+   index,"self-generated integer index"
+   recording_filename,"recording from which the chunk as extracted"
+   onset,"onset timestamp of the chunk within the recording"
+   offset,"offset timestamp of the chunk within the recording"
+   segment_onset,"onset timestamp of the segment from which the chunk was extracted"
+   segment_offset,"offset timestamp of the segment from which the chunk was extracted"
+   wav,"name of the wav file"
+   mp3,"name of the mp3 file"
+   date_extracted,"date at which the chunk was extracted"
+   uploaded,"boolean flag set to True if the chunk was uploaded to Zooniverse, False otherwise"
+   project_id,"zooniverse project ID"
+   subject_set,"name of the Zooniverse subject set"
+   zooniverse_id,"subject's Zooniverse ID"
+   keyword,"custom keyword provided by the user to label the chunks"
+
 Chunk upload
 ~~~~~~~~~~~~
 
@@ -73,7 +92,7 @@ Note that due to quotas, it is recommended to upload only a few at time (e.g. 10
 You will need to provide the numerical id of your Zooniverse project, as well as your Zooniverse credentials.
 
 ``child-project zooniverse upload-chunks`` uploads as many batches of audio chunks as specified to Zooniverse, and
-updates the chunks metadata accordingly.
+updates the chunks metadata accordingly, by setting the `zooniverse_id` field and `uploaded` to `True`.
 
 .. clidoc::
 
