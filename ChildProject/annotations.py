@@ -267,8 +267,8 @@ class AnnotationManager:
                 'import_annotations requires the following missing columns: {}'.format(",".join(missing_columns))
             )
 
-        missing_recordings = input[~input['recording_filename'].isin(self.project.recordings['recording_filename'].tolist())]
-        missing_recordings = missing_recordings['recording_filename'].tolist()
+        missing_recordings = input[~input['recording_filename'].isin(self.project.recordings['recording_filename'])]
+        missing_recordings = missing_recordings['recording_filename']
 
         if len(missing_recordings) > 0:
             raise ValueError("cannot import annotations, because the following recordings are not referenced in the metadata:\n{}".format("\n".join(missing_recordings)))
