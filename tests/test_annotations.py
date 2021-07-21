@@ -251,24 +251,6 @@ def test_custom_importation(project):
     errors, warnings = am.validate()
     assert len(errors) == 0
 
-thresholds = [0, 500, 1000]
-@pytest.mark.parametrize('turntakingthresh', thresholds)
-@pytest.mark.skipif(tuple(map(int, pd.__version__.split('.')[:2])) < (1,1), reason = "requires pandas>=1.1.0")
-def test_vc_stats(project, turntakingthresh):
-    am = AnnotationManager(project)
-    input_annotations = pd.read_csv('examples/valid_raw_data/annotations/input.csv')
-    raw_rttm = 'example_metrics.rttm'
-    am.import_annotations(input_annotations[input_annotations['raw_filename'] == raw_rttm])
-    
-    vc = am.get_vc_stats(am.get_segments(am.annotations), turntakingthresh = turntakingthresh).reset_index()
-    truth_vc = pd.read_csv('tests/truth/vc_truth_{}.csv'.format(turntakingthresh))
-   
-    pd.testing.assert_frame_equal(
-        standardize_dataframe(vc, vc.columns.tolist()),
-        standardize_dataframe(truth_vc, vc.columns.tolist()),
-        atol = 1, rtol = 0.02
-    )
-
 # its
 def gather_columns_to_dict(start_col, end_col, row):
     n = 1
@@ -335,4 +317,4 @@ def check_its(segments, truth):
     pd.testing.assert_frame_equal(
         standardize_dataframe(truth, columns),
         standardize_dataframe(segments, columns)
-    )   
+    )
