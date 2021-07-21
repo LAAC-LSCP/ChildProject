@@ -12,7 +12,7 @@ from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
 from . import __version__
 from .projects import ChildProject
 from .converters import *
-from .tables import IndexTable, IndexColumn
+from .tables import IndexTable, IndexColumn, Dtype
 from .utils import Segment, intersect_ranges
 
 class AnnotationManager:
@@ -44,22 +44,22 @@ class AnnotationManager:
         IndexColumn(name = 'segment_onset', description = 'segment onset timestamp in milliseconds (since the start of the recording)', regex = r"([0-9]+)", required = True),
         IndexColumn(name = 'segment_offset', description = 'segment end time in milliseconds (since the start of the recording)', regex = r"([0-9]+)", required = True),
         IndexColumn(name = 'speaker_id', description = 'identity of speaker in the annotation'),
-        IndexColumn(name = 'speaker_type', description = 'class of speaker (FEM = female adult, MAL = male adult, CHI = key child, OCH = other child)', choices = ['FEM', 'MAL', 'CHI', 'OCH', 'NA']),
+        IndexColumn(name = 'speaker_type', description = 'class of speaker (FEM = female adult, MAL = male adult, CHI = key child, OCH = other child)', choices = ['FEM', 'MAL', 'CHI', 'OCH', 'NA'], dtype = Dtype.CATEGORICAL),
         IndexColumn(name = 'ling_type', description = '1 if the vocalization contains at least a vowel (ie canonical or non-canonical), 0 if crying or laughing', choices = ['1', '0', 'NA']),
-        IndexColumn(name = 'vcm_type', description = 'vocal maturity defined as: C (canonical), N (non-canonical), Y (crying) L (laughing), J (junk)', choices = ['C', 'N', 'Y', 'L', 'J', 'NA']),
+        IndexColumn(name = 'vcm_type', description = 'vocal maturity defined as: C (canonical), N (non-canonical), Y (crying) L (laughing), J (junk)', choices = ['C', 'N', 'Y', 'L', 'J', 'NA'], dtype = Dtype.CATEGORICAL),
         IndexColumn(name = 'lex_type', description = 'W if meaningful, 0 otherwise', choices = ['W', '0', 'NA']),
         IndexColumn(name = 'mwu_type', description = 'M if multiword, 1 if single word -- only filled if lex_type==W', choices = ['M', '1', 'NA']),
-        IndexColumn(name = 'addressee', description = 'T if target-child-directed, C if other-child-directed, A if adult-directed, U if uncertain or other. Multiple values should be sorted and separated by commas', choices = ['T', 'C', 'A', 'U', 'NA']),
+        IndexColumn(name = 'addressee', description = 'T if target-child-directed, C if other-child-directed, A if adult-directed, U if uncertain or other. Multiple values should be sorted and separated by commas', choices = ['T', 'C', 'A', 'U', 'NA'], dtype = Dtype.CATEGORICAL),
         IndexColumn(name = 'transcription', description = 'orthographic transcription of the speach'),
         IndexColumn(name = 'phonemes', description = 'amount of phonemes', regex = r'(\d+(\.\d+)?)'),
         IndexColumn(name = 'syllables', description = 'amount of syllables', regex = r'(\d+(\.\d+)?)'),
         IndexColumn(name = 'words', description = 'amount of words', regex = r'(\d+(\.\d+)?)'),
-        IndexColumn(name = 'lena_block_type', description = 'whether regarded as part as a pause or a conversation by LENA', choices = ['pause', 'CM', 'CIC', 'CIOCX', 'CIOCAX', 'AMF', 'AICF', 'AIOCF', 'AIOCCXF', 'AMM', 'AICM', 'AIOCM', 'AIOCCXM', 'XM', 'XIOCC', 'XIOCA', 'XIC', 'XIOCAC']),
+        IndexColumn(name = 'lena_block_type', description = 'whether regarded as part as a pause or a conversation by LENA', choices = ['pause', 'CM', 'CIC', 'CIOCX', 'CIOCAX', 'AMF', 'AICF', 'AIOCF', 'AIOCCXF', 'AMM', 'AICM', 'AIOCM', 'AIOCCXM', 'XM', 'XIOCC', 'XIOCA', 'XIC', 'XIOCAC'], dtype = Dtype.CATEGORICAL),
         IndexColumn(name = 'lena_block_number', description = 'number of the LENA pause/conversation the segment belongs to', regex = r"(\d+(\.\d+)?)"),
-        IndexColumn(name = 'lena_conv_status', description = 'LENA conversation status', choices = ['BC', 'RC', 'EC']),
+        IndexColumn(name = 'lena_conv_status', description = 'LENA conversation status', choices = ['BC', 'RC', 'EC'], dtype = Dtype.CATEGORICAL),
         IndexColumn(name = 'lena_response_count', description = 'LENA turn count within block', regex = r"(\d+(\.\d+)?)"),
-        IndexColumn(name = 'lena_conv_floor_type', description = '(FI): Floor Initiation, (FH): Floor Holding', choices = ['FI', 'FH']),
-        IndexColumn(name = 'lena_conv_turn_type', description = 'LENA turn type', choices = ['TIFI', 'TIMI', 'TIFR', 'TIMR', 'TIFE', 'TIME', 'NT']),
+        IndexColumn(name = 'lena_conv_floor_type', description = '(FI): Floor Initiation, (FH): Floor Holding', choices = ['FI', 'FH'], dtype = Dtype.CATEGORICAL),
+        IndexColumn(name = 'lena_conv_turn_type', description = 'LENA turn type', choices = ['TIFI', 'TIMI', 'TIFR', 'TIMR', 'TIFE', 'TIME', 'NT'], dtype = Dtype.CATEGORICAL),
         IndexColumn(name = 'utterances_count', description = 'utterances count', regex = r"(\d+(\.\d+)?)"),
         IndexColumn(name = 'utterances_length', description = 'utterances length', regex = r"([0-9]+)"),
         IndexColumn(name = 'non_speech_length', description = 'non-speech length', regex = r"([0-9]+)"),
@@ -70,6 +70,12 @@ class AnnotationManager:
         IndexColumn(name = 'cries', description = 'cries (json)'),
         IndexColumn(name = 'vfxs', description = 'Vfx (json)')
     ]
+
+    SEGMENTS_DTYPE = {
+        column.name: column.dtype
+        for column in SEGMENTS_COLUMNS
+        if column.dtype
+    }
 
     def __init__(self, project: ChildProject):
         """AnnotationManager constructor
@@ -570,7 +576,10 @@ class AnnotationManager:
         segments = []
         for index, _annotations in annotations.groupby(['set', 'annotation_filename']):
             s, annotation_filename = index
-            df = pd.read_csv(os.path.join(self.project.path, 'annotations', s, 'converted', annotation_filename))
+            df = pd.read_csv(
+                os.path.join(self.project.path, 'annotations', s, 'converted', annotation_filename),
+                dtype = AnnotationManager.SEGMENTS_DTYPE
+            )
             
             for annotation in _annotations.to_dict(orient = 'records'):
                 segs = df.copy()
