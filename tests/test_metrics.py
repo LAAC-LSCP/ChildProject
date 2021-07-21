@@ -21,6 +21,25 @@ def project(request):
 
     yield project
 
+def test_failures(project):
+    exception_caught = False
+    try:
+        aclew = AclewMetrics(project, vtc = 'unknown')
+    except ValueError as e:
+        exception_caught = True
+
+    assert exception_caught == True, "AclewMetrics failed to throw an exception despite an invalid VTC set being provided"
+    exception_caught = False
+
+    exception_caught = False
+    try:
+        lena = LenaMetrics(project, set = 'unknown')
+    except ValueError as e:
+        exception_caught = True
+
+    assert exception_caught == True, "LenaMetrics failed to throw an exception despite an invalid ITS set being provided"
+    exception_caught = False
+
 def test_aclew(project):    
     am = AnnotationManager(project)
     am.import_annotations(pd.DataFrame([

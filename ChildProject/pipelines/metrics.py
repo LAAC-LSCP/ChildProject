@@ -125,6 +125,12 @@ class LenaMetrics(Metrics):
         self.set = set
         self.threads = int(threads)
 
+        if self.set not in self.am.annotations['set'].values:
+            raise ValueError(
+                f"annotation set '{self.set}' was not found in the index; "
+                "check spelling and make sure the set was properly imported."
+            )
+
     def _process_unit(self, unit: str):
         import ast
 
@@ -238,6 +244,18 @@ class AclewMetrics(Metrics):
         self.alice = alice
         self.vcm = vcm
         self.threads = int(threads)
+
+        if self.vtc not in self.am.annotations['set'].values:
+            raise ValueError(
+                f"The VTC set '{self.vtc}' was not found in the index; "
+                "check spelling and make sure the set was properly imported."
+            )
+
+        if self.alice not in self.am.annotations['set'].values:
+            print(f"The ALICE set ('{self.alice}') was not found in the index.")
+
+        if self.vcm not in self.am.annotations['set'].values:
+            print(f"The VCM set ('{self.vcm}') was not found in the index.")
 
     def _process_unit(self, unit: str):
         segments = self.retrieve_segments([self.vtc, self.alice, self.vcm], unit)
