@@ -135,19 +135,21 @@ class LenaMetrics(Metrics):
         import ast
 
         its = self.retrieve_segments([self.set], unit)
+
+        speaker_types = ['FEM', 'MAL', 'CHI', 'OCH']
+        adults = ['FEM', 'MAL']
+
+        if 'speaker_type' in its.columns:
+            its = its[its['speaker_type'].isin(speaker_types)]
+        else:
+            return pd.DataFrame()
+
         if len(its) == 0:
             return pd.DataFrame()
 
         unit_duration = self.project.recordings[self.project.recordings[self.by] == unit]['duration'].sum()/1000
 
         metrics = {}
-        speaker_types = ['FEM', 'MAL', 'CHI', 'OCH']
-        adults = ['FEM', 'MAL']
-        
-        its = its[its['speaker_type'].isin(speaker_types)]
-
-        if len(its) == 0:
-            return pd.DataFrame()
 
         its_agg = its.groupby('speaker_type').agg(
             voc_ph = ('segment_onset', lambda x: 3600*len(x)/unit_duration),
@@ -260,16 +262,20 @@ class AclewMetrics(Metrics):
     def _process_unit(self, unit: str):
         segments = self.retrieve_segments([self.vtc, self.alice, self.vcm], unit)
 
+        speaker_types = ['FEM', 'MAL', 'CHI', 'OCH']
+        adults = ['FEM', 'MAL']
+
+        if 'speaker_type' in segments.columns:
+            segments = segments[segments['speaker_type'].isin(speaker_types)]
+        else:
+            return pd.DataFrame()
+
         if len(segments) == 0:
             return pd.DataFrame()
 
         unit_duration = self.project.recordings[self.project.recordings[self.by] == unit]['duration'].sum()/1000
 
         metrics = {}
-        speaker_types = ['FEM', 'MAL', 'CHI', 'OCH']
-        adults = ['FEM', 'MAL']
-
-        segments = segments[segments['speaker_type'].isin(speaker_types)]
 
         vtc = segments[segments['set'] == self.vtc]
         alice = segments[segments['set'] == self.alice]

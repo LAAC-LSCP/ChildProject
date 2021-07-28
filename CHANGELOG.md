@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
  - Fixed skip-existing argument of the basic audio processor
+ - Fixed a crash-bug that occured while extracting metrics from recordings with no FEM/MAL/CHI/OCH segment
 
 ## [0.0.1] - 2021-07-14
 
