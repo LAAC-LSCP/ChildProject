@@ -6,6 +6,7 @@ import numpy as np
 import os
 import pandas as pd
 from pydub import AudioSegment
+import librosa
 import sys
 import traceback
 from typing import Union, List
@@ -426,29 +427,32 @@ class EnergyDetectionSampler(Sampler):
         recording_path = self.project.get_recording_path(recording['recording_filename'], self.profile)
 
         try:
-            audio = AudioSegment.from_file(recording_path)
+            signal, frequency = librosa.load(recording_path, mono = False, sr = None)
         except:
             print(traceback.format_exc(), file = sys.stderr)
             print("failed to read '{}', is it a valid audio file ?".format(recording_path), file = sys.stderr)
             return pd.DataFrame()
 
-        duration = int(audio.duration_seconds*1000)
-        channels = audio.channels
-        frequency = int(audio.frame_rate)
-        max_value = 256**(int(audio.sample_width))/2-1
+        channels = 1 if signal.ndim == 1 else signal.shape[0]
+        samples = signal.shape[0] if signal.ndim == 1 else signal.shape[1]
+        duration = int(1000*(samples/frequency))
 
         windows_starts = np.arange(self.windows_offset, duration - self.windows_length, self.windows_spacing).astype(int)
         windows = []
 
         print("computing the energy of {} windows for recording {}...".format(len(windows_starts), recording['recording_filename']))
         for start in windows_starts:
-            energy = 0
-            chunk = audio[start:start+self.windows_length].get_array_of_samples()
             channel_energies = np.zeros(channels)
 
+            on, off = librosa.time_to_samples(
+                np.array([start, start+self.windows_length])/1000, sr = frequency
+            )
+
             for channel in range(channels):
-                data = np.array(chunk[channel::channels])/max_value
-                channel_energies[channel] = self.compute_energy_loudness(data, frequency)
+                if channels > 1:
+                    channel_energies[channel] = self.compute_energy_loudness(signal[channel][on:off], frequency)                    
+                else:
+                    channel_energies[channel] = self.compute_energy_loudness(signal[on:off], frequency)
 
             window = {
                 'segment_onset': start,
