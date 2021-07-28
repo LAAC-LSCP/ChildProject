@@ -98,10 +98,12 @@ def test_its(its):
     )#.fillna('NA')
     check_its(converted, truth)
 
-def test_import(project):
-    am = AnnotationManager(project)
-
+@pytest.mark.parametrize('type', ['csv', 'gz', 'h5', 'parquet'])
+def test_import(project, type):
     input_annotations = pd.read_csv('examples/valid_raw_data/annotations/input.csv')
+    input_annotations['type'] = type
+
+    am = AnnotationManager(project)
     am.import_annotations(input_annotations)
     am.read()
     
@@ -113,16 +115,15 @@ def test_import(project):
     ]), "some annotations are missing"
 
     errors, warnings = am.validate()
-    assert len(errors) == 0 and len(warnings) == 0, "malformed annotations detected"
+    assert len(errors) == 0 and len(warnings) == 0, f"malformed annotations detected ({errors} {warnings})"
 
     for dataset in ['eaf_basic', 'textgrid', 'eaf_solis']:
         annotations = am.annotations[am.annotations['set'] == dataset]
         segments = am.get_segments(annotations)
         segments.drop(columns = set(annotations.columns) - {'raw_filename'}, inplace = True)
-        truth = pd.read_csv('tests/truth/{}.csv'.format(dataset))
+        truth = pd.read_csv('tests/truth/{}.csv'.format(dataset), dtype = {'transcription': str, 'ling_type': str})
 
-        print(segments)
-        print(truth)
+        print(annotations)
 
         pd.testing.assert_frame_equal(
             standardize_dataframe(segments, set(truth.columns.tolist())),
@@ -146,6 +147,7 @@ def test_intersect(project):
     columns = a.columns.tolist()
     columns.remove('imported_at')
     columns.remove('package_version')
+    columns.remove('type')
         
     pd.testing.assert_frame_equal(
         standardize_dataframe(a, columns),

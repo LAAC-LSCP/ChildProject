@@ -3,6 +3,7 @@ import os
 import re
 import datetime
 import numpy as np
+from typing import Callable
 
 def is_boolean(x):
     return x == 'NA' or int(x) in [0,1]
@@ -10,7 +11,8 @@ def is_boolean(x):
 class IndexColumn:
     def __init__(self, name = "", description = "", required = False,
                  regex = None, filename = False, datetime = None, function = None, choices = None,
-                 unique = False, generated = False):
+                 unique = False, generated = False,
+                 na = False):
         self.name = name
         self.description = description
         self.required = required
@@ -21,6 +23,7 @@ class IndexColumn:
         self.choices = choices
         self.unique = unique
         self.generated = generated
+        self.na = bool(na)
 
     def __str__(self):
         return 'IndexColumn(name = {})'.format(self.name)
@@ -98,7 +101,9 @@ class IndexTable:
                 if column_attr is None:
                     continue
 
-                if callable(column_attr.function):
+                if column_attr.na and pd.isnull(row[column_name]):
+                    continue
+                elif callable(column_attr.function):
                     try:
                         ok = column_attr.function(str(row[column_name])) == True
                     except:

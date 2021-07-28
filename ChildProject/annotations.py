@@ -35,6 +35,7 @@ class AnnotationManager:
         IndexColumn(name = 'filter', description = 'source file to filter in (for rttm and alice only)', required = False),
         IndexColumn(name = 'annotation_filename', description = 'output formatted annotation location, relative to `annotations/<set>/converted (automatic column, don\'t specify)', filename = True, required = False, generated = True),
         IndexColumn(name = 'imported_at', description = 'importation date (automatic column, don\'t specify)', datetime = "%Y-%m-%d %H:%M:%S", required = False, generated = True),
+        IndexColumn(name = 'type', description = 'annotation storage format', choices = ['csv', 'gz', 'h5'], required = False),
         IndexColumn(name = 'package_version', description = 'version of the package used when the importation was performed', regex = r"[0-9]+\.[0-9]+\.[0-9]+", required = False, generated = True),
         IndexColumn(name = 'error', description = 'error message in case the annotation could not be imported', required = False, generated = True)
     ]
@@ -44,22 +45,22 @@ class AnnotationManager:
         IndexColumn(name = 'segment_onset', description = 'segment onset timestamp in milliseconds (since the start of the recording)', regex = r"([0-9]+)", required = True),
         IndexColumn(name = 'segment_offset', description = 'segment end time in milliseconds (since the start of the recording)', regex = r"([0-9]+)", required = True),
         IndexColumn(name = 'speaker_id', description = 'identity of speaker in the annotation'),
-        IndexColumn(name = 'speaker_type', description = 'class of speaker (FEM = female adult, MAL = male adult, CHI = key child, OCH = other child)', choices = ['FEM', 'MAL', 'CHI', 'OCH', 'NA']),
-        IndexColumn(name = 'ling_type', description = '1 if the vocalization contains at least a vowel (ie canonical or non-canonical), 0 if crying or laughing', choices = ['1', '0', 'NA']),
-        IndexColumn(name = 'vcm_type', description = 'vocal maturity defined as: C (canonical), N (non-canonical), Y (crying) L (laughing), J (junk)', choices = ['C', 'N', 'Y', 'L', 'J', 'NA']),
-        IndexColumn(name = 'lex_type', description = 'W if meaningful, 0 otherwise', choices = ['W', '0', 'NA']),
-        IndexColumn(name = 'mwu_type', description = 'M if multiword, 1 if single word -- only filled if lex_type==W', choices = ['M', '1', 'NA']),
-        IndexColumn(name = 'addressee', description = 'T if target-child-directed, C if other-child-directed, A if adult-directed, U if uncertain or other. Multiple values should be sorted and separated by commas', choices = ['T', 'C', 'A', 'U', 'NA']),
+        IndexColumn(name = 'speaker_type', description = 'class of speaker (FEM = female adult, MAL = male adult, CHI = key child, OCH = other child)', choices = ['FEM', 'MAL', 'CHI', 'OCH', 'NA'], na = True),
+        IndexColumn(name = 'ling_type', description = '1 if the vocalization contains at least a vowel (ie canonical or non-canonical), 0 if crying or laughing', choices = ['1', '0', 'NA'], na = True),
+        IndexColumn(name = 'vcm_type', description = 'vocal maturity defined as: C (canonical), N (non-canonical), Y (crying) L (laughing), J (junk)', choices = ['C', 'N', 'Y', 'L', 'J', 'NA'], na = True),
+        IndexColumn(name = 'lex_type', description = 'W if meaningful, 0 otherwise', choices = ['W', '0', 'NA'], na = True),
+        IndexColumn(name = 'mwu_type', description = 'M if multiword, 1 if single word -- only filled if lex_type==W', choices = ['M', '1', 'NA'], na = True),
+        IndexColumn(name = 'addressee', description = 'T if target-child-directed, C if other-child-directed, A if adult-directed, U if uncertain or other. Multiple values should be sorted and separated by commas', choices = ['T', 'C', 'A', 'U', 'NA'], na = True),
         IndexColumn(name = 'transcription', description = 'orthographic transcription of the speach'),
         IndexColumn(name = 'phonemes', description = 'amount of phonemes', regex = r'(\d+(\.\d+)?)'),
         IndexColumn(name = 'syllables', description = 'amount of syllables', regex = r'(\d+(\.\d+)?)'),
-        IndexColumn(name = 'words', description = 'amount of words', regex = r'(\d+(\.\d+)?)'),
-        IndexColumn(name = 'lena_block_type', description = 'whether regarded as part as a pause or a conversation by LENA', choices = ['pause', 'CM', 'CIC', 'CIOCX', 'CIOCAX', 'AMF', 'AICF', 'AIOCF', 'AIOCCXF', 'AMM', 'AICM', 'AIOCM', 'AIOCCXM', 'XM', 'XIOCC', 'XIOCA', 'XIC', 'XIOCAC']),
-        IndexColumn(name = 'lena_block_number', description = 'number of the LENA pause/conversation the segment belongs to', regex = r"(\d+(\.\d+)?)"),
-        IndexColumn(name = 'lena_conv_status', description = 'LENA conversation status', choices = ['BC', 'RC', 'EC']),
-        IndexColumn(name = 'lena_response_count', description = 'LENA turn count within block', regex = r"(\d+(\.\d+)?)"),
-        IndexColumn(name = 'lena_conv_floor_type', description = '(FI): Floor Initiation, (FH): Floor Holding', choices = ['FI', 'FH']),
-        IndexColumn(name = 'lena_conv_turn_type', description = 'LENA turn type', choices = ['TIFI', 'TIMI', 'TIFR', 'TIMR', 'TIFE', 'TIME', 'NT']),
+        IndexColumn(name = 'words', description = 'amount of words', regex = r'(\d+(\.\d+)?)', na = True),
+        IndexColumn(name = 'lena_block_type', description = 'whether regarded as part as a pause or a conversation by LENA', choices = ['pause', 'CM', 'CIC', 'CIOCX', 'CIOCAX', 'AMF', 'AICF', 'AIOCF', 'AIOCCXF', 'AMM', 'AICM', 'AIOCM', 'AIOCCXM', 'XM', 'XIOCC', 'XIOCA', 'XIC', 'XIOCAC'], na = True),
+        IndexColumn(name = 'lena_block_number', description = 'number of the LENA pause/conversation the segment belongs to', regex = r"(\d+(\.\d+)?)", na = True),
+        IndexColumn(name = 'lena_conv_status', description = 'LENA conversation status', choices = ['BC', 'RC', 'EC'], na = True),
+        IndexColumn(name = 'lena_response_count', description = 'LENA turn count within block', regex = r"(\d+(\.\d+)?)", na = True),
+        IndexColumn(name = 'lena_conv_floor_type', description = '(FI): Floor Initiation, (FH): Floor Holding', choices = ['FI', 'FH'], na = True),
+        IndexColumn(name = 'lena_conv_turn_type', description = 'LENA turn type', choices = ['TIFI', 'TIMI', 'TIFR', 'TIMR', 'TIFE', 'TIME', 'NT'], na = True),
         IndexColumn(name = 'utterances_count', description = 'utterances count', regex = r"(\d+(\.\d+)?)"),
         IndexColumn(name = 'utterances_length', description = 'utterances length', regex = r"([0-9]+)"),
         IndexColumn(name = 'non_speech_length', description = 'non-speech length', regex = r"([0-9]+)"),
@@ -117,17 +118,25 @@ class AnnotationManager:
 
         return errors, warnings
 
+    def write(self):
+        """Update the annotations index,
+        while enforcing its good shape.
+        """
+        self.annotations[['time_seek', 'range_onset', 'range_offset']].fillna(0, inplace = True)
+        self.annotations[['time_seek', 'range_onset', 'range_offset']] = self.annotations[['time_seek', 'range_onset', 'range_offset']].astype(int)
+        self.annotations.to_csv(os.path.join(self.project.path, 'metadata/annotations.csv'), index = False)
+
     def validate_annotation(self, annotation: dict) -> Tuple[List[str], List[str]]:
         print("validating {} from {}...".format(annotation['annotation_filename'], annotation['set']))
 
         segments = IndexTable(
             'segments',
-            path = os.path.join(self.project.path, 'annotations', annotation['set'], 'converted', str(annotation['annotation_filename'])),
+            path = os.path.join(self.project.path, 'annotations', annotation['set'], 'converted', annotation['annotation_filename']),
             columns = self.SEGMENTS_COLUMNS
         )
 
         try:
-            segments.read()
+            segments.df = self._read_annotation(annotation['set'], annotation['annotation_filename'])
         except Exception as e:
             error_message = "error while trying to read {} from {}:\n\t{}".format(
                 annotation['annotation_filename'],
@@ -163,14 +172,38 @@ class AnnotationManager:
 
         return errors, warnings
 
-    def write(self):
-        """Update the annotations index,
-        while enforcing its good shape.
-        """
-        self.annotations[['time_seek', 'range_onset', 'range_offset']].fillna(0, inplace = True)
-        self.annotations[['time_seek', 'range_onset', 'range_offset']] = self.annotations[['time_seek', 'range_onset', 'range_offset']].astype(int)
-        self.annotations.to_csv(os.path.join(self.project.path, 'metadata/annotations.csv'), index = False)
+    def _read_annotation(self, set: str, filename: str):
+        path = os.path.join(self.project.path, 'annotations', set, 'converted', filename)
+        ext = os.path.splitext(filename)[1]
 
+        if ext == '.csv':
+            return pd.read_csv(path)
+        elif ext == '.gz':
+            return pd.read_csv(path, compression = 'gzip')
+        elif ext == '.h5':
+            return pd.read_hdf(path)
+        elif ext == '.parquet':
+            return pd.read_parquet(path)
+        else:
+            raise ValueError(f"invalid extension '{ext}' for annotation {set}/{filename}'")
+
+    def _write_annotation(self, df: pd.DataFrame, set: str, filename: str):
+        path = os.path.join(self.project.path, 'annotations', set, 'converted', filename)
+        ext = os.path.splitext(filename)[1]
+
+        os.makedirs(os.path.dirname(path), exist_ok = True)
+
+        if ext == '.csv':
+            df.to_csv(path, index = False)
+        elif ext == '.gz':
+            df.to_csv(path, index = False, compression = 'gzip')
+        elif ext == '.h5':
+            df.to_hdf(path, key = 'segments', mode = 'w', index = False)
+        elif ext == '.parquet':
+            df.to_parquet(path, index = False)
+        else:
+            raise ValueError(f"invalid extension '{ext}' for annotation {set}/{filename}'")
+  
     def _import_annotation(self, import_function: Callable[[str], pd.DataFrame], annotation: dict):
         """import and convert ``annotation``. This function should not be called outside of this class.
 
@@ -183,9 +216,6 @@ class AnnotationManager:
         """
 
         source_recording = os.path.splitext(annotation['recording_filename'])[0]
-        annotation_filename = "{}_{}_{}.csv".format(source_recording, annotation['range_onset'], annotation['range_offset'])
-        output_filename = os.path.join('annotations', annotation['set'], 'converted', annotation_filename)
-
         path = os.path.join(self.project.path, 'annotations', annotation['set'], 'raw', annotation['raw_filename'])
         annotation_format = annotation['format']
 
@@ -230,8 +260,21 @@ class AnnotationManager:
 
         df.sort_values(sort_columns, inplace = True)
 
-        os.makedirs(os.path.dirname(os.path.join(self.project.path, output_filename)), exist_ok = True)
-        df.to_csv(os.path.join(self.project.path, output_filename), index = False)
+        if 'type' not in annotation or pd.isnull(annotation['type']):
+            annotation['type'] = 'csv'
+
+        annotation_filename = "{}_{}_{}.{}".format(
+            source_recording,
+            annotation['range_onset'],
+            annotation['range_offset'],
+            annotation['type']
+        )
+
+        self._write_annotation(
+            df,
+            annotation['set'],
+            annotation_filename
+        )
 
         annotation['annotation_filename'] = annotation_filename
         annotation['imported_at'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -409,17 +452,18 @@ class AnnotationManager:
         self.annotations.loc[(self.annotations['set'] == annotation_set), 'set'] = new_set
         self.write()
 
-    def merge_annotations(self, left_columns, right_columns, columns, output_set, input):
+    def merge_annotations(self, left_columns, right_columns, columns, output_set, type, input):
         left_annotations = input['left_annotations']
         right_annotations = input['right_annotations']
         
         annotations = left_annotations.copy()
         annotations['format'] = ''
         annotations['annotation_filename'] = annotations.apply(
-            lambda annotation: "{}_{}_{}.csv".format(
+            lambda annotation: "{}_{}_{}.{}".format(
                 os.path.splitext(annotation['recording_filename'])[0],
                 annotation['range_onset'],
-                annotation['range_offset']
+                annotation['range_offset'],
+                type
             )
         , axis = 1)
 
@@ -487,9 +531,11 @@ class AnnotationManager:
 
             segments = output_segments[output_segments['interval'] == interval]
             segments.drop(columns = list(set(segments.columns)-{c.name for c in self.SEGMENTS_COLUMNS}), inplace = True)
-            segments.to_csv(
-                os.path.join(self.project.path, 'annotations', annotation_set, 'converted', annotation_filename),
-                index = False
+
+            self._write_annotation(
+                segments,
+                annotation_set,
+                annotation_filename
             )
 
         return annotations
@@ -497,6 +543,7 @@ class AnnotationManager:
     def merge_sets(self, left_set: str, right_set: str,
         left_columns: List[str], right_columns: List[str],
         output_set: str, columns: dict = {},
+        type = 'csv',
         threads = -1
     ):
         """Merge columns from ``left_set`` and ``right_set`` annotations, 
@@ -546,8 +593,12 @@ class AnnotationManager:
             for recording in left_annotations['recording_filename'].unique()
         ]
             
-        pool = mp.Pool(processes = threads if threads > 0 else mp.cpu_count())
-        annotations = pool.map(partial(self.merge_annotations, left_columns, right_columns, columns, output_set), input_annotations)
+        with mp.Pool(processes = threads if threads > 0 else mp.cpu_count()) as pool:
+            annotations = pool.map(
+                partial(self.merge_annotations, left_columns, right_columns, columns, output_set, type),
+                input_annotations
+            )
+
         annotations = pd.concat(annotations)
         annotations.drop(columns = list(set(annotations.columns)-{c.name for c in self.INDEX_COLUMNS}), inplace = True)
         annotations.fillna({'raw_filename': 'NA'}, inplace = True)
@@ -570,7 +621,7 @@ class AnnotationManager:
         segments = []
         for index, _annotations in annotations.groupby(['set', 'annotation_filename']):
             s, annotation_filename = index
-            df = pd.read_csv(os.path.join(self.project.path, 'annotations', s, 'converted', annotation_filename))
+            df = self._read_annotation(s, annotation_filename)
             
             for annotation in _annotations.to_dict(orient = 'records'):
                 segs = df.copy()

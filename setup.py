@@ -3,7 +3,7 @@ import ChildProject
 
 requires = {
     'core': ['pandas>=0.25.0', 'jinja2', 'numpy>=1.16.5', 'sox', 'datalad', 'requests<2.25.0'],
-    'annotations': ['lxml', 'pympi-ling', 'pylangacq', 'python-dateutil>=2.8.1'],
+    'annotations': ['lxml', 'pyarrow', 'pympi-ling', 'pylangacq', 'python-dateutil>=2.8.1', 'tables'],
     'metrics': ['pyannote.metrics; python_version >= "3.7.0"', 'pygamma-agreement; python_version >= "3.6.0"', 'nltk', 'sklearn'],
     'audio': ['librosa', 'pydub', 'pysoundfile'],
     'samplers': ['PyYAML'],
