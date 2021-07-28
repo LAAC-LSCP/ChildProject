@@ -3,13 +3,21 @@ import os
 import re
 import datetime
 import numpy as np
+from enum import Enum
 
 def is_boolean(x):
     return x == 'NA' or int(x) in [0,1]
 
+class Dtype(Enum):
+    INT = 1
+    FLOAT = 2
+    STR = 3
+    CATEGORICAL = 4
+
 class IndexColumn:
     def __init__(self, name = "", description = "", required = False,
                  regex = None, filename = False, datetime = None, function = None, choices = None,
+                 dtype = None,
                  unique = False, generated = False):
         self.name = name
         self.description = description
@@ -21,6 +29,10 @@ class IndexColumn:
         self.choices = choices
         self.unique = unique
         self.generated = generated
+
+        self.dtype = None
+        if dtype == Dtype.CATEGORICAL and self.choices:
+            self.dtype = pd.CategoricalDtype(categories = self.choices, ordered = False)
 
     def __str__(self):
         return 'IndexColumn(name = {})'.format(self.name)
