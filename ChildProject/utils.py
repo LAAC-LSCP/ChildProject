@@ -1,5 +1,6 @@
 import os
 
+
 class Segment:
     def __init__(self, start, stop):
         self.start = start
@@ -11,6 +12,7 @@ class Segment:
     def __repr__(self):
         return "Segment([{}, {}])".format(self.start, self.stop)
 
+
 def intersect_ranges(xs, ys):
     # Try to get the first range in each iterator:
     try:
@@ -20,10 +22,7 @@ def intersect_ranges(xs, ys):
 
     while True:
         # Yield the intersection of the two ranges, if it's not empty:
-        intersection = Segment(
-            max(x.start, y.start),
-            min(x.stop, y.stop)
-        )
+        intersection = Segment(max(x.start, y.start), min(x.stop, y.stop))
         if intersection.length() > 0:
             yield intersection
 
@@ -36,8 +35,10 @@ def intersect_ranges(xs, ys):
         except StopIteration:
             return
 
+
 def get_audio_duration(filename):
     import sox
+
     if not os.path.exists(filename):
         return 0
 
