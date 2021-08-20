@@ -34,11 +34,11 @@ def create_eaf(
         whole_region_onset = ts[0]
         whole_region_offset = ts[1]
 
-        context_onset = int(whole_region_onset) - contxt_on
-        context_offset = int(whole_region_offset) + contxt_off
+        context_onset = int(whole_region_onset - contxt_on)
+        context_offset = int(whole_region_offset + contxt_off)
 
         if context_onset < 0:
-            context_onset = 0.0
+            context_onset = 0
 
         codeNumVal = eaf_type + str(i + 1)
         eaf.add_annotation("code_" + eaf_type, whole_region_onset, whole_region_offset)
