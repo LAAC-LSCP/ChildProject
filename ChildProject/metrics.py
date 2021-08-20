@@ -244,7 +244,7 @@ def gamma(
         )
 
     dissim = CombinedCategoricalDissimilarity(
-        list(continuum.categories), delta_empty=1, alpha=alpha, beta=beta
+        delta_empty=1, alpha=alpha, beta=beta
     )
 
     gamma_results = continuum.compute_gamma(dissim, precision_level=precision_level)
