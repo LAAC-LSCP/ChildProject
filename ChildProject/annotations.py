@@ -1121,7 +1121,10 @@ class AnnotationManager:
 
         segments["start_time"] = pd.to_datetime(
             segments[["date_iso", "start_time"]].apply(
-                lambda row: "{} {}".format(str(row["date_iso"]), str(row["start_time"])), axis=1
+                lambda row: "{} {}".format(
+                    str(row["date_iso"]), str(row["start_time"])
+                ),
+                axis=1,
             ),
             format="%Y-%m-%d %H:%M",
             errors="coerce",
