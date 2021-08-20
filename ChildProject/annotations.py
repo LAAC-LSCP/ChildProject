@@ -1081,6 +1081,10 @@ class AnnotationManager:
                 ann["range_offset_time"] = str(
                     datetime.timedelta(milliseconds=segment.stop % (86400 * 1000))
                 )[:-3].zfill(len('00:00'))
+
+                if ann['range_onset'] >= ann['range_offset']:
+                    continue
+                
                 matches.append(ann)
 
         if len(matches):
