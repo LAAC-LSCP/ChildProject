@@ -31,8 +31,8 @@ def create_eaf(
     for i, ts in enumerate(timestamps_list):
         print("Creating eaf code segment # ", i + 1)
         print("enumerate makes: ", i, ts)
-        whole_region_onset = ts[0]
-        whole_region_offset = ts[1]
+        whole_region_onset = int(ts[0])
+        whole_region_offset = int(ts[1])
 
         context_onset = int(whole_region_onset - contxt_on)
         context_offset = int(whole_region_offset + contxt_off)
