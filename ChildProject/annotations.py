@@ -1023,7 +1023,7 @@ class AnnotationManager:
         :type start: str
         :param end: offset HH:MM clocktime
         :type end: str
-        :param errors: how to deal with invalid start_time values for the recordings
+        :param errors: how to deal with invalid start_time values for the recordings. Takes the same values as ``pandas.to_datetime``.
         :type errors: str
         :return: a DataFrame of annotations;
         For each row, ``range_onset`` and ``range_offset`` are clipped within the desired clock-time range.
@@ -1049,6 +1049,8 @@ class AnnotationManager:
             raise ValueError(
                 f"invalid value for end_time ('{end_time}'); should have HH:MM format instead"
             )
+
+        assert end_dt > start_dt, "end_time must follows start_time"
 
         start_ts = get_ms_since_midight(start_dt)
         end_ts = get_ms_since_midight(end_dt)
