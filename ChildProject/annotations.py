@@ -1061,7 +1061,7 @@ class AnnotationManager:
         )
 
         # remove values with NaT start_time
-        annotations.dropna(subset=["start_time"], inplace=True, errors=errors)
+        annotations.dropna(subset=["start_time"], inplace=True)
 
         # clock-time of the beginning and end of the annotation
         annotations["range_onset_time"] = annotations["start_time"] + pd.to_timedelta(
