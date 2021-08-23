@@ -1011,7 +1011,7 @@ class AnnotationManager:
         return segments
 
     def get_within_time_range(
-        self, annotations: pd.DataFrame, start_time: str, end_time: str
+        self, annotations: pd.DataFrame, start_time: str, end_time: str, errors="raise"
     ):
         """Clip all input annotations within a given HH:MM clock-time range.
         Those that do not intersect the input time range at all are filtered out.
@@ -1023,6 +1023,8 @@ class AnnotationManager:
         :type start: str
         :param end: offset HH:MM clocktime
         :type end: str
+        :param errors: how to deal with invalid start_time values for the recordings
+        :type errors: str
         :return: a DataFrame of annotations;
         For each row, ``range_onset`` and ``range_offset`` are clipped within the desired clock-time range.
         The clock-time corresponding to the onset and offset of each annotation
@@ -1034,8 +1036,19 @@ class AnnotationManager:
         def get_ms_since_midight(dt):
             return (dt - dt.replace(hour=0, minute=0, second=0)).total_seconds() * 1000
 
-        start_dt = datetime.datetime.strptime(start_time, "%H:%M")
-        end_dt = datetime.datetime.strptime(end_time, "%H:%M")
+        try:
+            start_dt = datetime.datetime.strptime(start_time, "%H:%M")
+        except:
+            raise ValueError(
+                f"invalid value for start_time ('{start_time}'); should have HH:MM format instead"
+            )
+
+        try:
+            end_dt = datetime.datetime.strptime(end_time, "%H:%M")
+        except:
+            raise ValueError(
+                f"invalid value for end_time ('{end_time}'); should have HH:MM format instead"
+            )
 
         start_ts = get_ms_since_midight(start_dt)
         end_ts = get_ms_since_midight(end_dt)
@@ -1044,8 +1057,11 @@ class AnnotationManager:
             self.project.recordings[["recording_filename", "start_time"]], how="left"
         )
         annotations["start_time"] = pd.to_datetime(
-            annotations["start_time"], format="%H:%M"
+            annotations["start_time"], format="%H:%M", errors=errors
         )
+
+        # remove values with NaT start_time
+        annotations.dropna(subset=["start_time"], inplace=True, errors=errors)
 
         # clock-time of the beginning and end of the annotation
         annotations["range_onset_time"] = annotations["start_time"] + pd.to_timedelta(

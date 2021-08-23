@@ -267,6 +267,14 @@ def test_within_time_range(project):
         standardize_dataframe(truth, truth.columns)
     )
 
+    exception_caught = False
+    try:
+       matches = am.get_within_time_range(annotations, '9am', '8pm')
+    except ValueError as e:
+        exception_caught = True
+
+    assert exception_caught, "no exception was thrown despite invalid times"
+
 
 def test_rename(project):
     am = AnnotationManager(project)
