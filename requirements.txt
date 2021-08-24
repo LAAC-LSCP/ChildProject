@@ -6,7 +6,7 @@ jinja2
 librosa
 lxml
 nltk
-numpy>=1.16.5
+numpy>=1.17,<1.21
 pydub
 pandas>=0.25.0
 panoptes_client
