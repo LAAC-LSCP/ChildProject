@@ -1,0 +1,5 @@
+recording_filename,set,range_onset,range_offset
+1.wav,auto,0,86400000
+1.wav,manual,3600000,7200000
+2.wav,auto,0,172800000
+2.wav,manual,90000000,93600000

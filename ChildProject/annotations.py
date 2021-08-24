@@ -1010,8 +1010,154 @@ class AnnotationManager:
 
         return segments
 
+    def get_within_time_range(
+        self, annotations: pd.DataFrame, start_time: str, end_time: str, errors="raise"
+    ):
+        """Clip all input annotations within a given HH:MM clock-time range.
+        Those that do not intersect the input time range at all are filtered out.
+
+        :param annotations: DataFrame of input annotations to filter.
+        The only columns that are required are: ``recording_filename``, ``range_onset``, and ``range_offset``.
+        :type annotations: pd.DataFrame
+        :param start: onset HH:MM clocktime
+        :type start: str
+        :param end: offset HH:MM clocktime
+        :type end: str
+        :param errors: how to deal with invalid start_time values for the recordings. Takes the same values as ``pandas.to_datetime``.
+        :type errors: str
+        :return: a DataFrame of annotations;
+        For each row, ``range_onset`` and ``range_offset`` are clipped within the desired clock-time range.
+        The clock-time corresponding to the onset and offset of each annotation
+        is stored in two newly created columns named ``range_onset_time`` and ``range_offset_time``.
+        If the input annotation exceeds 24 hours, one row per matching interval is returned.
+        :rtype: pd.DataFrame
+        """
+
+        def get_ms_since_midight(dt):
+            return (dt - dt.replace(hour=0, minute=0, second=0)).total_seconds() * 1000
+
+        try:
+            start_dt = datetime.datetime.strptime(start_time, "%H:%M")
+        except:
+            raise ValueError(
+                f"invalid value for start_time ('{start_time}'); should have HH:MM format instead"
+            )
+
+        try:
+            end_dt = datetime.datetime.strptime(end_time, "%H:%M")
+        except:
+            raise ValueError(
+                f"invalid value for end_time ('{end_time}'); should have HH:MM format instead"
+            )
+
+        assert end_dt > start_dt, "end_time must follow start_time"
+
+        start_ts = get_ms_since_midight(start_dt)
+        end_ts = get_ms_since_midight(end_dt)
+
+        annotations = annotations.merge(
+            self.project.recordings[["recording_filename", "start_time"]], how="left"
+        )
+        annotations["start_time"] = pd.to_datetime(
+            annotations["start_time"], format="%H:%M", errors=errors
+        )
+
+        # remove values with NaT start_time
+        annotations.dropna(subset=["start_time"], inplace=True)
+
+        # clock-time of the beginning and end of the annotation
+        annotations["range_onset_time"] = annotations["start_time"] + pd.to_timedelta(
+            annotations["range_onset"], unit="ms"
+        )
+        annotations["range_onset_ts"] = (
+            annotations["range_onset_time"].apply(get_ms_since_midight).astype(int)
+        )
+
+        annotations["range_offset_ts"] = (
+            annotations["range_onset_ts"]
+            + annotations["range_offset"]
+            - annotations["range_onset"]
+        ).astype(int)
+
+        matches = []
+        for annotation in annotations.to_dict(orient="records"):
+            onsets = np.arange(start_ts, annotation["range_offset_ts"], 86400 * 1000)
+            offsets = onsets + (end_ts - start_ts)
+
+            xs = (Segment(onset, offset) for onset, offset in zip(onsets, offsets))
+            ys = iter(
+                (Segment(annotation["range_onset_ts"], annotation["range_offset_ts"]),)
+            )
+
+            intersection = intersect_ranges(xs, ys)
+            for segment in intersection:
+                ann = annotation.copy()
+                ann["range_onset"] += segment.start - ann["range_onset_ts"]
+                ann["range_offset"] += segment.stop - ann["range_offset_ts"]
+
+                ann["range_onset_time"] = str(
+                    datetime.timedelta(milliseconds=segment.start % (86400 * 1000))
+                )[:-3].zfill(len("00:00"))
+                ann["range_offset_time"] = str(
+                    datetime.timedelta(milliseconds=segment.stop % (86400 * 1000))
+                )[:-3].zfill(len("00:00"))
+
+                if ann["range_onset"] >= ann["range_offset"]:
+                    continue
+
+                matches.append(ann)
+
+        if len(matches):
+            return pd.DataFrame(matches).drop(
+                columns=["range_onset_ts", "range_offset_ts"]
+            )
+        else:
+            columns = set(annotations.columns) - {"range_onset_ts", "range_offset_ts"}
+            return pd.DataFrame(columns=columns)
+
+    def get_segments_timestamps(self, segments: pd.DataFrame) -> pd.DataFrame:
+        """Calculate the onset and offset clock-time of each segment
+
+        :param segments: DataFrame of segments (as returned by :meth:`~ChildProject.annotations.AnnotationManager.get_segments`).
+        :type segments: pd.DataFrame
+        :return: Returns the input dataframe with two new columns ``onset_time`` and ``offset_time``.
+        ``onset_time`` is a datetime object corresponding to the onset of the segment.
+        ``offset_time`` is a datetime object corresponding to the offset of the segment.
+        In case either ``start_time`` or ``date_iso`` is not specified for the corresponding recording,
+        both values will be set to NaT.
+
+        :rtype: pd.DataFrame
+        """
+        columns_to_drop = set(segments.columns) & {"date_iso", "start_time"}
+
+        if len(columns_to_drop):
+            segments.drop(columns=columns_to_drop, inplace=True)
+
+        segments = segments.merge(
+            self.project.recordings[["recording_filename", "date_iso", "start_time"]],
+            how="left",
+        )
+
+        segments["start_time"] = pd.to_datetime(
+            segments[["date_iso", "start_time"]].apply(
+                lambda row: "{} {}".format(
+                    str(row["date_iso"]), str(row["start_time"])
+                ),
+                axis=1,
+            ),
+            format="%Y-%m-%d %H:%M",
+            errors="coerce",
+        )
+        segments["onset_time"] = segments["start_time"] + pd.to_timedelta(
+            segments["segment_onset"], unit="ms", errors="coerce"
+        )
+        segments["offset_time"] = segments["start_time"] + pd.to_timedelta(
+            segments["segment_offset"], unit="ms", errors="coerce"
+        )
+        return segments.drop(columns=["start_time", "date_iso"])
+
     @staticmethod
-    def intersection(annotations: pd.DataFrame, sets: list = None) -> tuple:
+    def intersection(annotations: pd.DataFrame, sets: list = None) -> pd.DataFrame:
         """Compute the intersection of all annotations for all sets and recordings,
         based on their ``recording_filename``, ``range_onset`` and ``range_offset``
         attributes. (Only these columns are required, but more can be passed and they
@@ -1020,7 +1166,7 @@ class AnnotationManager:
         :param annotations: dataframe of annotations, according to :ref:`format-annotations`
         :type annotations: pd.DataFrame
         :return: dataframe of annotations, according to :ref:`format-annotations`
-        :rtype: tuple
+        :rtype: pd.DataFrame
         """
         stack = []
         recordings = list(annotations["recording_filename"].unique())
