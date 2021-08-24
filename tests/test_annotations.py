@@ -5,6 +5,7 @@ from ChildProject.converters import *
 import glob
 import pandas as pd
 import numpy as np
+import datetime
 import os
 import pytest
 import shutil
@@ -275,6 +276,23 @@ def test_within_time_range(project):
 
     assert exception_caught, "no exception was thrown despite invalid times"
 
+def test_segments_timestamps(project):
+    am = AnnotationManager(project)
+    
+    segments = pd.DataFrame([
+        {'recording_filename': 'sound.wav', 'segment_onset': 3600*1000, 'segment_offset': 3600*1000+1000}
+    ])
+    segments = am.get_segments_timestamps(segments)
+
+    truth = pd.DataFrame([
+        {'recording_filename': 'sound.wav', 'segment_onset': 3600*1000, 'segment_offset': 3600*1000+1000,
+        'onset_time': datetime.datetime(2020, 4, 20, 9+1, 0, 0), 'offset_time': datetime.datetime(2020, 4, 20, 9+1, 0, 1)}
+    ])
+
+    pd.testing.assert_frame_equal(
+        standardize_dataframe(segments, truth.columns),
+        standardize_dataframe(truth, truth.columns)
+    )
 
 def test_rename(project):
     am = AnnotationManager(project)
