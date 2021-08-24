@@ -8,6 +8,8 @@ All notable changes to this project will be documented in this file.
 
  - CSV importer to register pre-exisiting CSV annotations into the index without performing any conversion
  - Enable Zooniverse pipeline's `retrieve-classifications` to match classifications to the original chunks metadata
+ - `get_within_time_range` method to clip a list of annotations within a given time-range
+ - `get_segments_timestamps` method to calculate the onset and offset timestamps of each segment from an annotation
 
 ### Fixed
 
