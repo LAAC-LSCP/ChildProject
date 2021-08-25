@@ -1134,8 +1134,12 @@ class AnnotationManager:
             segments.drop(columns=columns_to_drop, inplace=True)
 
         segments = segments.merge(
-            self.project.recordings[["recording_filename", "date_iso", "start_time"]],
+            self.project.recordings[
+                ["recording_filename", "date_iso", "start_time"]
+            ].set_index("recording_filename"),
             how="left",
+            right_index=True,
+            left_on="recording_filename",
         )
 
         segments["start_time"] = pd.to_datetime(
