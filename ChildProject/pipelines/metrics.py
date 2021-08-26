@@ -18,6 +18,8 @@ class Metrics(ABC):
         project: ChildProject.projects.ChildProject,
         by: str = "recording_filename",
         recordings: Union[str, List[str], pd.DataFrame] = None,
+        from_time: str = None,
+        to_time: str = None,
     ):
 
         self.project = project
@@ -70,6 +72,9 @@ class Metrics(ABC):
         if self.recordings is not None:
             self.recordings = list(set(self.recordings))
 
+        self.from_time = from_time
+        self.to_time = to_time
+
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         pipelines[cls.SUBCOMMAND] = cls
@@ -91,6 +96,11 @@ class Metrics(ABC):
     def retrieve_segments(self, sets: List[str], unit: str):
         annotations = self.am.annotations[self.am.annotations[self.by] == unit]
         annotations = annotations[annotations["set"].isin(sets)]
+
+        if self.from_time and self.to_time:
+            annotations = self.am.get_within_time_range(
+                annotations, from_time, to_time, errors="coerce"
+            )
 
         try:
             segments = self.am.get_segments(annotations)
@@ -511,3 +521,16 @@ class MetricsPipeline(Pipeline):
             default="recording_filename",
         )
 
+        parser.add_argument(
+            "-f",
+            "--from-time",
+            help="time range start in HH:MM format (optional)",
+            default=None,
+        )
+
+        parser.add_argument(
+            "-t",
+            "--to-time",
+            help="time range end in HH:MM format (optional)",
+            default=None,
+        )
