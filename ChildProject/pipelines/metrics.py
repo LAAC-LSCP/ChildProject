@@ -18,6 +18,8 @@ class Metrics(ABC):
         project: ChildProject.projects.ChildProject,
         by: str = "recording_filename",
         recordings: Union[str, List[str], pd.DataFrame] = None,
+        by_period: str = None,
+        by_period_origin: str = None,
     ):
 
         self.project = project
@@ -40,6 +42,9 @@ class Metrics(ABC):
 
         self.by = by
         self.segments = pd.DataFrame()
+
+        self.by_period = by_period
+        self.by_period_origin = by_period_origin
 
         if recordings is None:
             self.recordings = None
@@ -108,6 +113,9 @@ class Metrics(ABC):
             .fillna(0)
         )
 
+        if self.by_period:
+            segments = self.am.get_segments_timestamps(segments)
+
         return segments
 
 
@@ -157,58 +165,56 @@ class LenaMetrics(Metrics):
         speaker_types = ["FEM", "MAL", "CHI", "OCH"]
         adults = ["FEM", "MAL"]
 
-        if "speaker_type" in its.columns:
+        if len(its) and "speaker_type" in its.columns:
             its = its[its["speaker_type"].isin(speaker_types)]
         else:
             return pd.DataFrame()
 
-        if len(its) == 0:
-            return pd.DataFrame()
+        if self.by_period:
+            grouper = pd.Grouper(
+                key="onset_time", freq=self.by_period, origin=self.by_period_origin
+            )
 
-        unit_duration = (
-            self.project.recordings[self.project.recordings[self.by] == unit][
-                "duration"
-            ].sum()
-            / 1000
-        )
+            periods = pd.date_range(
+                datetime.datetime(1970, 1, 1, 0, 0, 0, 0),
+                periods=2,
+                freq=self.by_period,
+            )
+            unit_duration = (periods[1] - periods[0]).total_seconds()
 
-        metrics = {}
-
-        its_agg = its.groupby("speaker_type").agg(
-            voc_ph=("segment_onset", lambda x: 3600 * len(x) / unit_duration),
-            voc_dur_ph=("duration", lambda x: 3600 * np.sum(x) / unit_duration),
-            avg_voc_dur=("duration", np.mean),
-            wc_ph=("words", lambda x: 3600 * np.sum(x) / unit_duration),
-        )
+            its = its.groupby(grouper)
+            metrics = pd.DataFrame(index = groups.index.unique())
+        else:
+            unit_duration = (
+                self.project.recordings[self.project.recordings[self.by] == unit][
+                    "duration"
+                ].sum()
+                / 1000
+            )
+            metrics = pd.DataFrame(index = (0))
 
         for speaker in speaker_types:
-            if speaker not in its_agg.index:
-                continue
+            vocs = its[its['seaker_type'] == speaker]
+            voc_ph = vocs['segment_onset'].count()*3600/unit_duration
+            voc_dur_ph = vocs['duration'].sum()*3600/unit_duration
+            avg_voc_dur = vocs['duration'].mean()
+            wc_ph = vocs['words'].sum()*3600/unit_duration
 
-            metrics["voc_{}_ph".format(speaker.lower())] = its_agg.loc[
-                speaker, "voc_ph"
-            ]
-            metrics["voc_dur_{}_ph".format(speaker.lower())] = its_agg.loc[
-                speaker, "voc_dur_ph"
-            ]
-            metrics["avg_voc_dur_{}".format(speaker.lower())] = its_agg.loc[
-                speaker, "avg_voc_dur"
-            ]
+            metrics["voc_{}_ph".format(speaker.lower())] = voc_ph
+            metrics["voc_dur_{}_ph".format(speaker.lower())] = voc_dur_ph
+            metrics["avg_voc_dur_{}".format(speaker.lower())] = avg_voc_dur
 
             if speaker in adults:
-                metrics["wc_{}_ph".format(speaker.lower())] = its_agg.loc[
-                    speaker, "wc_ph"
-                ]
+                metrics["wc_{}_ph".format(speaker.lower())] = wc_ph
+            elif speaker == 'CHI':
+                cries = vocs["cries"].apply(lambda x: len(ast.literal_eval(x))).sum()
+                vfxs = vocs["vfxs"].apply(lambda x: len(ast.literal_eval(x))).sum()
+                utterances = vocs["utterances_count"].sum()
 
-        chi = its[its["speaker_type"] == "CHI"]
-        cries = chi["cries"].apply(lambda x: len(ast.literal_eval(x))).sum()
-        vfxs = chi["vfxs"].apply(lambda x: len(ast.literal_eval(x))).sum()
-        utterances = chi["utterances_count"].sum()
-
-        metrics["lp_n"] = utterances / (utterances + cries + vfxs)
-        metrics["lp_dur"] = chi["utterances_length"].sum() / (
-            chi["child_cry_vfx_len"].sum() + chi["utterances_length"].sum()
-        )
+                metrics["lp_n"] = utterances / (utterances + cries + vfxs)
+                metrics["lp_dur"] = vocs["utterances_length"].sum() / (
+                    vocs["child_cry_vfx_len"].sum() + vocs["utterances_length"].sum()
+                )
 
         metrics["wc_adu_ph"] = its["words"].sum() * 3600 / unit_duration
 
@@ -222,14 +228,14 @@ class LenaMetrics(Metrics):
         recordings = self.get_recordings()
 
         if self.threads == 1:
-            self.metrics = pd.DataFrame(
+            self.metrics = pd.concat(
                 [self._process_unit(unit) for unit in recordings[self.by].unique()]
             )
         else:
             with mp.Pool(
                 processes=self.threads if self.threads >= 1 else mp.cpu_count()
             ) as pool:
-                self.metrics = pd.DataFrame(
+                self.metrics = pd.concat(
                     pool.map(self._process_unit, recordings[self.by].unique())
                 )
 
@@ -506,8 +512,20 @@ class MetricsPipeline(Pipeline):
 
         parser.add_argument(
             "--by",
-            help="units to sample from (default behavior is to sample by recording)",
+            help="units to aggregate (default behavior is to sample by recording)",
             choices=["recording_filename", "session_id", "child_id"],
             default="recording_filename",
+        )
+
+        parser.add_argument(
+            "--by-period",
+            help="time units to aggregate (optional); equivalent to ``pandas.Grouper``'s freq argument.",
+            default=None,
+        )
+
+        parser.add_argument(
+            "--by-period-origin",
+            help="time origin of each time period; equivalent to ``pandas.Grouper``'s origin argument.",
+            default=None,
         )
 
