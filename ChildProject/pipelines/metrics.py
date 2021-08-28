@@ -106,7 +106,7 @@ class Metrics(ABC):
             segments = self.am.get_segments(annotations)
         except Exception as e:
             print(str(e))
-            return pd.DataFrame()
+            return pd.DataFrame(), pd.DataFrame()
 
         # prevent overflows
         segments["segment_onset"] /= 1000
@@ -118,7 +118,7 @@ class Metrics(ABC):
             .fillna(0)
         )
 
-        return segments
+        return annotations, segments
 
 
 class LenaMetrics(Metrics):
@@ -162,7 +162,7 @@ class LenaMetrics(Metrics):
     def _process_unit(self, unit: str):
         import ast
 
-        its = self.retrieve_segments([self.set], unit)
+        annotations, its = self.retrieve_segments([self.set], unit)
 
         speaker_types = ["FEM", "MAL", "CHI", "OCH"]
         adults = ["FEM", "MAL"]
@@ -175,13 +175,8 @@ class LenaMetrics(Metrics):
         if len(its) == 0:
             return pd.DataFrame()
 
-        unit_duration = (
-            self.project.recordings[self.project.recordings[self.by] == unit][
-                "duration"
-            ].sum()
-            / 1000
-        )
-
+        unit_duration = (annotations['range_offset']-annotations['range_onset']).sum() / 1000
+    
         metrics = {}
 
         its_agg = its.groupby("speaker_type").agg(
@@ -312,7 +307,7 @@ class AclewMetrics(Metrics):
             print(f"The VCM set ('{self.vcm}') was not found in the index.")
 
     def _process_unit(self, unit: str):
-        segments = self.retrieve_segments([self.vtc, self.alice, self.vcm], unit)
+        annotations, segments = self.retrieve_segments([self.vtc, self.alice, self.vcm], unit)
 
         speaker_types = ["FEM", "MAL", "CHI", "OCH"]
         adults = ["FEM", "MAL"]
@@ -325,12 +320,8 @@ class AclewMetrics(Metrics):
         if len(segments) == 0:
             return pd.DataFrame()
 
-        unit_duration = (
-            self.project.recordings[self.project.recordings[self.by] == unit][
-                "duration"
-            ].sum()
-            / 1000
-        )
+        vtc_ann = annotations[annotations["set"] == self.vtc]
+        unit_duration = (vtc_ann['range_offset']-vtc_ann['range_onset']).sum() / 1000
 
         metrics = {}
 
