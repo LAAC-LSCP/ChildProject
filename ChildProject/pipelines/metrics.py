@@ -99,7 +99,7 @@ class Metrics(ABC):
 
         if self.from_time and self.to_time:
             annotations = self.am.get_within_time_range(
-                annotations, from_time, to_time, errors="coerce"
+                annotations, self.from_time, self.to_time, errors="coerce"
             )
 
         try:
@@ -150,7 +150,7 @@ class LenaMetrics(Metrics):
         threads: int = 1,
     ):
 
-        super().__init__(project, by, recordings)
+        super().__init__(project, by, recordings, from_time, to_time)
 
         self.set = set
         self.threads = int(threads)
@@ -164,6 +164,7 @@ class LenaMetrics(Metrics):
     def _process_unit(self, unit: str):
         import ast
 
+        metrics = {self.by: unit}
         annotations, its = self.retrieve_segments([self.set], unit)
 
         speaker_types = ["FEM", "MAL", "CHI", "OCH"]
@@ -172,15 +173,13 @@ class LenaMetrics(Metrics):
         if "speaker_type" in its.columns:
             its = its[its["speaker_type"].isin(speaker_types)]
         else:
-            return pd.DataFrame()
+            return metrics
 
         if len(its) == 0:
-            return pd.DataFrame()
+            return metrics
 
         unit_duration = (annotations['range_offset']-annotations['range_onset']).sum() / 1000
     
-        metrics = {}
-
         its_agg = its.groupby("speaker_type").agg(
             voc_ph=("segment_onset", lambda x: 3600 * len(x) / unit_duration),
             voc_dur_ph=("duration", lambda x: 3600 * np.sum(x) / unit_duration),
@@ -219,7 +218,6 @@ class LenaMetrics(Metrics):
 
         metrics["wc_adu_ph"] = its["words"].sum() * 3600 / unit_duration
 
-        metrics[self.by] = unit
         metrics["child_id"] = its["child_id"].iloc[0]
         metrics["duration"] = unit_duration
 
@@ -291,7 +289,7 @@ class AclewMetrics(Metrics):
         threads: int = 1,
     ):
 
-        super().__init__(project, by, recordings)
+        super().__init__(project, by, recordings, from_time, to_time)
 
         self.vtc = vtc
         self.alice = alice
@@ -311,6 +309,7 @@ class AclewMetrics(Metrics):
             print(f"The VCM set ('{self.vcm}') was not found in the index.")
 
     def _process_unit(self, unit: str):
+        metrics = {self.by: unit}
         annotations, segments = self.retrieve_segments([self.vtc, self.alice, self.vcm], unit)
 
         speaker_types = ["FEM", "MAL", "CHI", "OCH"]
@@ -319,15 +318,14 @@ class AclewMetrics(Metrics):
         if "speaker_type" in segments.columns:
             segments = segments[segments["speaker_type"].isin(speaker_types)]
         else:
-            return pd.DataFrame()
+            return metrics
 
         if len(segments) == 0:
-            return pd.DataFrame()
+            return metrics
 
         vtc_ann = annotations[annotations["set"] == self.vtc]
         unit_duration = (vtc_ann['range_offset']-vtc_ann['range_onset']).sum() / 1000
 
-        metrics = {}
 
         vtc = segments[segments["set"] == self.vtc]
         alice = segments[segments["set"] == self.alice]
@@ -440,7 +438,6 @@ class AclewMetrics(Metrics):
                 metrics["lp_dur"] = speech_dur / (speech_dur + cry_dur)
                 metrics["cp_dur"] = metrics["can_voc_dur_chi_ph"] / speech_dur
 
-        metrics[self.by] = unit
         metrics["child_id"] = segments["child_id"].iloc[0]
         metrics["duration"] = unit_duration
 
