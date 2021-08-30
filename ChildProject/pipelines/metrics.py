@@ -20,6 +20,8 @@ class Metrics(ABC):
         recordings: Union[str, List[str], pd.DataFrame] = None,
         by_period: str = None,
         by_period_origin: str = None,
+        from_time: str = None,
+        to_time: str = None,
     ):
 
         self.project = project
@@ -75,6 +77,9 @@ class Metrics(ABC):
         if self.recordings is not None:
             self.recordings = list(set(self.recordings))
 
+        self.from_time = from_time
+        self.to_time = to_time
+
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         pipelines[cls.SUBCOMMAND] = cls
@@ -97,11 +102,16 @@ class Metrics(ABC):
         annotations = self.am.annotations[self.am.annotations[self.by] == unit]
         annotations = annotations[annotations["set"].isin(sets)]
 
+        if self.from_time and self.to_time:
+            annotations = self.am.get_within_time_range(
+                annotations, from_time, to_time, errors="coerce"
+            )
+
         try:
             segments = self.am.get_segments(annotations)
         except Exception as e:
             print(str(e))
-            return pd.DataFrame()
+            return pd.DataFrame(), pd.DataFrame()
 
         # prevent overflows
         segments["segment_onset"] /= 1000
@@ -116,7 +126,7 @@ class Metrics(ABC):
         if self.by_period:
             segments = self.am.get_segments_timestamps(segments)
 
-        return segments
+        return annotations, segments
 
 
 class LenaMetrics(Metrics):
@@ -160,7 +170,7 @@ class LenaMetrics(Metrics):
     def _process_unit(self, unit: str):
         import ast
 
-        its = self.retrieve_segments([self.set], unit)
+        annotations, its = self.retrieve_segments([self.set], unit)
 
         speaker_types = ["FEM", "MAL", "CHI", "OCH"]
         adults = ["FEM", "MAL"]
@@ -181,16 +191,10 @@ class LenaMetrics(Metrics):
                 freq=self.by_period,
             )
             unit_duration = (periods[1] - periods[0]).total_seconds()
-
             its = its.groupby(grouper)
             metrics = pd.DataFrame(index = groups.index.unique())
         else:
-            unit_duration = (
-                self.project.recordings[self.project.recordings[self.by] == unit][
-                    "duration"
-                ].sum()
-                / 1000
-            )
+            unit_duration = (annotations['range_offset']-annotations['range_onset']).sum() / 1000
             metrics = pd.DataFrame(index = (0))
 
         for speaker in speaker_types:
@@ -308,7 +312,7 @@ class AclewMetrics(Metrics):
             print(f"The VCM set ('{self.vcm}') was not found in the index.")
 
     def _process_unit(self, unit: str):
-        segments = self.retrieve_segments([self.vtc, self.alice, self.vcm], unit)
+        annotations, segments = self.retrieve_segments([self.vtc, self.alice, self.vcm], unit)
 
         speaker_types = ["FEM", "MAL", "CHI", "OCH"]
         adults = ["FEM", "MAL"]
@@ -321,12 +325,8 @@ class AclewMetrics(Metrics):
         if len(segments) == 0:
             return pd.DataFrame()
 
-        unit_duration = (
-            self.project.recordings[self.project.recordings[self.by] == unit][
-                "duration"
-            ].sum()
-            / 1000
-        )
+        vtc_ann = annotations[annotations["set"] == self.vtc]
+        unit_duration = (vtc_ann['range_offset']-vtc_ann['range_onset']).sum() / 1000
 
         metrics = {}
 
@@ -520,7 +520,7 @@ class MetricsPipeline(Pipeline):
         parser.add_argument(
             "--by-period",
             help="time units to aggregate (optional); equivalent to ``pandas.Grouper``'s freq argument.",
-            default=None,
+            default = None
         )
 
         parser.add_argument(
@@ -529,3 +529,16 @@ class MetricsPipeline(Pipeline):
             default=None,
         )
 
+        parser.add_argument(
+            "-f",
+            "--from-time",
+            help="time range start in HH:MM format (optional)",
+            default=None,
+        )
+
+        parser.add_argument(
+            "-t",
+            "--to-time",
+            help="time range end in HH:MM format (optional)",
+            default=None,
+        )
