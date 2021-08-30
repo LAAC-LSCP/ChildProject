@@ -144,6 +144,8 @@ class LenaMetrics(Metrics):
         project: ChildProject.projects.ChildProject,
         set: str,
         recordings: Union[str, List[str], pd.DataFrame] = None,
+        from_time: str = None,
+        to_time: str = None,
         by: str = "recording_filename",
         threads: int = 1,
     ):
@@ -283,6 +285,8 @@ class AclewMetrics(Metrics):
         alice: str = "alice",
         vcm: str = "vcm",
         recordings: Union[str, List[str], pd.DataFrame] = None,
+        from_time: str = None,
+        to_time: str = None,
         by: str = "recording_filename",
         threads: int = 1,
     ):
