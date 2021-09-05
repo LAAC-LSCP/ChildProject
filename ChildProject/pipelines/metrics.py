@@ -109,11 +109,8 @@ class Metrics(ABC):
             return pd.DataFrame(), pd.DataFrame()
 
         # prevent overflows
-        segments["segment_onset"] /= 1000
-        segments["segment_offset"] /= 1000
-
         segments["duration"] = (
-            (segments["segment_offset"] - segments["segment_onset"])
+            (segments["segment_offset"]/1000 - segments["segment_onset"]/1000)
             .astype(float)
             .fillna(0)
         )
@@ -469,6 +466,121 @@ class AclewMetrics(Metrics):
         parser.add_argument("--vcm", help="vcm set", default="vcm")
         parser.add_argument(
             "--threads", help="amount of threads to run on", default=1, type=int
+        )
+
+class PeriodMetrics(Metrics):
+    SUBCOMMAND = "period"
+
+    def __init__(
+        self,
+        project: ChildProject.projects.ChildProject,
+        set: str,
+        period: str,
+        period_origin: str = None,
+        get_segments: str = "vtc",
+        recordings: Union[str, List[str], pd.DataFrame] = None,
+        from_time: str = None,
+        to_time: str = None,
+        by: str = "recording_filename",
+        threads: int = 1,
+    ):
+
+        super().__init__(project, by, recordings, from_time, to_time)
+
+        self.set = set
+        self.threads = int(threads)
+
+        self.period = period
+        self.period_origin = period_origin
+
+        if self.set not in self.am.annotations["set"].values:
+            raise ValueError(
+                f"'{self.vtc}' was not found in the index; "
+                "check spelling and make sure the set was properly imported."
+            )
+
+        self.periods = pd.date_range(
+            start=datetime.datetime(1900, 1, 1, 0, 0, 0, 0),
+            end=datetime.datetime(1900, 1, 2, 0, 0, 0, 0),
+            freq=self.period
+        )
+
+    def _process_unit(self, unit: str):
+        annotations, segments = self.retrieve_segments([self.set], unit)
+
+        segments = self.am.get_segments_timestamps(segments, ignore_date=True)
+        segments.dropna(subset = ['onset_time'], inplace = True)
+
+        grouper = pd.Grouper(key = 'onset_time', freq = self.period)
+
+        speaker_types = ["FEM", "MAL", "CHI", "OCH"]
+        adults = ["FEM", "MAL"]
+
+        if len(segments) == 0:
+            return pd.DataFrame()
+
+        unit_duration = (self.periods[1] - self.periods[0]).total_seconds()
+
+        metrics = pd.DataFrame(index = self.periods)
+
+        for speaker in speaker_types:
+            vocs = segments[segments['speaker_type'] == speaker].groupby(grouper)
+
+            vocs = vocs.agg(
+                voc_ph = ('segment_onset', 'count'),
+                voc_dur_ph = ('duration', 'sum'),
+                avg_voc_dur = ('duration', 'mean')
+            )
+            
+            metrics["voc_{}_ph".format(speaker.lower())] = np.NaN 
+            metrics["voc_dur_{}_ph".format(speaker.lower())] = np.NaN
+            metrics["avg_voc_dur_{}".format(speaker.lower())] = np.NaN
+
+            metrics["voc_{}_ph".format(speaker.lower())] = vocs['voc_ph'].reindex(self.periods)*3600/unit_duration
+            metrics["voc_dur_{}_ph".format(speaker.lower())] = vocs['voc_dur_ph'].reindex(self.periods)*3600/unit_duration
+            metrics["avg_voc_dur_{}".format(speaker.lower())] = vocs['avg_voc_dur'].reindex(self.periods)
+
+        metrics[self.by] = unit
+        metrics['child_id'] = segments['child_id'].iloc[0]
+
+        return metrics
+
+    def extract(self):
+        recordings = self.get_recordings()
+
+        if self.threads == 1:
+            self.metrics = pd.concat(
+                [self._process_unit(unit) for unit in recordings[self.by].unique()]
+            )
+        else:
+            with mp.Pool(
+                processes=self.threads if self.threads >= 1 else mp.cpu_count()
+            ) as pool:
+                self.metrics = pd.concat(
+                    pool.map(self._process_unit, recordings[self.by].unique())
+                )
+
+        self.metrics['period'] = self.metrics.index.strftime('%H:%M:%S')
+        self.metrics.set_index(self.by, inplace=True)
+        return self.metrics
+
+    @staticmethod
+    def add_parser(subparsers, subcommand):
+        parser = subparsers.add_parser(subcommand, help="LENA metrics")
+        parser.add_argument("--set", help="annotations set")
+        parser.add_argument(
+            "--threads", help="amount of threads to run on", default=1, type=int
+        )
+
+        parser.add_argument(
+            "--period",
+            help="time units to aggregate (optional); equivalent to ``pandas.Grouper``'s freq argument.",
+        )
+
+        parser.add_argument(
+            "--period-origin",
+            help="time origin of each time period; equivalent to ``pandas.Grouper``'s origin argument.",
+            default=None,
         )
 
 
