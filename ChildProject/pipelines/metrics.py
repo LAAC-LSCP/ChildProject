@@ -180,7 +180,7 @@ class LenaMetrics(Metrics):
         ).sum() / 1000
 
         its_agg = its.groupby("speaker_type").agg(
-            voc_ph=("segment_onset", lambda x: 3600 * len(x) / unit_duration),
+            voc_ph=("duration", lambda x: 3600 * len(x) / unit_duration),
             voc_dur_ph=("duration", lambda x: 3600 * np.sum(x) / unit_duration),
             avg_voc_dur=("duration", np.mean),
             wc_ph=("words", lambda x: 3600 * np.sum(x) / unit_duration),
@@ -332,7 +332,7 @@ class AclewMetrics(Metrics):
         vcm = segments[segments["set"] == self.vcm]
 
         vtc_agg = vtc.groupby("speaker_type").agg(
-            voc_ph=("segment_onset", lambda x: 3600 * len(x) / unit_duration),
+            voc_ph=("duration", lambda x: 3600 * len(x) / unit_duration),
             voc_dur_ph=("duration", lambda x: 3600 * np.sum(x) / unit_duration),
             avg_voc_dur=("duration", np.mean),
         )
@@ -382,7 +382,7 @@ class AclewMetrics(Metrics):
                 .groupby("vcm_type")
                 .agg(
                     voc_chi_ph=(
-                        "segment_onset",
+                        "duration",
                         lambda x: 3600 * len(x) / unit_duration,
                     ),
                     voc_dur_chi_ph=(
