@@ -110,7 +110,7 @@ class Metrics(ABC):
 
         # prevent overflows
         segments["duration"] = (
-            (segments["segment_offset"]/1000 - segments["segment_onset"]/1000)
+            (segments["segment_offset"] / 1000 - segments["segment_onset"] / 1000)
             .astype(float)
             .fillna(0)
         )
@@ -175,8 +175,10 @@ class LenaMetrics(Metrics):
         if len(its) == 0:
             return metrics
 
-        unit_duration = (annotations['range_offset']-annotations['range_onset']).sum() / 1000
-    
+        unit_duration = (
+            annotations["range_offset"] - annotations["range_onset"]
+        ).sum() / 1000
+
         its_agg = its.groupby("speaker_type").agg(
             voc_ph=("segment_onset", lambda x: 3600 * len(x) / unit_duration),
             voc_dur_ph=("duration", lambda x: 3600 * np.sum(x) / unit_duration),
@@ -307,7 +309,9 @@ class AclewMetrics(Metrics):
 
     def _process_unit(self, unit: str):
         metrics = {self.by: unit}
-        annotations, segments = self.retrieve_segments([self.vtc, self.alice, self.vcm], unit)
+        annotations, segments = self.retrieve_segments(
+            [self.vtc, self.alice, self.vcm], unit
+        )
 
         speaker_types = ["FEM", "MAL", "CHI", "OCH"]
         adults = ["FEM", "MAL"]
@@ -321,8 +325,7 @@ class AclewMetrics(Metrics):
             return metrics
 
         vtc_ann = annotations[annotations["set"] == self.vtc]
-        unit_duration = (vtc_ann['range_offset']-vtc_ann['range_onset']).sum() / 1000
-
+        unit_duration = (vtc_ann["range_offset"] - vtc_ann["range_onset"]).sum() / 1000
 
         vtc = segments[segments["set"] == self.vtc]
         alice = segments[segments["set"] == self.alice]
@@ -468,6 +471,7 @@ class AclewMetrics(Metrics):
             "--threads", help="amount of threads to run on", default=1, type=int
         )
 
+
 class PeriodMetrics(Metrics):
     SUBCOMMAND = "period"
 
@@ -502,16 +506,16 @@ class PeriodMetrics(Metrics):
         self.periods = pd.date_range(
             start=datetime.datetime(1900, 1, 1, 0, 0, 0, 0),
             end=datetime.datetime(1900, 1, 2, 0, 0, 0, 0),
-            freq=self.period
+            freq=self.period,
         )
 
     def _process_unit(self, unit: str):
         annotations, segments = self.retrieve_segments([self.set], unit)
 
         segments = self.am.get_segments_timestamps(segments, ignore_date=True)
-        segments.dropna(subset = ['onset_time'], inplace = True)
+        segments.dropna(subset=["onset_time"], inplace=True)
 
-        grouper = pd.Grouper(key = 'onset_time', freq = self.period)
+        grouper = pd.Grouper(key="onset_time", freq=self.period)
 
         speaker_types = ["FEM", "MAL", "CHI", "OCH"]
         adults = ["FEM", "MAL"]
@@ -521,27 +525,29 @@ class PeriodMetrics(Metrics):
 
         unit_duration = (self.periods[1] - self.periods[0]).total_seconds()
 
-        metrics = pd.DataFrame(index = self.periods)
+        metrics = pd.DataFrame(index=self.periods)
 
         for speaker in speaker_types:
-            vocs = segments[segments['speaker_type'] == speaker].groupby(grouper)
+            vocs = segments[segments["speaker_type"] == speaker].groupby(grouper)
 
             vocs = vocs.agg(
-                voc_ph = ('segment_onset', 'count'),
-                voc_dur_ph = ('duration', 'sum'),
-                avg_voc_dur = ('duration', 'mean')
+                voc_ph=("segment_onset", "count"),
+                voc_dur_ph=("duration", "sum"),
+                avg_voc_dur=("duration", "mean"),
             )
-            
-            metrics["voc_{}_ph".format(speaker.lower())] = np.NaN 
-            metrics["voc_dur_{}_ph".format(speaker.lower())] = np.NaN
-            metrics["avg_voc_dur_{}".format(speaker.lower())] = np.NaN
 
-            metrics["voc_{}_ph".format(speaker.lower())] = vocs['voc_ph'].reindex(self.periods)*3600/unit_duration
-            metrics["voc_dur_{}_ph".format(speaker.lower())] = vocs['voc_dur_ph'].reindex(self.periods)*3600/unit_duration
-            metrics["avg_voc_dur_{}".format(speaker.lower())] = vocs['avg_voc_dur'].reindex(self.periods)
+            metrics["voc_{}_ph".format(speaker.lower())] = (
+                vocs["voc_ph"].reindex(self.periods) * 3600 / unit_duration
+            )
+            metrics["voc_dur_{}_ph".format(speaker.lower())] = (
+                vocs["voc_dur_ph"].reindex(self.periods) * 3600 / unit_duration
+            )
+            metrics["avg_voc_dur_{}".format(speaker.lower())] = vocs[
+                "avg_voc_dur"
+            ].reindex(self.periods)
 
         metrics[self.by] = unit
-        metrics['child_id'] = segments['child_id'].iloc[0]
+        metrics["child_id"] = segments["child_id"].iloc[0]
 
         return metrics
 
@@ -560,7 +566,7 @@ class PeriodMetrics(Metrics):
                     pool.map(self._process_unit, recordings[self.by].unique())
                 )
 
-        self.metrics['period'] = self.metrics.index.strftime('%H:%M:%S')
+        self.metrics["period"] = self.metrics.index.strftime("%H:%M:%S")
         self.metrics.set_index(self.by, inplace=True)
         return self.metrics
 
