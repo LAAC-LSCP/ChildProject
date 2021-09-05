@@ -247,7 +247,7 @@ use :meth:`~ChildProject.annotations.AnnotationManager.read`:
 Time-of-the-day
 ~~~~~~~~~~~~~~~
 
-For a number of purposes, it may be convenient to either match each vocalization to their timestamp, or to filter out all outside
+For a number of purposes, it may be convenient to retrieve the timestamp of each vocalization, or to filter out annotations outside
 some specific time-range.
 
 Both tasks can be performed through the python API of the package.

@@ -112,7 +112,7 @@ class ChildProject:
         IndexColumn(
             name="dob_accuracy",
             description="date of birth accuracy",
-            choices=["exact", "week", "month", "year", "other"],
+            choices=["day", "week", "month", "year", "other"],
         ),
     ]
 
