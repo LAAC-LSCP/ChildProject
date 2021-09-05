@@ -523,14 +523,11 @@ class PeriodMetrics(Metrics):
 
         # calculate length of annotations within each bin.
         bins = np.array(
-           [dt.total_seconds() for dt in self.periods - self.periods[0]] + [86400]
+            [dt.total_seconds() for dt in self.periods - self.periods[0]] + [86400]
         )
 
         annotations = self.am.get_segments_timestamps(
-            annotations,
-            ignore_date=True,
-            onset = 'range_onset',
-            offset = 'range_offset'
+            annotations, ignore_date=True, onset="range_onset", offset="range_offset"
         )
 
         annotations["onset_time"] = annotations["onset_time"].apply(
@@ -540,15 +537,13 @@ class PeriodMetrics(Metrics):
             lambda dt: (dt - self.periods[0]).total_seconds()
         )
 
-        durations = np.array(
-            [
-                (
-                    annotations["offset_time"].clip(bins[i], bins[i + 1])
-                    - annotations["onset_time"].clip(bins[i], bins[i + 1])
-                ).sum()
-                for i, t in enumerate(bins[:-1])
-            ]
-        )
+        durations = [
+            (
+                annotations["offset_time"].clip(bins[i], bins[i + 1])
+                - annotations["onset_time"].clip(bins[i], bins[i + 1])
+            ).sum()
+            for i, t in enumerate(bins[:-1])
+        ]
 
         durations = pd.Series(durations, index=self.periods)
         metrics = pd.DataFrame(index=self.periods)
