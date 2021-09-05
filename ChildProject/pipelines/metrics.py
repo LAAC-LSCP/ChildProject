@@ -507,6 +507,7 @@ class PeriodMetrics(Metrics):
             start=datetime.datetime(1900, 1, 1, 0, 0, 0, 0),
             end=datetime.datetime(1900, 1, 2, 0, 0, 0, 0),
             freq=self.period,
+            closed="left",
         )
 
     def _process_unit(self, unit: str):
@@ -515,7 +516,7 @@ class PeriodMetrics(Metrics):
         segments = self.am.get_segments_timestamps(segments, ignore_date=True)
         segments.dropna(subset=["onset_time"], inplace=True)
 
-        grouper = pd.Grouper(key="onset_time", freq=self.period)
+        grouper = pd.Grouper(key="onset_time", freq=self.period, closed="left")
 
         speaker_types = ["FEM", "MAL", "CHI", "OCH"]
         adults = ["FEM", "MAL"]
