@@ -1119,8 +1119,8 @@ class AnnotationManager:
         self,
         segments: pd.DataFrame,
         ignore_date: bool = False,
-        onset="segment_onset",
-        offset="segment_offset",
+        onset: str = "segment_onset",
+        offset: str = "segment_offset",
     ) -> pd.DataFrame:
         """Calculate the onset and offset clock-time of each segment
 

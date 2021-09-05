@@ -551,9 +551,6 @@ class PeriodMetrics(Metrics):
         )
 
         durations = pd.Series(durations, index=self.periods)
-
-        unit_duration = (self.periods[1] - self.periods[0]).total_seconds()
-
         metrics = pd.DataFrame(index=self.periods)
 
         for speaker in speaker_types:
