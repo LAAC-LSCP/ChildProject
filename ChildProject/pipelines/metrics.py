@@ -381,10 +381,7 @@ class AclewMetrics(Metrics):
                 vcm[vcm["speaker_type"] == "CHI"]
                 .groupby("vcm_type")
                 .agg(
-                    voc_chi_ph=(
-                        "duration",
-                        lambda x: 3600 * len(x) / unit_duration,
-                    ),
+                    voc_chi_ph=("duration", lambda x: 3600 * len(x) / unit_duration,),
                     voc_dur_chi_ph=(
                         "duration",
                         lambda x: 3600 * np.sum(x) / unit_duration,
@@ -524,6 +521,37 @@ class PeriodMetrics(Metrics):
         if len(segments) == 0:
             return pd.DataFrame()
 
+        # calculate length of annotations within each bin.
+        bins = np.array(
+           [dt.total_seconds() for dt in self.periods - self.periods[0]] + [86400]
+        )
+
+        annotations = self.am.get_segments_timestamps(
+            annotations,
+            ignore_date=True,
+            onset = 'range_onset',
+            offset = 'range_offset'
+        )
+
+        annotations["onset_time"] = annotations["onset_time"].apply(
+            lambda dt: (dt - self.periods[0]).total_seconds()
+        )
+        annotations["offset_time"] = annotations["offset_time"].apply(
+            lambda dt: (dt - self.periods[0]).total_seconds()
+        )
+
+        durations = np.array(
+            [
+                (
+                    annotations["offset_time"].clip(bins[i], bins[i + 1])
+                    - annotations["onset_time"].clip(bins[i], bins[i + 1])
+                ).sum()
+                for i, t in enumerate(bins[:-1])
+            ]
+        )
+
+        durations = pd.Series(durations, index=self.periods)
+
         unit_duration = (self.periods[1] - self.periods[0]).total_seconds()
 
         metrics = pd.DataFrame(index=self.periods)
@@ -538,10 +566,10 @@ class PeriodMetrics(Metrics):
             )
 
             metrics["voc_{}_ph".format(speaker.lower())] = (
-                vocs["voc_ph"].reindex(self.periods) * 3600 / unit_duration
+                vocs["voc_ph"].reindex(self.periods) * 3600 / durations
             )
             metrics["voc_dur_{}_ph".format(speaker.lower())] = (
-                vocs["voc_dur_ph"].reindex(self.periods) * 3600 / unit_duration
+                vocs["voc_dur_ph"].reindex(self.periods) * 3600 / durations
             )
             metrics["avg_voc_dur_{}".format(speaker.lower())] = vocs[
                 "avg_voc_dur"

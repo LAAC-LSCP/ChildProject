@@ -1115,7 +1115,13 @@ class AnnotationManager:
             columns = set(annotations.columns) - {"range_onset_ts", "range_offset_ts"}
             return pd.DataFrame(columns=columns)
 
-    def get_segments_timestamps(self, segments: pd.DataFrame, ignore_date: bool = False) -> pd.DataFrame:
+    def get_segments_timestamps(
+        self,
+        segments: pd.DataFrame,
+        ignore_date: bool = False,
+        onset="segment_onset",
+        offset="segment_offset",
+    ) -> pd.DataFrame:
         """Calculate the onset and offset clock-time of each segment
 
         :param segments: DataFrame of segments (as returned by :meth:`~ChildProject.annotations.AnnotationManager.get_segments`).
@@ -1128,10 +1134,10 @@ class AnnotationManager:
 
         :rtype: pd.DataFrame
         """
-        columns_to_merge = ['start_time']
+        columns_to_merge = ["start_time"]
         if not ignore_date:
-            columns_to_merge.append('date_iso')
-        
+            columns_to_merge.append("date_iso")
+
         columns_to_drop = set(segments.columns) & set(columns_to_merge)
 
         if len(columns_to_drop):
@@ -1148,9 +1154,7 @@ class AnnotationManager:
 
         if ignore_date:
             segments["start_time"] = pd.to_datetime(
-                segments['start_time'],
-                format="%H:%M",
-                errors="coerce",
+                segments["start_time"], format="%H:%M", errors="coerce",
             )
         else:
             segments["start_time"] = pd.to_datetime(
@@ -1158,17 +1162,17 @@ class AnnotationManager:
                     lambda row: "{} {}".format(
                         str(row["date_iso"]), str(row["start_time"])
                     ),
-                    axis=1
+                    axis=1,
                 ),
                 format="%Y-%m-%d %H:%M",
                 errors="coerce",
             )
-        
+
         segments["onset_time"] = segments["start_time"] + pd.to_timedelta(
-            segments["segment_onset"], unit="ms", errors="coerce"
+            segments[onset], unit="ms", errors="coerce"
         )
         segments["offset_time"] = segments["start_time"] + pd.to_timedelta(
-            segments["segment_offset"], unit="ms", errors="coerce"
+            segments[offset], unit="ms", errors="coerce"
         )
 
         return segments.drop(columns=columns_to_merge)
