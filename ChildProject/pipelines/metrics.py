@@ -499,7 +499,7 @@ class PeriodMetrics(Metrics):
 
         if self.set not in self.am.annotations["set"].values:
             raise ValueError(
-                f"'{self.vtc}' was not found in the index; "
+                f"'{self.set}' was not found in the index; "
                 "check spelling and make sure the set was properly imported."
             )
 
