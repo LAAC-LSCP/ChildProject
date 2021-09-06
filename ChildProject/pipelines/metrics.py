@@ -617,9 +617,11 @@ class PeriodMetrics(Metrics):
                 self.metrics = pd.concat(
                     pool.map(self._process_unit, recordings[self.by].unique())
                 )
-
-        self.metrics["period"] = self.metrics.index.strftime("%H:%M:%S")
-        self.metrics.set_index(self.by, inplace=True)
+    
+        if len(self.metrics):
+            self.metrics["period"] = self.metrics.index.strftime("%H:%M:%S")
+            self.metrics.set_index(self.by, inplace=True)
+        
         return self.metrics
 
     @staticmethod
