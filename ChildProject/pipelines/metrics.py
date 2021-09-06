@@ -513,10 +513,11 @@ class PeriodMetrics(Metrics):
         segments = self.am.get_segments_timestamps(segments, ignore_date=True)
         segments.dropna(subset=["onset_time"], inplace=True)
 
-        grouper = pd.Grouper(key="onset_time", freq=self.period, closed="left")
-
-        speaker_types = ["FEM", "MAL", "CHI", "OCH"]
-        adults = ["FEM", "MAL"]
+        segments["onset_time"] -= pd.to_timedelta(
+            86400
+            * ((segments["onset_time"] - self.periods[0]).dt.total_seconds() // 86400),
+            unit="s",
+        )
 
         if len(segments) == 0:
             return pd.DataFrame()
@@ -548,6 +549,11 @@ class PeriodMetrics(Metrics):
         durations = pd.Series(durations, index=self.periods)
         metrics = pd.DataFrame(index=self.periods)
 
+        grouper = pd.Grouper(key="onset_time", freq=self.period, closed="left")
+
+        speaker_types = ["FEM", "MAL", "CHI", "OCH"]
+        adults = ["FEM", "MAL"]
+
         for speaker in speaker_types:
             vocs = segments[segments["speaker_type"] == speaker].groupby(grouper)
 
@@ -558,10 +564,12 @@ class PeriodMetrics(Metrics):
             )
 
             metrics["voc_{}_ph".format(speaker.lower())] = (
-                vocs["voc_ph"].reindex(self.periods) * 3600 / durations
+                vocs["voc_ph"].reindex(self.periods, fill_value=0) * 3600 / durations
             )
             metrics["voc_dur_{}_ph".format(speaker.lower())] = (
-                vocs["voc_dur_ph"].reindex(self.periods) * 3600 / durations
+                vocs["voc_dur_ph"].reindex(self.periods, fill_value=0)
+                * 3600
+                / durations
             )
             metrics["avg_voc_dur_{}".format(speaker.lower())] = vocs[
                 "avg_voc_dur"
