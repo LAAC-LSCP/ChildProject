@@ -510,9 +510,14 @@ class PeriodMetrics(Metrics):
     def _process_unit(self, unit: str):
         annotations, segments = self.retrieve_segments([self.set], unit)
 
+        # retrieve timestamps for each vocalization, ignoring the day of occurence
         segments = self.am.get_segments_timestamps(segments, ignore_date=True)
+
+        # dropping segments for which no time information is available
         segments.dropna(subset=["onset_time"], inplace=True)
 
+        # update the timestamps so that all vocalizations appear
+        # to happen on the same day
         segments["onset_time"] -= pd.to_timedelta(
             86400
             * ((segments["onset_time"] - self.periods[0]).dt.total_seconds() // 86400),
@@ -522,15 +527,18 @@ class PeriodMetrics(Metrics):
         if len(segments) == 0:
             return pd.DataFrame()
 
-        # calculate length of annotations within each bin.
+        # calculate length of available annotations within each bin.
+        # this is necessary in order to calculate correct rates
         bins = np.array(
             [dt.total_seconds() for dt in self.periods - self.periods[0]] + [86400]
         )
 
+        # retrieve the timestamps for all annotated portions of the recordings
         annotations = self.am.get_segments_timestamps(
             annotations, ignore_date=True, onset="range_onset", offset="range_offset"
         )
 
+        # calculate time elapsed since the first time bin
         annotations["onset_time"] = annotations["onset_time"].apply(
             lambda dt: (dt - self.periods[0]).total_seconds()
         )
