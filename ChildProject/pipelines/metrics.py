@@ -537,19 +537,33 @@ class PeriodMetrics(Metrics):
         annotations = self.am.get_segments_timestamps(
             annotations, ignore_date=True, onset="range_onset", offset="range_offset"
         )
-
+        
         # calculate time elapsed since the first time bin
         annotations["onset_time"] = annotations["onset_time"].apply(
             lambda dt: (dt - self.periods[0]).total_seconds()
-        )
+        ).astype(int)
         annotations["offset_time"] = annotations["offset_time"].apply(
             lambda dt: (dt - self.periods[0]).total_seconds()
+        ).astype(int)
+    
+        # split annotations to intervals each within a 0-24h range
+        annotations["stops"] = annotations.apply(
+            lambda row: [row['onset_time']] + list(86400*np.arange((row['onset_time']//86400)+1, (row['offset_time']//86400)+1, 1)) + [row['offset_time']],
+            axis = 1
         )
+
+        annotations = annotations.explode('stops')
+        annotations['onset'] = annotations['stops']
+        annotations['offset'] = annotations['stops'].shift(-1)
+
+        annotations.dropna(subset = ['offset'], inplace = True)
+        annotations['onset'] = annotations['onset'].astype(int) % 86400
+        annotations['offset'] = (annotations['offset']-1e-4) % 86400
 
         durations = [
             (
-                annotations["offset_time"].clip(bins[i], bins[i + 1])
-                - annotations["onset_time"].clip(bins[i], bins[i + 1])
+                annotations["offset"].clip(bins[i], bins[i + 1])
+                - annotations["onset"].clip(bins[i], bins[i + 1])
             ).sum()
             for i, t in enumerate(bins[:-1])
         ]
@@ -583,6 +597,7 @@ class PeriodMetrics(Metrics):
                 "avg_voc_dur"
             ].reindex(self.periods)
 
+        metrics['duration'] = (durations*1000).astype(int)
         metrics[self.by] = unit
         metrics["child_id"] = segments["child_id"].iloc[0]
 
