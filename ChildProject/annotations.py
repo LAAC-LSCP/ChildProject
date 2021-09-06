@@ -1126,12 +1126,17 @@ class AnnotationManager:
 
         :param segments: DataFrame of segments (as returned by :meth:`~ChildProject.annotations.AnnotationManager.get_segments`).
         :type segments: pd.DataFrame
+        :param ignore_date: leave date information and use time data only, defaults to False
+        :type ignore_date: bool, optional
+        :param onset: column storing the onset timestamp in milliseconds, defaults to "segment_onset"
+        :type onset: str, optional
+        :param offset: column storing the offset timestamp in milliseconds, defaults to "segment_offset"
+        :type offset: str, optional
         :return: Returns the input dataframe with two new columns ``onset_time`` and ``offset_time``.
         ``onset_time`` is a datetime object corresponding to the onset of the segment.
         ``offset_time`` is a datetime object corresponding to the offset of the segment.
         In case either ``start_time`` or ``date_iso`` is not specified for the corresponding recording,
         both values will be set to NaT.
-
         :rtype: pd.DataFrame
         """
         columns_to_merge = ["start_time"]
