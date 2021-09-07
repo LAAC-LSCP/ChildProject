@@ -14,7 +14,7 @@ def test_gamma():
         precision_level = 0.01
     )
 
-    assert 0.39 <= value <= 0.43
+    assert 0.39 <= value <= 0.44
 
 def test_segments_to_grid():
     segments = pd.read_csv('tests/data/grid.csv')
