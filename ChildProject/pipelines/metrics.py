@@ -109,11 +109,8 @@ class Metrics(ABC):
             return pd.DataFrame(), pd.DataFrame()
 
         # prevent overflows
-        segments["segment_onset"] /= 1000
-        segments["segment_offset"] /= 1000
-
         segments["duration"] = (
-            (segments["segment_offset"] - segments["segment_onset"])
+            (segments["segment_offset"] / 1000 - segments["segment_onset"] / 1000)
             .astype(float)
             .fillna(0)
         )
@@ -131,6 +128,10 @@ class LenaMetrics(Metrics):
     :type set: str
     :param recordings: recordings to sample from; if None, all recordings will be sampled, defaults to None
     :type recordings: Union[str, List[str], pd.DataFrame], optional
+    :param from_time: If specified (in HH:MM format), ignore annotations outside of the given time-range, defaults to None
+    :type from_time: str, optional
+    :param to_time:  If specified (in HH:MM format), ignore annotations outside of the given time-range, defaults to None
+    :type to_time: str, optional
     :param by: units to sample from, defaults to 'recording_filename'
     :type by: str, optional
     :param threads: amount of threads to run on, defaults to 1
@@ -178,10 +179,12 @@ class LenaMetrics(Metrics):
         if len(its) == 0:
             return metrics
 
-        unit_duration = (annotations['range_offset']-annotations['range_onset']).sum() / 1000
-    
+        unit_duration = (
+            annotations["range_offset"] - annotations["range_onset"]
+        ).sum() / 1000
+
         its_agg = its.groupby("speaker_type").agg(
-            voc_ph=("segment_onset", lambda x: 3600 * len(x) / unit_duration),
+            voc_ph=("duration", lambda x: 3600 * len(x) / unit_duration),
             voc_dur_ph=("duration", lambda x: 3600 * np.sum(x) / unit_duration),
             avg_voc_dur=("duration", np.mean),
             wc_ph=("words", lambda x: 3600 * np.sum(x) / unit_duration),
@@ -268,6 +271,10 @@ class AclewMetrics(Metrics):
     :type vcm: str
     :param recordings: recordings to sample from; if None, all recordings will be sampled, defaults to None
     :type recordings: Union[str, List[str], pd.DataFrame], optional
+    :param from_time: If specified (in HH:MM format), ignore annotations outside of the given time-range, defaults to None
+    :type from_time: str, optional
+    :param to_time:  If specified (in HH:MM format), ignore annotations outside of the given time-range, defaults to None
+    :type to_time: str, optional
     :param by: units to sample from, defaults to 'recording_filename'
     :type by: str, optional
     :param threads: amount of threads to run on, defaults to 1
@@ -310,7 +317,9 @@ class AclewMetrics(Metrics):
 
     def _process_unit(self, unit: str):
         metrics = {self.by: unit}
-        annotations, segments = self.retrieve_segments([self.vtc, self.alice, self.vcm], unit)
+        annotations, segments = self.retrieve_segments(
+            [self.vtc, self.alice, self.vcm], unit
+        )
 
         speaker_types = ["FEM", "MAL", "CHI", "OCH"]
         adults = ["FEM", "MAL"]
@@ -324,15 +333,14 @@ class AclewMetrics(Metrics):
             return metrics
 
         vtc_ann = annotations[annotations["set"] == self.vtc]
-        unit_duration = (vtc_ann['range_offset']-vtc_ann['range_onset']).sum() / 1000
-
+        unit_duration = (vtc_ann["range_offset"] - vtc_ann["range_onset"]).sum() / 1000
 
         vtc = segments[segments["set"] == self.vtc]
         alice = segments[segments["set"] == self.alice]
         vcm = segments[segments["set"] == self.vcm]
 
         vtc_agg = vtc.groupby("speaker_type").agg(
-            voc_ph=("segment_onset", lambda x: 3600 * len(x) / unit_duration),
+            voc_ph=("duration", lambda x: 3600 * len(x) / unit_duration),
             voc_dur_ph=("duration", lambda x: 3600 * np.sum(x) / unit_duration),
             avg_voc_dur=("duration", np.mean),
         )
@@ -381,10 +389,7 @@ class AclewMetrics(Metrics):
                 vcm[vcm["speaker_type"] == "CHI"]
                 .groupby("vcm_type")
                 .agg(
-                    voc_chi_ph=(
-                        "segment_onset",
-                        lambda x: 3600 * len(x) / unit_duration,
-                    ),
+                    voc_chi_ph=("duration", lambda x: 3600 * len(x) / unit_duration,),
                     voc_dur_chi_ph=(
                         "duration",
                         lambda x: 3600 * np.sum(x) / unit_duration,
@@ -469,6 +474,218 @@ class AclewMetrics(Metrics):
         parser.add_argument("--vcm", help="vcm set", default="vcm")
         parser.add_argument(
             "--threads", help="amount of threads to run on", default=1, type=int
+        )
+
+
+class PeriodMetrics(Metrics):
+    """Time-aggregated metrics extractor.
+
+    Aggregates vocalizations for each time-of-the-day-unit based on a period specified by the user.
+    For instance, if the period is set to ``15Min`` (i.e. 15 minutes), vocalization rates will be reported for each
+    recording and time-unit (e.g. 09:00 to 09:15, 09:15 to 09:30, etc.).
+
+    The output dataframe has ``rp`` rows, where ``r`` is the amount of recordings (or children if the ``--by`` option is set to ``child_id``), ``p`` is the 
+    amount of time-bins per day (i.e. 24 x 4 = 96 for a 15-minute period).
+
+    The output dataframe includes a ``period`` column that contains the onset of each time-unit in HH:MM:SS format.
+    The ``duration`` columns contains the total amount of annotations covering each time-bin, in milliseconds.
+
+    If ``--by`` is set to e.g. ``child_id``, then the values for each time-bin will be the average rates across
+    all the recordings of every child.
+
+    :param project: ChildProject instance of the target dataset
+    :type project: ChildProject.projects.ChildProject
+    :param set: name of the set of annotations to derive the metrics from
+    :type set: str
+    :param period: Time-period. Values should be formatted as `pandas offset aliases <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__. For instance, `15Min` corresponds to a 15 minute period; `2H` corresponds to a 2 hour period.
+    :type period: str
+    :param period_origin: NotImplemented, defaults to None
+    :type period_origin: str, optional
+    :param recordings: white-list of recordings to process, defaults to None
+    :type recordings: Union[str, List[str], pd.DataFrame], optional
+    :param from_time: If specified (in HH:MM format), ignore annotations outside of the given time-range, defaults to None
+    :type from_time: str, optional
+    :param to_time:  If specified (in HH:MM format), ignore annotations outside of the given time-range, defaults to None
+    :type to_time: str, optional
+    :param by: units to sample from, defaults to 'recording_filename'
+    :type by: str, optional
+    :param threads: amount of threads to run on, defaults to 1
+    :type threads: int, optional
+    """
+    
+    SUBCOMMAND = "period"
+
+    def __init__(
+        self,
+        project: ChildProject.projects.ChildProject,
+        set: str,
+        period: str,
+        period_origin: str = None,
+        recordings: Union[str, List[str], pd.DataFrame] = None,
+        from_time: str = None,
+        to_time: str = None,
+        by: str = "recording_filename",
+        threads: int = 1,
+    ):
+
+        super().__init__(project, by, recordings, from_time, to_time)
+
+        self.set = set
+        self.threads = int(threads)
+
+        self.period = period
+        self.period_origin = period_origin
+
+        if self.period_origin is not None:
+            raise NotImplementedError("period-origin is not supported yet")
+
+        if self.set not in self.am.annotations["set"].values:
+            raise ValueError(
+                f"'{self.set}' was not found in the index; "
+                "check spelling and make sure the set was properly imported."
+            )
+
+        self.periods = pd.date_range(
+            start=datetime.datetime(1900, 1, 1, 0, 0, 0, 0),
+            end=datetime.datetime(1900, 1, 2, 0, 0, 0, 0),
+            freq=self.period,
+            closed="left",
+        )
+
+    def _process_unit(self, unit: str):
+        annotations, segments = self.retrieve_segments([self.set], unit)
+
+        # retrieve timestamps for each vocalization, ignoring the day of occurence
+        segments = self.am.get_segments_timestamps(segments, ignore_date=True)
+
+        # dropping segments for which no time information is available
+        segments.dropna(subset=["onset_time"], inplace=True)
+
+        # update the timestamps so that all vocalizations appear
+        # to happen on the same day
+        segments["onset_time"] -= pd.to_timedelta(
+            86400
+            * ((segments["onset_time"] - self.periods[0]).dt.total_seconds() // 86400),
+            unit="s",
+        )
+
+        if len(segments) == 0:
+            return pd.DataFrame()
+
+        # calculate length of available annotations within each bin.
+        # this is necessary in order to calculate correct rates
+        bins = np.array(
+            [dt.total_seconds() for dt in self.periods - self.periods[0]] + [86400]
+        )
+
+        # retrieve the timestamps for all annotated portions of the recordings
+        annotations = self.am.get_segments_timestamps(
+            annotations, ignore_date=True, onset="range_onset", offset="range_offset"
+        )
+        
+        # calculate time elapsed since the first time bin
+        annotations["onset_time"] = annotations["onset_time"].apply(
+            lambda dt: (dt - self.periods[0]).total_seconds()
+        ).astype(int)
+        annotations["offset_time"] = annotations["offset_time"].apply(
+            lambda dt: (dt - self.periods[0]).total_seconds()
+        ).astype(int)
+    
+        # split annotations to intervals each within a 0-24h range
+        annotations["stops"] = annotations.apply(
+            lambda row: [row['onset_time']] + list(86400*np.arange((row['onset_time']//86400)+1, (row['offset_time']//86400)+1, 1)) + [row['offset_time']],
+            axis = 1
+        )
+
+        annotations = annotations.explode('stops')
+        annotations['onset'] = annotations['stops']
+        annotations['offset'] = annotations['stops'].shift(-1)
+
+        annotations.dropna(subset = ['offset'], inplace = True)
+        annotations['onset'] = annotations['onset'].astype(int) % 86400
+        annotations['offset'] = (annotations['offset']-1e-4) % 86400
+
+        durations = [
+            (
+                annotations["offset"].clip(bins[i], bins[i + 1])
+                - annotations["onset"].clip(bins[i], bins[i + 1])
+            ).sum()
+            for i, t in enumerate(bins[:-1])
+        ]
+
+        durations = pd.Series(durations, index=self.periods)
+        metrics = pd.DataFrame(index=self.periods)
+
+        grouper = pd.Grouper(key="onset_time", freq=self.period, closed="left")
+
+        speaker_types = ["FEM", "MAL", "CHI", "OCH"]
+        adults = ["FEM", "MAL"]
+
+        for speaker in speaker_types:
+            vocs = segments[segments["speaker_type"] == speaker].groupby(grouper)
+
+            vocs = vocs.agg(
+                voc_ph=("segment_onset", "count"),
+                voc_dur_ph=("duration", "sum"),
+                avg_voc_dur=("duration", "mean"),
+            )
+
+            metrics["voc_{}_ph".format(speaker.lower())] = (
+                vocs["voc_ph"].reindex(self.periods, fill_value=0) * 3600 / durations
+            )
+            metrics["voc_dur_{}_ph".format(speaker.lower())] = (
+                vocs["voc_dur_ph"].reindex(self.periods, fill_value=0)
+                * 3600
+                / durations
+            )
+            metrics["avg_voc_dur_{}".format(speaker.lower())] = vocs[
+                "avg_voc_dur"
+            ].reindex(self.periods)
+
+        metrics['duration'] = (durations*1000).astype(int)
+        metrics[self.by] = unit
+        metrics["child_id"] = segments["child_id"].iloc[0]
+
+        return metrics
+
+    def extract(self):
+        recordings = self.get_recordings()
+
+        if self.threads == 1:
+            self.metrics = pd.concat(
+                [self._process_unit(unit) for unit in recordings[self.by].unique()]
+            )
+        else:
+            with mp.Pool(
+                processes=self.threads if self.threads >= 1 else mp.cpu_count()
+            ) as pool:
+                self.metrics = pd.concat(
+                    pool.map(self._process_unit, recordings[self.by].unique())
+                )
+    
+        if len(self.metrics):
+            self.metrics["period"] = self.metrics.index.strftime("%H:%M:%S")
+            self.metrics.set_index(self.by, inplace=True)
+        
+        return self.metrics
+
+    @staticmethod
+    def add_parser(subparsers, subcommand):
+        parser = subparsers.add_parser(subcommand, help="LENA metrics")
+        parser.add_argument("--set", help="annotations set")
+        parser.add_argument(
+            "--threads", help="amount of threads to run on", default=1, type=int
+        )
+
+        parser.add_argument(
+            "--period",
+            help="time units to aggregate (optional); equivalent to ``pandas.Grouper``'s freq argument.",
+        )
+
+        parser.add_argument(
+            "--period-origin",
+            help="time origin of each time period; equivalent to ``pandas.Grouper``'s origin argument.",
+            default=None,
         )
 
 

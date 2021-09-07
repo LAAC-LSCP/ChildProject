@@ -1115,50 +1115,72 @@ class AnnotationManager:
             columns = set(annotations.columns) - {"range_onset_ts", "range_offset_ts"}
             return pd.DataFrame(columns=columns)
 
-    def get_segments_timestamps(self, segments: pd.DataFrame) -> pd.DataFrame:
+    def get_segments_timestamps(
+        self,
+        segments: pd.DataFrame,
+        ignore_date: bool = False,
+        onset: str = "segment_onset",
+        offset: str = "segment_offset",
+    ) -> pd.DataFrame:
         """Calculate the onset and offset clock-time of each segment
 
         :param segments: DataFrame of segments (as returned by :meth:`~ChildProject.annotations.AnnotationManager.get_segments`).
         :type segments: pd.DataFrame
+        :param ignore_date: leave date information and use time data only, defaults to False
+        :type ignore_date: bool, optional
+        :param onset: column storing the onset timestamp in milliseconds, defaults to "segment_onset"
+        :type onset: str, optional
+        :param offset: column storing the offset timestamp in milliseconds, defaults to "segment_offset"
+        :type offset: str, optional
         :return: Returns the input dataframe with two new columns ``onset_time`` and ``offset_time``.
         ``onset_time`` is a datetime object corresponding to the onset of the segment.
         ``offset_time`` is a datetime object corresponding to the offset of the segment.
         In case either ``start_time`` or ``date_iso`` is not specified for the corresponding recording,
         both values will be set to NaT.
-
         :rtype: pd.DataFrame
         """
-        columns_to_drop = set(segments.columns) & {"date_iso", "start_time"}
+        columns_to_merge = ["start_time"]
+        if not ignore_date:
+            columns_to_merge.append("date_iso")
+
+        columns_to_drop = set(segments.columns) & set(columns_to_merge)
 
         if len(columns_to_drop):
             segments.drop(columns=columns_to_drop, inplace=True)
 
         segments = segments.merge(
             self.project.recordings[
-                ["recording_filename", "date_iso", "start_time"]
+                ["recording_filename"] + columns_to_merge
             ].set_index("recording_filename"),
             how="left",
             right_index=True,
             left_on="recording_filename",
         )
 
-        segments["start_time"] = pd.to_datetime(
-            segments[["date_iso", "start_time"]].apply(
-                lambda row: "{} {}".format(
-                    str(row["date_iso"]), str(row["start_time"])
+        if ignore_date:
+            segments["start_time"] = pd.to_datetime(
+                segments["start_time"], format="%H:%M", errors="coerce",
+            )
+        else:
+            segments["start_time"] = pd.to_datetime(
+                segments[["date_iso", "start_time"]].apply(
+                    lambda row: "{} {}".format(
+                        str(row["date_iso"]), str(row["start_time"])
+                    ),
+                    axis=1,
                 ),
-                axis=1,
-            ),
-            format="%Y-%m-%d %H:%M",
-            errors="coerce",
-        )
+                format="%Y-%m-%d %H:%M",
+                errors="coerce",
+            )
+
         segments["onset_time"] = segments["start_time"] + pd.to_timedelta(
-            segments["segment_onset"], unit="ms", errors="coerce"
+            segments[onset], unit="ms", errors="coerce"
         )
         segments["offset_time"] = segments["start_time"] + pd.to_timedelta(
-            segments["segment_offset"], unit="ms", errors="coerce"
+            segments[offset], unit="ms", errors="coerce"
         )
-        return segments.drop(columns=["start_time", "date_iso"])
+
+        return segments.drop(columns=columns_to_merge)
 
     @staticmethod
     def intersection(annotations: pd.DataFrame, sets: list = None) -> pd.DataFrame:
