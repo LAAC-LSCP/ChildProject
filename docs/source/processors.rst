@@ -34,6 +34,16 @@ works better with audio that is maximally 15h long:
 
    child-project process /path/to/dataset 16kHz basic --split=15:00:00 --format=wav --sampling=16000 --codec=pcm_s16le
 
+Processing can be restricted to a white-list of recordings only using the ``--recordings`` option:
+
+::
+
+   child-project process /path/to/dataset 16kHz basic --format=wav --sampling=16000 --codec=pcm_s16le --recordings audio1.wav audio2.wav
+
+Values provided to this option should be existing ``recording_filename`` values in ``metadata/recordings.csv``.
+
+The ``--skip-existing`` switch can be used to skip previously processed files.
+
 Multi-core audio conversion with slurm on a cluster
 ===================================================
 
