@@ -259,40 +259,55 @@ def test_within_time_range(project):
     am.project.recordings = pd.read_csv("tests/data/time_range_recordings.csv")
 
     annotations = pd.read_csv("tests/data/time_range_annotations.csv")
-    matches = am.get_within_time_range(annotations, '09:00', '20:00')
+    matches = am.get_within_time_range(annotations, "09:00", "20:00")
 
-    truth = pd.read_csv('tests/truth/time_range.csv')
+    truth = pd.read_csv("tests/truth/time_range.csv")
 
     pd.testing.assert_frame_equal(
         standardize_dataframe(matches, truth.columns),
-        standardize_dataframe(truth, truth.columns)
+        standardize_dataframe(truth, truth.columns),
     )
 
     exception_caught = False
     try:
-       matches = am.get_within_time_range(annotations, '9am', '8pm')
+        matches = am.get_within_time_range(annotations, "9am", "8pm")
     except ValueError as e:
         exception_caught = True
 
     assert exception_caught, "no exception was thrown despite invalid times"
 
+
 def test_segments_timestamps(project):
     am = AnnotationManager(project)
-    
-    segments = pd.DataFrame([
-        {'recording_filename': 'sound.wav', 'segment_onset': 3600*1000, 'segment_offset': 3600*1000+1000}
-    ])
+
+    segments = pd.DataFrame(
+        [
+            {
+                "recording_filename": "sound.wav",
+                "segment_onset": 3600 * 1000,
+                "segment_offset": 3600 * 1000 + 1000,
+            }
+        ]
+    )
     segments = am.get_segments_timestamps(segments)
 
-    truth = pd.DataFrame([
-        {'recording_filename': 'sound.wav', 'segment_onset': 3600*1000, 'segment_offset': 3600*1000+1000,
-        'onset_time': datetime.datetime(2020, 4, 20, 9+1, 0, 0), 'offset_time': datetime.datetime(2020, 4, 20, 9+1, 0, 1)}
-    ])
+    truth = pd.DataFrame(
+        [
+            {
+                "recording_filename": "sound.wav",
+                "segment_onset": 3600 * 1000,
+                "segment_offset": 3600 * 1000 + 1000,
+                "onset_time": datetime.datetime(2020, 4, 20, 9 + 1, 0, 0),
+                "offset_time": datetime.datetime(2020, 4, 20, 9 + 1, 0, 1),
+            }
+        ]
+    )
 
     pd.testing.assert_frame_equal(
         standardize_dataframe(segments, truth.columns),
-        standardize_dataframe(truth, truth.columns)
+        standardize_dataframe(truth, truth.columns),
     )
+
 
 def test_rename(project):
     am = AnnotationManager(project)

@@ -3,6 +3,7 @@ from ChildProject.pipelines.pipeline import Pipeline
 
 import pandas as pd
 
+
 def test_whitelist():
     project = ChildProject("examples/valid_raw_data")
     project.read()
@@ -33,9 +34,7 @@ def test_whitelist():
     )
     assert recordings["recording_filename"].tolist() == ["sound.wav"]
 
-    recordings = pd.DataFrame({"filename": ["sound.wav"]}).to_csv(
-        "output/filter.csv"
-    )
+    recordings = pd.DataFrame({"filename": ["sound.wav"]}).to_csv("output/filter.csv")
 
     caught_value_error = False
     try:
