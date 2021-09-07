@@ -58,3 +58,10 @@ ACLEW Metrics
 .. clidoc::
 
     child-project metrics /path/to/dataset output.csv aclew --help
+
+Period-aggregated metrics
+~~~~~~~~~~~~~~~~~~~~~~~
+
+.. clidoc::
+
+    child-project metrics /path/to/dataset output.csv period --help

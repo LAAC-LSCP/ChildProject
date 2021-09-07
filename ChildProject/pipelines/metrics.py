@@ -128,6 +128,10 @@ class LenaMetrics(Metrics):
     :type set: str
     :param recordings: recordings to sample from; if None, all recordings will be sampled, defaults to None
     :type recordings: Union[str, List[str], pd.DataFrame], optional
+    :param from_time: If specified (in HH:MM format), ignore annotations outside of the given time-range, defaults to None
+    :type from_time: str, optional
+    :param to_time:  If specified (in HH:MM format), ignore annotations outside of the given time-range, defaults to None
+    :type to_time: str, optional
     :param by: units to sample from, defaults to 'recording_filename'
     :type by: str, optional
     :param threads: amount of threads to run on, defaults to 1
@@ -267,6 +271,10 @@ class AclewMetrics(Metrics):
     :type vcm: str
     :param recordings: recordings to sample from; if None, all recordings will be sampled, defaults to None
     :type recordings: Union[str, List[str], pd.DataFrame], optional
+    :param from_time: If specified (in HH:MM format), ignore annotations outside of the given time-range, defaults to None
+    :type from_time: str, optional
+    :param to_time:  If specified (in HH:MM format), ignore annotations outside of the given time-range, defaults to None
+    :type to_time: str, optional
     :param by: units to sample from, defaults to 'recording_filename'
     :type by: str, optional
     :param threads: amount of threads to run on, defaults to 1
@@ -470,6 +478,29 @@ class AclewMetrics(Metrics):
 
 
 class PeriodMetrics(Metrics):
+    """Time-aggregated metrics extractor.
+
+
+    :param project: ChildProject instance of the target dataset
+    :type project: ChildProject.projects.ChildProject
+    :param set: name of the set of annotations to derive the metrics from
+    :type set: str
+    :param period: Time-period. Values should be formatted as `pandas offset aliases <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__. For instance, `15Min` corresponds to a 15 minute period; `2H` corresponds to a 2 hour period.
+    :type period: str
+    :param period_origin: NotImplemented, defaults to None
+    :type period_origin: str, optional
+    :param recordings: white-list of recordings to process, defaults to None
+    :type recordings: Union[str, List[str], pd.DataFrame], optional
+    :param from_time: If specified (in HH:MM format), ignore annotations outside of the given time-range, defaults to None
+    :type from_time: str, optional
+    :param to_time:  If specified (in HH:MM format), ignore annotations outside of the given time-range, defaults to None
+    :type to_time: str, optional
+    :param by: units to sample from, defaults to 'recording_filename'
+    :type by: str, optional
+    :param threads: amount of threads to run on, defaults to 1
+    :type threads: int, optional
+    """
+    
     SUBCOMMAND = "period"
 
     def __init__(
@@ -478,7 +509,6 @@ class PeriodMetrics(Metrics):
         set: str,
         period: str,
         period_origin: str = None,
-        get_segments: str = "vtc",
         recordings: Union[str, List[str], pd.DataFrame] = None,
         from_time: str = None,
         to_time: str = None,
