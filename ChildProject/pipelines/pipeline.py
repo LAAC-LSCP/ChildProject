@@ -21,6 +21,7 @@ class Pipeline(ABC):
     @staticmethod
     def recordings_from_list(recordings):
         import pandas as pd
+        from os.path import exists
 
         if recordings is None:
             df = None
@@ -35,7 +36,7 @@ class Pipeline(ABC):
         elif isinstance(recordings, list):
             df = recordings
         else:
-            if not os.path.exists(recordings):
+            if not exists(recordings):
                 raise ValueError(
                     "'recordings' is neither a pandas dataframe,"
                     "nor a list or a path to an existing dataframe."
