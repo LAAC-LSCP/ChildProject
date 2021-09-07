@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
  - `get_segments_timestamps` method to calculate the onset and offset timestamps of each segment from an annotation
  - `--from-time`/`--to-time` option for metrics extraction
  - Time-unit aggregated metrics, supporting custom time periods.
+ - optional `--recordings` option to apply the audio processors to specific recordings only
 
 ### Fixed
 
