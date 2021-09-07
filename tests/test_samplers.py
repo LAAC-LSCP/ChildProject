@@ -72,66 +72,6 @@ def test_energy_detection(project):
         pd.DataFrame([['sound.wav', 1900, 2000]], columns = ['recording_filename', 'segment_onset', 'segment_offset'])
     ) 
 
-def test_filter(project):
-    sampler = PeriodicSampler(
-        project = project,
-        length = 1000,
-        period = 1000,
-        recordings = ['sound.wav']
-    )
-    recordings = sampler.project.get_recordings_from_list(sampler.recordings)
-    assert recordings['recording_filename'].tolist() == ['sound.wav']
-
-
-    sampler = PeriodicSampler(
-        project = project,
-        length = 1000,
-        period = 1000,
-        recordings = pd.Series(['sound.wav'])
-    )
-    recordings = sampler.project.get_recordings_from_list(sampler.recordings)
-    assert recordings['recording_filename'].tolist() == ['sound.wav']
-
-
-    sampler = PeriodicSampler(
-        project = project,
-        length = 1000,
-        period = 1000,
-        recordings = pd.DataFrame({'recording_filename': ['sound.wav']})
-    )
-    recordings = sampler.project.get_recordings_from_list(sampler.recordings)
-    assert recordings['recording_filename'].tolist() == ['sound.wav']
-
-
-    recordings = pd.DataFrame({'recording_filename': ['sound.wav']})\
-        .to_csv('output/samplers/filter.csv')
-
-    sampler = PeriodicSampler(
-        project = project,
-        length = 1000,
-        period = 1000,
-        recordings = 'output/samplers/filter.csv'
-    )
-    recordings = sampler.project.get_recordings_from_list(sampler.recordings)
-    assert recordings['recording_filename'].tolist() == ['sound.wav']
-    
-
-    recordings = pd.DataFrame({'filename': ['sound.wav']})\
-        .to_csv('output/samplers/filter.csv')
-
-    caught_value_error = False
-    try:
-        sampler = PeriodicSampler(
-            project = project,
-            length = 1000,
-            period = 1000,
-            recordings = 'output/samplers/filter.csv'
-        )
-    except ValueError:
-        caught_value_error = True
-    
-    assert caught_value_error == True
-
 def test_exclusion(project):
     excluded = pd.DataFrame(
         [['sound.wav', 250, 750], ['sound.wav', 2000, 4000]],
