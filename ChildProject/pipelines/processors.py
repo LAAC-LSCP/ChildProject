@@ -134,7 +134,7 @@ class BasicProcessor(AudioProcessor):
 
         os.makedirs(name=os.path.dirname(destination_file), exist_ok=True)
 
-        skip = self.skip_existing and os.path.exists(destination_file)
+        skip = self.skip_existing and (os.path.exists(destination_file) or os.path.islink(destination_file))
         success = skip
 
         if not skip:
