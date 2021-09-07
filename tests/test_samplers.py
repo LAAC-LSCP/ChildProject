@@ -79,7 +79,7 @@ def test_filter(project):
         period = 1000,
         recordings = ['sound.wav']
     )
-    recordings = sampler.get_recordings()
+    recordings = sampler.project.get_recordings_from_list(sampler.recordings)
     assert recordings['recording_filename'].tolist() == ['sound.wav']
 
 
@@ -89,7 +89,7 @@ def test_filter(project):
         period = 1000,
         recordings = pd.Series(['sound.wav'])
     )
-    recordings = sampler.get_recordings()
+    recordings = sampler.project.get_recordings_from_list(sampler.recordings)
     assert recordings['recording_filename'].tolist() == ['sound.wav']
 
 
@@ -99,7 +99,7 @@ def test_filter(project):
         period = 1000,
         recordings = pd.DataFrame({'recording_filename': ['sound.wav']})
     )
-    recordings = sampler.get_recordings()
+    recordings = sampler.project.get_recordings_from_list(sampler.recordings)
     assert recordings['recording_filename'].tolist() == ['sound.wav']
 
 
@@ -112,7 +112,7 @@ def test_filter(project):
         period = 1000,
         recordings = 'output/samplers/filter.csv'
     )
-    recordings = sampler.get_recordings()
+    recordings = sampler.project.get_recordings_from_list(sampler.recordings)
     assert recordings['recording_filename'].tolist() == ['sound.wav']
     
 

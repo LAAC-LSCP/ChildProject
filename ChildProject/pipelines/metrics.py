@@ -43,34 +43,7 @@ class Metrics(ABC):
         self.by = by
         self.segments = pd.DataFrame()
 
-        if recordings is None:
-            self.recordings = None
-        elif isinstance(recordings, pd.DataFrame):
-            if "recording_filename" not in recordings.columns:
-                raise ValueError(
-                    "recordings dataframe is missing a 'recording_filename' column"
-                )
-            self.recordings = recordings["recording_filename"].tolist()
-        elif isinstance(recordings, pd.Series):
-            self.recordings = recordings.tolist()
-        elif isinstance(recordings, list):
-            self.recordings = recordings
-        else:
-            if not os.path.exists(recordings):
-                raise ValueError(
-                    "'recordings' is neither a pandas dataframe,"
-                    "nor a list or a path to an existing dataframe."
-                )
-
-            df = pd.read_csv(recordings)
-            if "recording_filename" not in df.columns:
-                raise ValueError(
-                    f"'{recordings}' is missing a 'recording_filename' column"
-                )
-            self.recordings = df["recording_filename"].tolist()
-
-        if self.recordings is not None:
-            self.recordings = list(set(self.recordings))
+        self.recordings = Pipeline.recordings_from_list(recordings)
 
         self.from_time = from_time
         self.to_time = to_time
@@ -83,15 +56,6 @@ class Metrics(ABC):
     def extract(self):
         pass
 
-    def get_recordings(self):
-        recordings = self.project.recordings.copy()
-
-        if self.recordings is not None:
-            recordings = recordings[
-                recordings["recording_filename"].isin(self.recordings)
-            ]
-
-        return recordings
 
     def retrieve_segments(self, sets: List[str], unit: str):
         annotations = self.am.annotations[self.am.annotations[self.by] == unit]
@@ -227,7 +191,7 @@ class LenaMetrics(Metrics):
         return metrics
 
     def extract(self):
-        recordings = self.get_recordings()
+        recordings = self.project.get_recordings_from_list(self.recordings)
 
         if self.threads == 1:
             self.metrics = pd.DataFrame(
@@ -449,7 +413,7 @@ class AclewMetrics(Metrics):
         return metrics
 
     def extract(self):
-        recordings = self.get_recordings()
+        recordings = self.project.get_recordings_from_list(self.recordings)
 
         if self.threads == 1:
             self.metrics = pd.DataFrame(
@@ -649,7 +613,7 @@ class PeriodMetrics(Metrics):
         return metrics
 
     def extract(self):
-        recordings = self.get_recordings()
+        recordings = self.project.get_recordings_from_list(self.recordings)
 
         if self.threads == 1:
             self.metrics = pd.concat(

@@ -8,6 +8,7 @@ import sys
 import pandas as pd
 import shutil
 import subprocess
+from typing import Union, List
 from yaml import dump
 
 import ChildProject
@@ -23,11 +24,13 @@ class AudioProcessor(ABC):
         name: str,
         input_profile: str = None,
         threads: int = 1,
+        recordings: Union[str, List[str], pd.DataFrame] = None,
     ):
 
         self.project = project
         self.name = name
         self.threads = int(threads)
+        self.recordings = Pipeline.recordings_from_list(recordings)
 
         self.input_profile = input_profile
 
@@ -55,26 +58,48 @@ class AudioProcessor(ABC):
             self.name,
         )
 
-    def export_metadata(self):
-        destination = os.path.join(self.output_directory(), "recordings.csv")
+    def read_metadata(self):
+        path = os.path.join(self.output_directory(), "recordings.csv")
 
-        self.converted.set_index("converted_filename").to_csv(destination)
+        if os.path.exists(path):
+            return pd.read_csv(path).set_index("converted_filename")
+        else:
+            return None
+
+    def export_metadata(self):
+        path = os.path.join(self.output_directory(), "recordings.csv")
+
+        self.converted.to_csv(path)
 
     @abstractmethod
     def process_recording(self, recording):
         pass
 
     def process(self):
+        recordings = self.project.get_recordings_from_list(self.recordings)
+
         os.makedirs(name=self.output_directory(), exist_ok=True)
 
         with mp.Pool(
             processes=self.threads if self.threads > 0 else mp.cpu_count()
         ) as pool:
             self.converted = pool.map(
-                self.process_recording, self.project.recordings.to_dict("records")
+                self.process_recording, recordings.to_dict("records")
             )
 
-        self.converted = pd.concat(self.converted)
+        previously_converted = self.read_metadata()
+        self.converted = pd.concat(self.converted).set_index("converted_filename")
+
+        if previously_converted is not None:
+            self.converted = pd.concat(
+                [
+                    previously_converted[
+                        ~previously_converted.index.isin(self.converted.index)
+                    ],
+                    self.converted,
+                ]
+            )
+
         self.export_metadata()
 
     @staticmethod
@@ -94,11 +119,18 @@ class BasicProcessor(AudioProcessor):
         sampling: int,
         split: str = None,
         threads: int = None,
+        recordings: Union[str, List[str], pd.DataFrame] = None,
         skip_existing: bool = False,
         input_profile: str = None,
     ):
 
-        super().__init__(project, name, threads=threads, input_profile=input_profile)
+        super().__init__(
+            project,
+            name,
+            threads=threads,
+            recordings=recordings,
+            input_profile=input_profile,
+        )
 
         self.format = format
         self.codec = str(codec)
@@ -134,33 +166,34 @@ class BasicProcessor(AudioProcessor):
 
         os.makedirs(name=os.path.dirname(destination_file), exist_ok=True)
 
-        skip = self.skip_existing and (os.path.exists(destination_file) or os.path.islink(destination_file))
-        success = skip
+        skip = self.skip_existing and (
+            os.path.exists(destination_file) or os.path.islink(destination_file)
+        )
 
-        if not skip:
-            args = [
-                "ffmpeg",
-                "-y",
-                "-loglevel",
-                "error",
-                "-i",
-                original_file,
-                "-c:a",
-                self.codec,
-                "-ar",
-                str(self.sampling),
-            ]
+        if skip:
+            return pd.DataFrame()
 
-            if self.split:
-                args.extend(["-segment_time", self.split, "-f", "segment"])
+        args = [
+            "ffmpeg",
+            "-y",
+            "-loglevel",
+            "error",
+            "-i",
+            original_file,
+            "-c:a",
+            self.codec,
+            "-ar",
+            str(self.sampling),
+        ]
 
-            args.append(destination_file)
+        if self.split:
+            args.extend(["-segment_time", self.split, "-f", "segment"])
 
-            proc = subprocess.Popen(
-                args, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE
-            )
-            (stdout, stderr) = proc.communicate()
-            success = proc.returncode == 0
+        args.append(destination_file)
+
+        proc = subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+        (stdout, stderr) = proc.communicate()
+        success = proc.returncode == 0
 
         if not success:
             return pd.DataFrame(
@@ -230,6 +263,12 @@ class BasicProcessor(AudioProcessor):
             default=False,
             action="store_true",
         )
+        parser.add_argument(
+            "--recordings",
+            help="list of recordings to process, separated by commas; only values of 'recording_filename' present in the metadata are supported.",
+            default=None,
+            nargs="+",
+        )
 
 
 class VettingProcessor(AudioProcessor):
@@ -241,10 +280,17 @@ class VettingProcessor(AudioProcessor):
         name: str,
         segments_path: str,
         threads: int = None,
+        recordings: Union[str, List[str], pd.DataFrame] = None,
         input_profile: str = None,
     ):
 
-        super().__init__(project, name, threads=threads, input_profile=input_profile)
+        super().__init__(
+            project,
+            name,
+            threads=threads,
+            recordings=recordings,
+            input_profile=input_profile,
+        )
         self.segments = pd.read_csv(segments_path)
 
     def process_recording(self, recording):
@@ -307,6 +353,12 @@ class VettingProcessor(AudioProcessor):
             help="path to the CSV dataframe containing the segments to be vetted",
             required=True,
         )
+        parser.add_argument(
+            "--recordings",
+            help="list of recordings to process, separated by commas; only values of 'recording_filename' present in the metadata are supported.",
+            default=None,
+            nargs="+",
+        )
 
 
 class ChannelMapper(AudioProcessor):
@@ -318,10 +370,17 @@ class ChannelMapper(AudioProcessor):
         name: str,
         channels: list,
         threads: int = 1,
+        recordings: Union[str, List[str], pd.DataFrame] = None,
         input_profile: str = None,
     ):
 
-        super().__init__(project, name, threads=threads, input_profile=input_profile)
+        super().__init__(
+            project,
+            name,
+            threads=threads,
+            recordings=recordings,
+            input_profile=input_profile,
+        )
 
         self.channels = [list(map(float, channel.split(","))) for channel in channels]
 
@@ -375,7 +434,16 @@ class ChannelMapper(AudioProcessor):
     def add_parser(subparsers, subcommand):
         parser = subparsers.add_parser(subcommand, help="channel mapping")
         parser.add_argument(
-            "--channels", help="lists of weigths for each channel", nargs="+"
+            "--channels",
+            help="lists of weigths for each channel",
+            nargs="+",
+            required=True,
+        )
+        parser.add_argument(
+            "--recordings",
+            help="list of recordings to process, separated by commas; only values of 'recording_filename' present in the metadata are supported.",
+            default=None,
+            nargs="+",
         )
 
 
@@ -443,6 +511,7 @@ class AudioProcessingPipeline(Pipeline):
             default=1,
             type=int,
         )
+
         parser.add_argument(
             "--input-profile",
             help="profile of input recordings (process raw recordings by default)",
