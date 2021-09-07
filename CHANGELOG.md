@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
  - `get_within_time_range` method to clip a list of annotations within a given time-range
  - `get_segments_timestamps` method to calculate the onset and offset timestamps of each segment from an annotation
  - `--from-time`/`--to-time` option for metrics extraction
+ - Time-unit aggregated metrics, supporting custom time periods.
 
 ### Fixed
 
