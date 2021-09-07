@@ -57,7 +57,8 @@ def test_channel_mapping(project, input = None):
         path = project.path,
         name = 'mapping',
         channels = ['0,2', '1,0'],
-        input_profile = input
+        input_profile = input,
+        recordings = ['sound.wav']
     )
 
 def test_custom_input_profile(project):

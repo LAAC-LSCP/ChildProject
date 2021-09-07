@@ -482,6 +482,16 @@ class ChildProject:
             self.converted_recordings_hashtable[key] = None
             return None
 
+    def get_recordings_from_list(self, recordings: list):
+        _recordings = self.recordings.copy()
+
+        if recordings is not None:
+            _recordings = _recordings[
+                _recordings["recording_filename"].isin(recordings)
+            ]
+
+        return _recordings
+
     def compute_recordings_duration(self, profile: str = None) -> pd.DataFrame:
         """compute recordings duration
 

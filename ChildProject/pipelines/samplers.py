@@ -31,34 +31,7 @@ class Sampler(ABC):
         self.annotation_set = ""
         self.target_speaker_type = []
 
-        if recordings is None:
-            self.recordings = None
-        elif isinstance(recordings, pd.DataFrame):
-            if "recording_filename" not in recordings.columns:
-                raise ValueError(
-                    "recordings dataframe is missing a 'recording_filename' column"
-                )
-            self.recordings = recordings["recording_filename"].tolist()
-        elif isinstance(recordings, pd.Series):
-            self.recordings = recordings.tolist()
-        elif isinstance(recordings, list):
-            self.recordings = recordings
-        else:
-            if not os.path.exists(recordings):
-                raise ValueError(
-                    "'recordings' is neither a pandas dataframe,"
-                    "nor a list or a path to an existing dataframe."
-                )
-
-            df = pd.read_csv(recordings)
-            if "recording_filename" not in df.columns:
-                raise ValueError(
-                    f"'{recordings}' is missing a 'recording_filename' column"
-                )
-            self.recordings = df["recording_filename"].tolist()
-
-        if self.recordings is not None:
-            self.recordings = list(set(self.recordings))
+        self.recordings = Pipeline.recordings_from_list(recordings)
 
         if exclude is None:
             self.excluded = pd.DataFrame(
@@ -94,16 +67,6 @@ class Sampler(ABC):
         self._sample()
         self.remove_excluded()
         return self.segments
-
-    def get_recordings(self):
-        recordings = self.project.recordings.copy()
-
-        if self.recordings is not None:
-            recordings = recordings[
-                recordings["recording_filename"].isin(self.recordings)
-            ]
-
-        return recordings
 
     def retrieve_segments(self, recording_filename=None):
         am = ChildProject.annotations.AnnotationManager(self.project)
@@ -266,7 +229,7 @@ class PeriodicSampler(Sampler):
         self.profile = profile
 
     def _sample(self):
-        recordings = self.get_recordings()
+        recordings = self.project.get_recordings_from_list(self.recordings)
 
         if not "duration" in recordings.columns:
             print(
@@ -396,7 +359,7 @@ class RandomVocalizationSampler(Sampler):
         return segments.sample(frac=1).head(self.sample_size)
 
     def _sample(self):
-        recordings = self.get_recordings()
+        recordings = self.get_recordings_from_list(self.recordings)
 
         with mp.Pool(
             processes=self.threads if self.threads >= 1 else mp.cpu_count()
@@ -566,7 +529,7 @@ class EnergyDetectionSampler(Sampler):
         return pd.DataFrame(windows)
 
     def _sample(self):
-        recordings = self.get_recordings()
+        recordings = self.project.get_recordings_from_list(self.recordings)
 
         if self.threads == 1:
             windows = pd.concat(
@@ -829,7 +792,7 @@ class HighVolubilitySampler(Sampler):
         )
 
     def _sample(self):
-        recordings = self.get_recordings()
+        recordings = self.project.get_recordings(self.recordings)
 
         with mp.Pool(
             processes=self.threads if self.threads >= 1 else mp.cpu_count()
