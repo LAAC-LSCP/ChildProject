@@ -480,6 +480,18 @@ class AclewMetrics(Metrics):
 class PeriodMetrics(Metrics):
     """Time-aggregated metrics extractor.
 
+    Aggregates vocalizations for each time-of-the-day-unit based on a period specified by the user.
+    For instance, if the period is set to ``15Min`` (i.e. 15 minutes), vocalization rates will be reported for each
+    recording and time-unit (e.g. 09:00 to 09:15, 09:15 to 09:30, etc.).
+
+    The output dataframe has ``rp`` rows, where ``r`` is the amount of recordings (or children if the ``--by`` option is set to ``child_id``), ``p`` is the 
+    amount of time-bins per day (i.e. 24 x 4 = 96 for a 15-minute period).
+
+    The output dataframe includes a ``period`` column that contains the onset of each time-unit in HH:MM:SS format.
+    The ``duration`` columns contains the total amount of annotations covering each time-bin, in milliseconds.
+
+    If ``--by`` is set to e.g. ``child_id``, then the values for each time-bin will be the average rates across
+    all the recordings of every child.
 
     :param project: ChildProject instance of the target dataset
     :type project: ChildProject.projects.ChildProject

@@ -17,9 +17,9 @@ The list of supported metrics is shown below:
     :header: "Variable", "Description", "pipelines"
     :widths: 15, 50, 5
 
-    voc_fem/mal/och_ph,number of vocalizations by different talker types,"ACLEW,LENA"
-    voc_dur_fem/mal/och_ph,total duration of vocalizations by different talker types,"ACLEW,LENA"
-    avg_voc_dur_fem/mal/och,average vocalization length (conceptually akin to MLU) by different talker types,"ACLEW,LENA"
+    voc_fem/mal/och_ph,number of vocalizations by different talker types,"ACLEW,LENA,Period"
+    voc_dur_fem/mal/och_ph,total duration of vocalizations by different talker types,"ACLEW,LENA,Period"
+    avg_voc_dur_fem/mal/och,average vocalization length (conceptually akin to MLU) by different talker types,"ACLEW,LENA,Period"
     wc_adu_ph,adult word count (collapsing across males and females),"ACLEW,LENA"
     wc_fem/mal_ph,adult word count by different talker types,"ACLEW,LENA"
     sc_adu_ph,adult syllable count (collapsing across males and females),ACLEW
@@ -60,7 +60,20 @@ ACLEW Metrics
     child-project metrics /path/to/dataset output.csv aclew --help
 
 Period-aggregated metrics
-~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The Period Metrics pipeline aggregates vocalizations for each time-of-the-day-unit based on a period specified by the user.
+For instance, if the period is set to ``15Min`` (i.e. 15 minutes), vocalization rates will be reported for each
+recording and time-unit (e.g. 09:00 to 09:15, 09:15 to 09:30, etc.).
+
+The output dataframe has :math:`r \times p` rows, where :math:`r` is the amount of recordings (or children if the ``-by`` option is set to ``child_id``), and :math:`p` is the 
+amount of time-bins per day (i.e. :math:`24 \times 4=96` for a 15-minute period).
+
+The output dataframe includes a ``period`` column that contains the onset of each time-unit in HH:MM:SS format.
+The ``duration`` columns contains the total amount of annotations covering each time-bin, in milliseconds.
+
+If ``--by`` is set to e.g. ``child_id``, then the values for each time-bin will be the average rates across
+all the recordings of every child.
 
 .. clidoc::
 
