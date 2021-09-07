@@ -524,6 +524,9 @@ class PeriodMetrics(Metrics):
         self.period = period
         self.period_origin = period_origin
 
+        if self.period_origin is not None:
+            raise NotImplementedError("period-origin is not supported yet")
+
         if self.set not in self.am.annotations["set"].values:
             raise ValueError(
                 f"'{self.set}' was not found in the index; "
