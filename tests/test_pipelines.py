@@ -45,3 +45,13 @@ def test_whitelist():
         caught_value_error = True
 
     assert caught_value_error == True
+
+    recordings = project.get_recordings_from_list(
+        Pipeline.recordings_from_list(
+            [
+                "examples/valid_raw_data/recordings/raw/sound.wav",
+                "examples/valid_raw_data/recordings/raw/sound2.wav",
+            ]
+        )
+    )
+    assert recordings["recording_filename"].tolist() == ["sound.wav", "sound2.wav"]
