@@ -485,15 +485,17 @@ class ChildProject:
     def get_recordings_from_list(self, recordings: list):
         _recordings = self.recordings.copy()
 
-        # if the user provided paths,
-        # transform those paths into recording_filename values
-        if all(map(os.path.exists, recordings)):
-            recordings = [
-                os.path.relpath(recording, os.path.join(self.path, self.RAW_RECORDINGS))
-                for recording in recordings
-            ]
-
         if recordings is not None:
+            # if the user provided paths,
+            # transform those paths into recording_filename values
+            if all(map(os.path.exists, recordings)):
+                recordings = [
+                    os.path.relpath(
+                        recording, os.path.join(self.path, self.RAW_RECORDINGS)
+                    )
+                    for recording in recordings
+                ]
+
             _recordings = _recordings[
                 _recordings["recording_filename"].isin(recordings)
             ]
