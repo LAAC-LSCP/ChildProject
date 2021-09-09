@@ -384,7 +384,7 @@ class ChildProject:
                         self.warnings.append(message)
 
             # child id refers to an existing child in the children table
-            if row["child_id"] not in self.children["child_id"].tolist():
+            if str(row["child_id"]) not in self.children["child_id"].astype(str).tolist():
                 self.errors.append(
                     "child_id '{}' in recordings on line {} cannot be found in the children table.".format(
                         row["child_id"], index
@@ -466,6 +466,7 @@ class ChildProject:
                 self.path, self.CONVERTED_RECORDINGS, profile, "recordings.csv"
             )
         )
+        converted_recordings.dropna(subset=["converted_filename"], inplace=True)
 
         self.converted_recordings_hashtable.update(
             {
