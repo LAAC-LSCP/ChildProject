@@ -439,7 +439,7 @@ def compute_durations(args):
             "validation failed, {} error(s) occured".format(len(errors)),
             file=sys.stderr,
         )
-        sys.exit(1)
+        print("trying to pursue anyway, but expect failures")
 
     if "duration" in project.recordings.columns:
         if not args.force:
