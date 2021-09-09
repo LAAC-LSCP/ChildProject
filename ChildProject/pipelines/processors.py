@@ -62,7 +62,9 @@ class AudioProcessor(ABC):
         path = os.path.join(self.output_directory(), "recordings.csv")
 
         if os.path.exists(path):
-            return pd.read_csv(path).set_index("converted_filename")
+            return pd.read_csv(path).set_index(
+                ["original_filename", "converted_filename"]
+            )
         else:
             return None
 
@@ -75,7 +77,7 @@ class AudioProcessor(ABC):
     def process_recording(self, recording):
         pass
 
-    def process(self):
+    def process(self, parameters):
         recordings = self.project.get_recordings_from_list(self.recordings)
 
         os.makedirs(name=self.output_directory(), exist_ok=True)
@@ -88,7 +90,10 @@ class AudioProcessor(ABC):
             )
 
         previously_converted = self.read_metadata()
-        self.converted = pd.concat(self.converted).set_index("converted_filename")
+        self.converted = pd.concat(self.converted).set_index(
+            ["original_filename", "converted_filename"]
+        )
+        self.converted = self.converted.assign(parameters=parameters)
 
         if previously_converted is not None:
             self.converted = pd.concat(
@@ -196,6 +201,8 @@ class BasicProcessor(AudioProcessor):
         success = proc.returncode == 0
 
         if not success:
+            print(stderr, file = sys.stderr)
+
             return pd.DataFrame(
                 [
                     {
@@ -468,6 +475,7 @@ class AudioProcessingPipeline(Pipeline):
         ]
         parameters.extend([{key: kwargs[key]} for key in kwargs])
 
+        date = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         self.project = ChildProject.projects.ChildProject(path)
         self.project.read()
 
@@ -475,13 +483,12 @@ class AudioProcessingPipeline(Pipeline):
             raise NotImplementedError(f"invalid pipeline '{processor}'")
 
         proc = pipelines[processor](self.project, name, threads=threads, **kwargs)
-        proc.process()
+        proc.process(f"parameters_{date}.yml")
 
         print("exported audio to {}".format(proc.output_directory()))
 
-        date = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         parameters_path = os.path.join(
-            proc.output_directory(), "parameters_{}.yml".format(date)
+            proc.output_directory(), f"parameters_{date}.yml"
         )
         dump(
             {
