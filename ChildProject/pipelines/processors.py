@@ -90,8 +90,14 @@ class AudioProcessor(ABC):
             )
 
         previously_converted = self.read_metadata()
-        self.converted = pd.concat(self.converted).set_index(
-            ["original_filename", "converted_filename"]
+        self.converted = pd.concat(self.converted)
+
+        if not len(self.converted):
+            return
+        
+        self.converted.set_index(
+            ["original_filename", "converted_filename"],
+            inplace = True
         )
         self.converted = self.converted.assign(parameters=parameters)
 
