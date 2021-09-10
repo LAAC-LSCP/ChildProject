@@ -792,7 +792,7 @@ class HighVolubilitySampler(Sampler):
         )
 
     def _sample(self):
-        recordings = self.project.get_recordings(self.recordings)
+        recordings = self.project.get_recordings_from_list(self.recordings)
 
         with mp.Pool(
             processes=self.threads if self.threads >= 1 else mp.cpu_count()
