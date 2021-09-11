@@ -1,4 +1,5 @@
 import datetime
+from functools import partial
 import glob
 import numpy as np
 import os
@@ -7,7 +8,7 @@ import re
 import subprocess
 
 from .tables import IndexTable, IndexColumn, is_boolean
-from .utils import get_audio_duration
+from .utils import get_audio_duration, path_is_parent
 
 
 class ChildProject:
@@ -384,7 +385,10 @@ class ChildProject:
                         self.warnings.append(message)
 
             # child id refers to an existing child in the children table
-            if str(row["child_id"]) not in self.children["child_id"].astype(str).tolist():
+            if (
+                str(row["child_id"])
+                not in self.children["child_id"].astype(str).tolist()
+            ):
                 self.errors.append(
                     "child_id '{}' in recordings on line {} cannot be found in the children table.".format(
                         row["child_id"], index
@@ -483,19 +487,41 @@ class ChildProject:
             self.converted_recordings_hashtable[key] = None
             return None
 
-    def get_recordings_from_list(self, recordings: list):
+    def recording_from_path(self, path: str, profile: str = None) -> str:
+        if profile:
+            media_path = os.path.join(self.path, self.CONVERTED_RECORDINGS, profile)
+        else:
+            media_path = os.path.join(self.path, self.RAW_RECORDINGS)
+
+        if not path_is_parent(media_path, path):
+            return None
+
+        recording = os.path.relpath(
+            path, media_path
+        )
+
+        return recording
+        
+
+    def get_recordings_from_list(self, recordings: list, profile: str = None) -> pd.DataFrame:
+        """Recover recordings metadata from a list of recordings or path to recordings.
+
+        :param recordings: list of recording names or paths
+        :type recordings: list
+        :return: matching recordings
+        :rtype: pd.DataFrame
+        """
         _recordings = self.recordings.copy()
 
         if recordings is not None:
             # if the user provided paths,
             # transform those paths into recording_filename values
-            if all(map(os.path.exists, recordings)):
-                recordings = [
-                    os.path.relpath(
-                        recording, os.path.join(self.path, self.RAW_RECORDINGS)
-                    )
-                    for recording in recordings
-                ]
+            recordings_from_paths = [
+                self.recording_from_path(recording, profile) for recording in recordings
+            ]
+
+            if None not in recordings_from_paths:
+                recordings = recordings_from_paths
 
             _recordings = _recordings[
                 _recordings["recording_filename"].isin(recordings)

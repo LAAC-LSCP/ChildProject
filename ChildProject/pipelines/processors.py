@@ -78,7 +78,9 @@ class AudioProcessor(ABC):
         pass
 
     def process(self, parameters):
-        recordings = self.project.get_recordings_from_list(self.recordings)
+        recordings = self.project.get_recordings_from_list(
+            self.recordings, self.input_profile
+        )
 
         os.makedirs(name=self.output_directory(), exist_ok=True)
 
@@ -94,10 +96,9 @@ class AudioProcessor(ABC):
 
         if not len(self.converted):
             return
-        
+
         self.converted.set_index(
-            ["original_filename", "converted_filename"],
-            inplace = True
+            ["original_filename", "converted_filename"], inplace=True
         )
         self.converted = self.converted.assign(parameters=parameters)
 
@@ -207,7 +208,7 @@ class BasicProcessor(AudioProcessor):
         success = proc.returncode == 0
 
         if not success:
-            print(stderr, file = sys.stderr)
+            print(stderr, file=sys.stderr)
 
             return pd.DataFrame(
                 [
