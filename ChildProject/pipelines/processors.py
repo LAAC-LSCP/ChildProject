@@ -78,9 +78,7 @@ class AudioProcessor(ABC):
         pass
 
     def process(self, parameters):
-        recordings = self.project.get_recordings_from_list(
-            self.recordings, self.input_profile
-        )
+        recordings = self.project.get_recordings_from_list(self.recordings)
 
         os.makedirs(name=self.output_directory(), exist_ok=True)
 

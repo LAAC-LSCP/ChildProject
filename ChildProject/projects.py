@@ -489,21 +489,23 @@ class ChildProject:
 
     def recording_from_path(self, path: str, profile: str = None) -> str:
         if profile:
-            media_path = os.path.join(self.path, self.CONVERTED_RECORDINGS, profile)
+            raise NotImplementedError(
+                "cannot recover recording from the path to a converted media yet"
+            )
+            # media_path = os.path.join(self.path, self.CONVERTED_RECORDINGS, profile)
         else:
             media_path = os.path.join(self.path, self.RAW_RECORDINGS)
 
         if not path_is_parent(media_path, path):
             return None
 
-        recording = os.path.relpath(
-            path, media_path
-        )
+        recording = os.path.relpath(path, media_path)
 
         return recording
-        
 
-    def get_recordings_from_list(self, recordings: list, profile: str = None) -> pd.DataFrame:
+    def get_recordings_from_list(
+        self, recordings: list, profile: str = None
+    ) -> pd.DataFrame:
         """Recover recordings metadata from a list of recordings or path to recordings.
 
         :param recordings: list of recording names or paths
