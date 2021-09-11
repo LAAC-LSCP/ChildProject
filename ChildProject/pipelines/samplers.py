@@ -239,8 +239,8 @@ class PeriodicSampler(Sampler):
 
             durations = self.project.compute_recordings_duration(self.profile).dropna()
             recordings = recordings.merge(
-                durations[durations["recording_filename"] != "NA"],
-                how="left",
+                durations,
+                how="inner",
                 left_on="recording_filename",
                 right_on="recording_filename",
             )
