@@ -40,6 +40,26 @@ def register_pipeline(subcommand, cls):
     _parser.set_defaults(func=lambda args: cls().run(**vars(args)))
 
 
+def perform_validation(project: ChildProject, require_success: bool = True, **args):
+    errors, warnings = project.validate(**args)
+
+    if len(errors) > 0:
+        if require_success:
+            print(
+                "[\033[31merror\033[0m]: dataset validation failed, {} error(s) occured.\nCannot continue. Please run the validation procedure to list and correct all errors.".format(
+                    len(errors)
+                ),
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        else:
+            print(
+                "[\033[33mwarning\033[0m]: dataset validation failed, {} error(s) occured.\nProceeding despite errors; expect failures.".format(
+                    len(errors)
+                )
+            )
+
+
 @subcommand(
     [
         arg("source", help="project path"),
@@ -122,14 +142,8 @@ def import_annotations(args):
     """convert and import a set of annotations"""
 
     project = ChildProject(args.source)
-    errors, warnings = project.validate(ignore_files=True)
 
-    if len(errors) > 0:
-        print(
-            "validation failed, {} error(s) occured".format(len(errors)),
-            file=sys.stderr,
-        )
-        sys.exit(1)
+    perform_validation(project, require_success=True, ignore_files=True)
 
     if args.annotations:
         annotations = pd.read_csv(args.annotations)
@@ -190,12 +204,7 @@ def merge_annotations(args):
     project = ChildProject(args.source)
     errors, warnings = project.validate(ignore_files=True)
 
-    if len(errors) > 0:
-        print(
-            "validation failed, {} error(s) occured".format(len(errors)),
-            file=sys.stderr,
-        )
-        sys.exit(1)
+    perform_validation(project, require_success=True, ignore_files=True)
 
     am = AnnotationManager(project)
     am.read()
@@ -246,14 +255,8 @@ def intersect_annotations(args):
 def remove_annotations(args):
     """remove converted annotations of a given set and their entries in the index"""
     project = ChildProject(args.source)
-    errors, warnings = project.validate(ignore_files=True)
 
-    if len(errors) > 0:
-        print(
-            "validation failed, {} error(s) occured".format(len(errors)),
-            file=sys.stderr,
-        )
-        sys.exit(1)
+    perform_validation(project, require_success=True, ignore_files=True)
 
     am = AnnotationManager(project)
     am.read()
@@ -273,14 +276,8 @@ def rename_annotations(args):
     """rename a set of annotations by moving the files and updating the index accordingly"""
 
     project = ChildProject(args.source)
-    errors, warnings = project.validate(ignore_files=True)
 
-    if len(errors) > 0:
-        print(
-            "validation failed, {} error(s) occured".format(len(errors)),
-            file=sys.stderr,
-        )
-        sys.exit(1)
+    perform_validation(project, require_success=True, ignore_files=True)
 
     am = AnnotationManager(project)
     am.read()
@@ -291,59 +288,13 @@ def rename_annotations(args):
         ignore_errors=args.ignore_errors,
     )
 
-
-@subcommand(
-    [
-        arg(
-            "dataset",
-            help="dataset to install. Should be a valid repository name at https://github.com/LAAC-LSCP. (e.g.: solomon-data)",
-        ),
-        arg("--destination", help="destination path", required=False, default=""),
-        arg(
-            "--storage-hostname",
-            dest="storage_hostname",
-            help="ssh storage hostname (e.g. 'foberon')",
-            required=False,
-            default="",
-        ),
-    ]
-)
-def import_data(args):
-    """import and configures a datalad dataset"""
-
-    import datalad.api
-    import datalad.distribution.dataset
-
-    if args.destination:
-        destination = args.destination
-    else:
-        destination = os.path.splitext(os.path.basename(args.dataset))[0]
-
-    datalad.api.install(source=args.dataset, path=destination)
-
-    ds = datalad.distribution.dataset.require_dataset(
-        destination, check_installed=True, purpose="configuration"
-    )
-
-    cmd = "setup"
-    if args.storage_hostname:
-        cmd += ' "{}"'.format(args.storage_hostname)
-
-    datalad.api.run_procedure(spec=cmd, dataset=ds)
-
-
 @subcommand([arg("source", help="source data path")])
 def overview(args):
     """prints an overview of the contents of a given dataset"""
 
     project = ChildProject(args.source)
-    errors, warnings = project.validate(ignore_files=True)
 
-    if len(errors) > 0:
-        print(
-            "validation failed, {} error(s) occured".format(len(errors)),
-            file=sys.stderr,
-        )
+    perform_validation(project, require_success=True, ignore_files=True)
 
     am = AnnotationManager(project)
     project.read()
@@ -432,14 +383,7 @@ def compute_durations(args):
     """creates a 'duration' column into metadata/recordings"""
     project = ChildProject(args.source)
 
-    errors, warnings = project.validate()
-
-    if len(errors) > 0:
-        print(
-            "validation failed, {} error(s) occured".format(len(errors)),
-            file=sys.stderr,
-        )
-        print("trying to pursue anyway, but expect failures")
+    perform_validation(project, require_success=True, ignore_files=True)
 
     if "duration" in project.recordings.columns:
         if not args.force:
