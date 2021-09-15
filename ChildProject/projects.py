@@ -328,20 +328,18 @@ class ChildProject:
         self.children = self.ct.df
         self.recordings = self.rt.df
 
-    def validate(self, ignore_files: bool = False, profile: str = None) -> tuple:
+    def validate(self, ignore_recordings: bool = False, profile: str = None) -> tuple:
         """Validate a dataset, returning all errors and warnings.
 
-        :param ignore_files: if True, no errors will be returned for missing recordings.
-        :type ignore_files: bool, optional
+        :param ignore_recordings: if True, no errors will be returned for missing recordings.
+        :type ignore_recordings: bool, optional
         :return: A tuple containing the list of errors, and the list of warnings.
         :rtype: a tuple of two lists
         """
         self.errors = []
         self.warnings = []
 
-        path = self.path
-
-        directories = [d for d in os.listdir(path) if os.path.isdir(path)]
+        directories = [d for d in os.listdir(self.path) if os.path.isdir(self.path)]
 
         for rd in self.REQUIRED_DIRECTORIES:
             if rd not in directories:
@@ -358,7 +356,7 @@ class ChildProject:
         self.errors += errors
         self.warnings += warnings
 
-        if ignore_files:
+        if ignore_recordings:
             return self.errors, self.warnings
 
         for index, row in self.recordings.iterrows():
@@ -417,12 +415,12 @@ class ChildProject:
         ]
 
         indexed_files = [
-            os.path.abspath(os.path.join(path, self.RAW_RECORDINGS, str(f)))
+            os.path.abspath(os.path.join(self.path, self.RAW_RECORDINGS, str(f)))
             for f in pd.core.common.flatten(files)
         ]
 
         recordings_files = glob.glob(
-            os.path.join(path, self.RAW_RECORDINGS, "**/*.*"), recursive=True
+            os.path.join(self.path, self.RAW_RECORDINGS, "**/*.*"), recursive=True
         )
 
         for rf in recordings_files:

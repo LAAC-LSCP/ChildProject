@@ -66,7 +66,7 @@ def perform_validation(project: ChildProject, require_success: bool = True, **ar
         arg(
             "--ignore-recordings",
             help="ignore missing audio files",
-            dest="ignore_files",
+            dest="ignore_recordings",
             required=False,
             default=False,
             action="store_true",
@@ -98,7 +98,7 @@ def validate(args):
     """validate the consistency of the dataset returning detailed errors and warnings"""
 
     project = ChildProject(args.source)
-    errors, warnings = project.validate(args.ignore_files, args.profile)
+    errors, warnings = project.validate(args.ignore_recordings, args.profile)
 
     if args.annotations:
         am = AnnotationManager(project)
@@ -109,9 +109,13 @@ def validate(args):
         annotations = am.annotations
         if "*" not in args.annotations:
 
-            if not set(args.annotations).issubset(set(annotations['set'].unique())):
-                missing_sets = set(args.annotations) - set(annotations['set'].unique())
-                errors.append("the following annotation sets are not indexed: {}".format(",".join(missing_sets)))
+            if not set(args.annotations).issubset(set(annotations["set"].unique())):
+                missing_sets = set(args.annotations) - set(annotations["set"].unique())
+                errors.append(
+                    "the following annotation sets are not indexed: {}".format(
+                        ",".join(missing_sets)
+                    )
+                )
 
             annotations = annotations[annotations["set"].isin(args.annotations)]
 
