@@ -328,7 +328,7 @@ class ChildProject:
         self.children = self.ct.df
         self.recordings = self.rt.df
 
-    def validate(self, ignore_files: bool = False) -> tuple:
+    def validate(self, ignore_files: bool = False, profile: str = None) -> tuple:
         """Validate a dataset, returning all errors and warnings.
 
         :param ignore_files: if True, no errors will be returned for missing recordings.
@@ -371,14 +371,28 @@ class ChildProject:
                 if column_attr is None:
                     continue
 
-                if (
-                    column_attr.filename
-                    and row[column_name] != "NA"
-                    and not os.path.exists(
-                        os.path.join(path, self.RAW_RECORDINGS, str(row[column_name]))
-                    )
-                ):
-                    message = "cannot find recording '{}'".format(str(row[column_name]))
+                if column_attr.filename and row[column_name] != "NA":
+                    raw_filename = str(row[column_name])
+
+                    try:
+                        path = self.get_recording_path(raw_filename, profile)
+                    except:
+                        if profile:
+                            profile_metadata = os.path.join(
+                                self.path,
+                                self.CONVERTED_RECORDINGS,
+                                profile,
+                                "recordings.csv",
+                            )
+                            self.errors.append(
+                                f"failed to recover the path for recording '{raw_filename}' and profile '{profile}'. Does the profile exist? Does {profile_metadata} exist?"
+                            )
+                        continue
+
+                    if os.path.exists(path):
+                        continue
+
+                    message = f"cannot find recording '{raw_filename}' at '{path}'"
                     if column_attr.required:
                         self.errors.append(message)
                     else:
