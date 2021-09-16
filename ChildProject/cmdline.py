@@ -112,7 +112,7 @@ def validate(args):
             args.annotations = {am.set_from_path(set) for set in args.annotations} - {None}
 
         sets = list(args.annotations) + sum([am.get_subsets(s) for s in args.annotations], [])
-        sets = set(sets) - {None}
+        sets = set(sets)
 
         if not sets.issubset(set(annotations["set"].unique())):
             missing_sets = sets - set(annotations["set"].unique())
