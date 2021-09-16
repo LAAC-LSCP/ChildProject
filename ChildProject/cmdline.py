@@ -64,24 +64,31 @@ def perform_validation(project: ChildProject, require_success: bool = True, **ar
     [
         arg("source", help="project path"),
         arg(
-            "--ignore-files",
+            "--ignore-recordings",
             help="ignore missing audio files",
-            dest="ignore_files",
+            dest="ignore_recordings",
             required=False,
             default=False,
             action="store_true",
         ),
         arg(
-            "--check-annotations",
-            help="check all imported annotations for errors",
-            dest="check_annotations",
+            "--profile",
+            help="which recording profile to validate",
+            dest="profile",
             required=False,
-            default=False,
-            action="store_true",
+            default=None,
+        ),
+        arg(
+            "--annotations",
+            help="path to or name of each annotation set(s) to check (e.g. 'vtc' or '/path/to/dataset/annotations/vtc')",
+            dest="annotations",
+            required=False,
+            default=[],
+            nargs="+",
         ),
         arg(
             "--threads",
-            help="amount of threads to run on (only applies to --check-annotations)",
+            help="amount of threads to run on (only applies to --annotations)",
             type=int,
             default=0,
         ),
@@ -91,15 +98,35 @@ def validate(args):
     """validate the consistency of the dataset returning detailed errors and warnings"""
 
     project = ChildProject(args.source)
-    errors, warnings = project.validate(args.ignore_files)
+    errors, warnings = project.validate(args.ignore_recordings, args.profile)
 
-    if args.check_annotations:
+    if args.annotations:
         am = AnnotationManager(project)
 
         errors.extend(am.errors)
         warnings.extend(am.warnings)
 
-        annotations_errors, annotations_warnings = am.validate(threads=args.threads)
+        annotations = am.annotations
+
+        if all(map(lambda x: os.path.exists(x) or os.path.islink(x), args.annotations)):
+            args.annotations = {am.set_from_path(set) for set in args.annotations} - {None}
+
+        sets = list(args.annotations) + sum([am.get_subsets(s) for s in args.annotations], [])
+        sets = set(sets)
+
+        if not sets.issubset(set(annotations["set"].unique())):
+            missing_sets = sets - set(annotations["set"].unique())
+            errors.append(
+                "the following annotation sets are not indexed: {}".format(
+                    ",".join(missing_sets)
+                )
+            )
+
+        annotations = annotations[annotations["set"].isin(sets)]
+
+        annotations_errors, annotations_warnings = am.validate(
+            annotations=annotations, threads=args.threads
+        )
         errors.extend(annotations_errors)
         warnings.extend(annotations_warnings)
 
@@ -287,6 +314,7 @@ def rename_annotations(args):
         recursive=args.recursive,
         ignore_errors=args.ignore_errors,
     )
+
 
 @subcommand([arg("source", help="source data path")])
 def overview(args):
