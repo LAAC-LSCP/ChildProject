@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
  - `--from-time`/`--to-time` option for metrics extraction
  - Time-unit aggregated metrics, supporting custom time periods.
  - optional `--recordings` option to apply the audio processors to specific recordings only
+ - allow `child-project validate` to check custom recordings profiles and/or annotation sets
 
 ### Fixed
 
