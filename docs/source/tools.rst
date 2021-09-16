@@ -32,11 +32,11 @@ Example:
    # (in recordings/converted/standard)
    child-project validate /path/to/dataset --profile standard 
 
-   # validate the metadata and all annotations
+   # validate the metadata and all annotations within /path/to/dataset/annotations
    child-project validate /path/to/dataset --ignore-recordings --annotations /path/to/dataset/annotations/*
 
-   # validate the metadata and annotations from the 'vtc' set
-   child-project validate /path/to/dataset --ignore-recordings --annotations /path/to/dataset/annotations/vtc
+   # validate the metadata and annotations from the 'textgrid' set
+   child-project validate /path/to/dataset --ignore-recordings --annotations /path/to/dataset/annotations/textgrid/*
 
 Dataset overview
 ----------------

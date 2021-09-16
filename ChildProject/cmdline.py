@@ -80,7 +80,7 @@ def perform_validation(project: ChildProject, require_success: bool = True, **ar
         ),
         arg(
             "--annotations",
-            help="check specified annotations (use '*' to check all annotations)",
+            help="path to or name of each annotation set(s) to check (e.g. 'vtc' or '/path/to/dataset/annotations/vtc')",
             dest="annotations",
             required=False,
             default=[],
