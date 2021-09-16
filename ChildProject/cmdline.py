@@ -109,9 +109,13 @@ def validate(args):
         annotations = am.annotations
 
         if all(map(lambda x: os.path.exists(x) or os.path.islink(x), args.annotations)):
-            args.annotations = {am.set_from_path(set) for set in args.annotations} - {None}
+            args.annotations = {am.set_from_path(set) for set in args.annotations} - {
+                None
+            }
 
-        sets = list(args.annotations) + sum([am.get_subsets(s) for s in args.annotations], [])
+        sets = list(args.annotations) + sum(
+            [am.get_subsets(s, recursive=True) for s in args.annotations], []
+        )
         sets = set(sets)
 
         if not sets.issubset(set(annotations["set"].unique())):
