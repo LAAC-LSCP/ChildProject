@@ -392,6 +392,14 @@ def test_custom_importation(project):
     errors, warnings = am.validate()
     assert len(errors) == 0
 
+def test_set_from_path(project):
+    am = AnnotationManager(project)
+
+    assert am.set_from_path(os.path.join(project.path, 'annotations/set')) == 'set'
+    assert am.set_from_path(os.path.join(project.path, 'annotations/set/')) == 'set'
+    assert am.set_from_path(os.path.join(project.path, 'annotations/set/subset')) == 'set/subset'
+    assert am.set_from_path(os.path.join(project.path, 'annotations/set/subset/converted')) == 'set/subset'
+    assert am.set_from_path(os.path.join(project.path, 'annotations/set/subset/raw')) == 'set/subset'
 
 # its
 def gather_columns_to_dict(start_col, end_col, row):
