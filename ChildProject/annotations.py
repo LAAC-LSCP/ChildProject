@@ -13,7 +13,7 @@ from . import __version__
 from .projects import ChildProject
 from .converters import *
 from .tables import IndexTable, IndexColumn
-from .utils import Segment, intersect_ranges
+from .utils import Segment, intersect_ranges, path_is_parent
 
 
 class AnnotationManager:
@@ -1239,6 +1239,20 @@ class AnnotationManager:
             stack.append(_annotations)
 
         return pd.concat(stack) if len(stack) else pd.DataFrame()
+
+    def set_from_path(self, path: str) -> str:
+        annotations_path = os.path.join(self.project.path, 'annotations')
+
+        if not path_is_parent(annotations_path, path):
+            return None
+
+        annotation_set = os.path.relpath(path, annotations_path)
+
+        basename = os.path.basename(annotation_set)
+        if basename == 'raw' or basename == 'converted':
+            annotation_set = os.path.dirname(annotation_set)
+
+        return annotation_set
 
     @staticmethod
     def clip_segments(segments: pd.DataFrame, start: int, stop: int) -> pd.DataFrame:

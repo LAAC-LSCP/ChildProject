@@ -107,17 +107,19 @@ def validate(args):
         warnings.extend(am.warnings)
 
         annotations = am.annotations
-        if "*" not in args.annotations:
 
-            if not set(args.annotations).issubset(set(annotations["set"].unique())):
-                missing_sets = set(args.annotations) - set(annotations["set"].unique())
-                errors.append(
-                    "the following annotation sets are not indexed: {}".format(
-                        ",".join(missing_sets)
-                    )
+        if all(map(lambda x: os.path.exists(x) or os.path.islink(x), args.annotations)):
+            args.annotations = [am.set_from_path(set) for set in args.annotations]
+
+        if not set(args.annotations).issubset(set(annotations["set"].unique())):
+            missing_sets = set(args.annotations) - set(annotations["set"].unique())
+            errors.append(
+                "the following annotation sets are not indexed: {}".format(
+                    ",".join(missing_sets)
                 )
+            )
 
-            annotations = annotations[annotations["set"].isin(args.annotations)]
+        annotations = annotations[annotations["set"].isin(args.annotations)]
 
         annotations_errors, annotations_warnings = am.validate(
             annotations=annotations, threads=args.threads
