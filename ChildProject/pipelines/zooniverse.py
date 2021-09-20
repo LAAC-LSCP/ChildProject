@@ -138,15 +138,15 @@ class ZooniversePipeline(Pipeline):
                 wav = os.path.join(self.destination, "chunks", chunk.getbasename("wav"))
                 mp3 = os.path.join(self.destination, "chunks", chunk.getbasename("mp3"))
 
-                if not os.path.exists(wav):
-                    chunk_audio.export(wav, format="wav")
-                else:
+                if os.path.exists(wav) and os.path.getsize(wav) > 0:
                     print("{} already exists, exportation skipped.".format(wav))
-
-                if not os.path.exists(mp3):
-                    chunk_audio.export(mp3, format="mp3")
                 else:
+                    chunk_audio.export(wav, format="wav")
+
+                if os.path.exists(mp3) and os.path.getsize(mp3) > 0:
                     print("{} already exists, exportation skipped.".format(mp3))
+                else:
+                    chunk_audio.export(mp3, format="mp3")
 
                 chunks.append(chunk)
 
