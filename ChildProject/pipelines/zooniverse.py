@@ -269,6 +269,7 @@ class ZooniversePipeline(Pipeline):
         zooniverse_login="",
         zooniverse_pwd="",
         amount: int = 1000,
+        ignore_errors: bool = False,
         **kwargs
     ):
         """Uploads ``amount`` audio chunks from the CSV dataframe `chunks` to a zooniverse project.
@@ -350,8 +351,10 @@ class ZooniversePipeline(Pipeline):
                     )
                 )
                 print(traceback.format_exc())
-                print("subject upload halting here.")
-                break
+
+                if not args.ignore_errors:
+                    print("subject upload halting here.")
+                    break
 
             subjects.append(subject)
 
@@ -530,6 +533,11 @@ class ZooniversePipeline(Pipeline):
             "--zooniverse-pwd",
             help="zooniverse password. If not specified, the program attempts to get it from the environment variable ZOONIVERSE_PWD instead",
             default="",
+        )
+        parser_upload.add_argument(
+            "--ignore-errors",
+            help="keep uploading even when a subject fails to upload for some reason",
+            action='store_true'
         )
 
         parser_retrieve = subparsers.add_parser(
