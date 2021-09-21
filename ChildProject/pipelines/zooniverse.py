@@ -367,6 +367,9 @@ class ZooniversePipeline(Pipeline):
             chunk["uploaded"] = True
             subjects_metadata.append(chunk)
 
+        if len(subjects) == 0:
+            return
+
         subject_set.add(subjects)
 
         self.chunks.update(pd.DataFrame(subjects_metadata).set_index("index"))
