@@ -352,7 +352,9 @@ class ZooniversePipeline(Pipeline):
                 )
                 print(traceback.format_exc())
 
-                if not args.ignore_errors:
+                if args.ignore_errors:
+                    continue
+                else:
                     print("subject upload halting here.")
                     break
 
