@@ -36,6 +36,7 @@ class ChildProject:
             description="unique child ID -- unique within the experiment (Id could be repeated across experiments to refer to different children)",
             unique=True,
             required=True,
+            dtype="str",
         ),
         IndexColumn(
             name="child_dob",
@@ -127,6 +128,7 @@ class ChildProject:
             name="child_id",
             description="unique child ID -- unique within the experiment (Id could be repeated across experiments to refer to different children)",
             required=True,
+            dtype="str",
         ),
         IndexColumn(
             name="date_iso",
@@ -152,6 +154,7 @@ class ChildProject:
             required=True,
             filename=True,
             unique=True,
+            dtype="str",
         ),
         IndexColumn(
             name="duration",
@@ -159,7 +162,9 @@ class ChildProject:
             regex=r"([0-9]+)",
         ),
         IndexColumn(
-            name="session_id", description="identifier of the recording session."
+            name="session_id",
+            description="identifier of the recording session.",
+            dtype="str",
         ),
         IndexColumn(
             name="session_offset",

@@ -20,6 +20,7 @@ class IndexColumn:
         datetime=None,
         function=None,
         choices=None,
+        dtype=None,
         unique=False,
         generated=False,
     ):
@@ -33,6 +34,7 @@ class IndexColumn:
         self.choices = choices
         self.unique = unique
         self.generated = generated
+        self.dtype = dtype
 
     def __str__(self):
         return "IndexColumn(name = {})".format(self.name)
@@ -74,7 +76,9 @@ class IndexTable:
             "index_col": False,
         }
 
-        self.df = pd.read_csv(self.path, **pd_flags)
+        dtype = {column.name: column.dtype for column in self.columns if column.dtype}
+
+        self.df = pd.read_csv(self.path, dtype=dtype, **pd_flags)
         self.df.index = self.df.index + 2
         return self.df
 
