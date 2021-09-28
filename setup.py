@@ -12,9 +12,11 @@ requires = {
     "constraints": [
         "click==7.1.1",
         "requests==2.25.0",
-        "chardet<4,>=3.0.2"
+        "chardet<4,>=3.0.2",
     ],  # these are not direct dependencies, but rather constraints to avoid version clashes
 }
+
+extra_requires = {"metrics": 'pygamma-agreement; python_version >= "3.6.0"'}
 
 setup(
     name="ChildProject",
@@ -42,6 +44,7 @@ setup(
     + requires["zooniverse"]
     + requires["eaf-builder"]
     + requires["constraints"],
+    extra_requires=extra_requires,
     include_package_data=True,
     package_data={"ChildProject": ["templates/*.*"]},
     entry_points={"console_scripts": ["child-project=ChildProject.cmdline:main",],},
