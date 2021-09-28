@@ -44,11 +44,12 @@ class IndexColumn:
 
 
 class IndexTable:
-    def __init__(self, name, path=None, columns=[]):
+    def __init__(self, name, path=None, columns=[],enforce_dtypes: bool = False):
         self.name = name
         self.path = path
         self.columns = columns
         self.df = None
+        self.enforce_dtypes = enforce_dtypes
 
     def read(self):
         pd_flags = {
@@ -76,9 +77,12 @@ class IndexTable:
             "index_col": False,
         }
 
-        dtype = {column.name: column.dtype for column in self.columns if column.dtype}
+        if self.enforce_dtypes:
+            dtype = {column.name: column.dtype for column in self.columns if column.dtype}
+            self.df = pd.read_csv(self.path, dtype=dtype, **pd_flags)
+        else:
+            self.df = pd.read_csv(self.path, **pd_flags)
 
-        self.df = pd.read_csv(self.path, dtype=dtype, **pd_flags)
         self.df.index = self.df.index + 2
         return self.df
 

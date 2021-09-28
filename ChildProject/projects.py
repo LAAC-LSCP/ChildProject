@@ -212,13 +212,15 @@ class ChildProject:
 
     PROJECT_FOLDERS = ["recordings", "annotations", "metadata", "doc", "scripts"]
 
-    def __init__(self, path: str):
+    def __init__(self, path: str, enforce_dtypes: bool = False):
         """Constructor
 
         :param path: path to the root of the dataset.
         :type path: str
         """
         self.path = path
+        self.enforce_dtypes = enforce_dtypes
+
         self.errors = []
         self.warnings = []
         self.children = None
@@ -277,7 +279,7 @@ class ChildProject:
             if not os.path.exists(md):
                 continue
 
-            table = IndexTable(table, md, columns)
+            table = IndexTable(table, md, columns, enforce_dtypes=self.enforce_dtypes)
             dataframe = table.read()
 
             replaced_columns = (set(df.columns) & set(dataframe.columns)) - {
@@ -308,11 +310,13 @@ class ChildProject:
             "children",
             os.path.join(self.path, "metadata/children.csv"),
             self.CHILDREN_COLUMNS,
+            enforce_dtypes=self.enforce_dtypes
         )
         self.rt = IndexTable(
             "recordings",
             os.path.join(self.path, "metadata/recordings.csv"),
             self.RECORDINGS_COLUMNS,
+            enforce_dtypes=self.enforce_dtypes
         )
 
         self.children = self.ct.read()
