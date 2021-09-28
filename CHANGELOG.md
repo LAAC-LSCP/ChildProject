@@ -14,6 +14,8 @@ All notable changes to this project will be documented in this file.
  - Time-unit aggregated metrics, supporting custom time periods.
  - optional `--recordings` option to apply the audio processors to specific recordings only
  - allow `child-project validate` to check custom recordings profiles and/or annotation sets
+ - `--ignore-errors` switch for Zooniverse pipeline's `upload-chunks`
+ - `enforce_dtypes` option for `ChildProject` in order to enforce the dtype of certain metadata columns (e.g. session_id, child_id) to their expected dtype
 
 ### Fixed
 
