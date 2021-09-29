@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.0.2] - 2021-09-29
+
 ### Added 
 
  - CSV importer to register pre-exisiting CSV annotations into the index without performing any conversion
@@ -21,6 +23,8 @@ All notable changes to this project will be documented in this file.
 
  - Fixed skip-existing argument of the basic audio processor
  - Fixed a crash-bug that occured while extracting metrics from recordings with no FEM/MAL/CHI/OCH segment
+ - Made `pyannote-agreement` an optional dependency
+ - Added dependency constraints to fix some installation issues.
 
 ## [0.0.1] - 2021-07-14
 

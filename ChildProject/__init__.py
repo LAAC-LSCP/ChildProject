@@ -6,4 +6,4 @@ __all__= [
     'metrics'
 ]
 
-__version__ = '0.0.2.dev1'
+__version__ = '0.0.2'
