@@ -17,7 +17,8 @@ jobs:
       - name: Setup package
         run: |
           pip3 install -r requirements.txt
-          python3 setup.py install -f
+          pip3 install . --upgrade
+          python3 -m pip install --user pytest
       - name: Run pytest
         run: |
           pytest
