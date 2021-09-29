@@ -213,10 +213,7 @@ class ZooniversePipeline(Pipeline):
             segments.append(_segments.assign(recording_filename=_recording))
 
         if threads == 1:
-            self.chunks = [
-                self._split_recording(segment)
-                for segment in segments.to_dict(orient="records")
-            ]
+            self.chunks = map(self._split_recording, segments)
         else:
             with mp.Pool(threads if threads > 0 else mp.cpu_count()) as pool:
                 self.chunks = pool.map(self._split_recording, segments)
