@@ -21,4 +21,5 @@ jobs:
           python3 -m pip install --user pytest
       - name: Run pytest
         run: |
+          mkdir output
           pytest
