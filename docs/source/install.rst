@@ -36,7 +36,8 @@ Install ffmpeg
 Some of the tools for audio processing (e.g. conversion to another format)
 will require ffmpeg.
 It is usually installed on most systems. You can check by typing ``ffmpeg -version``.
-If it is not yet, it can be installed via ``apt install ffmpeg`` (Linux) or
+
+**If** it is not installed, it can be installed via ``apt install ffmpeg`` (Linux) or
 ``brew install ffmpeg`` (Mac), or ``conda install ffmpeg`` for conda users.
 
 Installing DataLad
@@ -77,6 +78,11 @@ git config --global user.name "FIRST_NAME LAST_NAME"
 git config --global user.email "MY_NAME@example.com"
 ```
 
+.. warning::
+
+    Mac OS <= 10.13 (High Seria) does not support DataLad to our knowledge.
+    You will need to upgrade your OS to a later version.
+
 Check the setup
 ~~~~~~~~~~~~~~~
 
@@ -110,3 +116,23 @@ You can now make sure the packages have been successfully installed:
     
     DataLad can also be upgraded with ``pip3 install datalad --upgrade``
     (see DataLad's documentation for more details).
+
+Troubleshooting
+~~~~~~~~~~~~~~~
+
+If you are having trouble installing ChildProject, please look
+for similar issues on our GithHub (in `Issues <https://github.com/LAAC-LSCP/ChildProject/issues>`__ or `Discussions <https://github.com/LAAC-LSCP/ChildProject/discussions>`__).
+
+If this issue is related to a dependency of the package, we recommend that you ask
+the developers of the depdendency directly as you may get more accurate advice.
+
+If this issue is related to DataLad, please create an issue on `DataLad's GitHub <https://github.com/datalad/datalad/issues>`__.
+
+.. warning::
+
+    ChildProject is only officially supported on Linux and Mac for python >= 3.7.
+    We perform automated, continuous testing on these environments to look
+    for potential issues at any step of the development.
+
+    We expect the package to work on Windows, although we do not perform
+    automated tests on this OS at the moment.
