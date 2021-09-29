@@ -22,4 +22,4 @@ jobs:
       - name: Run pytest
         run: |
           mkdir output
-          pytest
+          python3 -m pytest
