@@ -161,7 +161,7 @@ class ZooniversePipeline(Pipeline):
         chunks_length: int = -1,
         chunks_min_amount: int = 1,
         profile: str = "",
-        threads: int = 0,
+        threads: int = 1,
         **kwargs
     ):
         """extract-audio chunks based on a list of segments and prepare them for upload
@@ -212,8 +212,15 @@ class ZooniversePipeline(Pipeline):
         for _recording, _segments in self.segments.groupby("recording_filename"):
             segments.append(_segments.assign(recording_filename=_recording))
 
-        with mp.Pool(threads if threads > 0 else mp.cpu_count()) as pool:
-            self.chunks = pool.map(self._split_recording, segments)
+        if threads == 1:
+            self.chunks = [
+                self._split_recording(segment)
+                for segment in segments.to_dict(orient="records")
+            ]
+        else:
+            with mp.Pool(threads if threads > 0 else mp.cpu_count()) as pool:
+                self.chunks = pool.map(self._split_recording, segments)
+
         self.chunks = itertools.chain.from_iterable(self.chunks)
         self.chunks = pd.DataFrame(
             [
@@ -542,7 +549,7 @@ class ZooniversePipeline(Pipeline):
         parser_upload.add_argument(
             "--ignore-errors",
             help="keep uploading even when a subject fails to upload for some reason",
-            action='store_true'
+            action="store_true",
         )
 
         parser_retrieve = subparsers.add_parser(
