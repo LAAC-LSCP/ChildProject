@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.0.3] - 2021-10-06
+
+### Fixed
+
+ - Fixed exceptions thrown by child-project CLI
+
 ## [0.0.2] - 2021-09-29
 
 ### Added 
@@ -32,6 +38,7 @@ All notable changes to this project will be documented in this file.
 
 - First proper release of the package.
 
-[unreleased]: https://github.com/LAAC-LSCP/ChildProject/compare/v0.0.2...HEAD
+[unreleased]: https://github.com/LAAC-LSCP/ChildProject/compare/v0.0.3...HEAD
+[0.0.3]: https://github.com/LAAC-LSCP/ChildProject/releases/tag/v0.0.3
 [0.0.2]: https://github.com/LAAC-LSCP/ChildProject/releases/tag/v0.0.2
 [0.0.1]: https://github.com/LAAC-LSCP/ChildProject/releases/tag/v0.0.1
