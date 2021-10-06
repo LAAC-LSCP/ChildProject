@@ -174,7 +174,7 @@ def import_annotations(args):
 
     project = ChildProject(args.source)
 
-    perform_validation(project, require_success=True, ignore_files=True)
+    perform_validation(project, require_success=True, ignore_recordings=True)
 
     if args.annotations:
         annotations = pd.read_csv(args.annotations)
@@ -233,9 +233,9 @@ def import_annotations(args):
 def merge_annotations(args):
     """merge segments sharing identical onset and offset from two sets of annotations"""
     project = ChildProject(args.source)
-    errors, warnings = project.validate(ignore_files=True)
+    errors, warnings = project.validate(ignore_recordings=True)
 
-    perform_validation(project, require_success=True, ignore_files=True)
+    perform_validation(project, require_success=True, ignore_recordings=True)
 
     am = AnnotationManager(project)
     am.read()
@@ -287,7 +287,7 @@ def remove_annotations(args):
     """remove converted annotations of a given set and their entries in the index"""
     project = ChildProject(args.source)
 
-    perform_validation(project, require_success=True, ignore_files=True)
+    perform_validation(project, require_success=True, ignore_recordings=True)
 
     am = AnnotationManager(project)
     am.read()
@@ -308,7 +308,7 @@ def rename_annotations(args):
 
     project = ChildProject(args.source)
 
-    perform_validation(project, require_success=True, ignore_files=True)
+    perform_validation(project, require_success=True, ignore_recordings=True)
 
     am = AnnotationManager(project)
     am.read()
@@ -326,7 +326,7 @@ def overview(args):
 
     project = ChildProject(args.source)
 
-    perform_validation(project, require_success=True, ignore_files=True)
+    perform_validation(project, require_success=True, ignore_recordings=True)
 
     am = AnnotationManager(project)
     project.read()
@@ -415,7 +415,7 @@ def compute_durations(args):
     """creates a 'duration' column into metadata/recordings"""
     project = ChildProject(args.source)
 
-    perform_validation(project, require_success=True, ignore_files=True)
+    perform_validation(project, require_success=True, ignore_recordings=True)
 
     if "duration" in project.recordings.columns:
         if not args.force:
