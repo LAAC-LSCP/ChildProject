@@ -149,6 +149,10 @@ Custom columns may be used, although they should be documented somewhere in your
 Annotations index
 ~~~~~~~~~~~~~~~~~
 
+.. warning::
+
+    The index is maintained through the package functions only; it should never be updated by hand.
+
 Annotations are indexed in one unique dataframe located at
 ``/metadata/annotations.csv``, with the following format :
 
@@ -156,9 +160,6 @@ Annotations are indexed in one unique dataframe located at
    :header: annotations
 
 .. _format-input-annotations:
-
-The index is maintained through the package functions only;
-it should never be updated by hand.
 
 Below is shown an example of an index file
 (some uninformative columns were hidden for clarity).
