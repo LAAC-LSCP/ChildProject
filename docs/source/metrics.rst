@@ -17,8 +17,8 @@ The list of supported metrics is shown below:
     :header: "Variable", "Description", "pipelines"
     :widths: 15, 50, 5
 
-    voc_fem/mal/och_ph,number of vocalizations by different talker types,"ACLEW,LENA,Period"
-    voc_dur_fem/mal/och_ph,total duration of vocalizations by different talker types,"ACLEW,LENA,Period"
+    voc_fem/mal/och_ph,number of vocalizations by different talker types per hour,"ACLEW,LENA,Period"
+    voc_dur_fem/mal/och_ph,total duration of vocalizations by different talker types in seconds per hour,"ACLEW,LENA,Period"
     avg_voc_dur_fem/mal/och,average vocalization length (conceptually akin to MLU) by different talker types,"ACLEW,LENA,Period"
     wc_adu_ph,adult word count (collapsing across males and females),"ACLEW,LENA"
     wc_fem/mal_ph,adult word count by different talker types,"ACLEW,LENA"
@@ -44,6 +44,10 @@ The list of supported metrics is shown below:
     cp_n,canonical proportion = canonical /(can+noncan) based on number of vocalizations,ACLEW
     lp_dur,linguistic proportion = (speech)/(cry+speech) based on duration of vocalizations,"ACLEW,LENA"
     cp_dur,canonical proportion = canonical /(can+noncan) based on duration of vocalizations,ACLEW
+
+.. note::
+
+    Average rates are expressed in counts/hour (for events) or in seconds/hour (for durations).
 
 LENA Metrics
 ~~~~~~~~~~~~
@@ -78,3 +82,7 @@ all the recordings of every child.
 .. clidoc::
 
     child-project metrics /path/to/dataset output.csv period --help
+
+..note::
+
+    Average rates are expressed in seconds/hour regardless of the period.
