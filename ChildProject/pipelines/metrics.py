@@ -636,14 +636,12 @@ class PeriodMetrics(Metrics):
     @staticmethod
     def add_parser(subparsers, subcommand):
         parser = subparsers.add_parser(subcommand, help="LENA metrics")
-        parser.add_argument("--set", help="annotations set")
-        parser.add_argument(
-            "--threads", help="amount of threads to run on", default=1, type=int
-        )
+        parser.add_argument("--set", help="annotations set", required=True)
 
         parser.add_argument(
             "--period",
             help="time units to aggregate (optional); equivalent to ``pandas.Grouper``'s freq argument.",
+            required=True
         )
 
         parser.add_argument(
@@ -652,6 +650,9 @@ class PeriodMetrics(Metrics):
             default=None,
         )
 
+        parser.add_argument(
+            "--threads", help="amount of threads to run on", default=1, type=int
+        )
 
 class MetricsPipeline(Pipeline):
     def __init__(self):
