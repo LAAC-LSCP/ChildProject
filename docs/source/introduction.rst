@@ -3,7 +3,7 @@ Introduction
 
 Day-long (audio-)recordings of children are increasingly common, but
 there is no scientific standard formatting that can benefit the
-organization and analyses of such data. ChildRecordData provides
+organization and analyses of such data. ChildProject provides
 standardizing specifications and tools for the storage and management of
 day-long recordings of children and their associated meta-data and
 annotations.

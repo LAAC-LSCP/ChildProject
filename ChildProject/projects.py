@@ -12,7 +12,7 @@ from .utils import get_audio_duration, path_is_parent
 
 
 class ChildProject:
-    """This class is a representation of a ChildRecords dataset.
+    """This class is a representation of a ChildProject dataset.
 
     Attributes:
         :param path: path to the root of the dataset.
