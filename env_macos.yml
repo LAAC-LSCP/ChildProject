@@ -7,7 +7,7 @@ dependencies:
   - ffmpeg
   - pip
   - pytest
+  - scipy
   - sox
   - pip:
-    - scipy
-
+    - ChildProject
