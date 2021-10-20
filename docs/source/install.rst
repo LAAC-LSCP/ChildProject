@@ -14,7 +14,7 @@ Linux users
 .. code:: bash
 
     # download the conda environment
-    wget https://github.com/LAAC-LSCP/ChildProject/blob/master/env_linux.yml -O env.yml
+    wget https://raw.githubusercontent.com/LAAC-LSCP/ChildProject/master/env_linux.yml -O env.yml
 
     # create the conda environment
     conda env create -f env.yml
@@ -32,7 +32,7 @@ MacOS users
 .. code:: bash
 
     # download the conda environment
-    curl https://github.com/LAAC-LSCP/ChildProject/blob/master/env_macos.yml -o env.yml
+    curl https://raw.githubusercontent.com/LAAC-LSCP/ChildProject/master/env_macos.yml -o env.yml
 
     # create the conda environment
     conda env create -f env.yml
