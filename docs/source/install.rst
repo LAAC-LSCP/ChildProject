@@ -8,6 +8,11 @@ The following instructions will let you install two python packages:
  - **ChildProject**, the package that is documented here.
  - **DataLad**, a python software for the management and delivery of scientific data. Although ChildProject may work without it, a number of datasets of daylong recordings of children require it.
 
+.. note::
+
+    The default installation procedure requires anaconda. If you are not sure you have conda installed, please do `conda --version`.
+    If you don't, please refer to the instructions `here <https://docs.anaconda.com/anaconda/install/index.html>`_.
+
 Linux users
 ~~~~~~~~~~~
 
@@ -75,49 +80,22 @@ You can now make sure the packages have been successfully installed:
     DataLad can also be upgraded with ``pip install datalad --upgrade``
     (see DataLad's documentation for more details).
 
-Troubleshooting
-~~~~~~~~~~~~~~~
 
-ChildProject
-============
+Frequently Asked Questions
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If you are having trouble installing ChildProject, please look
-for similar issues on our GithHub (in `Issues <https://github.com/LAAC-LSCP/ChildProject/issues>`__ or `Discussions <https://github.com/LAAC-LSCP/ChildProject/discussions>`__).
+    I don't have anaconda and I can't install it. What should I do?
 
-If this issue is related to a dependency of the package, we recommend that you ask
-the developers of the depdendency directly as you may get more accurate advice.
+You should try to install the package inside of a python environment instead, e.g.:
 
-If this issue is related to DataLad, please create an issue on `DataLad's GitHub <https://github.com/datalad/datalad/issues>`__.
+.. code:: bash
 
-.. warning::
+    python3 -m venv ~/ChildProjectVenv
+    source ~/ChildProjectVenv/bin/activate
+    pip3 install ChildProject
 
-    ChildProject is only officially supported on Linux and Mac for python >= 3.7.
-    We perform automated, continuous testing on these environments to look
-    for potential issues at any step of the development.
-
-    We expect the package to work on Windows, although we do not perform
-    automated tests on this OS at the moment.
-
-DataLad
-=======
-
-
-In case DataLad does not work, please refer to its detailed installation instructions for Windows, Linux and MacOS users are given in 
-`DataLad's handbook <http://handbook.datalad.org/en/latest/intro/installation.html>`_,
-including instructions to install it via conda.
-    
-If DataLad prints the following message:
-
-> It is highly recommended to configure Git before using DataLad. Set both 'user.name' and 'user.email' configuration variables.
-
-You can squash this message by providing these credentials (and if you already have an account on GitHub or GitLab, you can take your name and email from your GitHub or GitLab accounts; otherwise, just provide your name and email):
-
-```
-git config --global user.name "FIRST_NAME LAST_NAME"
-git config --global user.email "MY_NAME@example.com"
-```
-
-.. warning::
-
-    Mac OS <= 10.13 (High Seria) does not support DataLad to our knowledge.
-    You will need to upgrade your OS to a later version.
+You will still need git-annex in order to use DataLad.
+It can be installed with brew for Mac users (`brew install git-annex`)
+or through apt for Linux users (`apt install git-annex`).
+Most likely, you will lack permissions to do so if you failed to install anaconda.
+In this case, pleaser refer to your system administrator.
