@@ -10,7 +10,7 @@ The following instructions will let you install two python packages:
 
 .. note::
 
-    The default installation procedure requires anaconda. If you are not sure you have conda installed, please do `conda --version`.
+    The default installation procedure requires anaconda. If you are not sure you have conda installed, please do ``conda --version``.
     If you don't, please refer to the instructions `here <https://docs.anaconda.com/anaconda/install/index.html>`_.
 
 Linux users
@@ -47,7 +47,7 @@ MacOS users
 
 .. note::
 
-    The ChildProject alone package can also be installed directly through pip, without using conda.
+    The ChildProject package alone can also be installed directly through pip, without using conda.
     However, this means git-annex, ffmpeg, and other dependencies that are not installable
     through pip will have to be installed by hand.
 
@@ -116,7 +116,7 @@ If this issue is related to DataLad, please create an issue on `DataLad's GitHub
 Frequently Asked Questions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    I don't have anaconda and I can't install it. What should I do?
+    *I don't have anaconda and I can't install it. What should I do?*
 
 You should try to install the package inside of a python environment instead, e.g.:
 
