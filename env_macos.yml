@@ -1,0 +1,13 @@
+name: childproject
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.7
+  - ffmpeg
+  - pip
+  - pytest
+  - sox
+  - pip:
+    - scipy
+
