@@ -1,0 +1,6 @@
+segment_onset,segment_offset,speaker_id,ling_type,speaker_type
+1602,2215,CHI*,1,CHI
+5593,7521,MOT*,1,FEM
+2215,3320,C1,1,OCH
+4100,5210,C2,1,OCH
+8101,9285,LF2P,1,NA

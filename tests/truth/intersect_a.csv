@@ -1,0 +1,3 @@
+set,recording_filename,time_seek,range_onset,range_offset,raw_filename,format,filter,annotation_filename,imported_at,error
+textgrid,sound.wav,3600,3800,3920,example.TextGrid,TextGrid,,sound_3800_3920.csv,2020-10-26 15:16:15,
+textgrid,sound.wav,7200,7400,7500,example.TextGrid,TextGrid,,sound_7400_7520.csv,2020-10-26 15:16:15,
