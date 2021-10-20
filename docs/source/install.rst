@@ -22,9 +22,6 @@ Linux users
     # activate the environment (this should be done systematically to use our package)
     conda activate childproject
 
-    # install the python package and its dependencies
-    pip install ChildProject
-
 
 MacOS users
 ~~~~~~~~~~~
@@ -39,9 +36,6 @@ MacOS users
 
     # activate the environment (this should be done systematically to use our package)
     conda activate childproject
-
-    # install the python package
-    pip install ChildProject
 
     # install git-annex from brew
     brew install git-annex
