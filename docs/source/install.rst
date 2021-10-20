@@ -3,6 +3,11 @@
 Installation
 ------------
 
+The following instructions will let you install two python packages:
+
+ - **ChildProject**, the package that is documented here.
+ - **DataLad**, a python software for the management and delivery of scientific data. Although ChildProject may work without it, a number of datasets of daylong recordings of children require it.
+
 Linux users
 ~~~~~~~~~~~
 
@@ -102,8 +107,6 @@ If this issue is related to DataLad, please create an issue on `DataLad's GitHub
 DataLad
 =======
 
-DataLad is a python software for the management and delivery of scientific data.
-Although ChildProject may work without it, a number of datasets of daylong recordings of children require it.
 
 In case DataLad does not work, please refer to its detailed installation instructions for Windows, Linux and MacOS users are given in 
 `DataLad's handbook <http://handbook.datalad.org/en/latest/intro/installation.html>`_,
