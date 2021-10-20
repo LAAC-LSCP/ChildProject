@@ -11,4 +11,3 @@ dependencies:
   - sox
   - pip:
     - ChildProject
-
