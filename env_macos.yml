@@ -7,24 +7,7 @@ dependencies:
   - ffmpeg
   - pip
   - pytest
+  - sox
   - pip:
-    - chardet <4,>=3.0.2
-    - click ==7.1.1
-    - datalad
-    - ffmpeg
-    - importlib_resources
-    - jinja2
-    - librosa
-    - lxml
-    - nltk
-    - numpy >=1.16.5
-    - pandas >=0.25.0
-    - pyannote.metrics  # [py>=37]
-    - pydub
-    - pysoundfile
-    - python=3.7
-    - python-dateutil >=2.8.1
-    - pyyaml
-    - requests ==2.25.0
-    - scikit-learn
-    - sox
+    - scipy
+
