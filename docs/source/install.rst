@@ -45,6 +45,18 @@ MacOS users
     # install git-annex from brew
     brew install git-annex
 
+.. note::
+
+    The ChildProject alone package can also be installed directly through pip, without using conda.
+    However, this means git-annex, ffmpeg, and other dependencies that are not installable
+    through pip will have to be installed by hand.
+
+    The following command will install the python package alone via pip and pypi:
+
+    .. code:: bash
+
+        pip install ChildProject
+
 
 Check the setup
 ~~~~~~~~~~~~~~~
@@ -59,6 +71,15 @@ You can now make sure the packages have been successfully installed:
 
     # optional software, for getting and sharing data
     datalad --version
+
+.. warning::
+
+    ChildProject is only officially supported on Linux and Mac for python >= 3.7.
+    We perform automated, continuous testing on these environments to look
+    for potential issues at any step of the development.
+
+    We expect the package to work on Windows, although we do not perform
+    automated tests on this OS at the moment.
 
 .. note::
 
@@ -79,6 +100,17 @@ You can now make sure the packages have been successfully installed:
     
     DataLad can also be upgraded with ``pip install datalad --upgrade``
     (see DataLad's documentation for more details).
+
+Troubleshooting
+~~~~~~~~~~~~~~~
+
+If you are having trouble installing ChildProject, please look
+for similar issues on our GithHub (in `Issues <https://github.com/LAAC-LSCP/ChildProject/issues>`__ or `Discussions <https://github.com/LAAC-LSCP/ChildProject/discussions>`__).
+
+If this issue is related to a dependency of the package, we recommend that you ask
+the developers of the depdendency directly as you may get more accurate advice.
+
+If this issue is related to DataLad, please create an issue on `DataLad's GitHub <https://github.com/datalad/datalad/issues>`__.
 
 
 Frequently Asked Questions
