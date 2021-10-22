@@ -131,3 +131,12 @@ It can be installed with brew for Mac users (`brew install git-annex`)
 or through apt for Linux users (`apt install git-annex`).
 Most likely, you will lack permissions to do so if you failed to install anaconda.
 In this case, pleaser refer to your system administrator.
+
+    *``brew install git-annex`` does not work!*
+
+Please try ``brew install --build-from-source git-annex``. 
+
+If this does not work better for you, make sure that your version of Mac OS is 10.14 or later.
+We are aware of issues with Mac OS 10.13 (High Sierra) and earlier.
+
+If your issues persistent, please report it to [DataLad](https://github.com/datalad/datalad).
