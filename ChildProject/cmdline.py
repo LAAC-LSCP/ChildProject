@@ -449,7 +449,7 @@ def explain(args):
     
     print(f"Matching documentation for '{variable}':")
     for doc in documentation.to_dict(orient = 'records'):
-        print(f"\033[94mtable\033[0m: {doc['table']}")
+        print(f"\n\033[94mtable\033[0m: {doc['table']}")
         print(f"\033[94mdescription\033[0m: {doc['description']}")
 
         if 'values' in doc and not pd.isnull(doc['values']):
