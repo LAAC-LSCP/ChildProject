@@ -44,3 +44,23 @@ def test_compute_durations():
     )
     assert exit_code == 0
 
+def test_explain():
+    stdout, stderr, exit_code = cli(
+        [
+            "child-project",
+            "explain",
+            "examples/valid_raw_data",
+            "notes"
+        ]
+    )
+    assert exit_code == 0
+
+    stdout, stderr, exit_code = cli(
+        [
+            "child-project",
+            "explain",
+            "examples/valid_raw_data",
+            "non-existent-variable"
+        ]
+    )
+    assert exit_code == 0

@@ -405,6 +405,60 @@ def overview(args):
 
 
 @subcommand(
+    [arg("source", help="source data path"), arg("variable", help="name of the variable")]
+)
+def explain(args):
+    """prints information about a certain metadata variable"""
+
+    variable = args.variable.lower()
+
+    project = ChildProject(args.source)
+    project.read()
+
+    documentation = project.read_documentation()
+    documentation = documentation[documentation["variable"].str.lower() == variable]
+
+    if not len(documentation):
+        documentation = [
+            {
+                'variable': col.name,
+                'description': col.description,
+                'table': 'recordings',
+                'scope': 'unknown' 
+            }
+            for col in project.RECORDINGS_COLUMNS
+        ]
+
+        documentation += [
+            {
+                'variable': col.name,
+                'description': col.description,
+                'table': 'children',
+                'scope': 'unknown' 
+            }
+            for col in project.CHILDREN_COLUMNS
+        ]
+
+        documentation = pd.DataFrame(documentation)
+        documentation = documentation[documentation["variable"].str.lower() == variable]
+
+
+    if not len(documentation):
+        print(f"could not find any documentation for variable '{variable}'")
+        return
+    
+    print(f"Matching documentation for '{variable}':")
+    for doc in documentation.to_dict(orient = 'records'):
+        print(f"\033[94mtable\033[0m: {doc['table']}")
+        print(f"\033[94mdescription\033[0m: {doc['description']}")
+
+        if 'values' in doc and not pd.isnull(doc['values']):
+            print(f"\033[94mvalues\033[0m: {doc['values']}")
+
+        if 'scope' in doc and not pd.isnull(doc['scope']):
+            print(f"\033[94mscope\033[0m: {doc['scope']}")
+
+@subcommand(
     [
         arg("source", help="source data path"),
         arg("--profile", help="which audio profile to use", default=""),
