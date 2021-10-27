@@ -439,6 +439,16 @@ def explain(args):
             for col in project.CHILDREN_COLUMNS
         ]
 
+        documentation += [
+            {
+                'variable': col.name,
+                'description': col.description,
+                'table': 'annotations',
+                'scope': 'unknown' 
+            }
+            for col in AnnotationManager.SEGMENTS_COLUMNS
+        ]
+
         documentation = pd.DataFrame(documentation)
         documentation = documentation[documentation["variable"].str.lower() == variable]
 
@@ -454,6 +464,9 @@ def explain(args):
 
         if 'values' in doc and not pd.isnull(doc['values']):
             print(f"\033[94mvalues\033[0m: {doc['values']}")
+
+        if 'annotation_set' in doc and not pd.isnull(doc['annotation_set']):
+            print(f"\033[94mannotation set(s)\033[0m: {doc['annotation_set']}")
 
         if 'scope' in doc and not pd.isnull(doc['scope']):
             print(f"\033[94mscope\033[0m: {doc['scope']}")

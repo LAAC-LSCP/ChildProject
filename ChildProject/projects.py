@@ -208,10 +208,11 @@ class ChildProject:
     ]
 
     DOCUMENTATION_COLUMNS = [
-        IndexColumn(name = 'variable', unique = True, required = True),
-        IndexColumn(name = 'description', required = True),
-        IndexColumn(name = 'values'),
-        IndexColumn(name = 'scope')
+        IndexColumn(name = 'variable', help="name of the variable" unique = True, required = True),
+        IndexColumn(name = 'description', help = "a definition of this field", required = True),
+        IndexColumn(name = 'values', help = "a summary of authorized values"),
+        IndexColumn(name = 'scope', help = 'which group of users has access to it'),
+        IndexColumn(name = 'annotation_set', help = "for annotations: which set(s) contain this variable")
     ]
 
     RAW_RECORDINGS = "recordings/raw"
@@ -580,7 +581,7 @@ class ChildProject:
         return recordings
 
     def read_documentation(self) -> pd.DataFrame:
-        docs = ['children', 'recordings']
+        docs = ['children', 'recordings', 'annotations']
 
         documentation = []
 
