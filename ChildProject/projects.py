@@ -209,16 +209,16 @@ class ChildProject:
 
     DOCUMENTATION_COLUMNS = [
         IndexColumn(
-            name="variable", help="name of the variable", unique=True, required=True
+            name="variable", description="name of the variable", unique=True, required=True
         ),
         IndexColumn(
-            name="description", help="a definition of this field", required=True
+            name="description", description="a definition of this field", required=True
         ),
-        IndexColumn(name="values", help="a summary of authorized values"),
-        IndexColumn(name="scope", help="which group of users has access to it"),
+        IndexColumn(name="values", description="a summary of authorized values"),
+        IndexColumn(name="scope", description="which group of users has access to it"),
         IndexColumn(
             name="annotation_set",
-            help="for annotations: which set(s) contain this variable",
+            description="for annotations: which set(s) contain this variable",
         ),
     ]
 
