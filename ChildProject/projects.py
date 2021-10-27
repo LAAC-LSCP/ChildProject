@@ -208,11 +208,18 @@ class ChildProject:
     ]
 
     DOCUMENTATION_COLUMNS = [
-        IndexColumn(name = 'variable', help="name of the variable" unique = True, required = True),
-        IndexColumn(name = 'description', help = "a definition of this field", required = True),
-        IndexColumn(name = 'values', help = "a summary of authorized values"),
-        IndexColumn(name = 'scope', help = 'which group of users has access to it'),
-        IndexColumn(name = 'annotation_set', help = "for annotations: which set(s) contain this variable")
+        IndexColumn(
+            name="variable", help="name of the variable", unique=True, required=True
+        ),
+        IndexColumn(
+            name="description", help="a definition of this field", required=True
+        ),
+        IndexColumn(name="values", help="a summary of authorized values"),
+        IndexColumn(name="scope", help="which group of users has access to it"),
+        IndexColumn(
+            name="annotation_set",
+            help="for annotations: which set(s) contain this variable",
+        ),
     ]
 
     RAW_RECORDINGS = "recordings/raw"
@@ -318,13 +325,13 @@ class ChildProject:
             "children",
             os.path.join(self.path, "metadata/children.csv"),
             self.CHILDREN_COLUMNS,
-            enforce_dtypes=self.enforce_dtypes
+            enforce_dtypes=self.enforce_dtypes,
         )
         self.rt = IndexTable(
             "recordings",
             os.path.join(self.path, "metadata/recordings.csv"),
             self.RECORDINGS_COLUMNS,
-            enforce_dtypes=self.enforce_dtypes
+            enforce_dtypes=self.enforce_dtypes,
         )
 
         self.children = self.ct.read()
@@ -581,23 +588,19 @@ class ChildProject:
         return recordings
 
     def read_documentation(self) -> pd.DataFrame:
-        docs = ['children', 'recordings', 'annotations']
+        docs = ["children", "recordings", "annotations"]
 
         documentation = []
 
         for doc in docs:
-            path = os.path.join(self.path, 'docs', f"{doc}.csv")
+            path = os.path.join(self.path, "docs", f"{doc}.csv")
 
             if not os.path.exists(path):
                 continue
 
-            table = IndexTable(
-                f"{doc}-documentation",
-                path,
-                self.DOCUMENTATION_COLUMNS
-            )
+            table = IndexTable(f"{doc}-documentation", path, self.DOCUMENTATION_COLUMNS)
             table.read()
-            documentation.append(table.df.assign(table = doc))
+            documentation.append(table.df.assign(table=doc))
 
         documentation = pd.concat(documentation)
         return documentation
