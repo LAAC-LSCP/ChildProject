@@ -7,6 +7,8 @@ This is an (ever-growing) list of projets that are known to rely on ChildProject
    :header: "Project", "Description"
    :widths: 10, 80
 
+   "`Vandam-Daylong <https://gin.g-node.org/LAAC-LSCP/vandam-data>`__", "
+   | Copy of Vandam-Daylong in ChildProject format"
    "`EL1000 <https://gin.g-node.org/EL1000>`__", "
    | Dataset containing 16 corpora,
    | derived metrics and reliabiliy estimations"

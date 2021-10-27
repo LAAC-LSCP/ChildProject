@@ -5,8 +5,8 @@
 Datasets structure
 ==================
 
-ChildProject assumes your data is structured in a specific way
-before it is imported. This structure is necessary to check, for
+ChildProject assumes your data is structured in a specific way.
+This structure is necessary to check, for
 instance, that there are no unreferenced files, and no referenced files
 that are actually missing. The data curator therefore needs to organize
 their data in a specific way (respecting the dataset tree, with all
@@ -17,6 +17,9 @@ To be imported, datasets must pass the the validation
 routine (see :ref:`tools-data-validation`).
 with no error. We also recommend you pay attention to the warnings, and
 try to sort as many of those out as possible before submission.
+
+An example of dataset structured according to ChildProject's format
+can be found `here <https://gin.g-node.org/LAAC-LSCP/vandam-data>`__.
 
 Dataset tree
 ------------
