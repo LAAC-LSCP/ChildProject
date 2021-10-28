@@ -20,10 +20,23 @@ audios. The validation will pass if formatting instructions are met
 
 Example:
 
-::
+.. code:: bash
 
+   # validate the metadata and raw recordings
    child-project validate /path/to/dataset
 
+   # validate the metadata only
+   child-project validate /path/to/dataset --ignore-recordings 
+
+   # validate the metadata and the recordings of the 'standard' profile
+   # (in recordings/converted/standard)
+   child-project validate /path/to/dataset --profile standard 
+
+   # validate the metadata and all annotations within /path/to/dataset/annotations
+   child-project validate /path/to/dataset --ignore-recordings --annotations /path/to/dataset/annotations/*
+
+   # validate the metadata and annotations from the 'textgrid' set
+   child-project validate /path/to/dataset --ignore-recordings --annotations /path/to/dataset/annotations/textgrid/*
 
 Dataset overview
 ----------------

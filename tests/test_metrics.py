@@ -1,99 +1,125 @@
+from functools import partial
 import numpy as np
+import os
 import pandas as pd
+import pytest
+import shutil
 
-from ChildProject.metrics import gamma, segments_to_annotation, segments_to_grid, grid_to_vector, vectors_to_annotation_task, conf_matrix
+from ChildProject.projects import ChildProject
+from ChildProject.annotations import AnnotationManager
+from ChildProject.pipelines.metrics import LenaMetrics, AclewMetrics, PeriodMetrics
 
-def test_gamma():
-    segments = pd.read_csv('tests/data/gamma.csv')
 
-    value = gamma(
-        segments,
-        'speaker_type',
-        alpha = 3,
-        beta = 1,
-        precision_level = 0.01
+def fake_vocs(data, filename):
+    return data
+
+
+@pytest.fixture(scope="function")
+def project(request):
+    if not os.path.exists("output/metrics"):
+        shutil.copytree(src="examples/valid_raw_data", dst="output/metrics")
+
+    project = ChildProject("output/metrics")
+    project.read()
+
+    yield project
+
+
+def test_failures(project):
+    exception_caught = False
+    try:
+        aclew = AclewMetrics(project, vtc="unknown")
+    except ValueError as e:
+        exception_caught = True
+
+    assert (
+        exception_caught == True
+    ), "AclewMetrics failed to throw an exception despite an invalid VTC set being provided"
+    exception_caught = False
+
+    exception_caught = False
+    try:
+        lena = LenaMetrics(project, set="unknown")
+    except ValueError as e:
+        exception_caught = True
+
+    assert (
+        exception_caught == True
+    ), "LenaMetrics failed to throw an exception despite an invalid ITS set being provided"
+    exception_caught = False
+
+
+def test_aclew(project):
+    data = pd.read_csv("tests/data/aclew.csv")
+
+    am = AnnotationManager(project)
+    am.import_annotations(
+        pd.DataFrame(
+            [
+                {
+                    "set": set,
+                    "raw_filename": "file.rttm",
+                    "time_seek": 0,
+                    "recording_filename": "sound.wav",
+                    "range_onset": 0,
+                    "range_offset": 4000,
+                    "format": "rttm",
+                }
+                for set in ["vtc", "alice", "vcm"]
+            ]
+        ),
+        import_function=partial(fake_vocs, data),
     )
 
-    assert 0.28 <= value <= 0.31
+    aclew = AclewMetrics(project, by="child_id")
+    aclew.extract()
 
-def test_segments_to_grid():
-    segments = pd.read_csv('tests/data/grid.csv')
-    grid = segments_to_grid(segments, 0, 10, 1, 'speaker_type', ['CHI', 'FEM'])
+    truth = pd.read_csv("tests/truth/aclew_metrics.csv", index_col="child_id")
 
-    truth = np.array([
-        [1, 0, 0, 0],
-        [1, 0, 0, 0],
-        [0, 1, 0, 0],
-        [0, 1, 0, 0],
-        [0, 0, 0, 1],
-        [0, 0, 0, 1],
-        [1, 1, 1, 0],
-        [1, 1, 1, 0],
-        [0, 1, 0, 0],
-        [0, 0, 0, 1]
-    ])
+    pd.testing.assert_frame_equal(aclew.metrics, truth)
 
-    np.testing.assert_array_equal(
-        grid, truth
+
+def test_period(project):
+    am = AnnotationManager(project)
+
+    range_onset = 0
+    range_offset = 86400 - 3600
+
+    onsets = np.arange(range_onset, range_offset, 5)
+    offsets = onsets + 1
+
+    onsets = onsets * 1000
+    offsets = offsets * 1000
+
+    data = pd.DataFrame(
+        {
+            "segment_onset": onsets,
+            "segment_offset": offsets,
+            "speaker_type": ["FEM"] * len(onsets),
+        }
     )
 
-def test_grid_to_vectors():
-    segments = pd.read_csv('tests/data/grid.csv')
-    grid = segments_to_grid(segments, 0, 10, 1, 'speaker_type', ['CHI', 'FEM'])
-    vector = grid_to_vector(grid, ['CHI', 'FEM', 'overlap', 'none'])
-
-    truth = np.array([
-        'CHI', 'CHI', 'FEM', 'FEM', 'none',
-        'none', 'overlap', 'overlap', 'FEM', 'none'
-    ])
-
-    np.testing.assert_array_equal(
-        vector, truth
+    am.import_annotations(
+        pd.DataFrame(
+            [
+                {
+                    "set": "test",
+                    "raw_filename": "file.rttm",
+                    "time_seek": 0,
+                    "recording_filename": "sound.wav",
+                    "range_onset": range_onset * 1000,
+                    "range_offset": range_offset * 1000,
+                    "format": "rttm",
+                }
+            ]
+        ),
+        import_function=partial(fake_vocs, data),
     )
 
-def test_conf_matrix():
-    segments = pd.read_csv('tests/data/confmatrix.csv')
-    categories = ['CHI', 'FEM']
+    period = PeriodMetrics(project, by="child_id", period="2H", set="test")
+    period.extract()
 
-    confmat = conf_matrix(
-        segments_to_grid(segments[segments['set'] == 'Alice'], 0, 20, 1, 'speaker_type', categories),
-        segments_to_grid(segments[segments['set'] == 'Bob'], 0, 20, 1, 'speaker_type', categories),
-        categories + ['overlap', 'none']
-    )
+    truth = pd.read_csv("tests/truth/period_metrics.csv", index_col=["child_id"])
 
-    truth = np.array([
-        [5, 5, 0, 0],
-        [0, 2, 0, 3],
-        [0, 0, 0, 0],
-        [0, 0, 0, 5]
-    ])
+    pd.testing.assert_frame_equal(period.metrics, truth)
 
-    np.testing.assert_array_equal(
-        confmat, truth
-    )
-
-def test_alpha():
-    segments = pd.read_csv('tests/data/alpha.csv')
-
-    categories = list(segments['speaker_type'].unique())
-    sets = list(segments['set'].unique())
-
-    vectors = [
-        grid_to_vector(
-            segments_to_grid(
-                segments[segments['set'] == s],
-                0,
-                segments['segment_offset'].max(),
-                1,
-                'speaker_type',
-                categories
-            ),
-            categories + ['overlap', 'none']
-        )
-        for s in sets
-    ]
-
-    task = vectors_to_annotation_task(*vectors, drop = ['none'])
-    alpha = task.alpha()
-
-    assert np.isclose(alpha, 0.743421052632, rtol = 0.001, atol = 0.0001)

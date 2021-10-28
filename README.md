@@ -10,7 +10,7 @@ Introduction
 
 Day-long (audio-)recordings of children are increasingly common, but
 there is no scientific standard formatting that can benefit the
-organization and analyses of such data. ChildRecordData provides
+organization and analyses of such data. ChildProject provides
 standardizing specifications and tools for the storage and management of
 day-long recordings of children and their associated meta-data and
 annotations.
@@ -66,8 +66,9 @@ In this context, we provide tools and a procedure to:
 -   Validate datasets (making sure that metadata, recordings and
     annotations are in the right place and format)
 -   Convert your raw recordings into the desired format
--   Import raw annotations (from ELAN, Praat, csv, rttm from VTC and
-    ALICE) into our standardized format
+-   Import annotations (from the LENA, ELAN, Praat, VTC/ALICE/VCM rttms, CHAT files) into a standardized format
+-   Generate reliability metrics by comparing annotators (confusion matrices, agreement coefficients, pyannote metrics)
+-   Extract metrics from the annotations (e.g. average vocalization rates, durations, etc.)
 -   Sample segments of the recordings to annotate from a set of sampling
     algorithms
 -   Add clips to an annotation pipeline in Zooniverse, and retrieve the

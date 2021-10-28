@@ -42,3 +42,5 @@ def test_periodic():
         segments[['segment_onset', 'segment_offset']].sort_values(['segment_onset', 'segment_offset']).reset_index(drop = True),
         sampler.segments[['segment_onset', 'segment_offset']].sort_values(['segment_onset', 'segment_offset']).reset_index(drop = True)
     )
+
+    assert eaf.media_descriptors[0]['MEDIA_URL'] == 'sound.wav'
