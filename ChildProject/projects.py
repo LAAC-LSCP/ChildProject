@@ -310,13 +310,13 @@ class ChildProject:
             "children",
             os.path.join(self.path, "metadata/children.csv"),
             self.CHILDREN_COLUMNS,
-            enforce_dtypes=self.enforce_dtypes
+            enforce_dtypes=self.enforce_dtypes,
         )
         self.rt = IndexTable(
             "recordings",
             os.path.join(self.path, "metadata/recordings.csv"),
             self.RECORDINGS_COLUMNS,
-            enforce_dtypes=self.enforce_dtypes
+            enforce_dtypes=self.enforce_dtypes,
         )
 
         self.children = self.ct.read()
@@ -535,6 +535,10 @@ class ChildProject:
         :rtype: pd.DataFrame
         """
         _recordings = self.recordings.copy()
+        _recordings = _recordings[
+            (~_recordings["recording_filename"].isnull())
+            & (_recordings["recording_filename"] != "NA")
+        ]
 
         if recordings is not None:
             # if the user provided paths,

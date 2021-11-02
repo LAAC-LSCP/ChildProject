@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+ 
+ - Fixed pipelines crashes in presence of NA values in `recording_filename`
+
 ## [0.0.3] - 2021-10-06
 
 ### Fixed
