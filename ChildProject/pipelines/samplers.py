@@ -471,6 +471,15 @@ class EnergyDetectionSampler(Sampler):
             recording["recording_filename"], self.profile
         )
 
+        if recording_path is None:
+            print(
+                "failed to retrieve the path to '{}' (profile: {})".format(
+                    recording["recording_filename"], self.profile
+                ),
+                file=sys.stderr,
+            )
+            return pd.DataFrame()
+
         try:
             audio = AudioSegment.from_file(recording_path)
         except:

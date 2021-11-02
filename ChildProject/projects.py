@@ -458,11 +458,15 @@ class ChildProject:
         """
 
         if profile:
+            converted_filename = self.get_converted_recording_filename(
+                profile, recording_filename
+            )
+
+            if converted_filename is None:
+                return None
+
             return os.path.join(
-                self.path,
-                self.CONVERTED_RECORDINGS,
-                profile,
-                self.get_converted_recording_filename(profile, recording_filename),
+                self.path, self.CONVERTED_RECORDINGS, profile, converted_filename,
             )
         else:
             return os.path.join(self.path, self.RAW_RECORDINGS, recording_filename)
