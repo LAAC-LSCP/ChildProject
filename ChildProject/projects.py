@@ -187,6 +187,11 @@ class ChildProject:
         IndexColumn(name="trs_filename", description="trs_filename"),
         IndexColumn(name="lena_id", description=""),
         IndexColumn(
+            name="lena_recording_num",
+            description="value of the corresponding <Recording> num's attribute, for LENA recordings that have been split into contiguous parts",
+            dtype="int",
+        ),
+        IndexColumn(
             name="might_feature_gaps",
             description="1 if the audio cannot be guaranteed to be a continuous block with no time jumps, 0 or NA or undefined otherwise.",
             function=is_boolean,
