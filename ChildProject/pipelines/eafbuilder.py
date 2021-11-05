@@ -59,7 +59,9 @@ def create_eaf(
 
     extension = os.path.splitext(recording_filename)[1]
     if extension:
-        mime_type = mime_types[extension[1:]]
+        extension = extension.lower()
+        if extension in mime_types:
+            mime_type = mime_types[extension[1:]]
 
     eaf.add_linked_file(
         file_path=recording_filename, relpath=recording_filename, mimetype=mime_type
