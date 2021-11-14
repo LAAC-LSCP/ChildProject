@@ -133,10 +133,10 @@ class EafBuilderPipeline(Pipeline):
 
         segments = pd.read_csv(segments)
 
-        assert_dataframe("segments", self.segments, not_empty=True)
+        assert_dataframe("segments", segments, not_empty=True)
         assert_columns_presence(
             "segments",
-            self.segments,
+            segments,
             {"recording_filename", "segment_onset", "segment_offset"},
         )
 
