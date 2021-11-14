@@ -6,6 +6,7 @@ import shutil
 
 from ChildProject.projects import ChildProject
 from ChildProject.pipelines.pipeline import Pipeline
+from ChildProject.tables import assert_dataframe, assert_columns_presence
 
 
 def create_eaf(
@@ -131,6 +132,13 @@ class EafBuilderPipeline(Pipeline):
         print("making the " + eaf_type + " eaf file and csv")
 
         segments = pd.read_csv(segments)
+
+        assert_dataframe("segments", self.segments, not_empty=True)
+        assert_columns_presence(
+            "segments",
+            self.segments,
+            {"recording_filename", "segment_onset", "segment_offset"},
+        )
 
         for recording_filename, segs in segments.groupby("recording_filename"):
             recording_prefix = os.path.splitext(recording_filename)[0]

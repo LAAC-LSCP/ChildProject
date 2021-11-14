@@ -15,10 +15,13 @@ class MissingColumnsException(Exception):
         )
 
 
-def assert_dataframe(name: str, df: pd.DataFrame):
+def assert_dataframe(name: str, df: pd.DataFrame, not_empty: bool = False):
     assert isinstance(
         df, pd.DataFrame
     ), f"{name} should be a dataframe, but type is '{type(df)}' instead."
+
+    if not_empty:
+        assert len(df) > 0, f"{name} should not be empty."
 
 
 def assert_columns_presence(name: str, df: pd.DataFrame, columns: Union[Set, List]):

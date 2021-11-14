@@ -18,6 +18,7 @@ from pydub import AudioSegment
 
 import ChildProject
 from ChildProject.pipelines.pipeline import Pipeline
+from ChildProject.tables import assert_dataframe, assert_columns_presence
 
 from typing import Tuple
 
@@ -206,6 +207,14 @@ class ZooniversePipeline(Pipeline):
         os.makedirs(destination_path, exist_ok=True)
 
         self.segments = pd.read_csv(segments)
+
+        assert_dataframe("segments", self.segments, not_empty=True)
+        assert_columns_presence(
+            "segments",
+            self.segments,
+            {"recording_filename", "segment_onset", "segment_offset"},
+        )
+
         shutil.copyfile(segments, os.path.join(self.destination, "segments.csv"))
 
         segments = []
@@ -302,6 +311,13 @@ class ZooniversePipeline(Pipeline):
             raise Exception(
                 "cannot read chunk metadata from {}.".format(metadata_location)
             )
+
+        assert_dataframe("chunks", self.chunks)
+        assert_columns_presence(
+            "chunks",
+            self.chunks,
+            {"recording_filename", "onset", "offset", "uploaded", "mp3"},
+        )
 
         Panoptes.connect(username=self.zooniverse_login, password=self.zooniverse_pwd)
         zooniverse_project = Project(project_id)
