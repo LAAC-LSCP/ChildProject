@@ -3,6 +3,29 @@ import os
 import re
 import datetime
 import numpy as np
+from typing import Union, Set, List
+
+
+class MissingColumnsException(Exception):
+    def __init__(self, name: str, missing: Set):
+        missing = ",".join(list(missing))
+
+        super().__init__(
+            f"dataframe {name} misses the following required columns: {missing}"
+        )
+
+
+def assert_dataframe(name: str, df: pd.DataFrame):
+    assert isinstance(
+        df, pd.DataFrame
+    ), f"{name} should be a dataframe, but type is '{type(df)}' instead."
+
+
+def assert_columns_presence(name: str, df: pd.DataFrame, columns: Union[Set, List]):
+    missing = set(columns) - set(df.columns)
+
+    if len(missing):
+        raise MissingColumnsException(name, missing)
 
 
 def is_boolean(x):
@@ -44,7 +67,7 @@ class IndexColumn:
 
 
 class IndexTable:
-    def __init__(self, name, path=None, columns=[],enforce_dtypes: bool = False):
+    def __init__(self, name, path=None, columns=[], enforce_dtypes: bool = False):
         self.name = name
         self.path = path
         self.columns = columns
@@ -78,7 +101,9 @@ class IndexTable:
         }
 
         if self.enforce_dtypes:
-            dtype = {column.name: column.dtype for column in self.columns if column.dtype}
+            dtype = {
+                column.name: column.dtype for column in self.columns if column.dtype
+            }
             self.df = pd.read_csv(self.path, dtype=dtype, **pd_flags)
         else:
             self.df = pd.read_csv(self.path, **pd_flags)

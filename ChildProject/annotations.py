@@ -12,7 +12,10 @@ from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
 from . import __version__
 from .projects import ChildProject
 from .converters import *
-from .tables import IndexTable, IndexColumn
+from .tables import (
+    IndexTable, IndexColumn,
+    assert_dataframe, assert_columns_presence
+)
 from .utils import Segment, intersect_ranges, path_is_parent
 
 
@@ -326,8 +329,10 @@ class AnnotationManager:
         :return: a tuple containg the list of errors and the list of warnings detected
         :rtype: Tuple[List[str], List[str]]
         """
-        if not isinstance(annotations, pd.DataFrame):
+        if annotations is None:
             annotations = self.annotations
+        else:
+            assert_dataframe("annotations", annotations)
 
         annotations = annotations.dropna(subset=["annotation_filename"])
 
@@ -478,14 +483,9 @@ class AnnotationManager:
             for c in AnnotationManager.INDEX_COLUMNS
             if c.required and not c.generated
         }
-        missing_columns = required_columns - set(input.columns)
 
-        if len(missing_columns):
-            raise IndexError(
-                "import_annotations requires the following missing columns: {}".format(
-                    ",".join(missing_columns)
-                )
-            )
+        assert_dataframe("input", input)
+        assert_columns_presence("input", input, required_columns)
 
         missing_recordings = input[
             ~input["recording_filename"].isin(
@@ -939,6 +939,19 @@ class AnnotationManager:
         :return: dataframe of all the segments merged (as specified in :ref:`format-annotations-segments`), merged with ``annotations``. 
         :rtype: pd.DataFrame
         """
+        assert_dataframe("annotations", annotations)
+        assert_columns_presence(
+            "annotations",
+            annotations,
+            {
+                "annotation_filename",
+                "raw_filename",
+                "set",
+                "range_onset",
+                "range_offset",
+            },
+        )
+
         annotations = annotations.dropna(subset=["annotation_filename"])
         annotations.drop(columns=["raw_filename"], inplace=True)
 
@@ -989,6 +1002,13 @@ class AnnotationManager:
         :return: dataframe of all the segments merged (as specified in :ref:`format-annotations-segments`), merged with ``annotations``
         :rtype: pd.DataFrame
         """
+        assert_dataframe("annotations", annotations)
+        assert_columns_presence(
+            "annotations",
+            annotations,
+            {"range_onset", "range_offset", "recording_filename", "set",},
+        )
+
         annotations["duration"] = (
             annotations["range_offset"] - annotations["range_onset"]
         ).astype(float)
@@ -1032,6 +1052,13 @@ class AnnotationManager:
         If the input annotation exceeds 24 hours, one row per matching interval is returned.
         :rtype: pd.DataFrame
         """
+
+        assert_dataframe("annotations", annotations)
+        assert_columns_presence(
+            "annotations",
+            annotations,
+            {"recording_filename", "range_onset", "range_offset"},
+        )
 
         def get_ms_since_midight(dt):
             return (dt - dt.replace(hour=0, minute=0, second=0)).total_seconds() * 1000
@@ -1139,6 +1166,12 @@ class AnnotationManager:
         both values will be set to NaT.
         :rtype: pd.DataFrame
         """
+
+        assert_dataframe("segments", segments)
+        assert_columns_presence(
+            "segments", segments, {"recording_filename", onset, offset}
+        )
+
         columns_to_merge = ["start_time"]
         if not ignore_date:
             columns_to_merge.append("date_iso")
@@ -1194,6 +1227,13 @@ class AnnotationManager:
         :return: dataframe of annotations, according to :ref:`format-annotations`
         :rtype: pd.DataFrame
         """
+        assert_dataframe("annotations", annotations)
+        assert_columns_presence(
+            "annotations",
+            annotations,
+            {"recording_filename", "set", "range_onset", "range_offset"},
+        )
+
         stack = []
         recordings = list(annotations["recording_filename"].unique())
 
@@ -1241,7 +1281,7 @@ class AnnotationManager:
         return pd.concat(stack) if len(stack) else pd.DataFrame()
 
     def set_from_path(self, path: str) -> str:
-        annotations_path = os.path.join(self.project.path, 'annotations')
+        annotations_path = os.path.join(self.project.path, "annotations")
 
         if not path_is_parent(annotations_path, path):
             return None
@@ -1249,7 +1289,7 @@ class AnnotationManager:
         annotation_set = os.path.relpath(path, annotations_path)
 
         basename = os.path.basename(annotation_set)
-        if basename == 'raw' or basename == 'converted':
+        if basename == "raw" or basename == "converted":
             annotation_set = os.path.dirname(annotation_set)
 
         return annotation_set
@@ -1268,6 +1308,11 @@ class AnnotationManager:
         :return: Dataframe of the clipped segments
         :rtype: pd.DataFrame
         """
+        assert_dataframe("segments", segments)
+        assert_columns_presence(
+            "segments", segments, {"segment_onset", "segment_offset"}
+        )
+
         start = int(start)
         stop = int(stop)
 
