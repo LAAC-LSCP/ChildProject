@@ -369,6 +369,7 @@ class ItsConverter(AnnotationConverter):
                         "speaker_type": ItsConverter.SPEAKER_TYPE_TRANSLATION[
                             seg.get("spkr")
                         ],
+                        "lena_speaker": seg.get("spkr"),
                         "words": words,
                         "lena_block_number": lena_block_number,
                         "lena_block_type": lena_block_type,

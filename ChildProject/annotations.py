@@ -12,10 +12,7 @@ from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
 from . import __version__
 from .projects import ChildProject
 from .converters import *
-from .tables import (
-    IndexTable, IndexColumn,
-    assert_dataframe, assert_columns_presence
-)
+from .tables import IndexTable, IndexColumn, assert_dataframe, assert_columns_presence
 from .utils import Segment, intersect_ranges, path_is_parent
 
 
@@ -206,6 +203,27 @@ class AnnotationManager:
             name="lena_conv_turn_type",
             description="LENA turn type",
             choices=["TIFI", "TIMI", "TIFR", "TIMR", "TIFE", "TIME", "NT"],
+        ),
+        IndexColumn(
+            name="lena_speaker",
+            description="LENA speaker type",
+            choices=[
+                "TVF",
+                "FAN",
+                "OLN",
+                "SIL",
+                "NOF",
+                "CXF",
+                "OLF",
+                "CHF",
+                "MAF",
+                "TVN",
+                "NON",
+                "CXN",
+                "CHN",
+                "MAN",
+                "FAF",
+            ],
         ),
         IndexColumn(
             name="utterances_count",
