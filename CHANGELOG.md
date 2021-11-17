@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added 
+
+ - `lena_speaker` for the LENA its converter
+ - Improved error handling (dataframes sanity checks)
+
 ### Fixed
  
  - Fixed pipelines crashes in presence of NA values in `recording_filename`
