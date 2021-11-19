@@ -184,6 +184,9 @@ class LenaMetrics(Metrics):
             )
 
         for lena_type in self.types:
+            if lena_type not in its_agg.index:
+                continue
+
             metrics["voc_{}_ph".format(lena_type.lower())] = its_agg.loc[
                 lena_type, "voc_ph"
             ]
