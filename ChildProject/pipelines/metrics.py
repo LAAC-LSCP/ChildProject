@@ -177,7 +177,7 @@ class LenaMetrics(Metrics):
                 ]
 
         if len(self.types):
-            its_agg = its.groupby("lena_type").agg(
+            its_agg = its.groupby("lena_speaker").agg(
                 voc_ph=("duration", lambda x: 3600 * len(x) / unit_duration),
                 voc_dur_ph=("duration", lambda x: 3600 * np.sum(x) / unit_duration),
                 avg_voc_dur=("duration", np.mean)
