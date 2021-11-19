@@ -139,7 +139,10 @@ class LenaMetrics(Metrics):
         adults = ["FEM", "MAL"]
 
         if "speaker_type" in its.columns:
-            its = its[its["speaker_type"].isin(speaker_types)]
+            its = its[
+                (its["speaker_type"].isin(speaker_types))
+                | (its["lena_speaker"].isin(self.types))
+            ]
         else:
             return metrics
 
