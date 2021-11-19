@@ -151,52 +151,51 @@ class LenaMetrics(Metrics):
         ).sum() / 1000
 
         its_agg = its.groupby("speaker_type").agg(
-            voc_ph=("duration", lambda x: 3600 * len(x) / unit_duration),
-            voc_dur_ph=("duration", lambda x: 3600 * np.sum(x) / unit_duration),
-            avg_voc_dur=("duration", np.mean),
-            wc_ph=("words", lambda x: 3600 * np.sum(x) / unit_duration),
+            voc_ph=("duration", "count"),
+            voc_dur_ph=("duration", "sum"),
+            avg_voc_dur=("duration", "mean"),
+            wc_ph=("words", lambda x: "sum"),
         )
 
         for speaker in speaker_types:
             if speaker not in its_agg.index:
                 continue
 
-            metrics["voc_{}_ph".format(speaker.lower())] = its_agg.loc[
-                speaker, "voc_ph"
-            ]
-            metrics["voc_dur_{}_ph".format(speaker.lower())] = its_agg.loc[
-                speaker, "voc_dur_ph"
-            ]
+            metrics["voc_{}_ph".format(speaker.lower())] = (
+                3600 / unit_duration
+            ) * its_agg.loc[speaker, "voc_ph"]
+            metrics["voc_dur_{}_ph".format(speaker.lower())] = (
+                3600 / unit_duration
+            ) * its_agg.loc[speaker, "voc_dur_ph"]
             metrics["avg_voc_dur_{}".format(speaker.lower())] = its_agg.loc[
                 speaker, "avg_voc_dur"
             ]
 
             if speaker in adults:
-                metrics["wc_{}_ph".format(speaker.lower())] = its_agg.loc[
-                    speaker, "wc_ph"
-                ]
+                metrics["wc_{}_ph".format(speaker.lower())] = (
+                    3600 / unit_duration
+                ) * its_agg.loc[speaker, "wc_ph"]
 
         if len(self.types):
             its_agg = its.groupby("lena_speaker").agg(
-                voc_ph=("duration", lambda x: 3600 * len(x) / unit_duration),
-                voc_dur_ph=("duration", lambda x: 3600 * np.sum(x) / unit_duration),
-                avg_voc_dur=("duration", np.mean)
+                voc_ph=("duration", "count"),
+                voc_dur_ph=("duration", "sum"),
+                avg_voc_dur=("duration", "mean"),
             )
 
         for lena_type in self.types:
             if lena_type not in its_agg.index:
                 continue
 
-            metrics["voc_{}_ph".format(lena_type.lower())] = its_agg.loc[
-                lena_type, "voc_ph"
-            ]
-            metrics["voc_dur_{}_ph".format(lena_type.lower())] = its_agg.loc[
-                lena_type, "voc_dur_ph"
-            ]
+            metrics["voc_{}_ph".format(lena_type.lower())] = (
+                3600 / unit_duration
+            ) * its_agg.loc[lena_type, "voc_ph"]
+            metrics["voc_dur_{}_ph".format(lena_type.lower())] = (
+                3600 / unit_duration
+            ) * its_agg.loc[lena_type, "voc_dur_ph"]
             metrics["avg_voc_dur_{}".format(lena_type.lower())] = its_agg.loc[
                 lena_type, "avg_voc_dur"
-            ]        
-
+            ]
 
         chi = its[its["speaker_type"] == "CHI"]
         cries = chi["cries"].apply(lambda x: len(ast.literal_eval(x))).sum()
@@ -351,45 +350,45 @@ class AclewMetrics(Metrics):
         vcm = segments[segments["set"] == self.vcm]
 
         vtc_agg = vtc.groupby("speaker_type").agg(
-            voc_ph=("duration", lambda x: 3600 * len(x) / unit_duration),
-            voc_dur_ph=("duration", lambda x: 3600 * np.sum(x) / unit_duration),
-            avg_voc_dur=("duration", np.mean),
+            voc_ph=("duration", "count"),
+            voc_dur_ph=("duration", "sum"),
+            avg_voc_dur=("duration", "mean"),
         )
 
         for speaker in speaker_types:
             if speaker not in vtc_agg.index:
                 continue
 
-            metrics["voc_{}_ph".format(speaker.lower())] = vtc_agg.loc[
-                speaker, "voc_ph"
-            ]
-            metrics["voc_dur_{}_ph".format(speaker.lower())] = vtc_agg.loc[
-                speaker, "voc_dur_ph"
-            ]
+            metrics["voc_{}_ph".format(speaker.lower())] = (
+                3600 / unit_duration
+            ) * vtc_agg.loc[speaker, "voc_ph"]
+            metrics["voc_dur_{}_ph".format(speaker.lower())] = (
+                3600 / unit_duration
+            ) * vtc_agg.loc[speaker, "voc_dur_ph"]
             metrics["avg_voc_dur_{}".format(speaker.lower())] = vtc_agg.loc[
                 speaker, "avg_voc_dur"
             ]
 
         if len(alice):
             alice_agg = alice.groupby("speaker_type").agg(
-                wc_ph=("words", lambda x: 3600 * np.sum(x) / unit_duration),
-                sc_ph=("syllables", lambda x: 3600 * np.sum(x) / unit_duration),
-                pc_ph=("phonemes", lambda x: 3600 * np.sum(x) / unit_duration),
+                wc_ph=("words", "sum"),
+                sc_ph=("syllables", "sum"),
+                pc_ph=("phonemes", "sum"),
             )
 
             for speaker in adults:
                 if speaker not in alice_agg.index:
                     continue
 
-                metrics["wc_{}_ph".format(speaker.lower())] = alice_agg.loc[
-                    speaker, "wc_ph"
-                ]
-                metrics["sc_{}_ph".format(speaker.lower())] = alice_agg.loc[
-                    speaker, "sc_ph"
-                ]
-                metrics["pc_{}_ph".format(speaker.lower())] = alice_agg.loc[
-                    speaker, "pc_ph"
-                ]
+                metrics["wc_{}_ph".format(speaker.lower())] = (
+                    3600 / unit_duration
+                ) * alice_agg.loc[speaker, "wc_ph"]
+                metrics["sc_{}_ph".format(speaker.lower())] = (
+                    3600 / unit_duration
+                ) * alice_agg.loc[speaker, "sc_ph"]
+                metrics["pc_{}_ph".format(speaker.lower())] = (
+                    3600 / unit_duration
+                ) * alice_agg.loc[speaker, "pc_ph"]
 
             metrics["wc_adu_ph"] = alice["words"].sum() * 3600 / unit_duration
             metrics["sc_adu_ph"] = alice["syllables"].sum() * 3600 / unit_duration
@@ -400,44 +399,47 @@ class AclewMetrics(Metrics):
                 vcm[vcm["speaker_type"] == "CHI"]
                 .groupby("vcm_type")
                 .agg(
-                    voc_chi_ph=("duration", lambda x: 3600 * len(x) / unit_duration,),
-                    voc_dur_chi_ph=(
-                        "duration",
-                        lambda x: 3600 * np.sum(x) / unit_duration,
-                    ),
-                    avg_voc_dur_chi=("duration", np.mean),
+                    voc_chi_ph=("duration", "count"),
+                    voc_dur_chi_ph=("duration", "sum",),
+                    avg_voc_dur_chi=("duration", "mean"),
                 )
             )
 
-            metrics["cry_voc_chi_ph"] = (
+            metrics["cry_voc_chi_ph"] = (3600 / unit_duration) * (
                 vcm_agg.loc["Y", "voc_chi_ph"] if "Y" in vcm_agg.index else 0
             )
-            metrics["cry_voc_dur_chi_ph"] = (
+            metrics["cry_voc_dur_chi_ph"] = (3600 / unit_duration) * (
                 vcm_agg.loc["Y", "voc_dur_chi_ph"] if "Y" in vcm_agg.index else 0
             )
 
             if "Y" in vcm_agg.index:
-                metrics["avg_cry_voc_dur_chi"] = vcm_agg.loc["Y", "avg_voc_dur_chi"]
+                metrics["avg_cry_voc_dur_chi"] = (3600 / unit_duration) * vcm_agg.loc[
+                    "Y", "avg_voc_dur_chi"
+                ]
 
-            metrics["can_voc_chi_ph"] = (
+            metrics["can_voc_chi_ph"] = (3600 / unit_duration) * (
                 vcm_agg.loc["C", "voc_chi_ph"] if "C" in vcm_agg.index else 0
             )
-            metrics["can_voc_dur_chi_ph"] = (
+            metrics["can_voc_dur_chi_ph"] = (3600 / unit_duration) * (
                 vcm_agg.loc["C", "voc_dur_chi_ph"] if "C" in vcm_agg.index else 0
             )
 
             if "C" in vcm_agg.index:
-                metrics["avg_can_voc_dur_chi"] = vcm_agg.loc["C", "avg_voc_dur_chi"]
+                metrics["avg_can_voc_dur_chi"] = (3600 / unit_duration) * vcm_agg.loc[
+                    "C", "avg_voc_dur_chi"
+                ]
 
-            metrics["non_can_voc_chi_ph"] = (
+            metrics["non_can_voc_chi_ph"] = (3600 / unit_duration) * (
                 vcm_agg.loc["N", "voc_chi_ph"] if "N" in vcm_agg.index else 0
             )
-            metrics["non_can_voc_dur_chi_ph"] = (
+            metrics["non_can_voc_dur_chi_ph"] = (3600 / unit_duration) * (
                 vcm_agg.loc["N", "voc_dur_chi_ph"] if "N" in vcm_agg.index else 0
             )
 
             if "N" in vcm_agg.index:
-                metrics["avg_non_can_voc_dur_chi"] = vcm_agg.loc["N", "avg_voc_dur_chi"]
+                metrics["avg_non_can_voc_dur_chi"] = (
+                    3600 / unit_duration
+                ) * vcm_agg.loc["N", "avg_voc_dur_chi"]
 
             speech_voc = metrics["can_voc_chi_ph"] + metrics["non_can_voc_chi_ph"]
             speech_dur = (
