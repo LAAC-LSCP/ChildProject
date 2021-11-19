@@ -56,7 +56,6 @@ class Metrics(ABC):
     def extract(self):
         pass
 
-
     def retrieve_segments(self, sets: List[str], unit: str):
         annotations = self.am.annotations[self.am.annotations[self.by] == unit]
         annotations = annotations[annotations["set"].isin(sets)]
@@ -90,6 +89,8 @@ class LenaMetrics(Metrics):
     :type project: ChildProject.projects.ChildProject
     :param set: name of the set associated to the .its annotations
     :type set: str
+    :param types: list of LENA vocalization/noise types (e.g. OLN, TVN)
+    :type types: list
     :param recordings: recordings to sample from; if None, all recordings will be sampled, defaults to None
     :type recordings: Union[str, List[str], pd.DataFrame], optional
     :param from_time: If specified (in HH:MM format), ignore annotations outside of the given time-range, defaults to None
@@ -108,6 +109,7 @@ class LenaMetrics(Metrics):
         self,
         project: ChildProject.projects.ChildProject,
         set: str,
+        types: list = [],
         recordings: Union[str, List[str], pd.DataFrame] = None,
         from_time: str = None,
         to_time: str = None,
@@ -118,6 +120,7 @@ class LenaMetrics(Metrics):
         super().__init__(project, by, recordings, from_time, to_time)
 
         self.set = set
+        self.types = types
         self.threads = int(threads)
 
         if self.set not in self.am.annotations["set"].values:
@@ -173,6 +176,25 @@ class LenaMetrics(Metrics):
                     speaker, "wc_ph"
                 ]
 
+        if len(self.types):
+            its_agg = its.groupby("lena_type").agg(
+                voc_ph=("duration", lambda x: 3600 * len(x) / unit_duration),
+                voc_dur_ph=("duration", lambda x: 3600 * np.sum(x) / unit_duration),
+                avg_voc_dur=("duration", np.mean)
+            )
+
+        for lena_type in self.types:
+            metrics["voc_{}_ph".format(lena_type.lower())] = its_agg.loc[
+                lena_type, "voc_ph"
+            ]
+            metrics["voc_dur_{}_ph".format(lena_type.lower())] = its_agg.loc[
+                lena_type, "voc_dur_ph"
+            ]
+            metrics["avg_voc_dur_{}".format(lena_type.lower())] = its_agg.loc[
+                lena_type, "avg_voc_dur"
+            ]        
+
+
         chi = its[its["speaker_type"] == "CHI"]
         cries = chi["cries"].apply(lambda x: len(ast.literal_eval(x))).sum()
         vfxs = chi["vfxs"].apply(lambda x: len(ast.literal_eval(x))).sum()
@@ -212,6 +234,28 @@ class LenaMetrics(Metrics):
     def add_parser(subparsers, subcommand):
         parser = subparsers.add_parser(subcommand, help="LENA metrics")
         parser.add_argument("set", help="name of the LENA its annotations set")
+        parser.add_argument(
+            "--types",
+            help="list of LENA vocalizaton types to include",
+            choices=[
+                "TVF",
+                "FAN",
+                "OLN",
+                "SIL",
+                "NOF",
+                "CXF",
+                "OLF",
+                "CHF",
+                "MAF",
+                "TVN",
+                "NON",
+                "CXN",
+                "CHN",
+                "MAN",
+                "FAF",
+            ],
+            nargs="+",
+        )
         parser.add_argument(
             "--threads", help="amount of threads to run on", default=1, type=int
         )
@@ -476,7 +520,7 @@ class PeriodMetrics(Metrics):
     :param threads: amount of threads to run on, defaults to 1
     :type threads: int, optional
     """
-    
+
     SUBCOMMAND = "period"
 
     def __init__(
@@ -546,28 +590,41 @@ class PeriodMetrics(Metrics):
         annotations = self.am.get_segments_timestamps(
             annotations, ignore_date=True, onset="range_onset", offset="range_offset"
         )
-        
+
         # calculate time elapsed since the first time bin
-        annotations["onset_time"] = annotations["onset_time"].apply(
-            lambda dt: (dt - self.periods[0]).total_seconds()
-        ).astype(int)
-        annotations["offset_time"] = annotations["offset_time"].apply(
-            lambda dt: (dt - self.periods[0]).total_seconds()
-        ).astype(int)
-    
-        # split annotations to intervals each within a 0-24h range
-        annotations["stops"] = annotations.apply(
-            lambda row: [row['onset_time']] + list(86400*np.arange((row['onset_time']//86400)+1, (row['offset_time']//86400)+1, 1)) + [row['offset_time']],
-            axis = 1
+        annotations["onset_time"] = (
+            annotations["onset_time"]
+            .apply(lambda dt: (dt - self.periods[0]).total_seconds())
+            .astype(int)
+        )
+        annotations["offset_time"] = (
+            annotations["offset_time"]
+            .apply(lambda dt: (dt - self.periods[0]).total_seconds())
+            .astype(int)
         )
 
-        annotations = annotations.explode('stops')
-        annotations['onset'] = annotations['stops']
-        annotations['offset'] = annotations['stops'].shift(-1)
+        # split annotations to intervals each within a 0-24h range
+        annotations["stops"] = annotations.apply(
+            lambda row: [row["onset_time"]]
+            + list(
+                86400
+                * np.arange(
+                    (row["onset_time"] // 86400) + 1,
+                    (row["offset_time"] // 86400) + 1,
+                    1,
+                )
+            )
+            + [row["offset_time"]],
+            axis=1,
+        )
 
-        annotations.dropna(subset = ['offset'], inplace = True)
-        annotations['onset'] = annotations['onset'].astype(int) % 86400
-        annotations['offset'] = (annotations['offset']-1e-4) % 86400
+        annotations = annotations.explode("stops")
+        annotations["onset"] = annotations["stops"]
+        annotations["offset"] = annotations["stops"].shift(-1)
+
+        annotations.dropna(subset=["offset"], inplace=True)
+        annotations["onset"] = annotations["onset"].astype(int) % 86400
+        annotations["offset"] = (annotations["offset"] - 1e-4) % 86400
 
         durations = [
             (
@@ -606,7 +663,7 @@ class PeriodMetrics(Metrics):
                 "avg_voc_dur"
             ].reindex(self.periods)
 
-        metrics['duration'] = (durations*1000).astype(int)
+        metrics["duration"] = (durations * 1000).astype(int)
         metrics[self.by] = unit
         metrics["child_id"] = segments["child_id"].iloc[0]
 
@@ -626,11 +683,11 @@ class PeriodMetrics(Metrics):
                 self.metrics = pd.concat(
                     pool.map(self._process_unit, recordings[self.by].unique())
                 )
-    
+
         if len(self.metrics):
             self.metrics["period"] = self.metrics.index.strftime("%H:%M:%S")
             self.metrics.set_index(self.by, inplace=True)
-        
+
         return self.metrics
 
     @staticmethod
@@ -641,7 +698,7 @@ class PeriodMetrics(Metrics):
         parser.add_argument(
             "--period",
             help="time units to aggregate (optional); equivalent to ``pandas.Grouper``'s freq argument.",
-            required=True
+            required=True,
         )
 
         parser.add_argument(
@@ -653,6 +710,7 @@ class PeriodMetrics(Metrics):
         parser.add_argument(
             "--threads", help="amount of threads to run on", default=1, type=int
         )
+
 
 class MetricsPipeline(Pipeline):
     def __init__(self):
