@@ -154,7 +154,7 @@ class LenaMetrics(Metrics):
             voc_ph=("duration", "count"),
             voc_dur_ph=("duration", "sum"),
             avg_voc_dur=("duration", "mean"),
-            wc_ph=("words", lambda x: "sum"),
+            wc_ph=("words", "sum"),
         )
 
         for speaker in speaker_types:
