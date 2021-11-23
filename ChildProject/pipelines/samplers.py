@@ -898,9 +898,9 @@ class ConversationSampler(Sampler):
     def _retrieve_conversations(self, recording):
         segments = self.retrieve_segments(recording["recording_filename"])
 
-        if segments is None:
+        if segments is None or "speaker_type" not in segments.columns:
             print(
-                "warning: no annotations from the set '{}' were found for the recording '{}'".format(
+                "warning: no annotations from the set '{}' were found for the recording '{}' or speaker_type column missing".format(
                     self.annotation_set, recording["recording_filename"]
                 )
             )
