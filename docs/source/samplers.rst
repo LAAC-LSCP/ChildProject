@@ -100,4 +100,4 @@ The sampler returns, for each unit, the desired amount of conversations with the
 
 .. clidoc::
 
-   child-project sampler /path/to/dataset /path/to/destination high-volubility --help
+   child-project sampler /path/to/dataset /path/to/destination conversations --help
