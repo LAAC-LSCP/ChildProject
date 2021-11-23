@@ -978,7 +978,7 @@ class ConversationSampler(Sampler):
         )
         parser.add_argument(
             "--interval",
-            help="maximum time-interval between two vocalizations (in milliseconds) to consider them to be part of the same conversational block. default is 1000",
+            help="maximum time-interval between two consecutive vocalizations (in milliseconds) to consider them to be part of the same conversational block. default is 1000",
             default=1000,
             type=int,
         )
