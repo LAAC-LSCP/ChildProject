@@ -722,9 +722,6 @@ class HighVolubilitySampler(Sampler):
             else:
                 segments.sort_values(["segment_onset", "segment_offset"])
                 segments = segments[segments["speaker_type"].isin(self.speakers)]
-                segments["duration"] = (
-                    segments["segment_offset"] - segments["segment_onset"]
-                )
                 segments["iti"] = segments["segment_onset"] - segments[
                     "segment_offset"
                 ].shift(1)
@@ -831,6 +828,129 @@ class HighVolubilitySampler(Sampler):
         parser.add_argument(
             "--windows-count",
             help="how many windows to be sampled from each unit (recording, session, or child)",
+            required=True,
+            type=int,
+        )
+        parser.add_argument(
+            "--speakers",
+            help="speakers to include",
+            default=["CHI", "FEM", "MAL"],
+            nargs="+",
+            choices=["CHI", "FEM", "MAL", "OCH"],
+        )
+        parser.add_argument(
+            "--threads", help="amount of threads to run on", default=1, type=int
+        )
+        parser.add_argument(
+            "--by",
+            help="units to sample from (default behavior is to sample by recording)",
+            choices=["recording_filename", "session_id", "child_id"],
+            default="recording_filename",
+        )
+
+
+class ConversationSampler(Sampler):
+    SUBCOMMAND = "conversations"
+
+    def __init__(
+        self,
+        project: ChildProject.projects.ChildProject,
+        annotation_set: str,
+        count: int,
+        interval: int = 1000,
+        speakers: List[str] = ["FEM", "MAL", "CHI"],
+        threads: int = 1,
+        by: str = "recording_filename",
+        recordings: Union[str, List[str], pd.DataFrame] = None,
+        exclude: Union[str, pd.DataFrame] = None,
+    ):
+
+        super().__init__(project, recordings, exclude)
+        self.annotation_set = annotation_set
+        self.interval = interval
+        self.count = count
+        self.speakers = speakers
+        self.threads = threads
+        self.by = by
+
+    def _retrieve_conversations(self, recording):
+        segments = self.retrieve_segments(recording["recording_filename"])
+
+        if segments is None:
+            print(
+                "warning: no annotations from the set '{}' were found for the recording '{}'".format(
+                    self.annotation_set, recording["recording_filename"]
+                )
+            )
+            return pd.DataFrame(
+                columns=["segment_onset", "segment_offset", "recording_filename"]
+            )
+
+        segments = segments[segments["speaker_type"].isin(self.speakers)]
+        segments["iti"] = segments["segment_onset"] - segments["segment_offset"].shift(
+            1
+        )
+        segments["breaks_chain"] = segments["iti"] > self.interval
+
+        segments["prev_speaker_type"] = segments["speaker_type"].shift(1)
+        key_child_environment = set(self.speakers) - {"CHI"}
+        segments["is_CT"] = segments.apply(
+            lambda row: (
+                (
+                    row["speaker_type"] == "CHI"
+                    and row["prev_speaker_type"] in key_child_environment
+                )
+                or (
+                    row["speaker_type"] in key_child_environment
+                    and row["prev_speaker_type"] == "CHI"
+                )
+            ),
+            axis=1,
+        )
+
+        s = segments["breaks_chain"].cumsum()
+        conversations = segments.groupby(s).agg(
+            recording_filename=("recording_filename", "first"),
+            segment_onset=("segment_onset", "first"),
+            segment_offset=("segment_offset", "last"),
+            turns=("is_CT", "sum"),
+        )
+
+        return conversations
+
+    def _sample_unit(self, group):
+        unit, recordings = group
+        recordings[self.by] = unit
+        conversations = pd.concat(
+            [
+                self._retrieve_conversations(r)
+                for r in recordings.to_dict(orient="records")
+            ]
+        )
+
+        return (
+            conversations.sort_values("turns", ascending=False)
+            .head(self.count)
+            .reset_index(drop=True)
+        )
+
+    def _sample(self):
+        recordings = self.project.get_recordings_from_list(self.recordings)
+
+        with mp.Pool(
+            processes=self.threads if self.threads >= 1 else mp.cpu_count()
+        ) as pool:
+            self.segments = pool.map(self._sample_unit, recordings.groupby(self.by))
+
+        self.segments = pd.concat(self.segments)
+
+    @staticmethod
+    def add_parser(subparsers, subcommand):
+        parser = subparsers.add_parser(subcommand, help="convesation sampler")
+        parser.add_argument("--annotation-set", help="annotation set", required=True)
+        parser.add_argument(
+            "--count",
+            help="how many conversations to be sampled from each unit (recording, session, or child)",
             required=True,
             type=int,
         )
