@@ -645,7 +645,7 @@ class HighVolubilitySampler(Sampler):
     :type project: ChildProject.projects.ChildProject
     :param annotation_set: set of annotations to calculate volubility from.
     :type annotation_set: str
-    :param metric: the metric to evaluate high-volubility. should be any of 'awc', 'ctc', 'cvc'.
+    :param metric: the metric to evaluate high-volubility. should be any of 'words', 'turns', 'vocs'.
     :type metric: str
     :param windows_length: length of the windows, in milliseconds
     :type windows_length: int
@@ -668,6 +668,7 @@ class HighVolubilitySampler(Sampler):
         metric: str,
         windows_length: int,
         windows_count: int,
+        speakers: List[str] = ["FEM", "MAL", "CHI"],
         threads: int = 1,
         by: str = "recording_filename",
         recordings: Union[str, List[str], pd.DataFrame] = None,
@@ -679,6 +680,7 @@ class HighVolubilitySampler(Sampler):
         self.metric = metric
         self.windows_length = windows_length
         self.windows_count = windows_count
+        self.speakers = speakers
         self.threads = threads
         self.by = by
 
@@ -711,7 +713,7 @@ class HighVolubilitySampler(Sampler):
         ).reset_index()
         windows["recording_filename"] = recording["recording_filename"]
 
-        if self.metric == "ctc":
+        if self.metric == "turns":
             if "lena_conv_turn_type" in segments.columns:
                 # NOTE: This is the equivalent of CTC (tab1) in rlena_extract.R
                 segments["is_CT"] = segments["lena_conv_turn_type"].isin(
@@ -719,9 +721,7 @@ class HighVolubilitySampler(Sampler):
                 )
             else:
                 segments.sort_values(["segment_onset", "segment_offset"])
-                segments = segments[
-                    segments["speaker_type"].isin(["FEM", "MAL", "CHI"])
-                ]
+                segments = segments[segments["speaker_type"].isin(self.speakers)]
                 segments["duration"] = (
                     segments["segment_offset"] - segments["segment_onset"]
                 )
@@ -730,16 +730,17 @@ class HighVolubilitySampler(Sampler):
                 ].shift(1)
                 segments["prev_speaker_type"] = segments["speaker_type"].shift(1)
 
-                key_child_env = ["FEM", "MAL", "CHI"]
+                key_child_environment = set(self.speakers) - {"CHI"}
+
                 segments["is_CT"] = segments.apply(
                     lambda row: (row["iti"] < 1000)
                     and (
                         (
                             row["speaker_type"] == "CHI"
-                            and row["prev_speaker_type"] in key_child_env
+                            and row["prev_speaker_type"] in key_child_environment
                         )
                         or (
-                            row["speaker_type"] in key_child_env
+                            row["speaker_type"] in key_child_environment
                             and row["prev_speaker_type"] == "CHI"
                         )
                     ),
@@ -749,36 +750,35 @@ class HighVolubilitySampler(Sampler):
             segments = (
                 segments.groupby("chunk", as_index=False)[["is_CT"]]
                 .sum()
-                .rename(columns={"is_CT": "ctc"})
+                .rename(columns={"is_CT": self.metric})
                 .merge(windows)
             )
 
-        elif self.metric == "cvc":
+        elif self.metric == "vocs":
             # NOTE: This is the equivalent of CVC (tab2) in rlena_extract.R
             if "utterances_count" in segments.columns:
                 segments = (
-                    segments[segments.speaker_type == "CHI"]
+                    segments[segments.speaker_type.isin(self.speakers)]
                     .groupby("chunk", as_index=False)[["utterances_count"]]
                     .sum()
-                    .rename(columns={"utterances_count": "cvc"})
+                    .rename(columns={"utterances_count": self.metric})
                     .merge(windows)
                 )
             else:
                 segments = (
-                    segments[segments.speaker_type == "CHI"]
+                    segments[segments.speaker_type.isin(self.speakers)]
                     .groupby("chunk", as_index=False)[["segment_onset"]]
                     .count()
-                    .rename(columns={"segment_onset": "cvc"})
+                    .rename(columns={"segment_onset": self.metric})
                     .merge(windows)
                 )
 
-        elif self.metric == "awc":
+        elif self.metric == "words":
             # NOTE: This is the equivalent of AWC (tab3) in rlena_extract.R
             segments = (
-                segments[segments.speaker_type.isin(["FEM", "MAL"])]
+                segments[segments.speaker_type.isin(self.speakers)]
                 .groupby("chunk", as_index=False)[["words"]]
                 .sum()
-                .rename(columns={"words": "awc"})
                 .merge(windows)
             )
 
@@ -820,7 +820,7 @@ class HighVolubilitySampler(Sampler):
             "--metric",
             help="which metric should be used to evaluate volubility",
             required=True,
-            choices=["ctc", "cvc", "awc"],
+            choices=["turns", "vocs", "words"],
         )
         parser.add_argument(
             "--windows-length",
@@ -833,6 +833,13 @@ class HighVolubilitySampler(Sampler):
             help="how many windows to be sampled from each unit (recording, session, or child)",
             required=True,
             type=int,
+        )
+        parser.add_argument(
+            "--speakers",
+            help="speakers to include",
+            default=["CHI", "FEM", "MAL"],
+            nargs="+",
+            choices=["CHI", "FEM", "MAL", "OCH"],
         )
         parser.add_argument(
             "--threads", help="amount of threads to run on", default=1, type=int
