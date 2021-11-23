@@ -850,6 +850,28 @@ class HighVolubilitySampler(Sampler):
 
 
 class ConversationSampler(Sampler):
+    """Conversation sampler
+
+    :param project: ChildProject instance
+    :type project: ChildProject.projects.ChildProject
+    :param annotation_set: set of annotation to derive conversations from
+    :type annotation_set: str
+    :param count: amount of conversations to sample
+    :type count: int
+    :param interval: maximum time-interval between two consecutive vocalizations (in milliseconds) to consider them part of the same conversational block, defaults to 1000
+    :type interval: int, optional
+    :param speakers: list of speakers to target, defaults to ["FEM", "MAL", "CHI"]
+    :type speakers: List[str], optional
+    :param threads: threads to run on, defaults to 1
+    :type threads: int, optional
+    :param by: units to sample from, defaults to "recording_filename"
+    :type by: str, optional
+    :param recordings: whitelist of recordings, defaults to None
+    :type recordings: Union[str, List[str], pd.DataFrame], optional
+    :param exclude: portions to exclude, defaults to None
+    :type exclude: Union[str, pd.DataFrame], optional
+    """
+
     SUBCOMMAND = "conversations"
 
     def __init__(
@@ -952,6 +974,12 @@ class ConversationSampler(Sampler):
             "--count",
             help="how many conversations to be sampled from each unit (recording, session, or child)",
             required=True,
+            type=int,
+        )
+        parser.add_argument(
+            "--interval",
+            help="maximum time-interval between two vocalizations (in milliseconds) to consider them to be part of the same conversational block. default is 1000",
+            default=1000,
             type=int,
         )
         parser.add_argument(

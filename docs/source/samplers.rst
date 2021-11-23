@@ -86,3 +86,18 @@ High-Volubility sampler
 .. clidoc::
 
    child-project sampler /path/to/dataset /path/to/destination high-volubility --help
+
+Conversation sampler
+~~~~~~~~~~~~~~~~~~~~
+
+The conversation sampler returns the conversational blocks with the highest amount of turns.
+The first step is the detection of conversational blocks.
+Two consecutive vocalizations are considered part of the same conversational block if they are not separated
+by a duration longer than a certain interval, which by default is set to 1000 milliseconds.
+
+Then, the amount of conversational turns (between the key child and adult) is calculated for each conversational block.
+The sampler returns, for each unit, the desired amount of conversations with the higher amount of turns.
+
+.. clidoc::
+
+   child-project sampler /path/to/dataset /path/to/destination high-volubility --help
