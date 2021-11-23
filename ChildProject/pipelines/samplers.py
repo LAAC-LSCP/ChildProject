@@ -850,7 +850,7 @@ class HighVolubilitySampler(Sampler):
 
 
 class ConversationSampler(Sampler):
-    """Conversation sampler
+    """Conversation sampler.
 
     :param project: ChildProject instance
     :type project: ChildProject.projects.ChildProject
@@ -909,6 +909,7 @@ class ConversationSampler(Sampler):
             )
 
         segments = segments[segments["speaker_type"].isin(self.speakers)]
+
         segments["iti"] = segments["segment_onset"] - segments["segment_offset"].shift(
             1
         )
@@ -916,22 +917,16 @@ class ConversationSampler(Sampler):
 
         segments["prev_speaker_type"] = segments["speaker_type"].shift(1)
         key_child_environment = set(self.speakers) - {"CHI"}
-        segments["is_CT"] = segments.apply(
-            lambda row: (
-                (
-                    row["speaker_type"] == "CHI"
-                    and row["prev_speaker_type"] in key_child_environment
-                )
-                or (
-                    row["speaker_type"] in key_child_environment
-                    and row["prev_speaker_type"] == "CHI"
-                )
-            ),
-            axis=1,
+
+        segments["is_CT"] = (
+            (segments["speaker_type"] == "CHI")
+            & (segments["prev_speaker_type"].isin(key_child_environment))
+        ) | (
+            (segments["speaker_type"].isin(key_child_environment))
+            & (segments["prev_speaker_type"] == "CHI")
         )
 
-        s = segments["breaks_chain"].cumsum()
-        conversations = segments.groupby(s).agg(
+        conversations = segments.groupby(segments["breaks_chain"].cumsum()).agg(
             recording_filename=("recording_filename", "first"),
             segment_onset=("segment_onset", "first"),
             segment_offset=("segment_offset", "last"),
