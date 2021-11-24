@@ -52,6 +52,8 @@ class IndexTable(CSVTable):
             table = AnnotationManager.SEGMENTS_COLUMNS
         elif array == 'annotations':
             table = [c for c in AnnotationManager.INDEX_COLUMNS if (c.generated or c.required)]
+        elif array == 'documentation':
+            table = ChildProject.DOCUMENTATION_COLUMNS
 
         if not table:
             raise Exception("invalid table '{}'".format(array))

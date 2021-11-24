@@ -212,6 +212,21 @@ class ChildProject:
         ),
     ]
 
+    DOCUMENTATION_COLUMNS = [
+        IndexColumn(
+            name="variable", description="name of the variable", unique=True, required=True
+        ),
+        IndexColumn(
+            name="description", description="a definition of this field", required=True
+        ),
+        IndexColumn(name="values", description="a summary of authorized values"),
+        IndexColumn(name="scope", description="which group of users has access to it"),
+        IndexColumn(
+            name="annotation_set",
+            description="for annotations: which set(s) contain this variable",
+        ),
+    ]
+
     RAW_RECORDINGS = "recordings/raw"
     CONVERTED_RECORDINGS = "recordings/converted"
 
@@ -584,3 +599,21 @@ class ChildProject:
         recordings["duration"] = (recordings["duration"] * 1000).astype(int)
 
         return recordings
+
+    def read_documentation(self) -> pd.DataFrame:
+        docs = ["children", "recordings", "annotations"]
+
+        documentation = []
+
+        for doc in docs:
+            path = os.path.join(self.path, "docs", f"{doc}.csv")
+
+            if not os.path.exists(path):
+                continue
+
+            table = IndexTable(f"{doc}-documentation", path, self.DOCUMENTATION_COLUMNS)
+            table.read()
+            documentation.append(table.df.assign(table=doc))
+
+        documentation = pd.concat(documentation)
+        return documentation

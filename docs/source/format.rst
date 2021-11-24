@@ -49,11 +49,16 @@ organize your files into this structure):
    │   │   └───raw
    │   │   │   │   child1_3600.TextGrid
    │
+   └───docs (*)
+   │   │   children.csv
+   │   │   recordings.csv
    └───extra
        │   notes.txt
 
 The children and recordings notebooks should be CSV dataframes formatted according to
 the standards detailed right below.
+
+   (*) The ``docs`` folder is optional.
 
 .. _format-metadata:
 
@@ -203,4 +208,41 @@ following format as an input:
 .. note::
    In order to avoid rounding errors, all timestamps are integers,
    expressed in milliseconds.
+
+Documentation
+-------------
+
+An important aspect of a dataset is its documentation.
+Documentation includes:
+
+ - authorship, references, contact information
+ - a description of the corpus (population, collection process, etc.)
+ - instructions to re-use the data
+ - description of the data itself (e.g. a definition of each metadata field)
+
+We currently do not provide a format for *all* these annotations.
+It is up to you to decide how to provide users with each of these information.
+
+However, we suggest several options below.
+
+Metadata and annotations
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ChildProject package supports a machine-readable format 
+to describe the contents of the metadata and the annotations.
+
+This format consists in CSV dataframe structured according 
+to the following table:
+
+.. index-table:: Machine-readable documentation
+   :header: documentation
+
+ - Documentation for the children metadata should be stored in ``docs/children.csv``
+ - Documentation for the recordings metadata should be stored in ``docs/recordings.csv``
+ - Documentation for annotations should be stored in ``docs/annotations.csv``
+
+Authorship
+~~~~~~~~~~
+
+We recommend DataCite's .yaml format (see `here <https://github.com/G-Node/gogs/blob/master/conf/datacite/datacite.yml>`_)
 
