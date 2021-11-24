@@ -101,7 +101,7 @@ The first step is the detection of conversational blocks.
 Two consecutive vocalizations are considered part of the same conversational block if they are not separated
 by an interval longer than a certain duration, which by default is set to 1000 milliseconds.
 
-Then, the amount of conversational turns (between the key child and adults) is calculated for each conversational block.
+Then, the amount of conversational turns (by default, between the key child and female/male adults) is calculated for each conversational block.
 The sampler returns, for each unit, the desired amount of conversations with the higher amount of turns.
 
 This sampler, unlike the High-Volubility sampler, returns portions of audio with variable durations.
