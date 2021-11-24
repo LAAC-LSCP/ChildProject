@@ -729,19 +729,15 @@ class HighVolubilitySampler(Sampler):
 
                 key_child_environment = set(self.speakers) - {"CHI"}
 
-                segments["is_CT"] = segments.apply(
-                    lambda row: (row["iti"] < 1000)
-                    and (
-                        (
-                            row["speaker_type"] == "CHI"
-                            and row["prev_speaker_type"] in key_child_environment
-                        )
-                        or (
-                            row["speaker_type"] in key_child_environment
-                            and row["prev_speaker_type"] == "CHI"
-                        )
-                    ),
-                    axis=1,
+                segments["is_CT"] = (segments["iti"] < 1000) & (
+                    (
+                        (segments["speaker_type"] == "CHI")
+                        & (segments["prev_speaker_type"].isin(key_child_environment))
+                    )
+                    | (
+                        (segments["speaker_type"].isin(key_child_environment))
+                        & (segments["prev_speaker_type"] == "CHI")
+                    )
                 )
 
             segments = (
