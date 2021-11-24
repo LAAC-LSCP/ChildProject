@@ -641,6 +641,12 @@ class HighVolubilitySampler(Sampler):
     with the highest volubility from each recording,
     as calculated from the metric ``metric``.
 
+    ``metrics`` can be any of three values: words, turns, and vocs.
+
+     - The **words** metric sums the amount of words within each window. For LENA annotations, it is equivalent to **awc**.
+     - The **turns** metric (aka ctc) sums conversational turns within each window. It relies on **lena_conv_turn_type** for LENA annotations. For other annotations, turns are estimated as adult/child speech switches in close temporal proximity.
+     - The **vocs** metric sums vocalizations within each window. If ``metric="vocs"`` and ``speakers=['CHI']``, it is equivalent to the usual cvc metric (child vocalization counts).
+
     :param project: ChildProject instance of the target dataset.
     :type project: ChildProject.projects.ChildProject
     :param annotation_set: set of annotations to calculate volubility from.
@@ -720,7 +726,6 @@ class HighVolubilitySampler(Sampler):
                     ["TIFR", "TIMR"]
                 )
             else:
-                segments.sort_values(["segment_onset", "segment_offset"])
                 segments = segments[segments["speaker_type"].isin(self.speakers)]
                 segments["iti"] = segments["segment_onset"] - segments[
                     "segment_offset"
