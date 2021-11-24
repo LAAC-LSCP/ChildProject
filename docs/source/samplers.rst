@@ -111,3 +111,7 @@ Fixed duration can still be achieved by clipping or splitting each conversationa
 .. clidoc::
 
    child-project sampler /path/to/dataset /path/to/destination conversations --help
+
+.. note::
+
+   This sampler ignores LENA's conversational turn types.
