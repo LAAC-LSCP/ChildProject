@@ -87,7 +87,7 @@ Return the top ``windows_count`` windows (of length ``windows_length``) with the
 
 - The **words** metric sums the amount of words within each window. For LENA annotations, it is equivalent to **awc**.
 - The **turns** metric (aka ctc) sums conversational turns within each window. It relies on **lena_conv_turn_type** for LENA annotations. For other annotations, turns are estimated as adult/child speech switches in close temporal proximity.
-- The **vocs** metric sums vocalizations within each window. If ``metric="vocs"`` and ``speakers=['CHI']``, it is equivalent to the usual cvc metric (child vocalization counts).
+- The **vocs** metric sums utterances (for LENA annotations) or vocalizations (for other annotations) within each window. If ``metric="vocs"`` and ``speakers=['CHI']``, it is equivalent to the usual cvc metric (child vocalization counts).
 
 .. clidoc::
 
