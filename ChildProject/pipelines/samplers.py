@@ -641,11 +641,17 @@ class HighVolubilitySampler(Sampler):
     with the highest volubility from each recording,
     as calculated from the metric ``metric``.
 
+    ``metrics`` can be any of three values: words, turns, and vocs.
+
+     - The **words** metric sums the amount of words within each window. For LENA annotations, it is equivalent to **awc**.
+     - The **turns** metric (aka ctc) sums conversational turns within each window. It relies on **lena_conv_turn_type** for LENA annotations. For other annotations, turns are estimated as adult/child speech switches in close temporal proximity.
+     - The **vocs** metric sums vocalizations within each window. If ``metric="vocs"`` and ``speakers=['CHI']``, it is equivalent to the usual cvc metric (child vocalization counts).
+
     :param project: ChildProject instance of the target dataset.
     :type project: ChildProject.projects.ChildProject
     :param annotation_set: set of annotations to calculate volubility from.
     :type annotation_set: str
-    :param metric: the metric to evaluate high-volubility. should be any of 'awc', 'ctc', 'cvc'.
+    :param metric: the metric to evaluate high-volubility. should be any of 'words', 'turns', 'vocs'.
     :type metric: str
     :param windows_length: length of the windows, in milliseconds
     :type windows_length: int
@@ -668,6 +674,7 @@ class HighVolubilitySampler(Sampler):
         metric: str,
         windows_length: int,
         windows_count: int,
+        speakers: List[str] = ["FEM", "MAL", "CHI"],
         threads: int = 1,
         by: str = "recording_filename",
         recordings: Union[str, List[str], pd.DataFrame] = None,
@@ -679,6 +686,7 @@ class HighVolubilitySampler(Sampler):
         self.metric = metric
         self.windows_length = windows_length
         self.windows_count = windows_count
+        self.speakers = speakers
         self.threads = threads
         self.by = by
 
@@ -711,74 +719,64 @@ class HighVolubilitySampler(Sampler):
         ).reset_index()
         windows["recording_filename"] = recording["recording_filename"]
 
-        if self.metric == "ctc":
+        if self.metric == "turns":
             if "lena_conv_turn_type" in segments.columns:
                 # NOTE: This is the equivalent of CTC (tab1) in rlena_extract.R
                 segments["is_CT"] = segments["lena_conv_turn_type"].isin(
                     ["TIFR", "TIMR"]
                 )
             else:
-                segments.sort_values(["segment_onset", "segment_offset"])
-                segments = segments[
-                    segments["speaker_type"].isin(["FEM", "MAL", "CHI"])
-                ]
-                segments["duration"] = (
-                    segments["segment_offset"] - segments["segment_onset"]
-                )
+                segments = segments[segments["speaker_type"].isin(self.speakers)]
                 segments["iti"] = segments["segment_onset"] - segments[
                     "segment_offset"
                 ].shift(1)
                 segments["prev_speaker_type"] = segments["speaker_type"].shift(1)
 
-                key_child_env = ["FEM", "MAL", "CHI"]
-                segments["is_CT"] = segments.apply(
-                    lambda row: (row["iti"] < 1000)
-                    and (
-                        (
-                            row["speaker_type"] == "CHI"
-                            and row["prev_speaker_type"] in key_child_env
-                        )
-                        or (
-                            row["speaker_type"] in key_child_env
-                            and row["prev_speaker_type"] == "CHI"
-                        )
-                    ),
-                    axis=1,
+                key_child_environment = set(self.speakers) - {"CHI"}
+
+                segments["is_CT"] = (segments["iti"] < 1000) & (
+                    (
+                        (segments["speaker_type"] == "CHI")
+                        & (segments["prev_speaker_type"].isin(key_child_environment))
+                    )
+                    | (
+                        (segments["speaker_type"].isin(key_child_environment))
+                        & (segments["prev_speaker_type"] == "CHI")
+                    )
                 )
 
             segments = (
                 segments.groupby("chunk", as_index=False)[["is_CT"]]
                 .sum()
-                .rename(columns={"is_CT": "ctc"})
+                .rename(columns={"is_CT": self.metric})
                 .merge(windows)
             )
 
-        elif self.metric == "cvc":
+        elif self.metric == "vocs":
             # NOTE: This is the equivalent of CVC (tab2) in rlena_extract.R
             if "utterances_count" in segments.columns:
                 segments = (
-                    segments[segments.speaker_type == "CHI"]
+                    segments[segments.speaker_type.isin(self.speakers)]
                     .groupby("chunk", as_index=False)[["utterances_count"]]
                     .sum()
-                    .rename(columns={"utterances_count": "cvc"})
+                    .rename(columns={"utterances_count": self.metric})
                     .merge(windows)
                 )
             else:
                 segments = (
-                    segments[segments.speaker_type == "CHI"]
+                    segments[segments.speaker_type.isin(self.speakers)]
                     .groupby("chunk", as_index=False)[["segment_onset"]]
                     .count()
-                    .rename(columns={"segment_onset": "cvc"})
+                    .rename(columns={"segment_onset": self.metric})
                     .merge(windows)
                 )
 
-        elif self.metric == "awc":
+        elif self.metric == "words":
             # NOTE: This is the equivalent of AWC (tab3) in rlena_extract.R
             segments = (
-                segments[segments.speaker_type.isin(["FEM", "MAL"])]
+                segments[segments.speaker_type.isin(self.speakers)]
                 .groupby("chunk", as_index=False)[["words"]]
                 .sum()
-                .rename(columns={"words": "awc"})
                 .merge(windows)
             )
 
@@ -820,7 +818,7 @@ class HighVolubilitySampler(Sampler):
             "--metric",
             help="which metric should be used to evaluate volubility",
             required=True,
-            choices=["ctc", "cvc", "awc"],
+            choices=["turns", "vocs", "words"],
         )
         parser.add_argument(
             "--windows-length",
@@ -833,6 +831,167 @@ class HighVolubilitySampler(Sampler):
             help="how many windows to be sampled from each unit (recording, session, or child)",
             required=True,
             type=int,
+        )
+        parser.add_argument(
+            "--speakers",
+            help="speakers to include",
+            default=["CHI", "FEM", "MAL"],
+            nargs="+",
+            choices=["CHI", "FEM", "MAL", "OCH"],
+        )
+        parser.add_argument(
+            "--threads", help="amount of threads to run on", default=1, type=int
+        )
+        parser.add_argument(
+            "--by",
+            help="units to sample from (default behavior is to sample by recording)",
+            choices=["recording_filename", "session_id", "child_id"],
+            default="recording_filename",
+        )
+
+
+class ConversationSampler(Sampler):
+    """Conversation sampler.
+
+    :param project: ChildProject instance
+    :type project: ChildProject.projects.ChildProject
+    :param annotation_set: set of annotation to derive conversations from
+    :type annotation_set: str
+    :param count: amount of conversations to sample
+    :type count: int
+    :param interval: maximum time-interval between two consecutive vocalizations (in milliseconds) to consider them part of the same conversational block, defaults to 1000
+    :type interval: int, optional
+    :param speakers: list of speakers to target, defaults to ["FEM", "MAL", "CHI"]
+    :type speakers: List[str], optional
+    :param threads: threads to run on, defaults to 1
+    :type threads: int, optional
+    :param by: units to sample from, defaults to "recording_filename"
+    :type by: str, optional
+    :param recordings: whitelist of recordings, defaults to None
+    :type recordings: Union[str, List[str], pd.DataFrame], optional
+    :param exclude: portions to exclude, defaults to None
+    :type exclude: Union[str, pd.DataFrame], optional
+    """
+
+    SUBCOMMAND = "conversations"
+
+    def __init__(
+        self,
+        project: ChildProject.projects.ChildProject,
+        annotation_set: str,
+        count: int,
+        interval: int = 1000,
+        speakers: List[str] = ["FEM", "MAL", "CHI"],
+        threads: int = 1,
+        by: str = "recording_filename",
+        recordings: Union[str, List[str], pd.DataFrame] = None,
+        exclude: Union[str, pd.DataFrame] = None,
+    ):
+
+        super().__init__(project, recordings, exclude)
+        self.annotation_set = annotation_set
+        self.interval = interval
+        self.count = count
+        self.speakers = speakers
+        self.threads = threads
+        self.by = by
+
+    def _retrieve_conversations(self, recording):
+        segments = self.retrieve_segments(recording["recording_filename"])
+
+        if segments is None or "speaker_type" not in segments.columns:
+            print(
+                "warning: no annotations from the set '{}' were found for the recording '{}' or speaker_type column missing".format(
+                    self.annotation_set, recording["recording_filename"]
+                )
+            )
+            return pd.DataFrame(
+                columns=[
+                    "segment_onset",
+                    "segment_offset",
+                    "recording_filename",
+                    "turns",
+                ]
+            )
+
+        segments = segments[segments["speaker_type"].isin(self.speakers)]
+
+        segments["iti"] = segments["segment_onset"] - segments["segment_offset"].shift(
+            1
+        )
+        segments["breaks_chain"] = segments["iti"] > self.interval
+
+        segments["prev_speaker_type"] = segments["speaker_type"].shift(1)
+        key_child_environment = set(self.speakers) - {"CHI"}
+
+        segments["is_CT"] = (
+            (segments["speaker_type"] == "CHI")
+            & (segments["prev_speaker_type"].isin(key_child_environment))
+        ) | (
+            (segments["speaker_type"].isin(key_child_environment))
+            & (segments["prev_speaker_type"] == "CHI")
+        )
+
+        conversations = segments.groupby(segments["breaks_chain"].cumsum()).agg(
+            recording_filename=("recording_filename", "first"),
+            segment_onset=("segment_onset", "first"),
+            segment_offset=("segment_offset", "last"),
+            turns=("is_CT", "sum"),
+        )
+
+        return conversations
+
+    def _sample_unit(self, group):
+        unit, recordings = group
+        recordings[self.by] = unit
+        conversations = pd.concat(
+            [
+                self._retrieve_conversations(r)
+                for r in recordings.to_dict(orient="records")
+            ]
+        )
+
+        return (
+            conversations.sort_values("turns", ascending=False)
+            .head(self.count)
+            .reset_index(drop=True)
+        )
+
+    def _sample(self):
+        recordings = self.project.get_recordings_from_list(self.recordings)
+
+        if self.threads == 1:
+            self.segments = map(self._sample_unit, recordings.groupby(self.by))
+        else:
+            with mp.Pool(
+                processes=self.threads if self.threads >= 1 else mp.cpu_count()
+            ) as pool:
+                self.segments = pool.map(self._sample_unit, recordings.groupby(self.by))
+
+        self.segments = pd.concat(self.segments)
+
+    @staticmethod
+    def add_parser(subparsers, subcommand):
+        parser = subparsers.add_parser(subcommand, help="convesation sampler")
+        parser.add_argument("--annotation-set", help="annotation set", required=True)
+        parser.add_argument(
+            "--count",
+            help="how many conversations to be sampled from each unit (recording, session, or child)",
+            required=True,
+            type=int,
+        )
+        parser.add_argument(
+            "--interval",
+            help="maximum time-interval between two consecutive vocalizations (in milliseconds) to consider them to be part of the same conversational block. default is 1000",
+            default=1000,
+            type=int,
+        )
+        parser.add_argument(
+            "--speakers",
+            help="speakers to include",
+            default=["CHI", "FEM", "MAL"],
+            nargs="+",
+            choices=["CHI", "FEM", "MAL", "OCH"],
         )
         parser.add_argument(
             "--threads", help="amount of threads to run on", default=1, type=int

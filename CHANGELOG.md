@@ -6,10 +6,15 @@ All notable changes to this project will be documented in this file.
 
 ### Added 
 
+ - Conversation sampler
  - `lena_speaker` for the LENA its converter
  - `lena_speaker` aggregated metrics for the LenaMetrics pipeline
  - Improved AclewMetrics and LenaMetrics performance
  - Improved error handling (dataframes sanity checks)
+
+### Changed
+
+ - More flexible high-volubility sampler
 
 ### Fixed
  
