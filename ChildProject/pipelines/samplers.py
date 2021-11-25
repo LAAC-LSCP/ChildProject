@@ -906,7 +906,12 @@ class ConversationSampler(Sampler):
                 )
             )
             return pd.DataFrame(
-                columns=["segment_onset", "segment_offset", "recording_filename"]
+                columns=[
+                    "segment_onset",
+                    "segment_offset",
+                    "recording_filename",
+                    "turns",
+                ]
             )
 
         segments = segments[segments["speaker_type"].isin(self.speakers)]
@@ -955,10 +960,13 @@ class ConversationSampler(Sampler):
     def _sample(self):
         recordings = self.project.get_recordings_from_list(self.recordings)
 
-        with mp.Pool(
-            processes=self.threads if self.threads >= 1 else mp.cpu_count()
-        ) as pool:
-            self.segments = pool.map(self._sample_unit, recordings.groupby(self.by))
+        if self.threads == 1:
+            self.segments = map(self._sample_unit, recordings.groupby(self.by))
+        else:
+            with mp.Pool(
+                processes=self.threads if self.threads >= 1 else mp.cpu_count()
+            ) as pool:
+                self.segments = pool.map(self._sample_unit, recordings.groupby(self.by))
 
         self.segments = pd.concat(self.segments)
 
