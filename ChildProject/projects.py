@@ -116,6 +116,12 @@ class ChildProject:
             description="date of birth accuracy",
             choices=["day", "week", "month", "year", "other"],
         ),
+        IndexColumn(
+            name="discard",
+            description="set to 1 if item should be discarded in analyses",
+            choices=["0", "1"],
+            required=False,
+        ),
     ]
 
     RECORDINGS_COLUMNS = [
@@ -210,11 +216,20 @@ class ChildProject:
             name="notes",
             description="free-style notes about individual recordings (avoid tabs and newlines)",
         ),
+        IndexColumn(
+            name="discard",
+            description="set to 1 if item should be discarded in analyses",
+            choices=["0", "1"],
+            required=False,
+        ),
     ]
 
     DOCUMENTATION_COLUMNS = [
         IndexColumn(
-            name="variable", description="name of the variable", unique=True, required=True
+            name="variable",
+            description="name of the variable",
+            unique=True,
+            required=True,
         ),
         IndexColumn(
             name="description", description="a definition of this field", required=True
