@@ -237,6 +237,9 @@ to the following table:
 .. index-table:: Machine-readable documentation
    :header: documentation
 
+.. comment::
+    This comment fixes an issue introduced in Sphinx 4.3.1
+
  - Documentation for the children metadata should be stored in ``docs/children.csv``
  - Documentation for the recordings metadata should be stored in ``docs/recordings.csv``
  - Documentation for annotations should be stored in ``docs/annotations.csv``

@@ -40,7 +40,11 @@ class IndexTable(CSVTable):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        if 'header' not in self.options:
+            raise KeyError("IndexTable is missing a header attribute.")
+        
         array = self.options.pop('header')
+        
         table = None
         if array == 'children':
             table = ChildProject.CHILDREN_COLUMNS
