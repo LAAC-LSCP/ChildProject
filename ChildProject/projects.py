@@ -12,15 +12,25 @@ from .utils import get_audio_duration, path_is_parent
 
 
 class ChildProject:
-    """This class is a representation of a ChildProject dataset.
+    """ChildProject instance
+    This class is a representation of a ChildProject dataset
 
+    Constructor parameters:
+
+    :param path: path to the root of the dataset.
+    :type path: str
+    :param enforce_dtypes: enforce dtypes on children/recordings dataframes, defaults to False
+    :type enforce_dtypes: bool, optional
+    :param ignore_discarded: ignore entries such that discard=1, defaults to False
+    :type ignore_discarded: bool, optional
+    
     Attributes:
-        :param path: path to the root of the dataset.
-        :type path: str
-        :param recordings: pandas dataframe representation of this dataset metadata/recordings.csv 
-        :type recordings: class:`pd.DataFrame`
-        :param children: pandas dataframe representation of this dataset metadata/children.csv 
-        :type children: class:`pd.DataFrame`
+    :param path: path to the root of the dataset.
+    :type path: str
+    :param recordings: pandas dataframe representation of this dataset metadata/recordings.csv 
+    :type recordings: class:`pd.DataFrame`
+    :param children: pandas dataframe representation of this dataset metadata/children.csv 
+    :type children: class:`pd.DataFrame`
     """
 
     REQUIRED_DIRECTORIES = ["recordings", "extra"]
@@ -247,14 +257,12 @@ class ChildProject:
 
     PROJECT_FOLDERS = ["recordings", "annotations", "metadata", "doc", "scripts"]
 
-    def __init__(self, path: str, enforce_dtypes: bool = False):
-        """Constructor
-
-        :param path: path to the root of the dataset.
-        :type path: str
-        """
+    def __init__(
+        self, path: str, enforce_dtypes: bool = False, ignore_discarded: bool = False
+    ):
         self.path = path
         self.enforce_dtypes = enforce_dtypes
+        self.ignore_discarded = ignore_discarded
 
         self.errors = []
         self.warnings = []
@@ -369,8 +377,16 @@ class ChildProject:
             verbose,
         )
 
+        if self.ignore_discarded and 'discard' in self.ct.df:
+            self.ct.df = self.ct.df[self.ct.df['discard'].astype(str)=='1']
+        
+        if self.ignore_discarded and 'discard' in self.rt.df:
+            self.rt.df = self.rt.df[self.rt.df['discard'].astype(str)=='1']
+
         self.children = self.ct.df
         self.recordings = self.rt.df
+
+
 
     def validate(self, ignore_recordings: bool = False, profile: str = None) -> tuple:
         """Validate a dataset, returning all errors and warnings.
