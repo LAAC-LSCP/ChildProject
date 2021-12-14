@@ -89,9 +89,6 @@ class Sampler(ABC):
         if len(self.target_speaker_type) and len(segments):
             segments = segments[segments["speaker_type"].isin(self.target_speaker_type)]
 
-        segments["segment_onset"] = segments["segment_onset"] + segments["time_seek"]
-        segments["segment_offset"] = segments["segment_offset"] + segments["time_seek"]
-
         return segments
 
     def remove_excluded(self):
