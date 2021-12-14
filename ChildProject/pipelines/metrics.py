@@ -212,7 +212,9 @@ class LenaMetrics(Metrics):
 
         metrics["wc_adu_ph"] = its["words"].sum() * 3600 / unit_duration
 
-        metrics["child_id"] = its["child_id"].iloc[0]
+        metrics["child_id"] = self.project.recordings[
+            self.project.recordings[self.by] == unit
+        ]["child_id"].iloc[0]
         metrics["duration"] = unit_duration
 
         return metrics
@@ -459,7 +461,9 @@ class AclewMetrics(Metrics):
                 metrics["lp_dur"] = speech_dur / (speech_dur + cry_dur)
                 metrics["cp_dur"] = metrics["can_voc_dur_chi_ph"] / speech_dur
 
-        metrics["child_id"] = segments["child_id"].iloc[0]
+        metrics["child_id"] = self.project.recordings[
+            self.project.recordings[self.by] == unit
+        ]["child_id"].iloc[0]
         metrics["duration"] = unit_duration
 
         return metrics
@@ -673,8 +677,10 @@ class PeriodMetrics(Metrics):
 
         metrics["duration"] = (durations * 1000).astype(int)
         metrics[self.by] = unit
-        metrics["child_id"] = segments["child_id"].iloc[0]
-
+        metrics["child_id"] = self.project.recordings[
+            self.project.recordings[self.by] == unit
+        ]["child_id"].iloc[0]
+        
         return metrics
 
     def extract(self):
