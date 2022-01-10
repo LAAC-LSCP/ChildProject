@@ -5,6 +5,7 @@ import os
 import shutil
 
 from ChildProject.projects import ChildProject
+from ChildProject.annotations import AnnotationManager
 from ChildProject.pipelines.pipeline import Pipeline
 from ChildProject.tables import assert_dataframe, assert_columns_presence
 
@@ -19,6 +20,7 @@ def create_eaf(
     contxt_on: int,
     contxt_off: int,
     template: str,
+    speech_segments: pd.DataFrame = None,
 ):
     import pympi
 
@@ -50,6 +52,29 @@ def create_eaf(
             value=codeNumVal,
         )
         eaf.add_annotation("context_" + eaf_type, context_onset, context_offset)
+
+    if speech_segments is not None:
+
+        from ChildProject.converters import AnnotationConverter
+
+        type_to_id = {
+            key: val for key, val in AnnotationConverter.SPEAKER_ID_TO_TYPE.items()
+        }
+
+        for segment in speech_segments.to_dict(orient="records"):
+            speaker_id = None
+
+            if "speaker_id" in segment:
+                speaker_id = segment["speaker_id"]
+            elif "speaker_type" in segment and segment["speaker_type"] in type_to_id:
+                speaker_id = type_to_id[segment["speaker_type"]]
+
+            if speaker_id is None:
+                continue
+
+            eaf.add_annotation(
+                speaker_id, segment["segment_onset"], segment["segment_offset"]
+            )
 
     destination = os.path.join(output_dir, "{}.eaf".format(id))
     os.makedirs(os.path.dirname(destination), exist_ok=True)
@@ -87,6 +112,8 @@ class EafBuilderPipeline(Pipeline):
         template: str,
         context_onset: int = 0,
         context_offset: int = 0,
+        project: str = None,
+        import_speech_from: str = None,
         **kwargs
     ):
         """generate .eaf templates based on intervals to code.
@@ -152,6 +179,22 @@ class EafBuilderPipeline(Pipeline):
                 for on, off in segs.loc[:, ["segment_onset", "segment_offset"]].values
             ]
 
+            speech_segments = None
+            if project and import_speech_from:
+                project = ChildProject(project)
+                am = AnnotationManager(project)
+
+                speech_segments = am.get_segments(
+                    segs.assign(
+                        recording_filename=recording_filename, set=import_speech_from
+                    ).rename(
+                        {
+                            "segment_onset": "range_onset",
+                            "segment_offset": "range_offset",
+                        }
+                    )
+                )
+
             output_dir = os.path.join(destination, recording_prefix)
 
             create_eaf(
@@ -164,6 +207,7 @@ class EafBuilderPipeline(Pipeline):
                 context_onset,
                 context_offset,
                 template,
+                speech_segments,
             )
 
             shutil.copy(
@@ -200,3 +244,12 @@ class EafBuilderPipeline(Pipeline):
             type=int,
             default=0,
         )
+        parser.add_argument(
+            "--project", help="path to the input dataset", required=False,
+        )
+        parser.add_argument(
+            "--import-speech-from",
+            help="set from which active speakers should be imported",
+            required=False,
+        )
+
