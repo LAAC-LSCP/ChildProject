@@ -58,7 +58,10 @@ def create_eaf(
         from ChildProject.converters import AnnotationConverter
 
         type_to_id = {
-            key: val for key, val in AnnotationConverter.SPEAKER_ID_TO_TYPE.items()
+            val: key
+            for key, val in reversed(
+                list(AnnotationConverter.SPEAKER_ID_TO_TYPE.items())
+            )
         }
 
         for segment in speech_segments.to_dict(orient="records"):
@@ -72,8 +75,13 @@ def create_eaf(
             if speaker_id is None:
                 continue
 
+            if speaker_id not in eaf.tiers:
+                eaf.add_tier(speaker_id)
+
             eaf.add_annotation(
-                speaker_id, segment["segment_onset"], segment["segment_offset"]
+                speaker_id,
+                int(segment["segment_onset"]),
+                int(segment["segment_offset"]),
             )
 
     destination = os.path.join(output_dir, "{}.eaf".format(id))
@@ -112,7 +120,7 @@ class EafBuilderPipeline(Pipeline):
         template: str,
         context_onset: int = 0,
         context_offset: int = 0,
-        project: str = None,
+        path: str = None,
         import_speech_from: str = None,
         **kwargs
     ):
@@ -180,19 +188,28 @@ class EafBuilderPipeline(Pipeline):
             ]
 
             speech_segments = None
-            if project and import_speech_from:
-                project = ChildProject(project)
+            if path and import_speech_from:
+                project = ChildProject(path)
                 am = AnnotationManager(project)
+                am.read()
 
+                annotations = pd.concat(
+                    [
+                        am.annotations[am.annotations["set"] == import_speech_from],
+                        segs.assign(
+                            recording_filename=recording_filename,
+                            set=import_speech_from + "_",
+                        ).rename(
+                            columns={
+                                "segment_onset": "range_onset",
+                                "segment_offset": "range_offset",
+                            }
+                        ),
+                    ]
+                )
+                intersection = am.intersection(annotations)
                 speech_segments = am.get_segments(
-                    segs.assign(
-                        recording_filename=recording_filename, set=import_speech_from
-                    ).rename(
-                        {
-                            "segment_onset": "range_onset",
-                            "segment_offset": "range_offset",
-                        }
-                    )
+                    intersection[intersection["set"] == import_speech_from]
                 )
 
             output_dir = os.path.join(destination, recording_prefix)
@@ -245,7 +262,7 @@ class EafBuilderPipeline(Pipeline):
             default=0,
         )
         parser.add_argument(
-            "--project", help="path to the input dataset", required=False,
+            "--path", help="path to the input dataset", required=False,
         )
         parser.add_argument(
             "--import-speech-from",
