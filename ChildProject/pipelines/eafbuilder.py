@@ -67,7 +67,10 @@ def create_eaf(
         for segment in speech_segments.to_dict(orient="records"):
             speaker_id = None
 
-            if "speaker_id" in segment:
+            if (
+                "speaker_id" in segment
+                and segment["speaker_id"] in AnnotationConverter.SPEAKER_ID_TO_TYPE
+            ):
                 speaker_id = segment["speaker_id"]
             elif "speaker_type" in segment and segment["speaker_type"] in type_to_id:
                 speaker_id = type_to_id[segment["speaker_type"]]
@@ -122,7 +125,7 @@ class EafBuilderPipeline(Pipeline):
         context_offset: int = 0,
         path: str = None,
         import_speech_from: str = None,
-        **kwargs
+        **kwargs,
     ):
         """generate .eaf templates based on intervals to code.
 
@@ -175,6 +178,21 @@ class EafBuilderPipeline(Pipeline):
             {"recording_filename", "segment_onset", "segment_offset"},
         )
 
+        prefill = path and import_speech_from
+        if prefill:
+            project = ChildProject(path)
+            am = AnnotationManager(project)
+            am.read()
+
+            prefill_annotations = am.annotations[
+                am.annotations["set"] == import_speech_from
+            ]
+
+            if len(prefill_annotations) == 0:
+                raise ValueError(
+                    f"no annotations belonging to '{import_speech_from}' found in '{path}'"
+                )
+
         for recording_filename, segs in segments.groupby("recording_filename"):
             recording_prefix = os.path.splitext(recording_filename)[0]
             output_filename = (
@@ -188,14 +206,10 @@ class EafBuilderPipeline(Pipeline):
             ]
 
             speech_segments = None
-            if path and import_speech_from:
-                project = ChildProject(path)
-                am = AnnotationManager(project)
-                am.read()
-
+            if prefill:
                 annotations = pd.concat(
                     [
-                        am.annotations[am.annotations["set"] == import_speech_from],
+                        prefill_annotations,
                         segs.assign(
                             recording_filename=recording_filename,
                             set=import_speech_from + "_",
@@ -208,9 +222,28 @@ class EafBuilderPipeline(Pipeline):
                     ]
                 )
                 intersection = am.intersection(annotations)
-                speech_segments = am.get_segments(
-                    intersection[intersection["set"] == import_speech_from]
-                )
+
+                if len(intersection) == 0:
+                    print(
+                        f"warning: no annotation from '{import_speech_from}' matching the selected range for recording '{recording_filename}'"
+                    )
+                    continue
+                
+                intersection = intersection[intersection["set"] == import_speech_from]
+
+                segments_duration = (
+                    segs["segment_offset"] - segs["segment_onset"]
+                ).sum()
+                annotations_duration = (
+                    intersection["range_offset"] - intersection["range_onset"]
+                ).sum()
+
+                if segments_duration != annotations_duration:
+                    print(
+                        f"warning: annotations do not cover the whole selected range for recording '{recording_filename}', {annotations_duration/1000}s covered instead of {segments_duration/1000}"
+                    )
+
+                speech_segments = am.get_segments(intersection)
 
             output_dir = os.path.join(destination, recording_prefix)
 
