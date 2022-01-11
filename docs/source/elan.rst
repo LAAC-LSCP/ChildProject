@@ -23,6 +23,15 @@ Usage
 
    child-project eaf-builder --help
 
+Pre-filled annotations
+~~~~~~~~~~~~~~~~~~~~~~
+
+The .eaf files can be pre-filled according to previous annotations by using the ``--path`` and ``--import-speech-from`` switches.
+The ``--path`` option specifies the path to the dataset (i.e. the source project).
+The ``--import-speech-from`` specifies the set of annotations to import speech from.
+The pipeline will create and populate tiers named according to either the value of ``speaker_id`` or, alternatively, ``speaker_type``
+for each annotation of that set.
+
 More resources
 ~~~~~~~~~~~~~~
 
