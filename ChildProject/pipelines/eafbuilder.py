@@ -225,10 +225,11 @@ class EafBuilderPipeline(Pipeline):
 
                 if len(intersection) == 0:
                     print(
-                        f"warning: no annotation from '{import_speech_from}' matching the selected range for recording '{recording_filename}'"
+                        f"""warning: no annotation from '{import_speech_from}'"""
+                        f"""matching the selected range for recording '{recording_filename}'"""
                     )
                     continue
-                
+
                 intersection = intersection[intersection["set"] == import_speech_from]
 
                 segments_duration = (
@@ -240,7 +241,8 @@ class EafBuilderPipeline(Pipeline):
 
                 if segments_duration != annotations_duration:
                     print(
-                        f"warning: annotations do not cover the whole selected range for recording '{recording_filename}', {annotations_duration/1000}s covered instead of {segments_duration/1000}"
+                        f"""warning: annotations do not cover the whole selected range for recording"""
+                        f"""'{recording_filename}', {annotations_duration/1000}s covered instead of {segments_duration/1000}s"""
                     )
 
                 speech_segments = am.get_segments(intersection)
