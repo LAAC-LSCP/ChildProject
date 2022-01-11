@@ -139,6 +139,11 @@ class AnnotationManager:
             choices=["M", "1", "NA"],
         ),
         IndexColumn(
+            name="msc_type",
+            description="morphosyntactical complexity of the utterances defined as: 0 (0 meaningful word), 1 (1 meaningful word), S (simple utterance), C (complex utterance)",
+            choices=["0", "1", "S", "C"],
+        ),
+        IndexColumn(
             name="addressee",
             description="T if target-child-directed, C if other-child-directed, A if adult-directed, U if uncertain or other. Multiple values should be sorted and separated by commas",
             choices=["T", "C", "A", "U", "NA"],
