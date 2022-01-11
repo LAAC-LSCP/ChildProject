@@ -284,11 +284,11 @@ class EafBuilderPipeline(Pipeline):
             default=0,
         )
         parser.add_argument(
-            "--path", help="path to the input dataset", required=False,
+            "--path", help="path to the input dataset. Required together with --import-speech-from for pre-filling the .eaf", required=False,
         )
         parser.add_argument(
             "--import-speech-from",
-            help="set from which active speakers should be imported",
+            help="set of annotations from which speech segments should be imported in order to pre-fill the annotations.",
             required=False,
         )
 
