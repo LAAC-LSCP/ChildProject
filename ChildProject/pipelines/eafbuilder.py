@@ -54,26 +54,13 @@ def create_eaf(
         eaf.add_annotation("context_" + eaf_type, context_onset, context_offset)
 
     if speech_segments is not None:
-
-        from ChildProject.converters import AnnotationConverter
-
-        type_to_id = {
-            val: key
-            for key, val in reversed(
-                list(AnnotationConverter.SPEAKER_ID_TO_TYPE.items())
-            )
-        }
-
         for segment in speech_segments.to_dict(orient="records"):
             speaker_id = None
 
-            if (
-                "speaker_id" in segment
-                and segment["speaker_id"] in AnnotationConverter.SPEAKER_ID_TO_TYPE
-            ):
+            if "speaker_id" in segment:
                 speaker_id = segment["speaker_id"]
-            elif "speaker_type" in segment and segment["speaker_type"] in type_to_id:
-                speaker_id = type_to_id[segment["speaker_type"]]
+            elif "speaker_type" in segment:
+                speaker_id = segment["speaker_type"]
 
             if speaker_id is None:
                 continue
