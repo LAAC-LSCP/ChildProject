@@ -1049,7 +1049,23 @@ class AnnotationManager:
         return segments
 
     def get_within_ranges(self, ranges: pd.DataFrame, sets: Union[Set, List] = None):
-        """get annotations matching the input recordings ranges.
+        """Retrieve entries of the index of annotations that match the input recordings ranges.
+        The output get can then be provided to :ref:`ChildProject.annotations.AnnotationManager.get_segments`
+        in order to retrieve segments of annotations that match the desired range.
+
+        For instance, the code belows will prints all the segments of annotations
+        corresponding to the first hour of each recording:
+
+        >>> from ChildProject.projects import ChildProject
+        >>> from ChildProject.annotations import AnnotationManager
+        >>> project = ChildProject('.')
+        >>> am = AnnotationManager(project)
+        >>> am.read()
+        >>> ranges = project.recordings
+        >>> ranges['range_onset'] = 0
+        >>> ranges['range_offset'] = 1000
+        >>> matches = am.get_within_ranges(ranges)
+        >>> am.get_segments(matches)
 
         :param ranges: pandas dataframe with one row per range to be considered and three columns: ``recording_filename``, ``range_onset``, ``range_offset``.
         :type ranges: pd.DataFrame
