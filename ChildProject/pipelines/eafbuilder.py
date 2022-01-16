@@ -171,15 +171,6 @@ class EafBuilderPipeline(Pipeline):
             am = AnnotationManager(project)
             am.read()
 
-            prefill_annotations = am.annotations[
-                am.annotations["set"] == import_speech_from
-            ]
-
-            if len(prefill_annotations) == 0:
-                raise ValueError(
-                    f"no annotations belonging to '{import_speech_from}' found in '{path}'"
-                )
-
         for recording_filename, segs in segments.groupby("recording_filename"):
             recording_prefix = os.path.splitext(recording_filename)[0]
             output_filename = (
@@ -194,36 +185,26 @@ class EafBuilderPipeline(Pipeline):
 
             speech_segments = None
             if prefill:
-                annotations = pd.concat(
-                    [
-                        prefill_annotations,
-                        segs.assign(
-                            recording_filename=recording_filename,
-                            set=import_speech_from + "_",
-                        ).rename(
-                            columns={
-                                "segment_onset": "range_onset",
-                                "segment_offset": "range_offset",
-                            }
-                        ),
-                    ]
+                ranges = segs.assign(recording_filename=recording_filename).rename(
+                    columns={
+                        "segment_onset": "range_onset",
+                        "segment_offset": "range_offset",
+                    }
                 )
-                intersection = am.intersection(annotations)
+                matches = am.get_within_ranges(ranges, [import_speech_from])
 
-                if len(intersection) == 0:
+                if len(matches) == 0:
                     print(
                         f"""warning: no annotation from '{import_speech_from}'"""
                         f"""matching the selected range for recording '{recording_filename}'"""
                     )
                     continue
 
-                intersection = intersection[intersection["set"] == import_speech_from]
-
                 segments_duration = (
                     segs["segment_offset"] - segs["segment_onset"]
                 ).sum()
                 annotations_duration = (
-                    intersection["range_offset"] - intersection["range_onset"]
+                    matches["range_offset"] - matches["range_onset"]
                 ).sum()
 
                 if segments_duration != annotations_duration:
@@ -232,7 +213,7 @@ class EafBuilderPipeline(Pipeline):
                         f"""'{recording_filename}', {annotations_duration/1000}s covered instead of {segments_duration/1000}s"""
                     )
 
-                speech_segments = am.get_segments(intersection)
+                speech_segments = am.get_segments(matches)
 
             output_dir = os.path.join(destination, recording_prefix)
 
@@ -284,7 +265,9 @@ class EafBuilderPipeline(Pipeline):
             default=0,
         )
         parser.add_argument(
-            "--path", help="path to the input dataset. Required together with --import-speech-from for pre-filling the .eaf", required=False,
+            "--path",
+            help="path to the input dataset. Required together with --import-speech-from for pre-filling the .eaf",
+            required=False,
         )
         parser.add_argument(
             "--import-speech-from",
