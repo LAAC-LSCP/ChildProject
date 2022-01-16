@@ -1155,9 +1155,10 @@ class AnnotationManager:
                     duration = (
                         segments["range_offset"] - segments["range_onset"]
                     ).sum()
-                    selected_duration = (
-                        _ranges["range_offset"] - _ranges["range_onset"]
-                    ).sum()
+
+                selected_duration = (
+                    _ranges["range_offset"] - _ranges["range_onset"]
+                ).sum()
 
                 if duration >= selected_duration:
                     continue
