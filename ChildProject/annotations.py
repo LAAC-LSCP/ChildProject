@@ -1063,7 +1063,7 @@ class AnnotationManager:
         >>> am.read()
         >>> ranges = project.recordings
         >>> ranges['range_onset'] = 0
-        >>> ranges['range_offset'] = 1000
+        >>> ranges['range_offset'] = 60*60*1000
         >>> matches = am.get_within_ranges(ranges)
         >>> am.get_segments(matches)
 
