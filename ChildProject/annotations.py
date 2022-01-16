@@ -1048,7 +1048,12 @@ class AnnotationManager:
 
         return segments
 
-    def get_within_ranges(self, ranges: pd.DataFrame, sets: Union[Set, List] = None):
+    def get_within_ranges(
+        self,
+        ranges: pd.DataFrame,
+        sets: Union[Set, List] = None,
+        missing_data: str = "ignore",
+    ):
         """Retrieve entries of the index of annotations that match the input recordings ranges.
         The output get can then be provided to :ref:`ChildProject.annotations.AnnotationManager.get_segments`
         in order to retrieve segments of annotations that match the desired range.
@@ -1071,6 +1076,8 @@ class AnnotationManager:
         :type ranges: pd.DataFrame
         :param sets: optional list of annotation sets to retrieve. If None, all annotations from all sets will be retrieved.
         :type sets: Union[Set, List]
+        :param missing_data: how to handle missing annotations ("ignore", "warning" or "raise")
+        :type missing_data: str, defaults to ignore
         :rtype: pd.DataFrame
         """
 
@@ -1123,6 +1130,7 @@ class AnnotationManager:
 
                 intersection = intersect_ranges(selected_segments, set_segments)
 
+                segments = []
                 for segment in intersection:
                     segment_ann = ann.copy()
                     segment_ann["range_onset"].clip(
@@ -1134,7 +1142,36 @@ class AnnotationManager:
                     segment_ann = segment_ann[
                         (segment_ann["range_offset"] - segment_ann["range_onset"]) > 0
                     ]
-                    stack.append(segment_ann.copy())
+                    segments.append(segment_ann.copy())
+
+                stack += segments
+
+                if missing_data == "ignore":
+                    continue
+
+                duration = 0
+                if segments:
+                    segments = pd.concat(segments)
+                    duration = (
+                        segments["range_offset"] - segments["range_onset"]
+                    ).sum()
+                    selected_duration = (
+                        _ranges["range_offset"] - _ranges["range_onset"]
+                    ).sum()
+
+                if duration >= selected_duration:
+                    continue
+
+                error_message = (
+                    f"""annotations from set '{s}' do not cover the whole selected range """
+                    f"""for recording '{recording}', """
+                    f"""{duration/1000}s covered instead of {selected_duration/1000}s"""
+                )
+
+                if missing_data == "warning":
+                    print(f"warning: {error_message}")
+                else:
+                    raise Exception(error_message)
 
         return pd.concat(stack) if len(stack) else pd.DataFrame()
 
