@@ -1048,6 +1048,80 @@ class AnnotationManager:
 
         return segments
 
+    def get_within_ranges(self, ranges: pd.DataFrame, sets: Union[Set, List] = None):
+        """get annotations matching the input recordings ranges.
+
+        :param ranges: pandas dataframe with one row per range to be considered and three columns: ``recording_filename``, ``range_onset``, ``range_offset``.
+        :type ranges: pd.DataFrame
+        :param sets: optional list of annotation sets to retrieve. If None, all annotations from all sets will be retrieved.
+        :type sets: Union[Set, List]
+        :rtype: pd.DataFrame
+        """
+
+        assert_dataframe("ranges", ranges)
+        assert_columns_presence(
+            "ranges", ranges, {"recording_filename", "range_onset", "range_offset"}
+        )
+
+        if sets is None:
+            sets = set(self.annotations["set"].tolist())
+        else:
+            sets = set(sets)
+            missing = sets - set(self.annotations["set"].tolist())
+            if len(missing):
+                raise ValueError(
+                    "the following sets are missing from the annotations index: {}".format(
+                        ",".join(missing)
+                    )
+                )
+
+        annotations = self.annotations[self.annotations["set"].isin(sets)]
+
+        stack = []
+        recordings = list(ranges["recording_filename"].unique())
+
+        for recording in recordings:
+            _ranges = ranges[ranges["recording_filename"] == recording].sort_values(
+                ["range_onset", "range_offset"]
+            )
+            _annotations = annotations[
+                annotations["recording_filename"] == recording
+            ].sort_values(["range_onset", "range_offset"])
+
+            for s in sets:
+                ann = _annotations[_annotations["set"] == s]
+
+                selected_segments = (
+                    Segment(onset, offset)
+                    for (onset, offset) in _ranges[
+                        ["range_onset", "range_offset"]
+                    ].values.tolist()
+                )
+
+                set_segments = (
+                    Segment(onset, offset)
+                    for (onset, offset) in ann[
+                        ["range_onset", "range_offset"]
+                    ].values.tolist()
+                )
+
+                intersection = intersect_ranges(selected_segments, set_segments)
+
+                for segment in intersection:
+                    segment_ann = ann.copy()
+                    segment_ann["range_onset"].clip(
+                        lower=segment.start, upper=segment.stop, inplace=True
+                    )
+                    segment_ann["range_offset"].clip(
+                        lower=segment.start, upper=segment.stop, inplace=True
+                    )
+                    segment_ann = segment_ann[
+                        (segment_ann["range_offset"] - segment_ann["range_onset"]) > 0
+                    ]
+                    stack.append(segment_ann.copy())
+
+        return pd.concat(stack) if len(stack) else pd.DataFrame()
+
     def get_within_time_range(
         self, annotations: pd.DataFrame, start_time: str, end_time: str, errors="raise"
     ):
