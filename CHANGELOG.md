@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Added 
 
  - Conversation sampler
+ - `get_within_ranges` function to retrieve all annotations that match the desired portions of the recordings
  - `lena_speaker` for the LENA its converter
  - `lena_speaker` aggregated metrics for the LenaMetrics pipeline
  - Improved AclewMetrics and LenaMetrics performance
