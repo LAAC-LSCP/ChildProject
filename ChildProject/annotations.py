@@ -1076,7 +1076,7 @@ class AnnotationManager:
         :type ranges: pd.DataFrame
         :param sets: optional list of annotation sets to retrieve. If None, all annotations from all sets will be retrieved.
         :type sets: Union[Set, List]
-        :param missing_data: how to handle missing annotations ("ignore", "warning" or "raise")
+        :param missing_data: how to handle missing annotations ("ignore", "warn" or "raise")
         :type missing_data: str, defaults to ignore
         :rtype: pd.DataFrame
         """
@@ -1168,7 +1168,7 @@ class AnnotationManager:
                     f"""{duration/1000}s covered instead of {selected_duration/1000}s"""
                 )
 
-                if missing_data == "warning":
+                if missing_data == "warn":
                     print(f"warning: {error_message}")
                 else:
                     raise Exception(error_message)

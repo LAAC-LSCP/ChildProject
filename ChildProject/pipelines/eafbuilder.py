@@ -191,27 +191,10 @@ class EafBuilderPipeline(Pipeline):
                         "segment_offset": "range_offset",
                     }
                 )
-                matches = am.get_within_ranges(ranges, [import_speech_from])
+                matches = am.get_within_ranges(ranges, [import_speech_from], 'warn')
 
                 if len(matches) == 0:
-                    print(
-                        f"""warning: no annotation from '{import_speech_from}'"""
-                        f"""matching the selected range for recording '{recording_filename}'"""
-                    )
                     continue
-
-                segments_duration = (
-                    segs["segment_offset"] - segs["segment_onset"]
-                ).sum()
-                annotations_duration = (
-                    matches["range_offset"] - matches["range_onset"]
-                ).sum()
-
-                if segments_duration != annotations_duration:
-                    print(
-                        f"""warning: annotations do not cover the whole selected range for recording"""
-                        f"""'{recording_filename}', {annotations_duration/1000}s covered instead of {segments_duration/1000}s"""
-                    )
 
                 speech_segments = am.get_segments(matches)
 
