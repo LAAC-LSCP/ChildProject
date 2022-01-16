@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 
  - Conversation sampler
  - `get_within_ranges` function to retrieve all annotations that match the desired portions of the recordings
+ - `--import-speech-from` option for the EAF annotation builder to pre-fill annotations based on any previously imported set of annotations
  - `lena_speaker` for the LENA its converter
  - `lena_speaker` aggregated metrics for the LenaMetrics pipeline
  - Improved AclewMetrics and LenaMetrics performance
