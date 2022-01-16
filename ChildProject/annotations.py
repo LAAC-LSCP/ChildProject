@@ -1166,7 +1166,7 @@ class AnnotationManager:
                 error_message = (
                     f"""annotations from set '{s}' do not cover the whole selected range """
                     f"""for recording '{recording}', """
-                    f"""{duration/1000}s covered instead of {selected_duration/1000}s"""
+                    f"""{duration/1000:.3f}s covered instead of {selected_duration/1000:.3f}s"""
                 )
 
                 if missing_data == "warn":
