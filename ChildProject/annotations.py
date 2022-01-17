@@ -1186,8 +1186,7 @@ class AnnotationManager:
         """Clip all input annotations within a given HH:MM clock-time range.
         Those that do not intersect the input time range at all are filtered out.
 
-        :param annotations: DataFrame of input annotations to filter.
-        The only columns that are required are: ``recording_filename``, ``range_onset``, and ``range_offset``.
+        :param annotations: DataFrame of input annotations to filter. The only columns that are required are: ``recording_filename``, ``range_onset``, and ``range_offset``.
         :type annotations: pd.DataFrame
         :param start: onset HH:MM clocktime
         :type start: str
