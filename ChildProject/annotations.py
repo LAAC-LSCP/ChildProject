@@ -1054,8 +1054,12 @@ class AnnotationManager:
         sets: Union[Set, List] = None,
         missing_data: str = "ignore",
     ):
-        """Retrieve entries of the index of annotations that match the input recordings ranges.
-        The output get can then be provided to :ref:`ChildProject.annotations.AnnotationManager.get_segments`
+        """Retrieve and clip annotations that cover specific portions of recordings (``ranges``).
+        
+        The desired ranges are defined by an input dataframe with three columns: ``recording_filename``, ``range_onset``, and ``range_offset``.
+        The function returns a dataframe of annotations under the same format as the index of annotations (:ref:`format-annotations`).
+       
+        This output get can then be provided to :meth:`~ChildProject.annotations.AnnotationManager.get_segments`
         in order to retrieve segments of annotations that match the desired range.
 
         For instance, the code belows will prints all the segments of annotations
@@ -1166,7 +1170,7 @@ class AnnotationManager:
                 error_message = (
                     f"""annotations from set '{s}' do not cover the whole selected range """
                     f"""for recording '{recording}', """
-                    f"""{duration/1000}s covered instead of {selected_duration/1000}s"""
+                    f"""{duration/1000:.3f}s covered instead of {selected_duration/1000:.3f}s"""
                 )
 
                 if missing_data == "warn":
@@ -1182,8 +1186,7 @@ class AnnotationManager:
         """Clip all input annotations within a given HH:MM clock-time range.
         Those that do not intersect the input time range at all are filtered out.
 
-        :param annotations: DataFrame of input annotations to filter.
-        The only columns that are required are: ``recording_filename``, ``range_onset``, and ``range_offset``.
+        :param annotations: DataFrame of input annotations to filter. The only columns that are required are: ``recording_filename``, ``range_onset``, and ``range_offset``.
         :type annotations: pd.DataFrame
         :param start: onset HH:MM clocktime
         :type start: str
