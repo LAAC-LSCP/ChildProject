@@ -472,7 +472,6 @@ class EafConverter(AnnotationConverter):
                     "vcm_type": "NA",
                     "lex_type": "NA",
                     "mwu_type": "NA",
-                    "msc_type": "NA",
                     "addressee": "NA",
                     "transcription": value if value != "0" else "0.",
                     "words": "NA",
