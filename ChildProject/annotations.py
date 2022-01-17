@@ -1048,14 +1048,145 @@ class AnnotationManager:
 
         return segments
 
+    def get_within_ranges(
+        self,
+        ranges: pd.DataFrame,
+        sets: Union[Set, List] = None,
+        missing_data: str = "ignore",
+    ):
+        """Retrieve and clip annotations that cover specific portions of recordings (``ranges``).
+        
+        The desired ranges are defined by an input dataframe with three columns: ``recording_filename``, ``range_onset``, and ``range_offset``.
+        The function returns a dataframe of annotations under the same format as the index of annotations (:ref:`format-annotations`).
+       
+        This output get can then be provided to :meth:`~ChildProject.annotations.AnnotationManager.get_segments`
+        in order to retrieve segments of annotations that match the desired range.
+
+        For instance, the code belows will prints all the segments of annotations
+        corresponding to the first hour of each recording:
+
+        >>> from ChildProject.projects import ChildProject
+        >>> from ChildProject.annotations import AnnotationManager
+        >>> project = ChildProject('.')
+        >>> am = AnnotationManager(project)
+        >>> am.read()
+        >>> ranges = project.recordings
+        >>> ranges['range_onset'] = 0
+        >>> ranges['range_offset'] = 60*60*1000
+        >>> matches = am.get_within_ranges(ranges)
+        >>> am.get_segments(matches)
+
+        :param ranges: pandas dataframe with one row per range to be considered and three columns: ``recording_filename``, ``range_onset``, ``range_offset``.
+        :type ranges: pd.DataFrame
+        :param sets: optional list of annotation sets to retrieve. If None, all annotations from all sets will be retrieved.
+        :type sets: Union[Set, List]
+        :param missing_data: how to handle missing annotations ("ignore", "warn" or "raise")
+        :type missing_data: str, defaults to ignore
+        :rtype: pd.DataFrame
+        """
+
+        assert_dataframe("ranges", ranges)
+        assert_columns_presence(
+            "ranges", ranges, {"recording_filename", "range_onset", "range_offset"}
+        )
+
+        if sets is None:
+            sets = set(self.annotations["set"].tolist())
+        else:
+            sets = set(sets)
+            missing = sets - set(self.annotations["set"].tolist())
+            if len(missing):
+                raise ValueError(
+                    "the following sets are missing from the annotations index: {}".format(
+                        ",".join(missing)
+                    )
+                )
+
+        annotations = self.annotations[self.annotations["set"].isin(sets)]
+
+        stack = []
+        recordings = list(ranges["recording_filename"].unique())
+
+        for recording in recordings:
+            _ranges = ranges[ranges["recording_filename"] == recording].sort_values(
+                ["range_onset", "range_offset"]
+            )
+            _annotations = annotations[
+                annotations["recording_filename"] == recording
+            ].sort_values(["range_onset", "range_offset"])
+
+            for s in sets:
+                ann = _annotations[_annotations["set"] == s]
+
+                selected_segments = (
+                    Segment(onset, offset)
+                    for (onset, offset) in _ranges[
+                        ["range_onset", "range_offset"]
+                    ].values.tolist()
+                )
+
+                set_segments = (
+                    Segment(onset, offset)
+                    for (onset, offset) in ann[
+                        ["range_onset", "range_offset"]
+                    ].values.tolist()
+                )
+
+                intersection = intersect_ranges(selected_segments, set_segments)
+
+                segments = []
+                for segment in intersection:
+                    segment_ann = ann.copy()
+                    segment_ann["range_onset"].clip(
+                        lower=segment.start, upper=segment.stop, inplace=True
+                    )
+                    segment_ann["range_offset"].clip(
+                        lower=segment.start, upper=segment.stop, inplace=True
+                    )
+                    segment_ann = segment_ann[
+                        (segment_ann["range_offset"] - segment_ann["range_onset"]) > 0
+                    ]
+                    segments.append(segment_ann.copy())
+
+                stack += segments
+
+                if missing_data == "ignore":
+                    continue
+
+                duration = 0
+                if segments:
+                    segments = pd.concat(segments)
+                    duration = (
+                        segments["range_offset"] - segments["range_onset"]
+                    ).sum()
+
+                selected_duration = (
+                    _ranges["range_offset"] - _ranges["range_onset"]
+                ).sum()
+
+                if duration >= selected_duration:
+                    continue
+
+                error_message = (
+                    f"""annotations from set '{s}' do not cover the whole selected range """
+                    f"""for recording '{recording}', """
+                    f"""{duration/1000:.3f}s covered instead of {selected_duration/1000:.3f}s"""
+                )
+
+                if missing_data == "warn":
+                    print(f"warning: {error_message}")
+                else:
+                    raise Exception(error_message)
+
+        return pd.concat(stack) if len(stack) else pd.DataFrame()
+
     def get_within_time_range(
         self, annotations: pd.DataFrame, start_time: str, end_time: str, errors="raise"
     ):
         """Clip all input annotations within a given HH:MM clock-time range.
         Those that do not intersect the input time range at all are filtered out.
 
-        :param annotations: DataFrame of input annotations to filter.
-        The only columns that are required are: ``recording_filename``, ``range_onset``, and ``range_offset``.
+        :param annotations: DataFrame of input annotations to filter. The only columns that are required are: ``recording_filename``, ``range_onset``, and ``range_offset``.
         :type annotations: pd.DataFrame
         :param start: onset HH:MM clocktime
         :type start: str
