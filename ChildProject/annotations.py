@@ -1054,9 +1054,9 @@ class AnnotationManager:
         sets: Union[Set, List] = None,
         missing_data: str = "ignore",
     ):
-        """Retrieve and clip annotations that cover specific portions of recordings (``ranges'').
+        """Retrieve and clip annotations that cover specific portions of recordings (``ranges``).
         
-        The desired ranges are defined by an input dataframe with three columns: ``recording_filename``, ``range_onset``, and ``range_offset''.
+        The desired ranges are defined by an input dataframe with three columns: ``recording_filename``, ``range_onset``, and ``range_offset``.
         The function returns a dataframe of annotations under the same format as the index of annotations (:ref:`format-annotations`).
        
         This output get can then be provided to :meth:`~ChildProject.annotations.AnnotationManager.get_segments`
