@@ -521,6 +521,8 @@ class EafConverter(AnnotationConverter):
                     segment["addressee"] = value
                 elif label == "vcm":
                     segment["vcm_type"] = value
+                elif label == "msc":
+                    segment["msc_type"] = value
 
         return pd.DataFrame(segments.values())
 
