@@ -7,7 +7,13 @@ import pandas as pd
 import re
 import subprocess
 
-from .tables import IndexTable, IndexColumn, is_boolean
+from .tables import (
+    IndexTable,
+    IndexColumn,
+    is_boolean,
+    assert_dataframe,
+    assert_columns_presence,
+)
 from .utils import get_audio_duration, path_is_parent
 
 
@@ -377,16 +383,14 @@ class ChildProject:
             verbose,
         )
 
-        if self.ignore_discarded and 'discard' in self.ct.df:
-            self.ct.df = self.ct.df[self.ct.df['discard'].astype(str)=='1']
-        
-        if self.ignore_discarded and 'discard' in self.rt.df:
-            self.rt.df = self.rt.df[self.rt.df['discard'].astype(str)=='1']
+        if self.ignore_discarded and "discard" in self.ct.df:
+            self.ct.df = self.ct.df[self.ct.df["discard"].astype(str) == "1"]
+
+        if self.ignore_discarded and "discard" in self.rt.df:
+            self.rt.df = self.rt.df[self.rt.df["discard"].astype(str) == "1"]
 
         self.children = self.ct.df
         self.recordings = self.rt.df
-
-
 
     def validate(self, ignore_recordings: bool = False, profile: str = None) -> tuple:
         """Validate a dataset, returning all errors and warnings.
@@ -630,6 +634,77 @@ class ChildProject:
         recordings["duration"] = (recordings["duration"] * 1000).astype(int)
 
         return recordings
+
+    def compute_ages(
+        self, recordings: pd.DataFrame = None, children: pd.DataFrame = None
+    ) -> pd.Series:
+        """Compute the age of the subject child for each recording (in months, as a float)
+        and return it as a pandas Series object.
+
+        Example:
+
+        >>> from ChildProject.projects import ChildProject
+        >>> project = ChildProject("examples/valid_raw_data")
+        >>> project.read()
+        >>> project.recordings["age"] = project.compute_ages()
+        >>> project.recordings[["child_id", "date_iso", "age"]]
+            child_id    date_iso       age
+        line                                
+        2            1  2020-04-20  3.613963
+        3            1  2020-04-21  3.646817
+
+        :param recordings: custom recordings DataFrame (see :ref:`format-metadata`), otherwise use all project recordings, defaults to None
+        :type recordings: pd.DataFrame, optional
+        :param children: custom children DataFrame (see :ref:`format-metadata`), otherwise use all project children data, defaults to None
+        :type children: pd.DataFrame, optional
+        """
+
+        def date_is_valid(date: str, fmt: str):
+            try:
+                datetime.datetime.strptime(date, fmt)
+            except:
+                return False
+            return True
+
+        if recordings is None:
+            recordings = self.recordings.copy()
+
+        if children is None:
+            children = self.children.copy()
+
+        assert_dataframe("recordings", recordings)
+        assert_dataframe("children", children)
+
+        assert_columns_presence("recordings", recordings, {"date_iso", "child_id"})
+        assert_columns_presence("children", children, {"child_dob", "child_id"})
+
+        index = recordings.index
+        recordings = recordings.merge(
+            children[["child_id", "child_dob"]],
+            how="left",
+            left_on="child_id",
+            right_on="child_id",
+        )
+        recordings.index = index
+
+        age = (
+            recordings[["date_iso", "child_dob"]]
+            .apply(
+                lambda r: (
+                    datetime.datetime.strptime(r["date_iso"], "%Y-%m-%d")
+                    - datetime.datetime.strptime(r["child_dob"], "%Y-%m-%d")
+                )
+                if (
+                    date_is_valid(r["child_dob"], "%Y-%m-%d")
+                    and date_is_valid(r["date_iso"], "%Y-%m-%d")
+                )
+                else None,
+                axis=1,
+            )
+            .apply(lambda dt: dt.days / (365.25 / 12) if dt else None)
+        )
+
+        return age
 
     def read_documentation(self) -> pd.DataFrame:
         docs = ["children", "recordings", "annotations"]

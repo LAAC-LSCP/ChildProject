@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 
  - Conversation sampler
  - `get_within_ranges` function to retrieve all annotations that match the desired portions of the recordings
+ - `compute_ages` function to compute the age of the subject child for each recording
  - `lena_speaker` for the LENA its converter
  - `lena_speaker` aggregated metrics for the LenaMetrics pipeline
  - Improved AclewMetrics and LenaMetrics performance
