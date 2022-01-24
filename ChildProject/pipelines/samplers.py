@@ -356,12 +356,15 @@ class RandomVocalizationSampler(Sampler):
         return segments.sample(frac=1).head(self.sample_size)
 
     def _sample(self):
-        recordings = self.get_recordings_from_list(self.recordings)
+        recordings = self.project.get_recordings_from_list(self.recordings)
 
-        with mp.Pool(
-            processes=self.threads if self.threads >= 1 else mp.cpu_count()
-        ) as pool:
-            self.segments = pool.map(self._sample_unit, recordings.groupby(self.by))
+        if self.threads == 1:
+            self.segments = map(self._sample_unit, recordings.groupby(self.by))
+        else:
+            with mp.Pool(
+                processes=self.threads if self.threads >= 1 else mp.cpu_count()
+            ) as pool:
+                self.segments = pool.map(self._sample_unit, recordings.groupby(self.by))
 
         self.segments = pd.concat(self.segments)
 
@@ -798,10 +801,13 @@ class HighVolubilitySampler(Sampler):
     def _sample(self):
         recordings = self.project.get_recordings_from_list(self.recordings)
 
-        with mp.Pool(
-            processes=self.threads if self.threads >= 1 else mp.cpu_count()
-        ) as pool:
-            self.segments = pool.map(self._sample_unit, recordings.groupby(self.by))
+        if self.threads == 1:
+            self.segments = map(self._sample_unit, recordings.groupby(self.by))
+        else:
+            with mp.Pool(
+                processes=self.threads if self.threads >= 1 else mp.cpu_count()
+            ) as pool:
+                self.segments = pool.map(self._sample_unit, recordings.groupby(self.by))
 
         self.segments = pd.concat(self.segments)
 

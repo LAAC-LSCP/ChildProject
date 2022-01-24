@@ -21,6 +21,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
  
  - Fixed pipelines crashes in presence of NA values in `recording_filename`
+ - `RandomVocalizationSampler` crash fix
 
 ## [0.0.3] - 2021-10-06
 
