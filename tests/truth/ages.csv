@@ -1,0 +1,3 @@
+line,duration,start_time,notes,recording_device_type,experiment,child_id,noisy_setting,recording_filename,date_iso,age
+2,4000,9:00,VERY confidential notes,usb,test,1,1,sound.wav,2020-04-20,3.6139630390143735
+3,4000,9:00,,usb,test,1,1,sound2.wav,2020-04-21,3.646817248459959

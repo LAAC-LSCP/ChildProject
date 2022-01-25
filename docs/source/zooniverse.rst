@@ -24,7 +24,12 @@ you’d need to do.
 6. You can visit the `stats section <https://www.zooniverse.org/projects/chiarasemenzin/maturity-of-baby-sounds/stats>`__ to look at how many annotations are being done.
 
 You can also use this code and your own knowledge to set up a new
-project of your own. We provide a `tutorial <https://gin.g-node.org/LAAC-LSCP/zoo-campaign>`__ for creating a campaign of classification using Zooniverse and ChildProject.
+project of your own.
+
+.. note::
+
+   This is the documentation for the Zooniverse pipeline of the package.
+   We also provide separately a more detailed `step-by-step tutorial <https://gin.g-node.org/LAAC-LSCP/zoo-campaign>`__ for creating a campaign of classification using Zooniverse and ChildProject.
 
 Overview
 ~~~~~~~~
@@ -42,7 +47,7 @@ It also saves a record of all these chunks into a CSV dataframe.
 This record can then be provided to the ``upload-chunks`` command, in order to upload
 the chunks to zooniverse.
 
-..note::
+.. note::
 
     ``extract-chunks`` will require the list of segments to classify, which are provided as a CSV dataframe with three columns:
     ``recording_filename``, ``segment_onset``, and ``segment_offset``. The path to this dataframe has to be specified with the

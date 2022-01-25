@@ -143,14 +143,14 @@ Custom converter
 ----------------
 
 A converter is a function that takes a filename for only input, and return a dataframe
-complying with the specifications defined in :ref:`format-annotations`.
+complying with the specifications defined in :ref:`format-annotations-segments`.
 
 The output dataframe _must_ contain at least a ``segment_onset`` and a ``segment_offset`` columns
 expressing the onset and offset of each segment in milliseconds as
 integers.
 
 You are free to add as many extra columns as you want. It is however preferable to follow the
-standards listed in :ref:`format-annotations` when possible.
+standards listed in :ref:`format-annotations-segments` when possible.
 
 In our case, we'll write a very simple converter to extract only the segments onset and offset
 from rttm files:

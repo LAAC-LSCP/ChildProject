@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
  - Conversation sampler
  - `get_within_ranges` function to retrieve all annotations that match the desired portions of the recordings
  - `--import-speech-from` option for the EAF annotation builder to pre-fill annotations based on any previously imported set of annotations
+ - `compute_ages` function to compute the age of the subject child for each recording
  - `lena_speaker` for the LENA its converter
  - `lena_speaker` aggregated metrics for the LenaMetrics pipeline
  - Improved AclewMetrics and LenaMetrics performance
@@ -21,6 +22,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
  
  - Fixed pipelines crashes in presence of NA values in `recording_filename`
+ - `RandomVocalizationSampler` crash fix
 
 ## [0.0.3] - 2021-10-06
 
