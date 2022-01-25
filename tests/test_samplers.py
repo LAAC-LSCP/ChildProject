@@ -126,12 +126,57 @@ def test_conversation_sampler(project):
         project, "conv", count=5, interval=1000, speakers=["FEM", "CHI"],
     )
     sampler.sample()
-
+    
     assert len(sampler.segments) == len(conversations)
     assert sampler.segments["segment_onset"].tolist() == [
         conv["onset"]
         for conv in sorted(conversations, key=lambda c: c["vocs"], reverse=True)
     ]
+
+def test_random_vocalization(project):
+    segments = [
+        {
+            'segment_onset': 1000,
+            'segment_offset': 2000,
+            'speaker_type': speaker
+        }
+        for speaker in ['CHI', 'FEM', 'MAL']
+    ] 
+
+    segments = pd.DataFrame(segments)
+
+    am = AnnotationManager(project)
+    am.import_annotations(
+        pd.DataFrame(
+            [
+                {
+                    "set": "random",
+                    "raw_filename": "file.rttm",
+                    "time_seek": 0,
+                    "recording_filename": "sound.wav",
+                    "range_onset": 0,
+                    "range_offset": 4000,
+                    "format": "rttm",
+                }
+            ]
+        ),
+        import_function=partial(fake_conversation, segments),
+    )
+
+    sampler = RandomVocalizationSampler(
+        project=project,
+        annotation_set="random",
+        target_speaker_type=["CHI"],
+        sample_size=1,
+        threads=1
+    )
+    sampler.sample()
+    
+    chi_segments = segments[segments["speaker_type"] == "CHI"]
+    pd.testing.assert_frame_equal(
+        sampler.segments[["segment_onset", "segment_offset"]].astype(int),
+        chi_segments[["segment_onset", "segment_offset"]].astype(int)
+    )
 
 
 def test_exclusion(project):
