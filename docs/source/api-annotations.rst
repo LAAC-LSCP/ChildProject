@@ -211,6 +211,9 @@ The contents of the output CSV file can be checked:
     This can be done with :meth:`~ChildProject.annotations.AnnotationManager.remove_set` to
     remove a set of annotations from the index while preserving raw annotations.
 
+Users are advised to check the consistency and validity of the annotations and their index
+using the validation procedure.
+
 Validating annotations
 ~~~~~~~~~~~~~~~~~~~~~~
 
