@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.0.4] - 2022-02-02
+
 ### Added 
 
  - Conversation sampler
@@ -57,7 +59,8 @@ All notable changes to this project will be documented in this file.
 
 - First proper release of the package.
 
-[unreleased]: https://github.com/LAAC-LSCP/ChildProject/compare/v0.0.3...HEAD
+[unreleased]: https://github.com/LAAC-LSCP/ChildProject/compare/v0.0.4...HEAD
+[0.0.4]: https://github.com/LAAC-LSCP/ChildProject/releases/tag/v0.0.4
 [0.0.3]: https://github.com/LAAC-LSCP/ChildProject/releases/tag/v0.0.3
 [0.0.2]: https://github.com/LAAC-LSCP/ChildProject/releases/tag/v0.0.2
 [0.0.1]: https://github.com/LAAC-LSCP/ChildProject/releases/tag/v0.0.1
