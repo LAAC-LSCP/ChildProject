@@ -167,11 +167,6 @@ Annotations are indexed in one unique dataframe located at
 .. index-table:: Annotations metadata
    :header: annotations
 
-.. comment::
-    This comment fixes an issue introduced in Sphinx 4.3.1
-
-.. _format-input-annotations:
-
 Below is shown an example of an index file
 (some uninformative columns were hidden for clarity).
 In this case, one recording has been fully
@@ -198,6 +193,11 @@ These humans have both annotated the same seven 15 second clips.
    eaf_2021/LM,A730/A730_001105.wav,0,15030000,15045000,A730_001105.eaf,eaf,A730/A730_001105_15030000_15045000.csv
    eaf_2021/LM,A730/A730_001105.wav,0,36465000,36480000,A730_001105.eaf,eaf,A730/A730_001105_36465000_36480000.csv
    eaf_2021/LM,A730/A730_001105.wav,0,39450000,39465000,A730_001105.eaf,eaf,A730/A730_001105_39450000_39465000.csv
+
+.. comment::
+    This comment fixes an issue introduced in Sphinx 4.3.1
+
+.. _format-input-annotations:
 
 Annotation importation input format
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
