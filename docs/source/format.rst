@@ -167,6 +167,9 @@ Annotations are indexed in one unique dataframe located at
 .. index-table:: Annotations metadata
    :header: annotations
 
+.. comment::
+    This comment fixes an issue introduced in Sphinx 4.3.1
+
 .. _format-input-annotations:
 
 Below is shown an example of an index file
