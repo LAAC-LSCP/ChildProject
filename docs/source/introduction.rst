@@ -88,12 +88,13 @@ If you are using this project for your research, please cite our `introductory p
 
    @article{gautheron_rochat_cristia_2021,
       title={Managing, storing, and sharing long-form recordings and their annotations},
-      url={https://psyarxiv.com/w8trm},
-      DOI={10.31234/osf.io/w8trm},
-      publisher={PsyArXiv},
+      url={https://link.springer.com/article/10.1007/s10579-022-09579-3},
+      DOI={10.1007/s10579-022-09579-3},
+      publisher={Springer},
+      journal={Language Resources and Evaluation}
       author={Gautheron, Lucas and Rochat, Nicolas and Cristia, Alejandrina},
-      year={2021},
-      month={May}
+      year={2022},
+      month={Feb}
    }
 
 Community
