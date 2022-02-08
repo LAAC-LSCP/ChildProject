@@ -392,7 +392,7 @@ class AnnotationManager:
 
         :param import_function: If callable, ``import_function`` will be called to convert the input annotation into a dataframe. Otherwise, the conversion will be performed by a built-in function.
         :type import_function: Callable[[str], pd.DataFrame]
-        :param new_tiers: List of names of EAF tier. If specified, the new_tiers will be imported
+        :param new_tiers: List of EAF tiers names. If specified, the corresponding EAF tiers will be imported
         :type new_tiers: list[str]
         :param annotation: input annotation dictionary (attributes defined according to :ref:`ChildProject.annotations.AnnotationManager.SEGMENTS_COLUMNS`)
         :type annotation: dict
@@ -500,7 +500,7 @@ class AnnotationManager:
         :type threads: int, optional
         :param import_function: If specified, the custom ``import_function`` function will be used to convert all ``input`` annotations, defaults to None
         :type import_function: Callable[[str], pd.DataFrame], optional
-        :param new_tiers: List of names of EAF tiers. If specified, the new_tiers will be imported
+        :param new_tiers: List of EAF tiers names. If specified, the corresponding EAF tiers will be imported
         :type new_tiers: list[str], optional
         :return: dataframe of imported annotations, as in :ref:`format-annotations`.
         :rtype: pd.DataFrame
