@@ -440,7 +440,7 @@ class EafConverter(AnnotationConverter):
     FORMAT = "eaf"
 
     @staticmethod
-    def convert(filename: str, filter=None, new_tier=None) -> pd.DataFrame:
+    def convert(filename: str, filter=None, new_tiers=None) -> pd.DataFrame:
         print('convert function')
         import pympi
 
@@ -524,8 +524,8 @@ class EafConverter(AnnotationConverter):
                     segment["vcm_type"] = value
                 elif label == "msc":
                     segment["msc_type"] = value
-                elif label == new_tier:
-                    segment[new_tier] = value
+                elif label in new_tiers:
+                    segment[label] = value
 
         return pd.DataFrame(segments.values())
 
