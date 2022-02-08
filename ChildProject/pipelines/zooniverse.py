@@ -6,7 +6,6 @@ import math
 import multiprocessing as mp
 import os
 import pandas as pd
-from panoptes_client import Panoptes, Project, Subject, SubjectSet, Classification
 import shutil
 import subprocess
 import sys
@@ -318,6 +317,8 @@ class ZooniversePipeline(Pipeline):
             self.chunks,
             {"recording_filename", "onset", "offset", "uploaded", "mp3"},
         )
+        
+        from panoptes_client import Panoptes, Project, Subject, SubjectSet
 
         Panoptes.connect(username=self.zooniverse_login, password=self.zooniverse_pwd)
         zooniverse_project = Project(project_id)
@@ -423,6 +424,7 @@ class ZooniversePipeline(Pipeline):
         """
         self.get_credentials(zooniverse_login, zooniverse_pwd)
 
+        from panoptes_client import Panoptes, Project, Classification
         Panoptes.connect(username=self.zooniverse_login, password=self.zooniverse_pwd)
         project = Project(project_id)
 
