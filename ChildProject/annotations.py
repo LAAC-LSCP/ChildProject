@@ -386,14 +386,14 @@ class AnnotationManager:
         )
 
     def _import_annotation(
-        self, import_function: Callable[[str], pd.DataFrame], new_tiers: str, annotation: dict
+        self, import_function: Callable[[str], pd.DataFrame], params: dict, annotation: dict
     ):
         """import and convert ``annotation``. This function should not be called outside of this class.
 
         :param import_function: If callable, ``import_function`` will be called to convert the input annotation into a dataframe. Otherwise, the conversion will be performed by a built-in function.
         :type import_function: Callable[[str], pd.DataFrame]
-        :param new_tiers: List of EAF tiers names. If specified, the corresponding EAF tiers will be imported
-        :type new_tiers: list[str]
+        :param params: Optional parameters. With ```new_tiers```, the corresponding EAF tiers will be imported
+        :type params: dict
         :param annotation: input annotation dictionary (attributes defined according to :ref:`ChildProject.annotations.AnnotationManager.SEGMENTS_COLUMNS`)
         :type annotation: dict
         :return: output annotation dictionary (attributes defined according to :ref:`ChildProject.annotations.AnnotationManager.SEGMENTS_COLUMNS`)
@@ -429,7 +429,7 @@ class AnnotationManager:
                 df = import_function(path)
             elif annotation_format in converters:
                 converter = converters[annotation_format]
-                df = converter.convert(path, filter, new_tiers)
+                df = converter.convert(path, filter, **params)
             else:
                 raise ValueError(
                     "file format '{}' unknown for '{}'".format(annotation_format, path)
@@ -490,7 +490,7 @@ class AnnotationManager:
         input: pd.DataFrame,
         threads: int = -1,
         import_function: Callable[[str], pd.DataFrame] = None,
-        new_tiers: str = None,
+        new_tiers: list = None,
     ) -> pd.DataFrame:
         """Import and convert annotations.
 
@@ -500,7 +500,7 @@ class AnnotationManager:
         :type threads: int, optional
         :param import_function: If specified, the custom ``import_function`` function will be used to convert all ``input`` annotations, defaults to None
         :type import_function: Callable[[str], pd.DataFrame], optional
-        :param new_tiers: List of EAF tiers names. If specified, the corresponding EAF tiers will be imported
+        :param new_tiers: List of EAF tiers names. If specified, the corresponding EAF tiers will be imported.
         :type new_tiers: list[str], optional
         :return: dataframe of imported annotations, as in :ref:`format-annotations`.
         :rtype: pd.DataFrame
@@ -541,12 +541,12 @@ class AnnotationManager:
 
         if threads == 1:
             imported = input.apply(
-                partial(self._import_annotation, import_function, new_tiers), axis=1
+                partial(self._import_annotation, import_function, {"new_tiers": new_tiers}), axis=1
             ).to_dict(orient="records")
         else:
             with mp.Pool(processes=threads if threads > 0 else mp.cpu_count()) as pool:
                 imported = pool.map(
-                    partial(self._import_annotation, import_function, new_tiers),
+                    partial(self._import_annotation, import_function, {"new_tiers": new_tiers}),
                     input.to_dict(orient="records"),
                 )
 
