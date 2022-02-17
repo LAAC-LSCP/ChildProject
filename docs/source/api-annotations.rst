@@ -214,6 +214,19 @@ The contents of the output CSV file can be checked:
 Users are advised to check the consistency and validity of the annotations and their index
 using the validation procedure.
 
+Importing any EAF tier
+----------------------
+
+When importing EAF annotation files, some tiers are supported by ChildProject, such as `vcm_type` or
+`lex_type`. 
+
+If you want to import a tier that is not supported by ChildProject, you can use
+:meth:`~ChildProject.annotations.AnnotationManager.import_annotations` as follows :
+
+.. code-block:: python
+
+    >>> am.import_annotations(input, new_tier = ['name_of_tier'])
+
 Validating annotations
 ~~~~~~~~~~~~~~~~~~~~~~
 
