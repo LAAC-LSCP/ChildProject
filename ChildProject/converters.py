@@ -71,7 +71,7 @@ class CsvConverter(AnnotationConverter):
     FORMAT = "csv"
 
     @staticmethod
-    def convert(filename: str, filter="") -> pd.DataFrame:
+    def convert(filename: str, filter="", **kwargs) -> pd.DataFrame:
         return pd.read_csv(filename)
 
 
@@ -83,7 +83,7 @@ class VtcConverter(AnnotationConverter):
     )
 
     @staticmethod
-    def convert(filename: str, source_file: str = "") -> pd.DataFrame:
+    def convert(filename: str, source_file: str = "", **kwargs) -> pd.DataFrame:
         rttm = pd.read_csv(
             filename,
             sep=" ",
@@ -149,7 +149,7 @@ class VcmConverter(AnnotationConverter):
     )
 
     @staticmethod
-    def convert(filename: str, source_file: str = "") -> pd.DataFrame:
+    def convert(filename: str, source_file: str = "", **kwargs) -> pd.DataFrame:
         rttm = pd.read_csv(
             filename,
             sep=" ",
@@ -200,7 +200,7 @@ class AliceConverter(AnnotationConverter):
     FORMAT = "alice"
 
     @staticmethod
-    def convert(filename: str, source_file: str = "") -> pd.DataFrame:
+    def convert(filename: str, source_file: str = "", **kwargs) -> pd.DataFrame:
         df = pd.read_csv(
             filename,
             sep=r"\s",
@@ -231,7 +231,7 @@ class ItsConverter(AnnotationConverter):
     )
 
     @staticmethod
-    def convert(filename: str, recording_num: int = None) -> pd.DataFrame:
+    def convert(filename: str, recording_num: int = None, **kwargs) -> pd.DataFrame:
         from lxml import etree
 
         xml = etree.parse(filename)
@@ -398,7 +398,7 @@ class TextGridConverter(AnnotationConverter):
     FORMAT = "TextGrid"
 
     @staticmethod
-    def convert(filename: str, filter=None) -> pd.DataFrame:
+    def convert(filename: str, filter=None, **kwargs) -> pd.DataFrame:
         import pympi
 
         textgrid = pympi.Praat.TextGrid(filename)
@@ -440,7 +440,7 @@ class EafConverter(AnnotationConverter):
     FORMAT = "eaf"
 
     @staticmethod
-    def convert(filename: str, filter=None) -> pd.DataFrame:
+    def convert(filename: str, filter=None, **kwargs) -> pd.DataFrame:
         import pympi
 
         eaf = pympi.Elan.Eaf(filename)
@@ -523,6 +523,8 @@ class EafConverter(AnnotationConverter):
                     segment["vcm_type"] = value
                 elif label == "msc":
                     segment["msc_type"] = value
+                elif label in kwargs["new_tiers"]:
+                    segment[label] = value
 
         return pd.DataFrame(segments.values())
 
@@ -592,7 +594,7 @@ class ChatConverter(AnnotationConverter):
         return ChatConverter.ADDRESSEE_TABLE[ChatConverter.SPEAKER_ROLE_TO_TYPE[role]]
 
     @staticmethod
-    def convert(filename: str, filter=None) -> pd.DataFrame:
+    def convert(filename: str, filter=None, **kwargs) -> pd.DataFrame:
 
         import pylangacq
 

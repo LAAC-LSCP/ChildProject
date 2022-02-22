@@ -83,6 +83,20 @@ def test_eaf():
     )
 
 
+def test_eaf_any_tier():
+    converted = EafConverter().convert("tests/data/eaf_any_tier.eaf", new_tiers = ['newtier', 'newtier2']) \
+                              .replace('', "NA") \
+                              .fillna("NA")
+    truth = pd.read_csv("tests/truth/eaf_any_tier.csv", dtype={"transcription": str}).fillna(
+        "NA"
+    )
+
+    pd.testing.assert_frame_equal(
+        standardize_dataframe(converted, converted.columns),
+        standardize_dataframe(truth, converted.columns),
+    )
+
+
 def test_textgrid():
     converted = TextGridConverter().convert("tests/data/textgrid.TextGrid")
     truth = pd.read_csv("tests/truth/textgrid.csv", dtype={"ling_type": str}).fillna(
