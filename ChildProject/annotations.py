@@ -59,7 +59,7 @@ class AnnotationManager:
             required=False,
         ),
         IndexColumn(
-            name="target",
+            name="filter",
             description="source file to target. this field is dedicated to rttm and ALICE annotations that may combine annotations from several recordings into one same text file.",
             required=False,
         ),
@@ -418,9 +418,9 @@ class AnnotationManager:
         annotation_format = annotation["format"]
 
         df = None
-        target = (
-            annotation["target"]
-            if "target" in annotation and not pd.isnull(annotation["target"])
+        filter = (
+            annotation["filter"]
+            if "filter" in annotation and not pd.isnull(annotation["filter"])
             else None
         )
 
@@ -429,7 +429,7 @@ class AnnotationManager:
                 df = import_function(path)
             elif annotation_format in converters:
                 converter = converters[annotation_format]
-                df = converter.convert(path, target, **params)
+                df = converter.convert(path, filter, **params)
             else:
                 raise ValueError(
                     "file format '{}' unknown for '{}'".format(annotation_format, path)
