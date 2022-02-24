@@ -524,7 +524,15 @@ class EafConverter(AnnotationConverter):
                 elif label == "msc":
                     segment["msc_type"] = value
                 elif label in kwargs["new_tiers"]:
-                    segment[label] = value
+                    controlled_values = \
+                        [value[0][0][0] for value in eaf.controlled_vocabularies[label][1].values()]
+                    if value not in controlled_values:
+                        print(
+                            f'warning: {value} is not in the controlled'
+                            f'vocabulary {controlled_values} for {label}'
+                        )
+                    else:
+                        segment[label] = value
 
         return pd.DataFrame(segments.values())
 
