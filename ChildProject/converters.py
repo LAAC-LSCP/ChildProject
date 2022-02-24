@@ -105,7 +105,7 @@ class VtcConverter(AnnotationConverter):
         if  n_recordings > 1 and not source_file:
             print(
                 f"""WARNING: {filename} contains annotations from {n_recordings} different audio files, """
-                """but no filter was specified which means all of these annotations will be imported.\n"""
+                """but no filter was specified which means all of these annotations will be imported\n"""
                 """as if they belonged to the same recording. Please make sure this is the intended behavior """
                 """(it probably isn't)."""
             )
