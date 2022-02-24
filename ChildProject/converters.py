@@ -71,7 +71,7 @@ class CsvConverter(AnnotationConverter):
     FORMAT = "csv"
 
     @staticmethod
-    def convert(filename: str, filter="", **kwargs) -> pd.DataFrame:
+    def convert(filename: str, target: str="", **kwargs) -> pd.DataFrame:
         return pd.read_csv(filename)
 
 
@@ -398,7 +398,7 @@ class TextGridConverter(AnnotationConverter):
     FORMAT = "TextGrid"
 
     @staticmethod
-    def convert(filename: str, filter=None, **kwargs) -> pd.DataFrame:
+    def convert(filename: str, target=None, **kwargs) -> pd.DataFrame:
         import pympi
 
         textgrid = pympi.Praat.TextGrid(filename)
@@ -440,7 +440,7 @@ class EafConverter(AnnotationConverter):
     FORMAT = "eaf"
 
     @staticmethod
-    def convert(filename: str, filter=None, **kwargs) -> pd.DataFrame:
+    def convert(filename: str, target=None, **kwargs) -> pd.DataFrame:
         import pympi
 
         eaf = pympi.Elan.Eaf(filename)
@@ -594,7 +594,7 @@ class ChatConverter(AnnotationConverter):
         return ChatConverter.ADDRESSEE_TABLE[ChatConverter.SPEAKER_ROLE_TO_TYPE[role]]
 
     @staticmethod
-    def convert(filename: str, filter=None, **kwargs) -> pd.DataFrame:
+    def convert(filename: str, target=None, **kwargs) -> pd.DataFrame:
 
         import pylangacq
 
