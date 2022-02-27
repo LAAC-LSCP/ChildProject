@@ -60,7 +60,7 @@ class AnnotationManager:
         ),
         IndexColumn(
             name="filter",
-            description="source file to filter in (for rttm and alice only)",
+            description="source file to target. this field is dedicated to rttm and ALICE annotations that may combine annotations from several recordings into one same text file.",
             required=False,
         ),
         IndexColumn(

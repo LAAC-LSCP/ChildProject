@@ -71,7 +71,7 @@ class CsvConverter(AnnotationConverter):
     FORMAT = "csv"
 
     @staticmethod
-    def convert(filename: str, filter="", **kwargs) -> pd.DataFrame:
+    def convert(filename: str, filter: str="", **kwargs) -> pd.DataFrame:
         return pd.read_csv(filename)
 
 
@@ -100,6 +100,15 @@ class VtcConverter(AnnotationConverter):
                 "unk",
             ],
         )
+
+        n_recordings = len(rttm["file"].unique())
+        if  n_recordings > 1 and not source_file:
+            print(
+                f"""WARNING: {filename} contains annotations from {n_recordings} different audio files, """
+                """but no filter was specified which means all of these annotations will be imported\n"""
+                """as if they belonged to the same recording. Please make sure this is the intended behavior """
+                """(it probably isn't)."""
+            )
 
         df = rttm
         df["segment_onset"] = df["tbeg"].mul(1000).round().astype(int)
@@ -207,6 +216,15 @@ class AliceConverter(AnnotationConverter):
             names=["file", "phonemes", "syllables", "words"],
             engine="python",
         )
+
+        n_recordings = len(df["file"].unique())
+        if  n_recordings > 1 and not source_file:
+            print(
+                f"""WARNING: {filename} contains annotations from {n_recordings} different audio files, """
+                """but no filter was specified which means all of these annotations will be imported.\n"""
+                """as if they belonged to the same recording. Please make sure this is the intended behavior """
+                """(it probably isn't)."""
+            )
 
         if source_file:
             df = df[df["file"].str.contains(source_file)]
