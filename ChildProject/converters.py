@@ -440,7 +440,7 @@ class EafConverter(AnnotationConverter):
     FORMAT = "eaf"
 
     @staticmethod
-    def convert(filename: str, filter=None, **kwargs) -> pd.DataFrame:
+    def convert(filename: str, filter: str=None, new_tiers: list=None, **kwargs) -> pd.DataFrame:
         import pympi
 
         eaf = pympi.Elan.Eaf(filename)
@@ -523,7 +523,7 @@ class EafConverter(AnnotationConverter):
                     segment["vcm_type"] = value
                 elif label == "msc":
                     segment["msc_type"] = value
-                elif label in kwargs["new_tiers"]:
+                elif new_tiers is not None and label in new_tiers:
                     controlled_values = \
                         [value[0][0][0] for value in eaf.controlled_vocabularies[label][1].values()]
                     if value not in controlled_values:
