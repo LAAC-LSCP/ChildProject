@@ -524,13 +524,16 @@ class EafConverter(AnnotationConverter):
                 elif label == "msc":
                     segment["msc_type"] = value
                 elif new_tiers is not None and label in new_tiers:
-                    controlled_values = \
-                        [value[0][0][0] for value in eaf.controlled_vocabularies[label][1].values()]
-                    if value not in controlled_values:
-                        print(
-                            f'warning: {value} is not in the controlled'
-                            f'vocabulary {controlled_values} for {label}'
-                        )
+                    if label in eaf.controlled_vocabularies.keys():
+                        controlled_values = \
+                            [value[0][0][0] for value in eaf.controlled_vocabularies[label][1].values()]
+                        if value not in controlled_values:
+                            print(
+                                f'warning: {value} is not in the controlled'
+                                f'vocabulary {controlled_values} for {label}'
+                            )
+                        else:
+                            segment[label] = value
                     else:
                         segment[label] = value
 
