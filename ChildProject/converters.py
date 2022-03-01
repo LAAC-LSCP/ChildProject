@@ -440,6 +440,29 @@ class EafConverter(AnnotationConverter):
     FORMAT = "eaf"
 
     @staticmethod
+    def get_controlled_vocabulary(filename: str) -> pd.DataFrame:
+        import pympi
+
+        eaf = pympi.Elan.Eaf(filename)
+
+        controlled_voc = pd.DataFrame.from_dict(
+                    eaf.controlled_vocabularies,
+                    orient='index',
+                    columns=['description', 'entries', 'external_references']
+                )
+    
+        controlled_voc['description'] = \
+            controlled_voc['description'].transform(lambda x: x[0][1] if len(x) > 0 else x)
+        controlled_voc['entries'] = \
+            controlled_voc['entries'] \
+                .transform(
+                    lambda x: [value[0][0] if len(value) > 0 else value for value in x.values()]
+                )
+
+        return controlled_voc
+
+
+    @staticmethod
     def convert(filename: str, filter: str=None, new_tiers: list=None, **kwargs) -> pd.DataFrame:
         import pympi
 
