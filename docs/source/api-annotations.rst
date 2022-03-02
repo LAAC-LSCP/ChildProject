@@ -223,9 +223,17 @@ When importing EAF annotation files, some tiers are supported by ChildProject, s
 If you want to import a tier that is not supported by ChildProject, you can use
 :meth:`~ChildProject.annotations.AnnotationManager.import_annotations` as follows :
 
-.. code-block:: python
+..code-block:: python
 
-    >>> am.import_annotations(input, new_tier = ['name_of_tier'])
+    >>> am.import_annotations(input, new_tiers = ['name_of_tier'])
+
+If a controlled vocabulary is added in the EAF annotation file for this new tier, the values
+of the annotations are checked. If a value is not in the controlled vocabulary, it is not
+written in the annotation file, and a warning is thrown.
+Moreover, the ``metadata/controlled_vocabulary.csv`` dataframe in metadata is either created
+with the available controlled vocabularies or updated with this new tier.
+
+If no controlled vocabulary is added in the EAF annoation file, the values are not checked.
 
 Validating annotations
 ~~~~~~~~~~~~~~~~~~~~~~
