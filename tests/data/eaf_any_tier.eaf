@@ -1612,7 +1612,7 @@
     <TIER LINGUISTIC_TYPE_REF="NEWTIER2" PARENT_REF="CHI" PARTICIPANT="CHI" TIER_ID="newtier2@CHI">
         <ANNOTATION>
             <REF_ANNOTATION ANNOTATION_ID="a257" ANNOTATION_REF="a256" CVE_REF="cveid_09a9bb98-31a9-4afd-9ed7-d4fc7af658a6">
-                <ANNOTATION_VALUE>W</ANNOTATION_VALUE>
+                <ANNOTATION_VALUE>bad_value</ANNOTATION_VALUE>
             </REF_ANNOTATION>
         </ANNOTATION>
         <ANNOTATION>
@@ -2400,7 +2400,7 @@
     <TIER LINGUISTIC_TYPE_REF="NEWTIER" PARENT_REF="CHI" PARTICIPANT="CHI" TIER_ID="newtier@CHI">
         <ANNOTATION>
             <REF_ANNOTATION ANNOTATION_ID="a582" ANNOTATION_REF="a256" CVE_REF="cveid_57c69cd9-b12d-49e9-a2ee-5782f3f1b867">
-                <ANNOTATION_VALUE>S</ANNOTATION_VALUE>
+                <ANNOTATION_VALUE>bad_value</ANNOTATION_VALUE>
             </REF_ANNOTATION>
         </ANNOTATION>
         <ANNOTATION>
@@ -3324,33 +3324,6 @@
     <CONSTRAINT DESCRIPTION="1-1 association with a parent annotation" STEREOTYPE="Symbolic_Association"/>
     <CONSTRAINT
         DESCRIPTION="Time alignable annotations within the parent annotation's time interval, gaps are allowed" STEREOTYPE="Included_In"/>
-    <CONTROLLED_VOCABULARY CV_ID="newtier2">
-        <DESCRIPTION LANG_REF="und">Simplified subset of infant vocal maturity classes (distinguishing between variegated and non-variegated syllables)</DESCRIPTION>
-        <CV_ENTRY_ML CVE_ID="cveid_e7300257-f12a-479f-90f0-c2fefbf99a26">
-            <CVE_VALUE DESCRIPTION="Crying" LANG_REF="und">Y</CVE_VALUE>
-        </CV_ENTRY_ML>
-        <CV_ENTRY_ML CVE_ID="cveid_ae00bfde-d4bb-499e-8c63-81c4459f5b8a">
-            <CVE_VALUE DESCRIPTION="Laughing" LANG_REF="und">L</CVE_VALUE>
-        </CV_ENTRY_ML>
-        <CV_ENTRY_ML CVE_ID="cveid_df01bf24-04f4-4cff-9bc4-ca92a0ca945f">
-            <CVE_VALUE
-                DESCRIPTION="Non-canonical non-variegated syllable(s)" LANG_REF="und">A</CVE_VALUE>
-        </CV_ENTRY_ML>
-        <CV_ENTRY_ML CVE_ID="cveid_8675a2cf-bb35-476c-a602-8b911eb2a845">
-            <CVE_VALUE
-                DESCRIPTION="Non-canonical variegated syllable(s)" LANG_REF="und">P</CVE_VALUE>
-        </CV_ENTRY_ML>
-        <CV_ENTRY_ML CVE_ID="cveid_f1ad7cdd-4916-4914-a59a-a33d0d7052cc">
-            <CVE_VALUE DESCRIPTION="Canonical variegated syllable(s)" LANG_REF="und">V</CVE_VALUE>
-        </CV_ENTRY_ML>
-        <CV_ENTRY_ML CVE_ID="cveid_09a9bb98-31a9-4afd-9ed7-d4fc7af658a6">
-            <CVE_VALUE
-                DESCRIPTION="Canonical non-variegated syllable(s)" LANG_REF="und">W</CVE_VALUE>
-        </CV_ENTRY_ML>
-        <CV_ENTRY_ML CVE_ID="cveid_ee07af47-c822-4fb3-80d3-d842d80272b7">
-            <CVE_VALUE DESCRIPTION="Uncertain" LANG_REF="und">U</CVE_VALUE>
-        </CV_ENTRY_ML>
-    </CONTROLLED_VOCABULARY>
     <CONTROLLED_VOCABULARY CV_ID="tocode">
         <DESCRIPTION LANG_REF="und">"y" if coder thinks the clip should be coded, "n" if not</DESCRIPTION>
         <CV_ENTRY_ML CVE_ID="cveid0">
