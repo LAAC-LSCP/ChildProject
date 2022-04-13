@@ -37,6 +37,7 @@ class Metrics(ABC):
         }
         #get existing columns of the dataset for recordings
         correct_cols = set(self.project.recordings.columns)
+        if by not in correct_cols: exit("<{}> is not specified in this dataset, cannot extract from it".format(by))
         if rec_cols:
             #when wanted columns specified, build the list and verify they exist (warn otherwise)
             rec_cols=set(rec_cols.split(","))
@@ -67,14 +68,16 @@ class Metrics(ABC):
                 if i not in correct_cols:
                     print("Warning, specified column <{}> does not exist in children.csv, ignoring this column".format(i))
             child_cols &= correct_cols
-        self.child_cols = child_cols
-
-        #join dataset annotation with their info in children.csv
-        self.am.annotations = self.am.annotations.merge(
-            self.project.children[list(child_cols)],
-            left_on="child_id",
-            right_on="child_id",
-        )
+            self.child_cols = child_cols
+    
+            #join dataset annotation with their info in children.csv
+            self.am.annotations = self.am.annotations.merge(
+                self.project.children[list(child_cols)],
+                left_on="child_id",
+                right_on="child_id",
+            )
+        else:
+            self.child_cols = None
         
         self.by = by
         self.segments = pd.DataFrame()
@@ -328,7 +331,7 @@ class LenaMetrics(Metrics):
                 "MAN",
                 "FAF",
             ],
-            nargs="+",
+            nargs="+", default=[],
         )
         parser.add_argument(
             "--threads", help="amount of threads to run on", default=1, type=int
@@ -674,7 +677,7 @@ class PeriodMetrics(Metrics):
             start=datetime.datetime(1900, 1, 1, 0, 0, 0, 0),
             end=datetime.datetime(1900, 1, 2, 0, 0, 0, 0),
             freq=self.period,
-            closed="left",
+            inclusive="left",
         )
 
     def _process_unit(self, unit: str):
@@ -791,7 +794,7 @@ class PeriodMetrics(Metrics):
         if self.child_cols:
             for label in self.child_cols:
                 metrics[label]=self.project.children[
-                        self.project.children["child_id"] == metrics["child_id"]
+                        self.project.children["child_id"] == metrics["child_id"].iloc[0]
                 ][label].iloc[0]
                 
         #get and add to dataframe recordings.csv columns asked
