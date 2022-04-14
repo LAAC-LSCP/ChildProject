@@ -677,7 +677,7 @@ class PeriodMetrics(Metrics):
             start=datetime.datetime(1900, 1, 1, 0, 0, 0, 0),
             end=datetime.datetime(1900, 1, 2, 0, 0, 0, 0),
             freq=self.period,
-            inclusive="left",
+            closed="left",
         )
 
     def _process_unit(self, unit: str):
