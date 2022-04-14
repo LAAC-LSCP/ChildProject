@@ -136,10 +136,7 @@ class LenaMetrics(Metrics):
     :type from_time: str, optional
     :param to_time:  If specified (in HH:MM format), ignore annotations outside of the given time-range, defaults to None
     :type to_time: str, optional
-    :param rec_cols: columns from recordings.csv to include in the outputted metrics (optional),
-    recording_filename,session_id,child_id,duration are always included if possible and dont need to be specified
-    Be careful, the program does not check if the columns required are unique (ie asking for start_time when computing by child_id
-    will return a random start_time picked between the different recordings for that child_id) Make sure the columns you specify dont have conflicts
+    :param rec_cols: columns from recordings.csv to include in the outputted metrics (optional), recording_filename,session_id,child_id,duration are always included if possible and dont need to be specified. Any column that is not unique for a given unit (eg date_iso for a child_id being recorded on multiple days) will output a <NA> value
     :type rec_cols: str, optional
     :param child_cols: columns from children.csv to include in the outputted metrics (optional), None by default
     :type child_cols: str, optional
@@ -360,10 +357,7 @@ class AclewMetrics(Metrics):
     :type from_time: str, optional
     :param to_time:  If specified (in HH:MM format), ignore annotations outside of the given time-range, defaults to None
     :type to_time: str, optional
-    :param rec_cols: columns from recordings.csv to include in the outputted metrics (optional),
-    recording_filename,session_id,child_id,duration are always included if possible and dont need to be specified
-    Be careful, the program does not check if the columns required are unique (ie asking for start_time when computing by child_id
-    will return a random start_time picked between the different recordings for that child_id) Make sure the columns you specify dont have conflicts
+    :param rec_cols: columns from recordings.csv to include in the outputted metrics (optional), recording_filename,session_id,child_id,duration are always included if possible and dont need to be specified. Any column that is not unique for a given unit (eg date_iso for a child_id being recorded on multiple days) will output a <NA> value
     :type rec_cols: str, optional
     :param child_cols: columns from children.csv to include in the outputted metrics (optional), None by default
     :type child_cols: str, optional
@@ -628,9 +622,8 @@ class PeriodMetrics(Metrics):
     :type from_time: str, optional
     :param to_time:  If specified (in HH:MM format), ignore annotations outside of the given time-range, defaults to None
     :type to_time: str, optional
-    :param rec_cols: columns from recordings.csv to include in the outputted metrics (optional), recording_filename,session_id,child_id,duration are always included if possible and dont need to be specified
-    :param rec_cols: columns from recordings.csv to include in the outputted metrics (optional),
-    recording_filename,session_id,child_id,duration are always included if possible and dont need to be specified. Any column that is not unique for a given unit (eg date_iso for a child_id being recorded on multiple days) will output a <NA> value
+    :param rec_cols: columns from recordings.csv to include in the outputted metrics (optional), recording_filename,session_id,child_id,duration are always included if possible and dont need to be specified. Any column that is not unique for a given unit (eg date_iso for a child_id being recorded on multiple days) will output a <NA> value
+    :type rec_cols: str, optional
     :param child_cols: columns from children.csv to include in the outputted metrics (optional), None by default
     :type child_cols: str, optional
     :param by: units to sample from, defaults to 'recording_filename'
