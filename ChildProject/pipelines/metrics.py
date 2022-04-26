@@ -913,7 +913,7 @@ class MetricsPipeline(Pipeline):
         
         parser.add_argument(
             "--rec-cols",
-            help="columns from recordings.csv to include in the outputted metrics (optional)",
+            help="columns from recordings.csv to include in the outputted metrics (optional), NA if ambiguous",
             default=None,
         )
         
