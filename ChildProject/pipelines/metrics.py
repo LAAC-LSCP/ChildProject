@@ -37,13 +37,13 @@ class Metrics(ABC):
         }
         #get existing columns of the dataset for recordings
         correct_cols = set(self.project.recordings.columns)
-        if by not in correct_cols: exit("<{}> is not specified in this dataset, cannot extract from it".format(by))
+        if by not in correct_cols: exit("<{}> is not specified in this dataset, cannot extract by it, change your --by option".format(by))
         if rec_cols:
-            #when wanted columns specified, build the list and verify they exist (warn otherwise)
+            #when user requests recording columns, build the list and verify they exist (warn otherwise)
             rec_cols=set(rec_cols.split(","))
             for i in rec_cols:
                 if i not in correct_cols:
-                    print("Warning, specified column <{}> does not exist in recordings.csv, ignoring this column".format(i))
+                    print("Warning, requested column <{}> does not exist in recordings.csv, ignoring this column. existing columns are : {}".format(i,correct_cols))
             rec_cols &= correct_cols
             #add wanted columns to the one we already get
             join_columns.update(rec_cols)
@@ -61,12 +61,12 @@ class Metrics(ABC):
         #get existing columns of the dataset for children
         correct_cols = set(self.project.children.columns)
         if child_cols:
-            #when wanted columns specified, build the list and verify they exist (warn otherwise)
+            #when user requests children columns, build the list and verify they exist (warn otherwise)
             child_cols = set(child_cols.split(","))
             child_cols.add("child_id")
             for i in child_cols:
                 if i not in correct_cols:
-                    print("Warning, specified column <{}> does not exist in children.csv, ignoring this column".format(i))
+                    print("Warning, requested column <{}> does not exist in children.csv, ignoring this column. existing columns are : {}".format(i,correct_cols))
             child_cols &= correct_cols
             self.child_cols = child_cols
     
