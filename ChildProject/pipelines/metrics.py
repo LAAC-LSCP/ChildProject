@@ -20,26 +20,65 @@ class Metrics(ABC):
         recordings: Union[str, List[str], pd.DataFrame] = None,
         from_time: str = None,
         to_time: str = None,
+        rec_cols: str = None,
+        child_cols: str = None,
     ):
 
         self.project = project
         self.am = ChildProject.annotations.AnnotationManager(self.project)
 
-        recording_columns = {
+        #necessary columns to construct the metrics
+        join_columns = {
             "recording_filename",
             "child_id",
             "duration",
             "session_id",
             "session_offset",
         }
-        recording_columns &= set(self.project.recordings.columns)
-
+        #get existing columns of the dataset for recordings
+        correct_cols = set(self.project.recordings.columns)
+        if by not in correct_cols: exit("<{}> is not specified in this dataset, cannot extract by it, change your --by option".format(by))
+        if rec_cols:
+            #when user requests recording columns, build the list and verify they exist (warn otherwise)
+            rec_cols=set(rec_cols.split(","))
+            for i in rec_cols:
+                if i not in correct_cols:
+                    print("Warning, requested column <{}> does not exist in recordings.csv, ignoring this column. existing columns are : {}".format(i,correct_cols))
+            rec_cols &= correct_cols
+            #add wanted columns to the one we already get
+            join_columns.update(rec_cols)
+        self.rec_cols = rec_cols
+        
+        join_columns &= correct_cols
+        
+        #join dataset annotation with their info in recordings.csv
         self.am.annotations = self.am.annotations.merge(
-            self.project.recordings[recording_columns],
+            self.project.recordings[list(join_columns)],
             left_on="recording_filename",
             right_on="recording_filename",
         )
-
+        
+        #get existing columns of the dataset for children
+        correct_cols = set(self.project.children.columns)
+        if child_cols:
+            #when user requests children columns, build the list and verify they exist (warn otherwise)
+            child_cols = set(child_cols.split(","))
+            child_cols.add("child_id")
+            for i in child_cols:
+                if i not in correct_cols:
+                    print("Warning, requested column <{}> does not exist in children.csv, ignoring this column. existing columns are : {}".format(i,correct_cols))
+            child_cols &= correct_cols
+            self.child_cols = child_cols
+    
+            #join dataset annotation with their info in children.csv
+            self.am.annotations = self.am.annotations.merge(
+                self.project.children[list(child_cols)],
+                left_on="child_id",
+                right_on="child_id",
+            )
+        else:
+            self.child_cols = None
+        
         self.by = by
         self.segments = pd.DataFrame()
 
@@ -97,6 +136,10 @@ class LenaMetrics(Metrics):
     :type from_time: str, optional
     :param to_time:  If specified (in HH:MM format), ignore annotations outside of the given time-range, defaults to None
     :type to_time: str, optional
+    :param rec_cols: columns from recordings.csv to include in the outputted metrics (optional), recording_filename,session_id,child_id,duration are always included if possible and dont need to be specified. Any column that is not unique for a given unit (eg date_iso for a child_id being recorded on multiple days) will output a <NA> value
+    :type rec_cols: str, optional
+    :param child_cols: columns from children.csv to include in the outputted metrics (optional), None by default
+    :type child_cols: str, optional
     :param by: units to sample from, defaults to 'recording_filename'
     :type by: str, optional
     :param threads: amount of threads to run on, defaults to 1
@@ -112,12 +155,14 @@ class LenaMetrics(Metrics):
         types: list = [],
         recordings: Union[str, List[str], pd.DataFrame] = None,
         from_time: str = None,
-        to_time: str = None,
+        to_time: str = None,       
+        rec_cols: str = None,
+        child_cols: str = None,
         by: str = "recording_filename",
         threads: int = 1,
     ):
 
-        super().__init__(project, by, recordings, from_time, to_time)
+        super().__init__(project, by, recordings, from_time, to_time, rec_cols, child_cols)
 
         self.set = set
         self.types = types
@@ -212,10 +257,32 @@ class LenaMetrics(Metrics):
 
         metrics["wc_adu_ph"] = its["words"].sum() * 3600 / unit_duration
 
+        #add info for child_id and duration to the dataframe
         metrics["child_id"] = self.project.recordings[
             self.project.recordings[self.by] == unit
         ]["child_id"].iloc[0]
         metrics["duration"] = unit_duration
+        
+        #get and add to dataframe children.csv columns asked
+        if self.child_cols:
+            for label in self.child_cols:
+                metrics[label]=self.project.children[
+                        self.project.children["child_id"] == metrics["child_id"]
+                ][label].iloc[0]
+                
+        #get and add to dataframe recordings.csv columns asked
+        if self.rec_cols:
+            for label in self.rec_cols:
+                #for every unit drop the duplicates for that column
+                value=self.project.recordings[
+                        self.project.recordings[self.by] == unit
+                ][label].drop_duplicates()
+                #check that there is only one row remaining (ie this column has a unique value for that unit)
+                if len(value) == 1:
+                    metrics[label]=value.iloc[0]
+                #otherwise, leave the column as NA
+                else:
+                    metrics[label]="NA"
 
         return metrics
 
@@ -261,7 +328,7 @@ class LenaMetrics(Metrics):
                 "MAN",
                 "FAF",
             ],
-            nargs="+",
+            nargs="+", default=[],
         )
         parser.add_argument(
             "--threads", help="amount of threads to run on", default=1, type=int
@@ -290,6 +357,10 @@ class AclewMetrics(Metrics):
     :type from_time: str, optional
     :param to_time:  If specified (in HH:MM format), ignore annotations outside of the given time-range, defaults to None
     :type to_time: str, optional
+    :param rec_cols: columns from recordings.csv to include in the outputted metrics (optional), recording_filename,session_id,child_id,duration are always included if possible and dont need to be specified. Any column that is not unique for a given unit (eg date_iso for a child_id being recorded on multiple days) will output a <NA> value
+    :type rec_cols: str, optional
+    :param child_cols: columns from children.csv to include in the outputted metrics (optional), None by default
+    :type child_cols: str, optional
     :param by: units to sample from, defaults to 'recording_filename'
     :type by: str, optional
     :param threads: amount of threads to run on, defaults to 1
@@ -307,17 +378,19 @@ class AclewMetrics(Metrics):
         recordings: Union[str, List[str], pd.DataFrame] = None,
         from_time: str = None,
         to_time: str = None,
+        rec_cols: str = None,
+        child_cols: str = None,
         by: str = "recording_filename",
         threads: int = 1,
     ):
 
-        super().__init__(project, by, recordings, from_time, to_time)
+        super().__init__(project, by, recordings, from_time, to_time, rec_cols, child_cols)
 
         self.vtc = vtc
         self.alice = alice
         self.vcm = vcm
         self.threads = int(threads)
-
+        
         if self.vtc not in self.am.annotations["set"].values:
             raise ValueError(
                 f"The VTC set '{self.vtc}' was not found in the index; "
@@ -373,7 +446,7 @@ class AclewMetrics(Metrics):
             metrics["avg_voc_dur_{}".format(speaker.lower())] = vtc_agg.loc[
                 speaker, "avg_voc_dur"
             ]
-
+        
         if len(alice):
             alice_agg = alice.groupby("speaker_type").agg(
                 wc_ph=("words", "sum"),
@@ -461,11 +534,33 @@ class AclewMetrics(Metrics):
                 metrics["lp_dur"] = speech_dur / (speech_dur + cry_dur)
                 metrics["cp_dur"] = metrics["can_voc_dur_chi_ph"] / speech_dur
 
+        #get child_id and duration that are always given
         metrics["child_id"] = self.project.recordings[
             self.project.recordings[self.by] == unit
         ]["child_id"].iloc[0]
         metrics["duration"] = unit_duration
-
+        
+        #get and add to dataframe children.csv columns asked
+        if self.child_cols:
+            for label in self.child_cols:
+                metrics[label]=self.project.children[
+                        self.project.children["child_id"] == metrics["child_id"]
+                ][label].iloc[0]
+                
+        #get and add to dataframe recordings.csv columns asked
+        if self.rec_cols:
+            for label in self.rec_cols:
+                #for every unit drop the duplicates for that column
+                value=self.project.recordings[
+                        self.project.recordings[self.by] == unit
+                ][label].drop_duplicates()
+                #check that there is only one row remaining (ie this column has a unique value for that unit)
+                if len(value) == 1:
+                    metrics[label]=value.iloc[0]
+                #otherwise, leave the column as NA
+                else:
+                    metrics[label]="NA"
+        
         return metrics
 
     def extract(self):
@@ -527,6 +622,10 @@ class PeriodMetrics(Metrics):
     :type from_time: str, optional
     :param to_time:  If specified (in HH:MM format), ignore annotations outside of the given time-range, defaults to None
     :type to_time: str, optional
+    :param rec_cols: columns from recordings.csv to include in the outputted metrics (optional), recording_filename,session_id,child_id,duration are always included if possible and dont need to be specified. Any column that is not unique for a given unit (eg date_iso for a child_id being recorded on multiple days) will output a <NA> value
+    :type rec_cols: str, optional
+    :param child_cols: columns from children.csv to include in the outputted metrics (optional), None by default
+    :type child_cols: str, optional
     :param by: units to sample from, defaults to 'recording_filename'
     :type by: str, optional
     :param threads: amount of threads to run on, defaults to 1
@@ -544,11 +643,13 @@ class PeriodMetrics(Metrics):
         recordings: Union[str, List[str], pd.DataFrame] = None,
         from_time: str = None,
         to_time: str = None,
+        rec_cols: str = None,
+        child_cols: str = None,
         by: str = "recording_filename",
         threads: int = 1,
     ):
 
-        super().__init__(project, by, recordings, from_time, to_time)
+        super().__init__(project, by, recordings, from_time, to_time, rec_cols, child_cols)
 
         self.set = set
         self.threads = int(threads)
@@ -675,11 +776,33 @@ class PeriodMetrics(Metrics):
                 "avg_voc_dur"
             ].reindex(self.periods)
 
+        #add duration and child_id to dataframe as they are always given
         metrics["duration"] = (durations * 1000).astype(int)
         metrics[self.by] = unit
         metrics["child_id"] = self.project.recordings[
             self.project.recordings[self.by] == unit
         ]["child_id"].iloc[0]
+        
+        #get and add to dataframe children.csv columns asked
+        if self.child_cols:
+            for label in self.child_cols:
+                metrics[label]=self.project.children[
+                        self.project.children["child_id"] == metrics["child_id"].iloc[0]
+                ][label].iloc[0]
+                
+        #get and add to dataframe recordings.csv columns asked
+        if self.rec_cols:
+            for label in self.rec_cols:
+                #for every unit drop the duplicates for that column
+                value=self.project.recordings[
+                        self.project.recordings[self.by] == unit
+                ][label].drop_duplicates()
+                #check that there is only one row remaining (ie this column has a unique value for that unit)
+                if len(value) == 1:
+                    metrics[label]=value.iloc[0]
+                #otherwise, leave the column as NA
+                else:
+                    metrics[label]="NA"
         
         return metrics
 
@@ -778,5 +901,17 @@ class MetricsPipeline(Pipeline):
             "-t",
             "--to-time",
             help="time range end in HH:MM format (optional)",
+            default=None,
+        )
+        
+        parser.add_argument(
+            "--rec-cols",
+            help="columns from recordings.csv to include in the outputted metrics (optional), NA if ambiguous",
+            default=None,
+        )
+        
+        parser.add_argument(
+            "--child-cols",
+            help="columns from children.csv to include in the outputted metrics (optional)",
             default=None,
         )
