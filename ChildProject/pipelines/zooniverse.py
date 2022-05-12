@@ -9,17 +9,28 @@ import pandas as pd
 import shutil
 import subprocess
 import sys
+import array
 import traceback
 from typing import List
 from yaml import dump
 
+import matplotlib.pyplot as plt
+from matplotlib.ticker import ScalarFormatter
+from numpy import log10
+
 from pydub import AudioSegment
+from pydub.utils import get_array_type
+import ffmpeg
+from parselmouth import Sound
+from parselmouth import SpectralAnalysisWindowShape
 
 import ChildProject
 from ChildProject.pipelines.pipeline import Pipeline
 from ChildProject.tables import assert_dataframe, assert_columns_presence
 
 from typing import Tuple
+
+import time
 
 
 def pad_interval(
@@ -93,6 +104,28 @@ class ZooniversePipeline(Pipeline):
         return (self.zooniverse_login, self.zooniverse_pwd)
 
     def _split_recording(self, segments: pd.DataFrame) -> list:
+        
+        #from raw sound data and sampling rate, build the scpectrogram as a matplotlib figure and return it
+        def _create_spectrogram(data,sr):
+            snd = Sound(data,sampling_frequency=sr)
+            #window_length = neighbouring information used to build the spectro
+            spectrogram = snd.to_spectrogram(window_length=0.0075,maximum_frequency=5000, time_step= 0.0001 ,frequency_step = 0.1,window_shape= SpectralAnalysisWindowShape.GAUSSIAN)
+            fig = plt.figure()
+            dynamic_range=70
+            X, Y = spectrogram.x_grid(), spectrogram.y_grid()
+            sg_db = 10 * log10(spectrogram.values) 
+            plt.pcolormesh(X, Y, sg_db, vmin=sg_db.max() - dynamic_range, cmap='afmhot')
+            #plt.yscale("log",base=2) #use a log2 scale
+            #plt.ylim([spectrogram.ymin, spectrogram.ymax])
+            plt.ylim([32, spectrogram.ymax])
+            #plt.gca().yaxis.set_major_formatter(ScalarFormatter()) # use scalar labels on log axis
+            plt.xlabel("time [s]")
+            plt.ylabel("frequency [Hz]")
+            plt.twinx()
+            plt.xlim([snd.xmin, snd.xmax])
+            #plt.show()
+            return fig
+        
         segments = segments.to_dict(orient="records")
         chunks = []
 
@@ -147,6 +180,40 @@ class ZooniversePipeline(Pipeline):
                     print("{} already exists, exportation skipped.".format(mp3))
                 else:
                     chunk_audio.export(mp3, format="mp3")
+                    
+                if self.spectro_video:
+                    start_time = time.time()
+                    png = os.path.join(self.destination, "chunks", chunk.getbasename("png"))
+                    mp4 = os.path.join(self.destination, "chunks", chunk.getbasename("mp4"))
+                    
+                    bit_depth = chunk_audio.sample_width * 8
+                    array_type = get_array_type(bit_depth)
+                    
+                    sound = array.array(array_type, chunk_audio._data)
+                    sr = chunk_audio.frame_rate
+                    fig = _create_spectrogram(sound,sr)
+                    print("--- spectro %s seconds ---" % (time.time() - start_time))
+                    if os.path.exists(png) and os.path.getsize(png) > 0:
+                        print("{} already exists, exportation skipped.".format(png))
+                    else:
+                        fig.savefig(png)
+                    plt.close(fig)
+    
+                    if os.path.exists(mp4) and os.path.getsize(mp4) > 0:
+                        print("{} already exists, exportation skipped.".format(mp4))
+                    else:
+                        input_still = ffmpeg.input(png)
+                        input_audio = ffmpeg.input(wav)                     
+                        (
+                            ffmpeg
+                            .concat(input_still, input_audio, v=1, a=1)
+                            .output(mp4)
+                            .global_args('-loglevel', 'error')
+                            .global_args('-hide_banner')
+                            .run(overwrite_output=True)
+                        )
+                        
+                    print("--- final video %s seconds ---" % (time.time() - start_time))
 
                 chunks.append(chunk)
 
@@ -160,6 +227,7 @@ class ZooniversePipeline(Pipeline):
         segments: str,
         chunks_length: int = -1,
         chunks_min_amount: int = 1,
+        spectro_video: bool = False,
         profile: str = "",
         threads: int = 1,
         **kwargs
@@ -179,6 +247,8 @@ class ZooniversePipeline(Pipeline):
         :type chunks_length: int, optional
         :param chunks_min_amount: minimum amount of chunk per segment, defaults to 1
         :type chunks_min_amount: int, optional
+        :param spectro_video: the extraction generates a video with the audio and spectrogram, defaults to False
+        :type spectro_video: bool, optional
         :param profile: recording profile to extract from. If undefined, raw recordings will be used.
         :type profile: str
         :param threads: amount of threads to run-on, defaults to 0
@@ -198,6 +268,7 @@ class ZooniversePipeline(Pipeline):
 
         self.chunks_length = int(chunks_length)
         self.chunks_min_amount = chunks_min_amount
+        self.spectro_video = spectro_video
         self.profile = profile
 
         threads = int(threads)
@@ -516,6 +587,11 @@ class ZooniversePipeline(Pipeline):
             "--chunks-min-amount",
             help="minimum amount of chunks to extract from a segment (default value: 1)",
             default=1,
+        )
+        parser_extraction.add_argument(
+            "--spectro-video",
+            help="the extraction generates a video with the audio and a spectrogram (default value: 1)",
+            action="store_true",
         )
         parser_extraction.add_argument(
             "--segments", help="path to the input segments dataframe", required=True
