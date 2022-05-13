@@ -118,8 +118,318 @@ class Metrics(ABC):
         )
 
         return annotations, segments
+    
+    def lena_metrics(self, unit: str, metrics, annotations, its, unit_duration, grouper=None):
+        import ast
+        
+        speaker_types = ["FEM", "MAL", "CHI", "OCH"]
+        adults = ["FEM", "MAL"]
+        
+        if "speaker_type" in its.columns:
+            its = its[
+                (its["speaker_type"].isin(speaker_types))
+                | (its["lena_speaker"].isin(self.types))
+            ]
+        else:
+            return metrics
+
+        if len(its) == 0:
+            return metrics
+
+        gb=["speaker_type"]
+        if grouper: gb.append(grouper)
+        
+        its_agg = its.groupby(["speaker_type",grouper]).agg(
+            voc_ph=("duration", "count"),
+            voc_dur_ph=("duration", "sum"),
+            avg_voc_dur=("duration", "mean"),
+            wc_ph=("words", "sum"),
+        )
+        
+        for speaker in speaker_types:
+            if speaker not in its_agg.index:
+                continue
+
+            metrics["voc_{}_ph".format(speaker.lower())] = (
+                3600 / unit_duration
+            ) * its_agg.loc[speaker, "voc_ph"]
+            metrics["voc_dur_{}_ph".format(speaker.lower())] = (
+                3600 / unit_duration
+            ) * its_agg.loc[speaker, "voc_dur_ph"]
+            metrics["avg_voc_dur_{}".format(speaker.lower())] = its_agg.loc[
+                speaker, "avg_voc_dur"
+            ]
+
+            if speaker in adults:
+                metrics["wc_{}_ph".format(speaker.lower())] = (
+                    3600 / unit_duration
+                ) * its_agg.loc[speaker, "wc_ph"]
+
+        if len(self.types):
+            its_agg = its.groupby("lena_speaker").agg(
+                voc_ph=("duration", "count"),
+                voc_dur_ph=("duration", "sum"),
+                avg_voc_dur=("duration", "mean"),
+            )
+
+        for lena_type in self.types:
+            if lena_type not in its_agg.index:
+                continue
+
+            metrics["voc_{}_ph".format(lena_type.lower())] = (
+                3600 / unit_duration
+            ) * its_agg.loc[lena_type, "voc_ph"]
+            metrics["voc_dur_{}_ph".format(lena_type.lower())] = (
+                3600 / unit_duration
+            ) * its_agg.loc[lena_type, "voc_dur_ph"]
+            metrics["avg_voc_dur_{}".format(lena_type.lower())] = its_agg.loc[
+                lena_type, "avg_voc_dur"
+            ]
+
+        chi = its[its["speaker_type"] == "CHI"]
+        
+        if grouper:
+            chi["cries"] = chi["cries"].apply(lambda x: len(ast.literal_eval(x)))
+            chi["vfxs"] = chi["vfxs"].apply(lambda x: len(ast.literal_eval(x)))
+            chi_agg = chi.groupby(grouper).agg(
+                    cries=("cries","sum"),
+                    vfxs=("vfxs","sum"),
+                    utterances=("utterances_count","sum"),
+                    utterances_l=("utterances_length","sum"),
+                    c_cry_vfx_len=("child_cry_vfx_len","sum"),
+                    )
+        else:
+            chi_agg={
+                "cries" : chi["cries"].apply(lambda x: len(ast.literal_eval(x))).sum(),
+                "vfxs" : chi["vfxs"].apply(lambda x: len(ast.literal_eval(x))).sum(),
+                "utterances" : chi["utterances_count"].sum(),
+                "utterances_l" : chi["utterances_length"].sum(),
+                "c_cry_vfx_len" : chi["child_cry_vfx_len"].sum(),
+            }
+
+        metrics["lp_n"] = chi_agg["utterances"] / (chi_agg["utterances"] + chi_agg["cries"] + chi_agg["vfxs"])
+        metrics["lp_dur"] = chi_agg["utterances_l"] / (
+            chi_agg["c_cry_vfx_len"] + chi_agg["utterances_l"]
+        )
+
+        if grouper:
+            its_agg = its.groupby(grouper).agg(
+                    words=("words","sum"),
+                    )
+        else:
+            its_agg={
+                    "words" : its["words"].sum()
+            }
+        metrics["wc_adu_ph"] = its_agg["words"] * 3600 / unit_duration
+
+        #add info for child_id and duration to the dataframe
+        metrics[self.by] = unit
+        metrics["child_id"] = self.project.recordings[
+            self.project.recordings[self.by] == unit
+        ]["child_id"].iloc[0]
+        metrics["duration"] = (unit_duration * 1000).astype(int)
+        
+        #get and add to dataframe children.csv columns asked
+        if self.child_cols:
+            for label in self.child_cols:
+                metrics[label]=self.project.children[
+                        self.project.children["child_id"] == metrics["child_id"]
+                ][label].iloc[0]
+                
+        #get and add to dataframe recordings.csv columns asked
+        if self.rec_cols:
+            for label in self.rec_cols:
+                #for every unit drop the duplicates for that column
+                value=self.project.recordings[
+                        self.project.recordings[self.by] == unit
+                ][label].drop_duplicates()
+                #check that there is only one row remaining (ie this column has a unique value for that unit)
+                if len(value) == 1:
+                    metrics[label]=value.iloc[0]
+                #otherwise, leave the column as NA
+                else:
+                    metrics[label]="NA"
+
+        return metrics
+
+    def aclew_metrics(self, unit: str, metrics, annotations, segments,unit_duration, grouper=None):
+
+        speaker_types = ["FEM", "MAL", "CHI", "OCH"]
+        adults = ["FEM", "MAL"]
+
+        if "speaker_type" in segments.columns:
+            segments = segments[segments["speaker_type"].isin(speaker_types)]
+        else:
+            return metrics
+
+        if len(segments) == 0:
+            return metrics
 
 
+        vtc = segments[segments["set"] == self.vtc]
+        alice = segments[segments["set"] == self.alice]
+        vcm = segments[segments["set"] == self.vcm]
+        
+        gb=["speaker_type"]
+        if grouper:
+            gb.append(grouper)
+        
+        vtc_agg = vtc.groupby(gb).agg(
+            voc_ph=("duration", "count"),
+            voc_dur_ph=("duration", "sum"),
+            avg_voc_dur=("duration", "mean"),
+        )
+        
+        for speaker in speaker_types:
+            if speaker not in vtc_agg.index:
+                continue
+
+            metrics["voc_{}_ph".format(speaker.lower())] = (
+                3600 / unit_duration
+            ) * vtc_agg.loc[speaker, "voc_ph"]
+            metrics["voc_dur_{}_ph".format(speaker.lower())] = (
+                3600 / unit_duration
+            ) * vtc_agg.loc[speaker, "voc_dur_ph"]
+            metrics["avg_voc_dur_{}".format(speaker.lower())] = vtc_agg.loc[
+                speaker, "avg_voc_dur"
+            ]
+        
+        if len(alice):
+            gb=["speaker_type"]
+            if grouper:
+                gb.append(grouper)
+                
+            alice_agg = alice.groupby(gb).agg(
+                wc_ph=("words", "sum"),
+                sc_ph=("syllables", "sum"),
+                pc_ph=("phonemes", "sum"),
+            )
+
+            for speaker in adults:
+                if speaker not in alice_agg.index:
+                    continue
+
+                metrics["wc_{}_ph".format(speaker.lower())] = (
+                    3600 / unit_duration
+                ) * alice_agg.loc[speaker, "wc_ph"]
+                metrics["sc_{}_ph".format(speaker.lower())] = (
+                    3600 / unit_duration
+                ) * alice_agg.loc[speaker, "sc_ph"]
+                metrics["pc_{}_ph".format(speaker.lower())] = (
+                    3600 / unit_duration
+                ) * alice_agg.loc[speaker, "pc_ph"]
+
+            if grouper:
+                alice_agg = alice.groupby(grouper).agg(
+                    words=("words", "sum"),
+                    syllables=("syllables", "sum"),
+                    phonemes=("phonemes", "sum"),
+                )
+            else:
+                alice_agg ={
+                     "words" :  alice["words"].sum(),
+                     "syllables" : alice["syllables"].sum(),
+                     "phonemes" : alice["phonemes"].sum(),
+                }
+            metrics["wc_adu_ph"] = alice_agg["words"] * 3600 / unit_duration
+            metrics["sc_adu_ph"] = alice_agg["syllables"] * 3600 / unit_duration
+            metrics["pc_adu_ph"] = alice_agg["phonemes"] * 3600 / unit_duration
+
+        if len(vcm):
+            gb=["vcm_type"]
+            if grouper : gb.append(grouper)
+            
+            vcm_agg = (
+                vcm[vcm["speaker_type"] == "CHI"]
+                .groupby("vcm_type")
+                .agg(
+                    voc_chi_ph=("duration", "count"),
+                    voc_dur_chi_ph=("duration", "sum",),
+                    avg_voc_dur_chi=("duration", "mean"),
+                )
+            )
+
+            metrics["cry_voc_chi_ph"] = (3600 / unit_duration) * (
+                vcm_agg.loc["Y", "voc_chi_ph"] if "Y" in vcm_agg.index else 0
+            )
+            metrics["cry_voc_dur_chi_ph"] = (3600 / unit_duration) * (
+                vcm_agg.loc["Y", "voc_dur_chi_ph"] if "Y" in vcm_agg.index else 0
+            )
+
+            if "Y" in vcm_agg.index:
+                metrics["avg_cry_voc_dur_chi"] = (3600 / unit_duration) * vcm_agg.loc[
+                    "Y", "avg_voc_dur_chi"
+                ]
+
+            metrics["can_voc_chi_ph"] = (3600 / unit_duration) * (
+                vcm_agg.loc["C", "voc_chi_ph"] if "C" in vcm_agg.index else 0
+            )
+            metrics["can_voc_dur_chi_ph"] = (3600 / unit_duration) * (
+                vcm_agg.loc["C", "voc_dur_chi_ph"] if "C" in vcm_agg.index else 0
+            )
+
+            if "C" in vcm_agg.index:
+                metrics["avg_can_voc_dur_chi"] = (3600 / unit_duration) * vcm_agg.loc[
+                    "C", "avg_voc_dur_chi"
+                ]
+
+            metrics["non_can_voc_chi_ph"] = (3600 / unit_duration) * (
+                vcm_agg.loc["N", "voc_chi_ph"] if "N" in vcm_agg.index else 0
+            )
+            metrics["non_can_voc_dur_chi_ph"] = (3600 / unit_duration) * (
+                vcm_agg.loc["N", "voc_dur_chi_ph"] if "N" in vcm_agg.index else 0
+            )
+
+            if "N" in vcm_agg.index:
+                metrics["avg_non_can_voc_dur_chi"] = (
+                    3600 / unit_duration
+                ) * vcm_agg.loc["N", "avg_voc_dur_chi"]
+
+            speech_voc = metrics["can_voc_chi_ph"] + metrics["non_can_voc_chi_ph"]
+            speech_dur = (
+                metrics["can_voc_dur_chi_ph"] + metrics["non_can_voc_dur_chi_ph"]
+            )
+
+            cry_voc = metrics["cry_voc_chi_ph"]
+            cry_dur = metrics["cry_voc_dur_chi_ph"]
+
+            if speech_voc + cry_voc:
+                metrics["lp_n"] = speech_voc / (speech_voc + cry_voc)
+                metrics["cp_n"] = metrics["can_voc_chi_ph"] / speech_voc
+
+                metrics["lp_dur"] = speech_dur / (speech_dur + cry_dur)
+                metrics["cp_dur"] = metrics["can_voc_dur_chi_ph"] / speech_dur
+
+        #get child_id and duration that are always given
+        metrics[self.by] = unit
+        metrics["child_id"] = self.project.recordings[
+            self.project.recordings[self.by] == unit
+        ]["child_id"].iloc[0]
+        metrics["duration"] = (unit_duration * 1000).astype(int)
+        
+        #get and add to dataframe children.csv columns asked
+        if self.child_cols:
+            for label in self.child_cols:
+                metrics[label]=self.project.children[
+                        self.project.children["child_id"] == metrics["child_id"]
+                ][label].iloc[0]
+                
+        #get and add to dataframe recordings.csv columns asked
+        if self.rec_cols:
+            for label in self.rec_cols:
+                #for every unit drop the duplicates for that column
+                value=self.project.recordings[
+                        self.project.recordings[self.by] == unit
+                ][label].drop_duplicates()
+                #check that there is only one row remaining (ie this column has a unique value for that unit)
+                if len(value) == 1:
+                    metrics[label]=value.iloc[0]
+                #otherwise, leave the column as NA
+                else:
+                    metrics[label]="NA"
+        
+        return metrics
+    
 class LenaMetrics(Metrics):
     """LENA metrics extractor. 
     Extracts a number of metrics from the LENA .its annotations.
@@ -175,116 +485,15 @@ class LenaMetrics(Metrics):
             )
 
     def _process_unit(self, unit: str):
-        import ast
-
+        
         metrics = {self.by: unit}
         annotations, its = self.retrieve_segments([self.set], unit)
-
-        speaker_types = ["FEM", "MAL", "CHI", "OCH"]
-        adults = ["FEM", "MAL"]
-
-        if "speaker_type" in its.columns:
-            its = its[
-                (its["speaker_type"].isin(speaker_types))
-                | (its["lena_speaker"].isin(self.types))
-            ]
-        else:
-            return metrics
-
-        if len(its) == 0:
-            return metrics
-
+        
         unit_duration = (
             annotations["range_offset"] - annotations["range_onset"]
         ).sum() / 1000
-
-        its_agg = its.groupby("speaker_type").agg(
-            voc_ph=("duration", "count"),
-            voc_dur_ph=("duration", "sum"),
-            avg_voc_dur=("duration", "mean"),
-            wc_ph=("words", "sum"),
-        )
-
-        for speaker in speaker_types:
-            if speaker not in its_agg.index:
-                continue
-
-            metrics["voc_{}_ph".format(speaker.lower())] = (
-                3600 / unit_duration
-            ) * its_agg.loc[speaker, "voc_ph"]
-            metrics["voc_dur_{}_ph".format(speaker.lower())] = (
-                3600 / unit_duration
-            ) * its_agg.loc[speaker, "voc_dur_ph"]
-            metrics["avg_voc_dur_{}".format(speaker.lower())] = its_agg.loc[
-                speaker, "avg_voc_dur"
-            ]
-
-            if speaker in adults:
-                metrics["wc_{}_ph".format(speaker.lower())] = (
-                    3600 / unit_duration
-                ) * its_agg.loc[speaker, "wc_ph"]
-
-        if len(self.types):
-            its_agg = its.groupby("lena_speaker").agg(
-                voc_ph=("duration", "count"),
-                voc_dur_ph=("duration", "sum"),
-                avg_voc_dur=("duration", "mean"),
-            )
-
-        for lena_type in self.types:
-            if lena_type not in its_agg.index:
-                continue
-
-            metrics["voc_{}_ph".format(lena_type.lower())] = (
-                3600 / unit_duration
-            ) * its_agg.loc[lena_type, "voc_ph"]
-            metrics["voc_dur_{}_ph".format(lena_type.lower())] = (
-                3600 / unit_duration
-            ) * its_agg.loc[lena_type, "voc_dur_ph"]
-            metrics["avg_voc_dur_{}".format(lena_type.lower())] = its_agg.loc[
-                lena_type, "avg_voc_dur"
-            ]
-
-        chi = its[its["speaker_type"] == "CHI"]
-        cries = chi["cries"].apply(lambda x: len(ast.literal_eval(x))).sum()
-        vfxs = chi["vfxs"].apply(lambda x: len(ast.literal_eval(x))).sum()
-        utterances = chi["utterances_count"].sum()
-
-        metrics["lp_n"] = utterances / (utterances + cries + vfxs)
-        metrics["lp_dur"] = chi["utterances_length"].sum() / (
-            chi["child_cry_vfx_len"].sum() + chi["utterances_length"].sum()
-        )
-
-        metrics["wc_adu_ph"] = its["words"].sum() * 3600 / unit_duration
-
-        #add info for child_id and duration to the dataframe
-        metrics["child_id"] = self.project.recordings[
-            self.project.recordings[self.by] == unit
-        ]["child_id"].iloc[0]
-        metrics["duration"] = unit_duration
         
-        #get and add to dataframe children.csv columns asked
-        if self.child_cols:
-            for label in self.child_cols:
-                metrics[label]=self.project.children[
-                        self.project.children["child_id"] == metrics["child_id"]
-                ][label].iloc[0]
-                
-        #get and add to dataframe recordings.csv columns asked
-        if self.rec_cols:
-            for label in self.rec_cols:
-                #for every unit drop the duplicates for that column
-                value=self.project.recordings[
-                        self.project.recordings[self.by] == unit
-                ][label].drop_duplicates()
-                #check that there is only one row remaining (ie this column has a unique value for that unit)
-                if len(value) == 1:
-                    metrics[label]=value.iloc[0]
-                #otherwise, leave the column as NA
-                else:
-                    metrics[label]="NA"
-
-        return metrics
+        return self.lena_metrics(unit,metrics, annotations, its, unit_duration)
 
     def extract(self):
         recordings = self.project.get_recordings_from_list(self.recordings)
@@ -408,160 +617,11 @@ class AclewMetrics(Metrics):
         annotations, segments = self.retrieve_segments(
             [self.vtc, self.alice, self.vcm], unit
         )
-
-        speaker_types = ["FEM", "MAL", "CHI", "OCH"]
-        adults = ["FEM", "MAL"]
-
-        if "speaker_type" in segments.columns:
-            segments = segments[segments["speaker_type"].isin(speaker_types)]
-        else:
-            return metrics
-
-        if len(segments) == 0:
-            return metrics
-
+        
         vtc_ann = annotations[annotations["set"] == self.vtc]
         unit_duration = (vtc_ann["range_offset"] - vtc_ann["range_onset"]).sum() / 1000
-
-        vtc = segments[segments["set"] == self.vtc]
-        alice = segments[segments["set"] == self.alice]
-        vcm = segments[segments["set"] == self.vcm]
-
-        vtc_agg = vtc.groupby("speaker_type").agg(
-            voc_ph=("duration", "count"),
-            voc_dur_ph=("duration", "sum"),
-            avg_voc_dur=("duration", "mean"),
-        )
-
-        for speaker in speaker_types:
-            if speaker not in vtc_agg.index:
-                continue
-
-            metrics["voc_{}_ph".format(speaker.lower())] = (
-                3600 / unit_duration
-            ) * vtc_agg.loc[speaker, "voc_ph"]
-            metrics["voc_dur_{}_ph".format(speaker.lower())] = (
-                3600 / unit_duration
-            ) * vtc_agg.loc[speaker, "voc_dur_ph"]
-            metrics["avg_voc_dur_{}".format(speaker.lower())] = vtc_agg.loc[
-                speaker, "avg_voc_dur"
-            ]
         
-        if len(alice):
-            alice_agg = alice.groupby("speaker_type").agg(
-                wc_ph=("words", "sum"),
-                sc_ph=("syllables", "sum"),
-                pc_ph=("phonemes", "sum"),
-            )
-
-            for speaker in adults:
-                if speaker not in alice_agg.index:
-                    continue
-
-                metrics["wc_{}_ph".format(speaker.lower())] = (
-                    3600 / unit_duration
-                ) * alice_agg.loc[speaker, "wc_ph"]
-                metrics["sc_{}_ph".format(speaker.lower())] = (
-                    3600 / unit_duration
-                ) * alice_agg.loc[speaker, "sc_ph"]
-                metrics["pc_{}_ph".format(speaker.lower())] = (
-                    3600 / unit_duration
-                ) * alice_agg.loc[speaker, "pc_ph"]
-
-            metrics["wc_adu_ph"] = alice["words"].sum() * 3600 / unit_duration
-            metrics["sc_adu_ph"] = alice["syllables"].sum() * 3600 / unit_duration
-            metrics["pc_adu_ph"] = alice["phonemes"].sum() * 3600 / unit_duration
-
-        if len(vcm):
-            vcm_agg = (
-                vcm[vcm["speaker_type"] == "CHI"]
-                .groupby("vcm_type")
-                .agg(
-                    voc_chi_ph=("duration", "count"),
-                    voc_dur_chi_ph=("duration", "sum",),
-                    avg_voc_dur_chi=("duration", "mean"),
-                )
-            )
-
-            metrics["cry_voc_chi_ph"] = (3600 / unit_duration) * (
-                vcm_agg.loc["Y", "voc_chi_ph"] if "Y" in vcm_agg.index else 0
-            )
-            metrics["cry_voc_dur_chi_ph"] = (3600 / unit_duration) * (
-                vcm_agg.loc["Y", "voc_dur_chi_ph"] if "Y" in vcm_agg.index else 0
-            )
-
-            if "Y" in vcm_agg.index:
-                metrics["avg_cry_voc_dur_chi"] = (3600 / unit_duration) * vcm_agg.loc[
-                    "Y", "avg_voc_dur_chi"
-                ]
-
-            metrics["can_voc_chi_ph"] = (3600 / unit_duration) * (
-                vcm_agg.loc["C", "voc_chi_ph"] if "C" in vcm_agg.index else 0
-            )
-            metrics["can_voc_dur_chi_ph"] = (3600 / unit_duration) * (
-                vcm_agg.loc["C", "voc_dur_chi_ph"] if "C" in vcm_agg.index else 0
-            )
-
-            if "C" in vcm_agg.index:
-                metrics["avg_can_voc_dur_chi"] = (3600 / unit_duration) * vcm_agg.loc[
-                    "C", "avg_voc_dur_chi"
-                ]
-
-            metrics["non_can_voc_chi_ph"] = (3600 / unit_duration) * (
-                vcm_agg.loc["N", "voc_chi_ph"] if "N" in vcm_agg.index else 0
-            )
-            metrics["non_can_voc_dur_chi_ph"] = (3600 / unit_duration) * (
-                vcm_agg.loc["N", "voc_dur_chi_ph"] if "N" in vcm_agg.index else 0
-            )
-
-            if "N" in vcm_agg.index:
-                metrics["avg_non_can_voc_dur_chi"] = (
-                    3600 / unit_duration
-                ) * vcm_agg.loc["N", "avg_voc_dur_chi"]
-
-            speech_voc = metrics["can_voc_chi_ph"] + metrics["non_can_voc_chi_ph"]
-            speech_dur = (
-                metrics["can_voc_dur_chi_ph"] + metrics["non_can_voc_dur_chi_ph"]
-            )
-
-            cry_voc = metrics["cry_voc_chi_ph"]
-            cry_dur = metrics["cry_voc_dur_chi_ph"]
-
-            if speech_voc + cry_voc:
-                metrics["lp_n"] = speech_voc / (speech_voc + cry_voc)
-                metrics["cp_n"] = metrics["can_voc_chi_ph"] / speech_voc
-
-                metrics["lp_dur"] = speech_dur / (speech_dur + cry_dur)
-                metrics["cp_dur"] = metrics["can_voc_dur_chi_ph"] / speech_dur
-
-        #get child_id and duration that are always given
-        metrics["child_id"] = self.project.recordings[
-            self.project.recordings[self.by] == unit
-        ]["child_id"].iloc[0]
-        metrics["duration"] = unit_duration
-        
-        #get and add to dataframe children.csv columns asked
-        if self.child_cols:
-            for label in self.child_cols:
-                metrics[label]=self.project.children[
-                        self.project.children["child_id"] == metrics["child_id"]
-                ][label].iloc[0]
-                
-        #get and add to dataframe recordings.csv columns asked
-        if self.rec_cols:
-            for label in self.rec_cols:
-                #for every unit drop the duplicates for that column
-                value=self.project.recordings[
-                        self.project.recordings[self.by] == unit
-                ][label].drop_duplicates()
-                #check that there is only one row remaining (ie this column has a unique value for that unit)
-                if len(value) == 1:
-                    metrics[label]=value.iloc[0]
-                #otherwise, leave the column as NA
-                else:
-                    metrics[label]="NA"
-        
-        return metrics
+        return self.aclew_metrics(unit, metrics, annotations, segments, unit_duration)
 
     def extract(self):
         recordings = self.project.get_recordings_from_list(self.recordings)
@@ -610,8 +670,8 @@ class PeriodMetrics(Metrics):
 
     :param project: ChildProject instance of the target dataset
     :type project: ChildProject.projects.ChildProject
-    :param set: name of the set of annotations to derive the metrics from
-    :type set: str
+    :param source: what source to use choose between aclew or lena
+    :type source: str
     :param period: Time-period. Values should be formatted as `pandas offset aliases <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__. For instance, `15Min` corresponds to a 15 minute period; `2H` corresponds to a 2 hour period.
     :type period: str
     :param period_origin: NotImplemented, defaults to None
@@ -630,6 +690,16 @@ class PeriodMetrics(Metrics):
     :type by: str, optional
     :param threads: amount of threads to run on, defaults to 1
     :type threads: int, optional
+    :param pipeline: pipeline used to extract metrics, aclew or lena
+    :type pipeline: str, required
+    :param vtc: name of the set associated to the VTC annotations
+    :type vtc: str
+    :param alice: name of the set associated to the ALICE annotations
+    :type alice: str
+    :param vcm: name of the set associated to the VCM annotations
+    :type vcm: str
+    :param set: name of the set associated to the .its annotations
+    :type set: str
     """
 
     SUBCOMMAND = "period"
@@ -637,22 +707,32 @@ class PeriodMetrics(Metrics):
     def __init__(
         self,
         project: ChildProject.projects.ChildProject,
-        set: str,
-        period: str,
+        period: str,       
+        source: str,
         period_origin: str = None,
         recordings: Union[str, List[str], pd.DataFrame] = None,
         from_time: str = None,
         to_time: str = None,
         rec_cols: str = None,
         child_cols: str = None,
+        vtc: str = "vtc",
+        alice: str = "alice",
+        vcm: str = "vcm",
+        its: str = "its",
         by: str = "recording_filename",
         threads: int = 1,
     ):
 
         super().__init__(project, by, recordings, from_time, to_time, rec_cols, child_cols)
 
-        self.set = set
+        self.its = its
+        self.vtc = vtc
+        self.alice = alice
+        self.vcm = vcm
+        self.source = source
         self.threads = int(threads)
+        
+        self.types = [] #workaround lena types selection, just keep classic CHI FEM MAL OCH
 
         self.period = period
         self.period_origin = period_origin
@@ -660,11 +740,16 @@ class PeriodMetrics(Metrics):
         if self.period_origin is not None:
             raise NotImplementedError("period-origin is not supported yet")
 
-        if self.set not in self.am.annotations["set"].values:
+        if self.source not in {"aclew","lena"}:
             raise ValueError(
-                f"'{self.set}' was not found in the index; "
-                "check spelling and make sure the set was properly imported."
+                f"'{source}' is not an existing source; "
+                "use aclew or lena."
             )
+        if self.source == "lena":
+            self._check_set(its)
+        
+        if self.source == "aclew":
+            self._check_set(vtc)
 
         self.periods = pd.date_range(
             start=datetime.datetime(1900, 1, 1, 0, 0, 0, 0),
@@ -673,8 +758,15 @@ class PeriodMetrics(Metrics):
             closed="left",
         )
 
+    def _check_set(self, name: str):
+        if name not in self.am.annotations["set"].values:
+            raise ValueError(
+                f"'{name}' was not found in the index; "
+                "check spelling and make sure the set was properly imported."
+            )
+
     def _process_unit(self, unit: str):
-        annotations, segments = self.retrieve_segments([self.set], unit)
+        annotations, segments = self.retrieve_segments([self.its,self.vtc,self.alice,self.vcm], unit)
 
         # retrieve timestamps for each vocalization, ignoring the day of occurence
         segments = self.am.get_segments_timestamps(segments, ignore_date=True)
@@ -715,11 +807,12 @@ class PeriodMetrics(Metrics):
             .apply(lambda dt: (dt - self.periods[0]).total_seconds())
             .astype(int)
         )
-
+        
+            #annotations.loc[29]["offset_time"] == 194079
         # split annotations to intervals each within a 0-24h range
         annotations["stops"] = annotations.apply(
-            lambda row: [row["onset_time"]]
-            + list(
+            lambda row: #[row["onset_time"]] + 
+            list(
                 86400
                 * np.arange(
                     (row["onset_time"] // 86400) + 1,
@@ -730,79 +823,34 @@ class PeriodMetrics(Metrics):
             + [row["offset_time"]],
             axis=1,
         )
-
-        annotations = annotations.explode("stops")
-        annotations["onset"] = annotations["stops"]
-        annotations["offset"] = annotations["stops"].shift(-1)
-
-        annotations.dropna(subset=["offset"], inplace=True)
-        annotations["onset"] = annotations["onset"].astype(int) % 86400
-        annotations["offset"] = (annotations["offset"] - 1e-4) % 86400
-
+        annotations["start"] = annotations.apply(
+            lambda row: np.concatenate(([row["onset_time"]] , 
+            np.full(len(row["stops"])-1,0)), axis=0),
+            axis=1,
+        )
+                
+        annotations = annotations.explode(["stops","start"])
+        annotations["stops"] = ((annotations["stops"].astype(int)-1) % 86400) +1
+        
         durations = [
             (
-                annotations["offset"].clip(bins[i], bins[i + 1])
-                - annotations["onset"].clip(bins[i], bins[i + 1])
+                annotations["stops"].clip(bins[i], bins[i + 1])
+                - annotations["start"].clip(bins[i], bins[i + 1])
             ).sum()
             for i, t in enumerate(bins[:-1])
         ]
+        if unit == "CUM": print("durations"); print(durations)
 
         durations = pd.Series(durations, index=self.periods)
+        if unit == "CUM": print("durations index self.periods"); print(durations)
         metrics = pd.DataFrame(index=self.periods)
-
-        grouper = pd.Grouper(key="onset_time", freq=self.period, closed="left")
-
-        speaker_types = ["FEM", "MAL", "CHI", "OCH"]
-        adults = ["FEM", "MAL"]
-
-        for speaker in speaker_types:
-            vocs = segments[segments["speaker_type"] == speaker].groupby(grouper)
-
-            vocs = vocs.agg(
-                voc_ph=("segment_onset", "count"),
-                voc_dur_ph=("duration", "sum"),
-                avg_voc_dur=("duration", "mean"),
-            )
-
-            metrics["voc_{}_ph".format(speaker.lower())] = (
-                vocs["voc_ph"].reindex(self.periods, fill_value=0) * 3600 / durations
-            )
-            metrics["voc_dur_{}_ph".format(speaker.lower())] = (
-                vocs["voc_dur_ph"].reindex(self.periods, fill_value=0)
-                * 3600
-                / durations
-            )
-            metrics["avg_voc_dur_{}".format(speaker.lower())] = vocs[
-                "avg_voc_dur"
-            ].reindex(self.periods)
-
-        #add duration and child_id to dataframe as they are always given
-        metrics["duration"] = (durations * 1000).astype(int)
-        metrics[self.by] = unit
-        metrics["child_id"] = self.project.recordings[
-            self.project.recordings[self.by] == unit
-        ]["child_id"].iloc[0]
         
-        #get and add to dataframe children.csv columns asked
-        if self.child_cols:
-            for label in self.child_cols:
-                metrics[label]=self.project.children[
-                        self.project.children["child_id"] == metrics["child_id"].iloc[0]
-                ][label].iloc[0]
-                
-        #get and add to dataframe recordings.csv columns asked
-        if self.rec_cols:
-            for label in self.rec_cols:
-                #for every unit drop the duplicates for that column
-                value=self.project.recordings[
-                        self.project.recordings[self.by] == unit
-                ][label].drop_duplicates()
-                #check that there is only one row remaining (ie this column has a unique value for that unit)
-                if len(value) == 1:
-                    metrics[label]=value.iloc[0]
-                #otherwise, leave the column as NA
-                else:
-                    metrics[label]="NA"
+        grouper = pd.Grouper(key="onset_time", freq=self.period, closed="left")
+        
+        if self.source == "aclew":
+            metrics = self.aclew_metrics(unit, metrics, annotations, segments, durations, grouper)
+        elif self.source == "lena":
+            metrics = self.lena_metrics(unit,metrics,annotations,segments,durations, grouper)
         
         return metrics
 
@@ -823,6 +871,7 @@ class PeriodMetrics(Metrics):
 
         if len(self.metrics):
             self.metrics["period"] = self.metrics.index.strftime("%H:%M:%S")
+            #print(self.metrics)
             self.metrics.set_index(self.by, inplace=True)
 
         return self.metrics
@@ -830,8 +879,8 @@ class PeriodMetrics(Metrics):
     @staticmethod
     def add_parser(subparsers, subcommand):
         parser = subparsers.add_parser(subcommand, help="LENA metrics")
-        parser.add_argument("--set", help="annotations set", required=True)
-
+     
+        parser.add_argument("--source", help="aclew or lena", required=True,choices=["aclew", "lena"])
         parser.add_argument(
             "--period",
             help="time units to aggregate (optional); equivalent to ``pandas.Grouper``'s freq argument.",
@@ -847,6 +896,10 @@ class PeriodMetrics(Metrics):
         parser.add_argument(
             "--threads", help="amount of threads to run on", default=1, type=int
         )
+        parser.add_argument("--vtc", help="vtc set", default="vtc")
+        parser.add_argument("--alice", help="alice set", default="alice")
+        parser.add_argument("--vcm", help="vcm set", default="vcm")
+        parser.add_argument("--its", help="its set", default="its")
 
 
 class MetricsPipeline(Pipeline):
