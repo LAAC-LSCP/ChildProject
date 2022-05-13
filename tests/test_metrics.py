@@ -116,7 +116,7 @@ def test_period(project):
         import_function=partial(fake_vocs, data),
     )
 
-    period = PeriodMetrics(project, by="child_id", period="2H", set="test")
+    period = PeriodMetrics(project, by="child_id", period="2H", source="aclew")
     period.extract()
 
     truth = pd.read_csv("tests/truth/period_metrics.csv", index_col=["child_id"])
