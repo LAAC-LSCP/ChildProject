@@ -139,7 +139,7 @@ class Metrics(ABC):
         gb=["speaker_type"]
         if grouper: gb.append(grouper)
         
-        its_agg = its.groupby(["speaker_type",grouper]).agg(
+        its_agg = its.groupby(gb).agg(
             voc_ph=("duration", "count"),
             voc_dur_ph=("duration", "sum"),
             avg_voc_dur=("duration", "mean"),
@@ -166,7 +166,10 @@ class Metrics(ABC):
                 ) * its_agg.loc[speaker, "wc_ph"]
 
         if len(self.types):
-            its_agg = its.groupby("lena_speaker").agg(
+            gb=["lena_speaker"]
+            if grouper: gb.append(grouper)
+            
+            its_agg = its.groupby(gb).agg(
                 voc_ph=("duration", "count"),
                 voc_dur_ph=("duration", "sum"),
                 avg_voc_dur=("duration", "mean"),
@@ -341,7 +344,7 @@ class Metrics(ABC):
             
             vcm_agg = (
                 vcm[vcm["speaker_type"] == "CHI"]
-                .groupby("vcm_type")
+                .groupby(gb)
                 .agg(
                     voc_chi_ph=("duration", "count"),
                     voc_dur_chi_ph=("duration", "sum",),
@@ -393,12 +396,15 @@ class Metrics(ABC):
             cry_voc = metrics["cry_voc_chi_ph"]
             cry_dur = metrics["cry_voc_dur_chi_ph"]
 
-            if speech_voc + cry_voc:
-                metrics["lp_n"] = speech_voc / (speech_voc + cry_voc)
-                metrics["cp_n"] = metrics["can_voc_chi_ph"] / speech_voc
+            #if speech_voc + cry_voc:
+            metrics["lp_n"] = speech_voc / (speech_voc + cry_voc)
+            #metrics["lp_n"] = metrics.apply(lambda row: (
+             #       (row["can_voc_chi_ph"] + row["non_can_voc_chi_ph"]) / (row["can_voc_chi_ph"] + row["non_can_voc_chi_ph"] + row["cry_voc_chi_ph"] )
+              #      ) if (row["can_voc_chi_ph"] + row["non_can_voc_chi_ph"] + row["cry_voc_chi_ph"] ) else "", axis=1)
+            metrics["cp_n"] = metrics["can_voc_chi_ph"] / speech_voc
 
-                metrics["lp_dur"] = speech_dur / (speech_dur + cry_dur)
-                metrics["cp_dur"] = metrics["can_voc_dur_chi_ph"] / speech_dur
+            metrics["lp_dur"] = speech_dur / (speech_dur + cry_dur)
+            metrics["cp_dur"] = metrics["can_voc_dur_chi_ph"] / speech_dur
 
         #get child_id and duration that are always given
         metrics[self.by] = unit
