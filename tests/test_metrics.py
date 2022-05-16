@@ -76,7 +76,7 @@ def test_aclew(project):
 
     truth = pd.read_csv("tests/truth/aclew_metrics.csv", index_col="child_id")
 
-    pd.testing.assert_frame_equal(aclew.metrics, truth)
+    pd.testing.assert_frame_equal(aclew.metrics, truth, check_dtype= False)
 
 
 def test_period(project):
@@ -121,5 +121,5 @@ def test_period(project):
 
     truth = pd.read_csv("tests/truth/period_metrics.csv", index_col=["child_id"])
 
-    pd.testing.assert_frame_equal(period.metrics, truth)
+    pd.testing.assert_frame_equal(period.metrics, truth, check_dtype= False)
 

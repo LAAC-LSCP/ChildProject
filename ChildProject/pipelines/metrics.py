@@ -772,6 +772,12 @@ class PeriodMetrics(Metrics):
             )
 
     def _process_unit(self, unit: str):
+        if self.source == "aclew":
+            main_set = self.vtc
+        elif self.source == "lena":
+            main_set = self.its
+        else:
+            raise ValueError("no main set found for this source {}. Source must be lena or aclew".format(self.source))
         annotations, segments = self.retrieve_segments([self.its,self.vtc,self.alice,self.vcm], unit)
 
         # retrieve timestamps for each vocalization, ignoring the day of occurence
@@ -834,21 +840,24 @@ class PeriodMetrics(Metrics):
             np.full(len(row["stops"])-1,0)), axis=0),
             axis=1,
         )
-                
+              
         annotations = annotations.explode(["stops","start"])
         annotations["stops"] = ((annotations["stops"].astype(int)-1) % 86400) +1
         
+        #to calculate durations, only keep the annotations from the main set (vtc/its) because we use it as reference
+        #for the rest
+        annot_dur = annotations[annotations["set"] == main_set]       
+
         durations = [
             (
-                annotations["stops"].clip(bins[i], bins[i + 1])
-                - annotations["start"].clip(bins[i], bins[i + 1])
+                annot_dur["stops"].clip(bins[i], bins[i + 1])
+                - annot_dur["start"].clip(bins[i], bins[i + 1])
             ).sum()
             for i, t in enumerate(bins[:-1])
         ]
-        if unit == "CUM": print("durations"); print(durations)
 
         durations = pd.Series(durations, index=self.periods)
-        if unit == "CUM": print("durations index self.periods"); print(durations)
+        
         metrics = pd.DataFrame(index=self.periods)
         
         grouper = pd.Grouper(key="onset_time", freq=self.period, closed="left")
