@@ -137,7 +137,7 @@ class Metrics(ABC):
             return metrics
 
         gb=["speaker_type"]
-        if grouper: gb.append(grouper)
+        if grouper: gb.append(pd.Grouper(key="onset_time", freq=grouper, closed="left"))
         
         its_agg = its.groupby(gb).agg(
             voc_ph=("duration", "count"),
@@ -167,7 +167,7 @@ class Metrics(ABC):
 
         if len(self.types):
             gb=["lena_speaker"]
-            if grouper: gb.append(grouper)
+            if grouper: gb.append(pd.Grouper(key="onset_time", freq=grouper, closed="left"))
             
             its_agg = its.groupby(gb).agg(
                 voc_ph=("duration", "count"),
@@ -274,8 +274,7 @@ class Metrics(ABC):
         vcm = segments[segments["set"] == self.vcm]
         
         gb=["speaker_type"]
-        if grouper:
-            gb.append(grouper)
+        if grouper: gb.append(pd.Grouper(key="onset_time", freq=grouper, closed="left"))
         
         vtc_agg = vtc.groupby(gb).agg(
             voc_ph=("duration", "count"),
@@ -299,8 +298,7 @@ class Metrics(ABC):
         
         if len(alice):
             gb=["speaker_type"]
-            if grouper:
-                gb.append(grouper)
+            if grouper: gb.append(pd.Grouper(key="onset_time", freq=grouper, closed="left"))
                 
             alice_agg = alice.groupby(gb).agg(
                 wc_ph=("words", "sum"),
@@ -323,7 +321,7 @@ class Metrics(ABC):
                 ) * alice_agg.loc[speaker, "pc_ph"]
 
             if grouper:
-                alice_agg = alice.groupby(grouper).agg(
+                alice_agg = alice.groupby(pd.Grouper(key="onset_time", freq=grouper, closed="left")).agg(
                     words=("words", "sum"),
                     syllables=("syllables", "sum"),
                     phonemes=("phonemes", "sum"),
@@ -340,17 +338,15 @@ class Metrics(ABC):
 
         if len(vcm):
             gb=["vcm_type"]
-            if grouper : gb.append(grouper)
-            
-            vcm_agg = (
-                vcm[vcm["speaker_type"] == "CHI"]
-                .groupby(gb)
-                .agg(
+            if grouper: gb.append(pd.Grouper(key="onset_time", freq=grouper, closed="left"))
+                
+            vcm = vcm[vcm["speaker_type"] == "CHI"]         
+            vcm_inter = vcm.groupby(gb)
+            vcm_agg = vcm_inter.agg(
                     voc_chi_ph=("duration", "count"),
-                    voc_dur_chi_ph=("duration", "sum",),
+                    voc_dur_chi_ph=("duration", "sum"),
                     avg_voc_dur_chi=("duration", "mean"),
                 )
-            )
 
             metrics["cry_voc_chi_ph"] = (3600 / unit_duration) * (
                 vcm_agg.loc["Y", "voc_chi_ph"] if "Y" in vcm_agg.index else 0
@@ -860,12 +856,12 @@ class PeriodMetrics(Metrics):
         
         metrics = pd.DataFrame(index=self.periods)
         
-        grouper = pd.Grouper(key="onset_time", freq=self.period, closed="left")
+        #grouper = pd.Grouper(key="onset_time", freq=self.period, closed="left")
         
         if self.source == "aclew":
-            metrics = self.aclew_metrics(unit, metrics, annotations, segments, durations, grouper)
+            metrics = self.aclew_metrics(unit, metrics, annotations, segments, durations, self.period)
         elif self.source == "lena":
-            metrics = self.lena_metrics(unit,metrics,annotations,segments,durations, grouper)
+            metrics = self.lena_metrics(unit,metrics,annotations,segments,durations, self.period)
         
         return metrics
 
