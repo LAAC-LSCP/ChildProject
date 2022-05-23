@@ -23,6 +23,7 @@ class Sampler(ABC):
         project: ChildProject.projects.ChildProject,
         recordings: Union[str, List[str], pd.DataFrame] = None,
         exclude: Union[str, pd.DataFrame] = None,
+        ignore_segments: Union[str, pd.DataFrame] = None,
     ):
 
         self.project = project
@@ -49,6 +50,23 @@ class Sampler(ABC):
                 )
 
             self.excluded = exclude
+            
+        if ignore_segments is not None:
+            if not isinstance(ignore_segments, pd.DataFrame):
+                ignore_segments = pd.read_csv(ignore_segments)
+
+            if not {"recording_filename", "segment_onset", "segment_offset"}.issubset(
+                set(ignore_segments.columns)
+            ):
+                raise ValueError(
+                    "exclude dataframe is missing a 'recording_filename' column"
+                )
+
+            self.ignore_segments = ignore_segments
+        else:
+            self.ignore_segments = pd.DataFrame(
+                columns=["recording_filename", "segment_onset", "segment_offset"]
+            )
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -83,8 +101,24 @@ class Sampler(ABC):
 
         try:
             segments = am.get_segments(annotations)
-        except:
+            if not self.ignore_segments.empty:
+                ignore_segs = self.ignore_segments[self.ignore_segments["recording_filename"] == recording_filename] if recording_filename else self.ignore_segments
+                ignore_segs = ignore_segs.rename(columns={"segment_onset": "range_onset","segment_offset":"range_offset"}, errors="raise")
+                ignore_segs = am.get_within_ranges(ignore_segs)
+                ignore_segs = ignore_segs[ignore_segs["set"] == self.annotation_set]
+                ignore_segs = am.get_segments(ignore_segs)
+                print("=======================================>")
+                print(segments)
+                print(segments.columns)
+                print(ignore_segs)
+                print(ignore_segs.columns)
+                segments = pd.concat([segments,ignore_segs]).drop_duplicates(subset=['segment_offset'],keep=False)
+                segments = pd.concat([segments,ignore_segs]).drop_duplicates(subset=['segment_onset'],keep=False)
+                print(segments)
+                print(segments.columns)
+        except Exception as e:
             return None
+        
 
         if len(self.target_speaker_type) and len(segments):
             segments = segments[segments["speaker_type"].isin(self.target_speaker_type)]
@@ -679,9 +713,10 @@ class HighVolubilitySampler(Sampler):
         by: str = "recording_filename",
         recordings: Union[str, List[str], pd.DataFrame] = None,
         exclude: Union[str, pd.DataFrame] = None,
+        ignore_segments: Union[str, pd.DataFrame] = None,
     ):
 
-        super().__init__(project, recordings, exclude)
+        super().__init__(project, recordings, exclude, ignore_segments)
         self.annotation_set = annotation_set
         self.metric = metric
         self.windows_length = windows_length
@@ -692,7 +727,7 @@ class HighVolubilitySampler(Sampler):
 
     def _segment_scores(self, recording):
         segments = self.retrieve_segments(recording["recording_filename"])
-
+        
         if segments is None:
             print(
                 "warning: no annotations from the set '{}' were found for the recording '{}'".format(
