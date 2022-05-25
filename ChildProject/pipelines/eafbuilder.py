@@ -9,6 +9,7 @@ from ChildProject.annotations import AnnotationManager
 from ChildProject.pipelines.pipeline import Pipeline
 from ChildProject.tables import assert_dataframe, assert_columns_presence
 
+FORMAT_SPEECH = ["vtc_rttm","vcm_rttm"] #formats for which nan must be replaced with SPEECH
 
 def create_eaf(
     etf_path: str,
@@ -21,15 +22,23 @@ def create_eaf(
     contxt_off: int,
     template: str,
     speech_segments: pd.DataFrame = None,
+    imported_set: str = None,
+    imported_format: str = None,
 ):
     import pympi
 
     eaf = pympi.Elan.Eaf(etf_path)
 
     ling_type = "transcription"
+    """
     eaf.add_tier("code_" + eaf_type, ling=ling_type)
     eaf.add_tier("context_" + eaf_type, ling=ling_type)
     eaf.add_tier("code_num_" + eaf_type, ling=ling_type)
+    """
+    eaf.add_tier("SAMPLER", ling=ling_type)
+    eaf.add_tier("code_" + eaf_type, ling=ling_type, parent="SAMPLER")
+    eaf.add_tier("context_" + eaf_type, ling=ling_type, parent="SAMPLER")
+    eaf.add_tier("code_num_" + eaf_type, ling=ling_type, parent="SAMPLER")
 
     for i, ts in enumerate(timestamps_list):
         print("Creating eaf code segment # ", i + 1)
@@ -61,9 +70,12 @@ def create_eaf(
                 speaker_id = segment["speaker_id"]
             elif "speaker_type" in segment:
                 speaker_id = segment["speaker_type"]
+                if pd.isnull(speaker_id) and imported_format in FORMAT_SPEECH : speaker_id = "SPEECH" #replace  nan with SPEECH for some formats
 
             if speaker_id is None:
                 continue
+            
+            if imported_set: speaker_id = "{}-{}".format(imported_set.replace("/","_").upper(),speaker_id)
 
             if speaker_id not in eaf.tiers:
                 eaf.add_tier(speaker_id)
@@ -165,11 +177,13 @@ class EafBuilderPipeline(Pipeline):
             {"recording_filename", "segment_onset", "segment_offset"},
         )
 
+        imported_set = None
         prefill = path and import_speech_from
         if prefill:
             project = ChildProject(path)
             am = AnnotationManager(project)
             am.read()
+            imported_set = import_speech_from
 
         for recording_filename, segs in segments.groupby("recording_filename"):
             recording_prefix = os.path.splitext(recording_filename)[0]
@@ -184,6 +198,7 @@ class EafBuilderPipeline(Pipeline):
             ]
 
             speech_segments = None
+            imported_format = None
             if prefill:
                 ranges = segs.assign(recording_filename=recording_filename).rename(
                     columns={
@@ -197,6 +212,13 @@ class EafBuilderPipeline(Pipeline):
                     continue
 
                 speech_segments = am.get_segments(matches)
+                try:
+                    matches = matches["format"].drop_duplicates()
+                    if len(matches.index) == 1:
+                        imported_format = matches.iloc[0]
+                except KeyError:
+                    imported_format = None
+                    
 
             output_dir = os.path.join(destination, recording_prefix)
 
@@ -211,6 +233,8 @@ class EafBuilderPipeline(Pipeline):
                 context_offset,
                 template,
                 speech_segments,
+                imported_set,
+                imported_format,
             )
 
             shutil.copy(
