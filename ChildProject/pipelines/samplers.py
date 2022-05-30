@@ -107,15 +107,10 @@ class Sampler(ABC):
                 ignore_segs = am.get_within_ranges(ignore_segs)
                 ignore_segs = ignore_segs[ignore_segs["set"] == self.annotation_set]
                 ignore_segs = am.get_segments(ignore_segs)
-                print("=======================================>")
-                print(segments)
-                print(segments.columns)
-                print(ignore_segs)
-                print(ignore_segs.columns)
+                
                 segments = pd.concat([segments,ignore_segs]).drop_duplicates(subset=['segment_offset'],keep=False)
                 segments = pd.concat([segments,ignore_segs]).drop_duplicates(subset=['segment_onset'],keep=False)
-                print(segments)
-                print(segments.columns)
+                
         except Exception as e:
             return None
         
@@ -744,15 +739,33 @@ class HighVolubilitySampler(Sampler):
         segments["chunk"] = (
             segments["segment_offset"] // self.windows_length + 1
         ).astype("int")
+        
+        if recording["recording_filename"] == "e20130311_153528_008344_1.wav":
+            print("=========>")
+            print(segments[["chunk","segment_onset","segment_offset","speaker_type"]])
+            print(segments[segments["chunk"]==2234][["chunk","segment_onset","segment_offset","speaker_type"]])
 
         segment_onsets = segments.groupby("chunk")["segment_onset"].min()
         segment_offsets = segments.groupby("chunk")["segment_offset"].max()
 
+        if recording["recording_filename"] == "e20130311_153528_008344_1.wav":
+            print("segment_onsets")
+            print(segment_onsets)
+            print(segment_onsets[2234])
+            print("segment_offsets")
+            print(segment_offsets)
+            print(segment_offsets[2234])
+        
         # this dataframe contains the segment onset and offsets for the chunks we calculated.
         windows = pd.merge(
             segment_onsets, segment_offsets, left_index=True, right_index=True
         ).reset_index()
         windows["recording_filename"] = recording["recording_filename"]
+        
+        if recording["recording_filename"] == "e20130311_153528_008344_1.wav":
+            print("windows")
+            print(windows)
+            print(windows[windows["chunk"]==2234])
 
         if self.metric == "turns":
             if "lena_conv_turn_type" in segments.columns:
@@ -779,13 +792,18 @@ class HighVolubilitySampler(Sampler):
                         & (segments["prev_speaker_type"] == "CHI")
                     )
                 )
-
+                    
+            if recording["recording_filename"] == "e20130311_153528_008344_1.wav":
+                print("segments group by chunk ")
+                print(segments.groupby("chunk", as_index=False)[["is_CT"]].sum())
+                print(segments.groupby("chunk", as_index=False)[["is_CT"]].sum().rename(columns={"is_CT": self.metric}).merge(windows))
             segments = (
                 segments.groupby("chunk", as_index=False)[["is_CT"]]
                 .sum()
                 .rename(columns={"is_CT": self.metric})
                 .merge(windows)
             )
+            
 
         elif self.metric == "vocs":
             # NOTE: This is the equivalent of CVC (tab2) in rlena_extract.R
@@ -827,6 +845,7 @@ class HighVolubilitySampler(Sampler):
             [self._segment_scores(r) for r in recordings.to_dict(orient="records")]
         )
 
+        print(segments[segments["recording_filename"] == "e20130311_153528_008344_1.wav"].sort_values(self.metric, ascending=False).head(self.windows_count))
         return (
             segments.sort_values(self.metric, ascending=False)
             .head(self.windows_count)
