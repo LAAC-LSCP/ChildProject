@@ -5,6 +5,7 @@ import multiprocessing as mp
 import numpy as np
 import pandas as pd
 from typing import Union, List
+import datetime
 
 import ChildProject
 from ChildProject.pipelines.pipeline import Pipeline
@@ -12,20 +13,47 @@ from ChildProject.pipelines.pipeline import Pipeline
 pipelines = {}
 
 
+def voc_fem_ph(metrics: pd.DataFrame, annotations: pd.DataFrame):
+    """metric calculating number of vocalizations per hour for speaker FEM 
+    """
+    metrics["voc_fem_ph"]= annotations[annotations["speaker_type"]== "FEM"].shape[0]
+    
+def voc_x_ph(annotations: pd.DataFrame, duration: int, arguments: dict = None):
+    """metric calculating number of vocalizations per hour for a given speaker type 
+    """
+    name = "voc_{}_ph".format(arguments["speaker"].lower())
+    value = annotations[annotations["speaker_type"]== arguments["speaker"]].shape[0] * (3600 / duration)
+    return name, value
+    
+def voc_dur_x_ph(annotations: pd.DataFrame, duration: int, arguments: dict = None):
+    """metric calculating number of vocalizations per hour for a given speaker type 
+    """
+    name = "voc_dur_{}_ph".format(arguments["speaker"].lower())
+    value = annotations[annotations["speaker_type"]== arguments["speaker"]]["duration"].sum() * (3600 / duration)
+    return name,value
+
 class Metrics(ABC):
     def __init__(
         self,
         project: ChildProject.projects.ChildProject,
+        metrics_list: pd.DataFrame,
         by: str = "recording_filename",
         recordings: Union[str, List[str], pd.DataFrame] = None,
         from_time: str = None,
         to_time: str = None,
-        rec_cols: str = None,
-        child_cols: str = None,
+        rec_cols: list = [],
+        child_cols: list = [],
+        period: str = None,
+        threads: int = 1,
     ):
 
         self.project = project
         self.am = ChildProject.annotations.AnnotationManager(self.project)
+        self.threads = int(threads)
+        
+        ##TODO check validity of metrics_list (dataframe with callable, set, arguments, name?)
+        metrics_list.sort_values(by="set",inplace=True)
+        self.metrics_list = metrics_list
 
         #necessary columns to construct the metrics
         join_columns = {
@@ -80,6 +108,18 @@ class Metrics(ABC):
             self.child_cols = None
         
         self.by = by
+        self.period = period
+        
+        #build a dataframe with all the periods we will want for each unit
+        if self.period: 
+            self.periods = pd.interval_range(
+                start=datetime.datetime(1900, 1, 1, 0, 0, 0, 0),
+                end=datetime.datetime(1900, 1, 2, 0, 0, 0, 0),
+                freq=self.period,
+                closed="both",
+            )
+            self.periods= pd.DataFrame(self.periods.to_tuples().to_list(),columns=['period_start','period_end'])
+        
         self.segments = pd.DataFrame()
 
         self.recordings = Pipeline.recordings_from_list(recordings)
@@ -91,18 +131,59 @@ class Metrics(ABC):
         super().__init_subclass__(**kwargs)
         pipelines[cls.SUBCOMMAND] = cls
 
-    @abstractmethod
+    def _process_unit(self,row):
+        prev_set = ""
+        duration_set = 0
+        for i, line in self.metrics_list.iterrows():
+            curr_set = line["set"]
+            if prev_set != curr_set:
+                index, annotations = self.retrieve_segments([curr_set],row[1])
+                duration_set = (
+                        index["range_offset"] - index["range_onset"]
+                    ).sum() / 1000
+                row[1]["duration_{}".format(line["set"])] = duration_set
+                prev_set = curr_set            
+        
+            if 'name' in line and not pd.isnull(line["name"]) :
+                row[1][line["name"]] = eval(line["callable"])(annotations, duration_set, arguments = line["arguments"])[1]
+            else :
+                name, value = eval(line["callable"])(annotations, duration_set, arguments = line["arguments"])
+                row[1][name] = value
+                
+        return row[1]
+                
+    
+    #from the initiated self.metrics, compute each row metrics (with threads or not)
     def extract(self):
-        pass
+        if self.threads == 1:
+            self.metrics = pd.DataFrame(
+                [self._process_unit(row) for row in self.metrics.iterrows()]
+            )
+        else:
+            with mp.Pool(
+                processes=self.threads if self.threads >= 1 else mp.cpu_count()
+            ) as pool:
+                self.metrics = pd.DataFrame(
+                    pool.map(self._process_unit, self.metrics.iterrows())
+                )
+            
 
-    def retrieve_segments(self, sets: List[str], unit: str):
-        annotations = self.am.annotations[self.am.annotations[self.by] == unit]
+        return self.metrics
+
+    def retrieve_segments(self, sets: List[str], row: str):
+        annotations = self.am.annotations[self.am.annotations[self.by] == row[self.by]]
         annotations = annotations[annotations["set"].isin(sets)]
 
         if self.from_time and self.to_time:
             annotations = self.am.get_within_time_range(
                 annotations, self.from_time, self.to_time, errors="coerce"
             )
+            
+        if self.period:
+            st_hour = datetime.datetime.strptime(row["period_start"], "%H:%M")
+            end_hour = datetime.datetime.strptime(row["period_end"], "%H:%M")
+            annotations = self.am.get_within_time_range(
+                    annotations, st_hour, end_hour)
 
         try:
             segments = self.am.get_segments(annotations)
@@ -118,8 +199,102 @@ class Metrics(ABC):
         )
 
         return annotations, segments
+    
+    def _initiate_metrics_df(self):
+        """builds a dataframe with all the rows necessary and their labels
+        eg : - one row per child if --by child_id and no --period
+             - 48 rows if 2 recordings in the corpus --period 1h --by recording_filename
+        Then the extract() method should populate the dataframe wit actual metrics
+        """
+        recordings = self.project.get_recordings_from_list(self.recordings)
+        self.metrics = pd.DataFrame(recordings[self.by].unique(), columns=[self.by])
+        
+        if self.period:
+            #if period, use the self.periods dataframe to build all the list of segments per unit
+            self.metrics["key"]=0 #with old versions of pandas, we are forced to have a common column to do a cross join, we drop the column after
+            self.periods["key"]=0
+            self.metrics = pd.merge(self.metrics,self.periods,on='key',how='outer').drop('key',axis=1)
+        
+        #add info for child_id and duration to the dataframe
+        self.metrics["child_id"] = self.metrics.apply(
+                lambda row:self.project.recordings[self.project.recordings[self.by] == row[self.by]
+        ]["child_id"].iloc[0],
+        axis=1)
+        
+        #durations will need to be computed per set because annotated time may change between sets and that will influence raw numbers and rates.
+        #metrics["duration"] = unit_duration
+        
+        #get and add to dataframe children.csv columns asked
+        if self.child_cols:
+            for label in self.child_cols:
+                self.metrics[label]= self.metrics.apply(lambda row:
+                    self.project.children[
+                        self.project.children["child_id"] == row["child_id"]
+                ][label].iloc[0], axis=1)
+                
+        def check_unicity(row, label):
+            value=self.project.recordings[
+                        self.project.recordings[self.by] == row[self.by]
+                ][label].drop_duplicates()
+            #check that there is only one row remaining (ie this column has a unique value for that unit)
+            if len(value) == 1:
+                return value.iloc[0]
+            #otherwise, leave the column as NA
+            else:
+                return "NA"
+        
+        #get and add to dataframe recordings.csv columns asked
+        if self.rec_cols:
+            for label in self.rec_cols:
+                self.metrics[label] = self.metrics.apply(lambda row : check_unicity(row,label),axis=1)
+        
+        
+class customMetrics(Metrics):
+    """custom metrics extractor. 
+    Extracts a number of metrics from a given list of callable functions.
+    A object containing the callable functions sets desired and other arguments can be used or a path to a yaml file
+    with all necessary parameters
 
+    
+    """
+    
+    SUBCOMMAND = "custom"
 
+    def __init__(
+        self,
+        project: ChildProject.projects.ChildProject,
+        parameters: Union[str, pd.DataFrame],
+        recordings: Union[str, List[str], pd.DataFrame] = None,
+        from_time: str = None,
+        to_time: str = None,       
+        rec_cols: str = None,
+        child_cols: str = None,
+        by: str = "recording_filename",
+        period: str = None,
+    ):
+        
+        ##TODO parse yml file to create the parameters and the metrics_list
+        #probably overwrite cli arguments if they are given in the yaml file
+        
+        super().__init__(project, by, recordings, from_time, to_time, rec_cols, child_cols)
+        
+    def _process_unit(self, unit: str):
+        pass
+    
+    def extract(self):
+        pass
+    
+    @staticmethod
+    def add_parser(subparsers, subcommand):
+        parser = subparsers.add_parser(subcommand, help="custom metrics")
+        parser.add_argument("parameters",
+            help="name of the .yml parameter file for custom metrics",
+            required=True,
+        )
+        parser.add_argument(
+            "--threads", help="amount of threads to run on", default=1, type=int
+        )
+        
 class LenaMetrics(Metrics):
     """LENA metrics extractor. 
     Extracts a number of metrics from the LENA .its annotations.
@@ -886,8 +1061,14 @@ class MetricsPipeline(Pipeline):
         parser.add_argument(
             "--by",
             help="units to sample from (default behavior is to sample by recording)",
-            choices=["recording_filename", "session_id", "child_id"],
+            choices=["recording_filename", "session_id", "child_id","experiment"],
             default="recording_filename",
+        )
+        
+        parser.add_argument(
+            "--period",
+            help="time units to aggregate (optional); equivalent to ``pandas.Grouper``'s freq argument.",
+            default=None,
         )
 
         parser.add_argument(
@@ -911,7 +1092,17 @@ class MetricsPipeline(Pipeline):
         )
         
         parser.add_argument(
+            "--rec-cols",
+            help="columns from recordings.csv to include in the outputted metrics (optional), NA if ambiguous",
+            nargs="+", default=[],
+        )
+        
+        parser.add_argument(
             "--child-cols",
             help="columns from children.csv to include in the outputted metrics (optional)",
-            default=None,
+            nargs="+", default=[],
+        )
+        
+        parser.add_argument(
+            "--threads", help="amount of threads to run on", default=1, type=int
         )

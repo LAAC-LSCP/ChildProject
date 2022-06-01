@@ -1267,8 +1267,18 @@ class AnnotationManager:
 
         matches = []
         for annotation in annotations.to_dict(orient="records"):
+            #onsets = np.arange(start_ts, annotation["range_offset_ts"], 86400 * 1000)
+            #offsets = onsets + (end_ts - start_ts)
+            
             onsets = np.arange(start_ts, annotation["range_offset_ts"], 86400 * 1000)
-            offsets = onsets + (end_ts - start_ts)
+            offsets = np.arange(end_ts, annotation["range_offset_ts"], 86400 * 1000)
+            #treat edge cases when the offset is after the end of annotation, onset before start etc
+            if len(onsets) > 0 and onsets[0] < annotation["range_onset_ts"] :
+                if len(offsets) > 0 and offsets[0] < annotation["range_onset_ts"]: onsets = onsets[1:]
+                else : onsets[0] = annotation["range_onset_ts"]
+            if len(offsets) > 0 and offsets[0] < annotation["range_onset_ts"] : offsets = offsets[1:]
+            if len(onsets) > 0 and len(offsets) > 0 and onsets[0] > offsets[0] : onsets = np.append(annotation["range_onset_ts"], onsets)
+            if (len(onsets) > 0 and len(offsets) > 0 and onsets[-1] > offsets[-1]) or len(onsets) > len(offsets) : offsets = np.append(offsets,annotation["range_offset_ts"])
 
             xs = (Segment(onset, offset) for onset, offset in zip(onsets, offsets))
             ys = iter(
