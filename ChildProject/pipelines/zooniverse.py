@@ -108,22 +108,33 @@ class ZooniversePipeline(Pipeline):
         #from raw sound data and sampling rate, build the scpectrogram as a matplotlib figure and return it
         def _create_spectrogram(data,sr):
             snd = Sound(data,sampling_frequency=sr)
-            #window_length = neighbouring information used to build the spectro
-            spectrogram = snd.to_spectrogram(window_length=0.0075,maximum_frequency=5000, time_step= 0.0001 ,frequency_step = 0.1,window_shape= SpectralAnalysisWindowShape.GAUSSIAN)
-            fig = plt.figure()
-            dynamic_range=70
+            spectrogram = snd.to_spectrogram(window_length=0.0075,maximum_frequency=8000, time_step= 0.0001 ,frequency_step = 0.1,window_shape= SpectralAnalysisWindowShape.GAUSSIAN)
+            #fig = plt.figure()
+            
+            #fig, axs = plt.subplots(2,sharex=True)
+            fig = plt.figure(figsize=(8, 8))
+            gs = fig.add_gridspec(2, hspace=0, height_ratios=[1, 3])
+            axs = gs.subplots(sharex=True)
+            
+            dynamic_range=65
             X, Y = spectrogram.x_grid(), spectrogram.y_grid()
-            sg_db = 10 * log10(spectrogram.values) 
-            plt.pcolormesh(X, Y, sg_db, vmin=sg_db.max() - dynamic_range, cmap='afmhot')
-            #plt.yscale("log",base=2) #use a log2 scale
-            #plt.ylim([spectrogram.ymin, spectrogram.ymax])
-            plt.ylim([32, spectrogram.ymax])
-            #plt.gca().yaxis.set_major_formatter(ScalarFormatter()) # use scalar labels on log axis
-            plt.xlabel("time [s]")
-            plt.ylabel("frequency [Hz]")
-            plt.twinx()
-            plt.xlim([snd.xmin, snd.xmax])
-            #plt.show()
+            sg_db = 10 * log10(spectrogram.values)
+            axs[1].pcolormesh(X, Y, sg_db, vmin=sg_db.max() - dynamic_range, cmap='Greys')
+            axs[1].set_ylim([spectrogram.ymin, spectrogram.ymax])
+            axs[1].set_xlabel("time [s]")
+            axs[1].set_ylabel("frequency [Hz]")
+            axs[1].tick_params( labelright=True)
+            axs[1].set_xlim([snd.xmin, snd.xmax])
+            
+            axs[0].plot(snd.xs(), snd.values.T, linewidth=0.5)
+            axs[0].set_xlim([snd.xmin, snd.xmax])
+            axs[0].set_ylabel("amplitude")
+            ticks = axs[0].yaxis.get_major_ticks()
+            if len(ticks) : ticks[0].label1.set_visible(False)
+            if len(ticks) > 1 : ticks[1].label1.set_visible(False)
+            
+            fig.tight_layout()
+            
             return fig
         
         segments = segments.to_dict(orient="records")
@@ -227,7 +238,7 @@ class ZooniversePipeline(Pipeline):
         segments: str,
         chunks_length: int = -1,
         chunks_min_amount: int = 1,
-        spectro_video: bool = False,
+        spectrogram_video: bool = False,
         profile: str = "",
         threads: int = 1,
         **kwargs
@@ -247,8 +258,8 @@ class ZooniversePipeline(Pipeline):
         :type chunks_length: int, optional
         :param chunks_min_amount: minimum amount of chunk per segment, defaults to 1
         :type chunks_min_amount: int, optional
-        :param spectro_video: the extraction generates a video with the audio and spectrogram, defaults to False
-        :type spectro_video: bool, optional
+        :param spectrogram_video: the extraction generates a video with the audio and spectrogram, defaults to False
+        :type spectrogram_video: bool, optional
         :param profile: recording profile to extract from. If undefined, raw recordings will be used.
         :type profile: str
         :param threads: amount of threads to run-on, defaults to 0
@@ -268,7 +279,7 @@ class ZooniversePipeline(Pipeline):
 
         self.chunks_length = int(chunks_length)
         self.chunks_min_amount = chunks_min_amount
-        self.spectro_video = spectro_video
+        self.spectro_video = spectrogram_video
         self.profile = profile
 
         threads = int(threads)
@@ -589,8 +600,8 @@ class ZooniversePipeline(Pipeline):
             default=1,
         )
         parser_extraction.add_argument(
-            "--spectro-video",
-            help="the extraction generates a video with the audio and a spectrogram (default value: 1)",
+            "--spectrogram-video",
+            help="the extraction generates a video with the audio and a spectrogram (default False)",
             action="store_true",
         )
         parser_extraction.add_argument(
