@@ -20,7 +20,7 @@ from numpy import log10
 
 from pydub import AudioSegment
 from pydub.utils import get_array_type
-import ffmpeg
+
 from parselmouth import Sound
 from parselmouth import SpectralAnalysisWindowShape
 
@@ -109,10 +109,8 @@ class ZooniversePipeline(Pipeline):
         def _create_spectrogram(data,sr):
             snd = Sound(data,sampling_frequency=sr)
             spectrogram = snd.to_spectrogram(window_length=0.0075,maximum_frequency=8000, time_step= 0.0001 ,frequency_step = 0.1,window_shape= SpectralAnalysisWindowShape.GAUSSIAN)
-            #fig = plt.figure()
             
-            #fig, axs = plt.subplots(2,sharex=True)
-            fig = plt.figure(figsize=(8, 8))
+            fig = plt.figure(figsize=(12, 6.75))
             gs = fig.add_gridspec(2, hspace=0, height_ratios=[1, 3])
             axs = gs.subplots(sharex=True)
             
@@ -192,10 +190,8 @@ class ZooniversePipeline(Pipeline):
                 else:
                     chunk_audio.export(mp3, format="mp3")
                     
-                if self.spectro_video:
-                    start_time = time.time()
+                if self.spectro:
                     png = os.path.join(self.destination, "chunks", chunk.getbasename("png"))
-                    mp4 = os.path.join(self.destination, "chunks", chunk.getbasename("mp4"))
                     
                     bit_depth = chunk_audio.sample_width * 8
                     array_type = get_array_type(bit_depth)
@@ -203,29 +199,13 @@ class ZooniversePipeline(Pipeline):
                     sound = array.array(array_type, chunk_audio._data)
                     sr = chunk_audio.frame_rate
                     fig = _create_spectrogram(sound,sr)
-                    print("--- spectro %s seconds ---" % (time.time() - start_time))
+                    
                     if os.path.exists(png) and os.path.getsize(png) > 0:
                         print("{} already exists, exportation skipped.".format(png))
                     else:
                         fig.savefig(png)
                     plt.close(fig)
-    
-                    if os.path.exists(mp4) and os.path.getsize(mp4) > 0:
-                        print("{} already exists, exportation skipped.".format(mp4))
-                    else:
-                        input_still = ffmpeg.input(png)
-                        input_audio = ffmpeg.input(wav)                     
-                        (
-                            ffmpeg
-                            .concat(input_still, input_audio, v=1, a=1)
-                            .output(mp4)
-                            .global_args('-loglevel', 'error')
-                            .global_args('-hide_banner')
-                            .run(overwrite_output=True)
-                        )
                         
-                    print("--- final video %s seconds ---" % (time.time() - start_time))
-
                 chunks.append(chunk)
 
         return chunks
@@ -238,7 +218,7 @@ class ZooniversePipeline(Pipeline):
         segments: str,
         chunks_length: int = -1,
         chunks_min_amount: int = 1,
-        spectrogram_video: bool = False,
+        spectrogram: bool = False,
         profile: str = "",
         threads: int = 1,
         **kwargs
@@ -258,8 +238,8 @@ class ZooniversePipeline(Pipeline):
         :type chunks_length: int, optional
         :param chunks_min_amount: minimum amount of chunk per segment, defaults to 1
         :type chunks_min_amount: int, optional
-        :param spectrogram_video: the extraction generates a video with the audio and spectrogram, defaults to False
-        :type spectrogram_video: bool, optional
+        :param spectrogram: the extraction generates a png spectrogram, defaults to False
+        :type spectrogram: bool, optional
         :param profile: recording profile to extract from. If undefined, raw recordings will be used.
         :type profile: str
         :param threads: amount of threads to run-on, defaults to 0
@@ -278,8 +258,8 @@ class ZooniversePipeline(Pipeline):
         self.project = ChildProject.projects.ChildProject(path)
 
         self.chunks_length = int(chunks_length)
-        self.chunks_min_amount = chunks_min_amount
-        self.spectro_video = spectrogram_video
+        self.chunks_min_amount = int(chunks_min_amount)
+        self.spectro = spectrogram
         self.profile = profile
 
         threads = int(threads)
@@ -319,6 +299,7 @@ class ZooniversePipeline(Pipeline):
                     "segment_offset": c.segment_offset,
                     "wav": c.getbasename("wav"),
                     "mp3": c.getbasename("mp3"),
+                    "png": c.getbasename("png") if self.spectro else "NA",
                     "date_extracted": datetime.datetime.now().strftime(
                         "%Y-%m-%d %H:%M:%S"
                     ),
@@ -600,8 +581,8 @@ class ZooniversePipeline(Pipeline):
             default=1,
         )
         parser_extraction.add_argument(
-            "--spectrogram-video",
-            help="the extraction generates a video with the audio and a spectrogram (default False)",
+            "--spectrogram",
+            help="the extraction generates a png spectrogram (default False)",
             action="store_true",
         )
         parser_extraction.add_argument(

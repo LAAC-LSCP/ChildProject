@@ -36,6 +36,7 @@ def test_extraction():
         segments="output/zooniverse/sampled_segments.csv",
         chunks_length=250,
         chunks_min_amount=2,
+        spectrogram_video=True,
     )
 
     chunks = pd.read_csv(chunks)
@@ -48,6 +49,11 @@ def test_extraction():
     )
     assert all(
         chunks["mp3"]
+        .apply(lambda f: os.path.exists(os.path.join("output/zooniverse/chunks", f)))
+        .tolist()
+    )
+    assert all(
+        chunks["png"]
         .apply(lambda f: os.path.exists(os.path.join("output/zooniverse/chunks", f)))
         .tolist()
     )
