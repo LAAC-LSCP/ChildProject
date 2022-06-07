@@ -119,8 +119,10 @@ class Metrics(ABC):
 
         return annotations, segments
     
-    def lena_metrics(self, unit: str, metrics, annotations, its, unit_duration, grouper=None):
+    def lena_metrics(self, unit: str, metrics, annotations, segments, unit_duration, grouper=None):
         import ast
+        
+        its = segments[segments["set"] == self.its]
         
         speaker_types = ["FEM", "MAL", "CHI", "OCH"]
         adults = ["FEM", "MAL"]
@@ -194,7 +196,7 @@ class Metrics(ABC):
         if grouper:
             chi["cries"] = chi["cries"].apply(lambda x: len(ast.literal_eval(x)))
             chi["vfxs"] = chi["vfxs"].apply(lambda x: len(ast.literal_eval(x)))
-            chi_agg = chi.groupby(grouper).agg(
+            chi_agg = chi.groupby(pd.Grouper(key="onset_time", freq=grouper, closed="left")).agg(
                     cries=("cries","sum"),
                     vfxs=("vfxs","sum"),
                     utterances=("utterances_count","sum"),
@@ -216,7 +218,7 @@ class Metrics(ABC):
         )
 
         if grouper:
-            its_agg = its.groupby(grouper).agg(
+            its_agg = its.groupby(pd.Grouper(key="onset_time", freq=grouper, closed="left")).agg(
                     words=("words","sum"),
                     )
         else:
