@@ -36,7 +36,7 @@ def test_extraction():
         segments="output/zooniverse/sampled_segments.csv",
         chunks_length=250,
         chunks_min_amount=2,
-        spectrogram_video=True,
+        spectrogram=True,
     )
 
     chunks = pd.read_csv(chunks)
