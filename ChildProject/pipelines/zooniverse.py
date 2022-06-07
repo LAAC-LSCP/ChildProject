@@ -108,12 +108,14 @@ class ZooniversePipeline(Pipeline):
         #from raw sound data and sampling rate, build the scpectrogram as a matplotlib figure and return it
         def _create_spectrogram(data,sr):
             snd = Sound(data,sampling_frequency=sr)
+            # this parameters were chosen to output a spectrogram useful for zooniverse applications (short sounds from babies) we did not feel the need to have flexibility on them
             spectrogram = snd.to_spectrogram(window_length=0.0075,maximum_frequency=8000, time_step= 0.0001 ,frequency_step = 0.1,window_shape= SpectralAnalysisWindowShape.GAUSSIAN)
             
-            fig = plt.figure(figsize=(12, 6.75))
-            gs = fig.add_gridspec(2, hspace=0, height_ratios=[1, 3])
+            fig = plt.figure(figsize=(12, 6.75)) #size of the image, we chose 1200x675 pixels for a better display on zooniverse
+            gs = fig.add_gridspec(2, hspace=0, height_ratios=[1, 3]) #2 plots (spectrogram 3x bigger than oscillogram)
             axs = gs.subplots(sharex=True)
             
+            #scpectrogram plot
             dynamic_range=65
             X, Y = spectrogram.x_grid(), spectrogram.y_grid()
             sg_db = 10 * log10(spectrogram.values)
@@ -124,9 +126,12 @@ class ZooniversePipeline(Pipeline):
             axs[1].tick_params( labelright=True)
             axs[1].set_xlim([snd.xmin, snd.xmax])
             
+            #oscillogram plot
             axs[0].plot(snd.xs(), snd.values.T, linewidth=0.5)
             axs[0].set_xlim([snd.xmin, snd.xmax])
             axs[0].set_ylabel("amplitude")
+            
+            #remove overlapping labels
             ticks = axs[0].yaxis.get_major_ticks()
             if len(ticks) : ticks[0].label1.set_visible(False)
             if len(ticks) > 1 : ticks[1].label1.set_visible(False)
@@ -193,12 +198,13 @@ class ZooniversePipeline(Pipeline):
                 if self.spectro:
                     png = os.path.join(self.destination, "chunks", chunk.getbasename("png"))
                     
+                    #convert pydub sound data into raw data that the parselmouth library can use
                     bit_depth = chunk_audio.sample_width * 8
                     array_type = get_array_type(bit_depth)
                     
                     sound = array.array(array_type, chunk_audio._data)
                     sr = chunk_audio.frame_rate
-                    fig = _create_spectrogram(sound,sr)
+                    fig = _create_spectrogram(sound,sr) #create the plot figure
                     
                     if os.path.exists(png) and os.path.getsize(png) > 0:
                         print("{} already exists, exportation skipped.".format(png))
