@@ -6,30 +6,196 @@ import numpy as np
 import pandas as pd
 from typing import Union, List
 import datetime
+import ast
 
 import ChildProject
 from ChildProject.pipelines.pipeline import Pipeline
 
 pipelines = {}
 
-
-def voc_fem_ph(metrics: pd.DataFrame, annotations: pd.DataFrame):
-    """metric calculating number of vocalizations per hour for speaker FEM 
-    """
-    metrics["voc_fem_ph"]= annotations[annotations["speaker_type"]== "FEM"].shape[0]
+#########################################
+# TODO check presence of correct arguments for each metric, check given annotation set has the wanted columns
+#########################################
     
-def voc_x_ph(annotations: pd.DataFrame, duration: int, arguments: dict = None):
+def voc_speaker_ph(annotations: pd.DataFrame, duration: int, arguments: dict = None):
     """metric calculating number of vocalizations per hour for a given speaker type 
     """
     name = "voc_{}_ph".format(arguments["speaker"].lower())
     value = annotations[annotations["speaker_type"]== arguments["speaker"]].shape[0] * (3600 / duration)
     return name, value
     
-def voc_dur_x_ph(annotations: pd.DataFrame, duration: int, arguments: dict = None):
+def voc_dur_speaker_ph(annotations: pd.DataFrame, duration: int, arguments: dict = None):
     """metric calculating number of vocalizations per hour for a given speaker type 
     """
     name = "voc_dur_{}_ph".format(arguments["speaker"].lower())
     value = annotations[annotations["speaker_type"]== arguments["speaker"]]["duration"].sum() * (3600 / duration)
+    return name,value
+
+def avg_voc_dur_speaker(annotations: pd.DataFrame, duration: int, arguments: dict = None):
+    """metric calculating the average duration for vocalizations for a given speaker type 
+    """
+    name = "avg_voc_dur_{}".format(arguments["speaker"].lower())
+    value = annotations[annotations["speaker_type"]== arguments["speaker"]]["duration"].mean()
+    return name,value
+
+def wc_speaker_ph(annotations: pd.DataFrame, duration: int, arguments: dict = None):
+    """metric calculating the number of words per hour for a given speaker type 
+    """
+    name = "wc_{}_ph".format(arguments["speaker"].lower())
+    value = annotations[annotations["speaker_type"]== arguments["speaker"]]["words"].sum() * (3600 / duration)
+    return name,value
+
+def sc_speaker_ph(annotations: pd.DataFrame, duration: int, arguments: dict = None):
+    """metric calculating the number of syllables per hour for a given speaker type 
+    """
+    name = "sc_{}_ph".format(arguments["speaker"].lower())
+    value = annotations[annotations["speaker_type"]== arguments["speaker"]]["syllables"].sum() * (3600 / duration)
+    return name,value
+
+def pc_speaker_ph(annotations: pd.DataFrame, duration: int, arguments: dict = None):
+    """metric calculating the number of phonemes per hour for a given speaker type 
+    """
+    name = "pc_{}_ph".format(arguments["speaker"].lower())
+    value = annotations[annotations["speaker_type"]== arguments["speaker"]]["phonemes"].sum() * (3600 / duration)
+    return name,value
+
+def wc_adu_ph(annotations: pd.DataFrame, duration: int, arguments: dict = None):
+    """metric calculating the number of words per hour for all speakers
+    """
+    name = "wc_adu_ph"
+    value = annotations["words"].sum() * (3600 / duration)
+    return name,value
+
+def sc_adu_ph(annotations: pd.DataFrame, duration: int, arguments: dict = None):
+    """metric calculating the number of syllables per hour for all speakers
+    """
+    name = "sc_adu_ph"
+    value = annotations["syllables"].sum() * (3600 / duration)
+    return name,value
+
+def pc_adu_ph(annotations: pd.DataFrame, duration: int, arguments: dict = None):
+    """metric calculating the number of phonemes per hour for all speakers
+    """
+    name = "pc_adu_ph"
+    value = annotations["phonemes"].sum() * (3600 / duration)
+    return name,value
+
+def cry_voc_chi_ph(annotations: pd.DataFrame, duration: int, arguments: dict = None):
+    """metric calculating the number of cries per hour for CHI (based on vcm_type)
+    """
+    name = "cry_voc_chi_ph"
+    value = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "Y")].shape[0] * (3600 / duration)
+    return name,value
+
+def cry_voc_dur_chi_ph(annotations: pd.DataFrame, duration: int, arguments: dict = None):
+    """metric calculating the duration of cries per hour for CHI (based on vcm_type)
+    """
+    name = "cry_voc_dur_chi_ph"
+    value = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "Y")]["duration"].sum() * (3600 / duration)
+    return name,value
+
+def avg_cry_voc_dur_chi(annotations: pd.DataFrame, duration: int, arguments: dict = None):
+    """metric calculating the average duration of cries for CHI (based on vcm_type)
+    """
+    name = "avg_cry_voc_dur_chi"
+    value = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "Y")]["duration"].mean() * (3600 / duration)
+    if pd.isnull(value) : value = 0
+    return name,value
+
+def can_voc_chi_ph(annotations: pd.DataFrame, duration: int, arguments: dict = None):
+    """metric calculating the number of canonical vocalizations per hour for CHI (based on vcm_type)
+    """
+    name = "can_voc_chi_ph"
+    value = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "C")].shape[0] * (3600 / duration)
+    return name,value
+
+def can_voc_dur_chi_ph(annotations: pd.DataFrame, duration: int, arguments: dict = None):
+    """metric calculating the duration of canonical vocalizations per hour for CHI (based on vcm_type)
+    """
+    name = "can_voc_dur_chi_ph"
+    value = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "C")]["duration"].sum() * (3600 / duration)
+    return name,value
+
+def avg_can_voc_dur_chi(annotations: pd.DataFrame, duration: int, arguments: dict = None):
+    """metric calculating the average duration of canonical vocalizations for CHI (based on vcm_type)
+    """
+    name = "avg_can_voc_dur_chi"
+    value = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "C")]["duration"].mean() * (3600 / duration)
+    if pd.isnull(value) : value = 0
+    return name,value
+
+def non_can_voc_chi_ph(annotations: pd.DataFrame, duration: int, arguments: dict = None):
+    """metric calculating the number of non canonical vocalizations per hour for CHI (based on vcm_type)
+    """
+    name = "non_can_voc_chi_ph"
+    value = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "N")].shape[0] * (3600 / duration)
+    return name,value
+
+def non_can_voc_dur_chi_ph(annotations: pd.DataFrame, duration: int, arguments: dict = None):
+    """metric calculating the duration of non canonical vocalizations per hour for CHI (based on vcm_type)
+    """
+    name = "non_can_voc_dur_chi_ph"
+    value = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "N")]["duration"].sum() * (3600 / duration)
+    return name,value
+
+def avg_non_can_voc_dur_chi(annotations: pd.DataFrame, duration: int, arguments: dict = None):
+    """metric calculating the average duration of non canonical vocalizations for CHI (based on vcm_type)
+    """
+    name = "avg_non_can_voc_dur_chi"
+    value = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "N")]["duration"].mean() * (3600 / duration)
+    if pd.isnull(value) : value = 0
+    return name,value
+
+def lp_n(annotations: pd.DataFrame, duration: int, arguments: dict = None):
+    """metric calculating the linguistic proportion on the number of vocalizations for CHI (based on vcm_type or [cries,vfxs,utterances_count] if vcm_type does not exist)
+    """
+    name = "lp_n"
+    if "vcm_type" in annotations.columns:
+        speech_voc = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"].isin(["N","C"]))].shape[0]
+        cry_voc = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "Y")].shape[0]
+        value = speech_voc / (speech_voc + cry_voc)
+    elif set(["cries","vfxs","utterances_count"]).issubset(annotations.columns):
+        annotations = annotations[annotations["speaker_type"] == "CHI"]
+        cries = annotations["cries"].apply(lambda x: len(ast.literal_eval(x))).sum()
+        vfxs = annotations["vfxs"].apply(lambda x: len(ast.literal_eval(x))).sum()
+        utterances = annotations["utterances_count"].sum()
+        value = utterances / (utterances + cries + vfxs)
+    else:
+        raise ValueError("the {} set does not have the neccessary columns for this metric, choose a set that contains either [vcm_type] or [cries,vfxs,utterances_count]")
+    return name,value
+
+def cp_n(annotations: pd.DataFrame, duration: int, arguments: dict = None):
+    """metric calculating the canonical proportion on the number of vocalizations for CHI (based on vcm_type)
+    """
+    name = "cp_n"
+    speech_voc = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"].isin(["N","C"]))].shape[0]
+    can_voc = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "C")].shape[0]
+    value = can_voc / speech_voc
+    return name,value
+
+def lp_dur(annotations: pd.DataFrame, duration: int, arguments: dict = None):
+    """metric calculating the linguistic proportion on the duration of vocalizations for CHI (based on vcm_type or [child_cry_vfxs_len,utterances_length] if vcm_type does not exist)
+    """
+    name = "lp_dur"
+    if "vcm_type" in annotations.columns:
+        speech_dur = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"].isin(["N","C"]))]["duration"].sum()
+        cry_dur = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "Y")]["duration"].sum()
+        value = speech_dur / (speech_dur + cry_dur)
+    elif set(["child_cry_vfxs_len","utterances_length"]).issubset(annotations.columns):
+        annotations = annotations[annotations["speaker_type"] == "CHI"]
+        value = annotations["utterances_length"].sum() / (
+            annotations["child_cry_vfx_len"].sum() + annotations["utterances_length"].sum() )
+    else:
+        raise ValueError("the {} set does not have the neccessary columns for this metric, choose a set that contains either [vcm_type] or [child_cry_vfxs_len,utterances_length]")
+    return name,value
+
+def cp_dur(annotations: pd.DataFrame, duration: int, arguments: dict = None):
+    """metric calculating the canonical proportion on the number of vocalizations for CHI (based on vcm_type)
+    """
+    name = "cp_dur"
+    speech_dur = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"].isin(["N","C"]))]["duration"].sum()
+    can_dur = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "C")]["duration"].sum()
+    value = can_dur / speech_dur
     return name,value
 
 class Metrics(ABC):
@@ -204,7 +370,7 @@ class Metrics(ABC):
         """builds a dataframe with all the rows necessary and their labels
         eg : - one row per child if --by child_id and no --period
              - 48 rows if 2 recordings in the corpus --period 1h --by recording_filename
-        Then the extract() method should populate the dataframe wit actual metrics
+        Then the extract() method should populate the dataframe with actual metrics
         """
         recordings = self.project.get_recordings_from_list(self.recordings)
         self.metrics = pd.DataFrame(recordings[self.by].unique(), columns=[self.by])
@@ -252,7 +418,7 @@ class Metrics(ABC):
 class customMetrics(Metrics):
     """custom metrics extractor. 
     Extracts a number of metrics from a given list of callable functions.
-    A object containing the callable functions sets desired and other arguments can be used or a path to a yaml file
+    An object containing the callable functions sets desired and other arguments can be used or a path to a yaml file
     with all necessary parameters
 
     
@@ -303,8 +469,6 @@ class LenaMetrics(Metrics):
     :type project: ChildProject.projects.ChildProject
     :param set: name of the set associated to the .its annotations
     :type set: str
-    :param types: list of LENA vocalization/noise types (e.g. OLN, TVN)
-    :type types: list
     :param recordings: recordings to sample from; if None, all recordings will be sampled, defaults to None
     :type recordings: Union[str, List[str], pd.DataFrame], optional
     :param from_time: If specified (in HH:MM format), ignore annotations outside of the given time-range, defaults to None
@@ -327,7 +491,6 @@ class LenaMetrics(Metrics):
         self,
         project: ChildProject.projects.ChildProject,
         set: str,
-        types: list = [],
         recordings: Union[str, List[str], pd.DataFrame] = None,
         from_time: str = None,
         to_time: str = None,       
@@ -336,12 +499,28 @@ class LenaMetrics(Metrics):
         by: str = "recording_filename",
         threads: int = 1,
     ):
-
-        super().__init__(project, by, recordings, from_time, to_time, rec_cols, child_cols)
-
         self.set = set
-        self.types = types
-        self.threads = int(threads)
+        
+        METRICS = pd.DataFrame(np.array(
+            [["voc_speaker_ph",self.set,{'speaker': 'FEM'}],
+             ["voc_speaker_ph",self.set,{'speaker': 'MAL'}],
+             ["voc_speaker_ph",self.set,{'speaker': 'OCH'}],
+             ["voc_dur_speaker_ph",self.set,{'speaker': 'FEM'}],
+             ["voc_dur_speaker_ph",self.set,{'speaker': 'MAL'}],
+             ["voc_dur_speaker_ph",self.set,{'speaker': 'OCH'}],
+             ["avg_voc_dur_speaker",self.set,{'speaker': 'FEM'}],
+             ["avg_voc_dur_speaker",self.set,{'speaker': 'MAL'}],
+             ["avg_voc_dur_speaker",self.set,{'speaker': 'OCH'}],
+             ["wc_speaker_ph",self.set,{'speaker': 'FEM'}],
+             ["wc_speaker_ph",self.set,{'speaker': 'MAL'}],
+             ["wc_adu_ph",self.set,{}],
+             ["lp_n",self.set,{}],
+             ["lp_dur",self.set,{}],
+             ]), columns=["callable","set","arguments"])
+
+        super().__init__(project, METRICS, by, recordings, from_time, to_time, rec_cols, child_cols, threads)
+
+        
 
         if self.set not in self.am.annotations["set"].values:
             raise ValueError(
@@ -349,162 +528,10 @@ class LenaMetrics(Metrics):
                 "check spelling and make sure the set was properly imported."
             )
 
-    def _process_unit(self, unit: str):
-        import ast
-
-        metrics = {self.by: unit}
-        annotations, its = self.retrieve_segments([self.set], unit)
-
-        speaker_types = ["FEM", "MAL", "CHI", "OCH"]
-        adults = ["FEM", "MAL"]
-
-        if "speaker_type" in its.columns:
-            its = its[
-                (its["speaker_type"].isin(speaker_types))
-                | (its["lena_speaker"].isin(self.types))
-            ]
-        else:
-            return metrics
-
-        if len(its) == 0:
-            return metrics
-
-        unit_duration = (
-            annotations["range_offset"] - annotations["range_onset"]
-        ).sum() / 1000
-
-        its_agg = its.groupby("speaker_type").agg(
-            voc_ph=("duration", "count"),
-            voc_dur_ph=("duration", "sum"),
-            avg_voc_dur=("duration", "mean"),
-            wc_ph=("words", "sum"),
-        )
-
-        for speaker in speaker_types:
-            if speaker not in its_agg.index:
-                continue
-
-            metrics["voc_{}_ph".format(speaker.lower())] = (
-                3600 / unit_duration
-            ) * its_agg.loc[speaker, "voc_ph"]
-            metrics["voc_dur_{}_ph".format(speaker.lower())] = (
-                3600 / unit_duration
-            ) * its_agg.loc[speaker, "voc_dur_ph"]
-            metrics["avg_voc_dur_{}".format(speaker.lower())] = its_agg.loc[
-                speaker, "avg_voc_dur"
-            ]
-
-            if speaker in adults:
-                metrics["wc_{}_ph".format(speaker.lower())] = (
-                    3600 / unit_duration
-                ) * its_agg.loc[speaker, "wc_ph"]
-
-        if len(self.types):
-            its_agg = its.groupby("lena_speaker").agg(
-                voc_ph=("duration", "count"),
-                voc_dur_ph=("duration", "sum"),
-                avg_voc_dur=("duration", "mean"),
-            )
-
-        for lena_type in self.types:
-            if lena_type not in its_agg.index:
-                continue
-
-            metrics["voc_{}_ph".format(lena_type.lower())] = (
-                3600 / unit_duration
-            ) * its_agg.loc[lena_type, "voc_ph"]
-            metrics["voc_dur_{}_ph".format(lena_type.lower())] = (
-                3600 / unit_duration
-            ) * its_agg.loc[lena_type, "voc_dur_ph"]
-            metrics["avg_voc_dur_{}".format(lena_type.lower())] = its_agg.loc[
-                lena_type, "avg_voc_dur"
-            ]
-
-        chi = its[its["speaker_type"] == "CHI"]
-        cries = chi["cries"].apply(lambda x: len(ast.literal_eval(x))).sum()
-        vfxs = chi["vfxs"].apply(lambda x: len(ast.literal_eval(x))).sum()
-        utterances = chi["utterances_count"].sum()
-
-        metrics["lp_n"] = utterances / (utterances + cries + vfxs)
-        metrics["lp_dur"] = chi["utterances_length"].sum() / (
-            chi["child_cry_vfx_len"].sum() + chi["utterances_length"].sum()
-        )
-
-        metrics["wc_adu_ph"] = its["words"].sum() * 3600 / unit_duration
-
-        #add info for child_id and duration to the dataframe
-        metrics["child_id"] = self.project.recordings[
-            self.project.recordings[self.by] == unit
-        ]["child_id"].iloc[0]
-        metrics["duration"] = unit_duration
-        
-        #get and add to dataframe children.csv columns asked
-        if self.child_cols:
-            for label in self.child_cols:
-                metrics[label]=self.project.children[
-                        self.project.children["child_id"] == metrics["child_id"]
-                ][label].iloc[0]
-                
-        #get and add to dataframe recordings.csv columns asked
-        if self.rec_cols:
-            for label in self.rec_cols:
-                #for every unit drop the duplicates for that column
-                value=self.project.recordings[
-                        self.project.recordings[self.by] == unit
-                ][label].drop_duplicates()
-                #check that there is only one row remaining (ie this column has a unique value for that unit)
-                if len(value) == 1:
-                    metrics[label]=value.iloc[0]
-                #otherwise, leave the column as NA
-                else:
-                    metrics[label]="NA"
-
-        return metrics
-
-    def extract(self):
-        recordings = self.project.get_recordings_from_list(self.recordings)
-
-        if self.threads == 1:
-            self.metrics = pd.DataFrame(
-                [self._process_unit(unit) for unit in recordings[self.by].unique()]
-            )
-        else:
-            with mp.Pool(
-                processes=self.threads if self.threads >= 1 else mp.cpu_count()
-            ) as pool:
-                self.metrics = pd.DataFrame(
-                    pool.map(self._process_unit, recordings[self.by].unique())
-                )
-
-        self.metrics.set_index(self.by, inplace=True)
-        return self.metrics
-
     @staticmethod
     def add_parser(subparsers, subcommand):
         parser = subparsers.add_parser(subcommand, help="LENA metrics")
         parser.add_argument("set", help="name of the LENA its annotations set")
-        parser.add_argument(
-            "--types",
-            help="list of LENA vocalizaton types to include",
-            choices=[
-                "TVF",
-                "FAN",
-                "OLN",
-                "SIL",
-                "NOF",
-                "CXF",
-                "OLF",
-                "CHF",
-                "MAF",
-                "TVN",
-                "NON",
-                "CXN",
-                "CHN",
-                "MAN",
-                "FAF",
-            ],
-            nargs="+", default=[],
-        )
         parser.add_argument(
             "--threads", help="amount of threads to run on", default=1, type=int
         )
