@@ -1236,7 +1236,8 @@ class AnnotationManager:
                 f"invalid value for end_time ('{end_time}'); should have HH:MM format instead"
             )
 
-        assert end_dt > start_dt, "end_time must follow start_time"
+        #assert end_dt > start_dt, "end_time must follow start_time"
+        # no reason to keep this condition, 23:00 to 03:00 is completely acceptable
 
         start_ts = get_ms_since_midight(start_dt)
         end_ts = get_ms_since_midight(end_dt)
