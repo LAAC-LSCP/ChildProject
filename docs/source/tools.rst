@@ -70,7 +70,7 @@ Example:
 Compute recordings duration
 ---------------------------
 
-Compute recordings duration and store in into a column named ‘duration’
+Compute recordings duration in ms and store in into a column named ‘duration’
 in the metadata.
 
 .. clidoc::

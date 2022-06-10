@@ -150,7 +150,7 @@ class IndexTable:
         if len(unknown_columns) > 0:
             warnings.append(
                 self.msg(
-                    "unknown column{} '{}' in {}, exepected columns are: {}".format(
+                    "unknown column{} '{}' in {}, expected columns are: {}".format(
                         "s" if len(unknown_columns) > 1 else "",
                         ",".join(unknown_columns),
                         self.name,

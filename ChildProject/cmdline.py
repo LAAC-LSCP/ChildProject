@@ -479,7 +479,7 @@ def explain(args):
     ]
 )
 def compute_durations(args):
-    """creates a 'duration' column into metadata/recordings"""
+    """creates a 'duration' column into metadata/recordings. duration is in ms"""
     project = ChildProject(args.source)
 
     perform_validation(project, require_success=True, ignore_recordings=True)
