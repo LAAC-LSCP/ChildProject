@@ -2,11 +2,13 @@
 from ChildProject.projects import ChildProject
 from ChildProject.annotations import AnnotationManager
 from ChildProject.pipelines import *
+from .utils import read_wav, calculate_shift, get_audio_duration
 
 import argparse
 import os
 import pandas as pd
 import sys
+import random
 
 parser = argparse.ArgumentParser()
 subparsers = parser.add_subparsers()
@@ -504,7 +506,51 @@ def compute_durations(args):
     recordings.to_csv(
         os.path.join(project.path, "metadata/recordings.csv"), index=False
     )
-
+    
+@subcommand(
+    [
+        arg("source", help="project path"),
+        arg("audio1", help="name of the first audio file as it is indexed in recordings.csv in column <recording_filename>"),
+        arg("audio2", help="name of the second audio file as it is indexed in recordings.csv in column <recording_filename>"),
+        arg("--profile", help="which audio profile to use", default=""),
+        arg("--interval", help="duration in minutes of the window used to build the correlation score", default=5, type=int),
+    ]
+)
+def correlate_audio(args):
+    """computes the correlation between 2 given audio files of the dataset over a limited duration. Similarity scores are outputted for each frame of the audio, the printed score represents the frame with the highest difference between the two files. <GIVE HERE AN IDEA OF WHAT SCORES ARE FOUND FOR SIMILAR FILES AND DIFFERENT ONES>"""
+    
+    project = ChildProject(args.source)
+    project.read()
+    
+    rec1 = project.recordings[project.recordings['recording_filename'] == args.audio1]
+    if rec1.empty or rec1.shape[0] > 1: raise ValueError("{} was not found in the indexed recordings in metadata/recordings.csv or has multiple occurences".format(args.audio1))
+    
+    rec2 = project.recordings[project.recordings['recording_filename'] == args.audio2]
+    if rec2.empty or rec2.shape[0] > 1: raise ValueError("{} was not found in the indexed recordings in metadata/recordings.csv or has multiple occurences".format(args.audio2))
+    
+    if 'duration' not in rec1.columns: 
+        print("Warning : duration was not found for audio {}. We attempt to compute it...".format(args.audio1))
+        rec1["duration"].iloc[0] = get_audio_duration(project.get_recording_path(args.audio1, args.profile))
+    if 'duration' not in rec2.columns: 
+        print("Warning : duration was not found for audio {}. We attempt to compute it...".format(args.audio2))
+        rec2["duration"].iloc[0] = get_audio_duration(project.get_recording_path(args.audio2, args.profile))
+        
+    if rec1['duration'].iloc[0] != rec2['duration'].iloc[0]:
+        print('Warning : the 2 audio files have different durations, so it is unlikely they are the same recording. {}=>{}ms - {}=>{}ms'.format(args.audio1,rec1['duration'].iloc[0],args.audio2,rec2['duration'].iloc[0]))
+        
+    interval = args.interval * 60 * 1000
+    
+    offset = random.uniform(1,min(rec1['duration'].iloc[0],rec2['duration'].iloc[0]) - interval)/1000
+    
+    shift = abs(calculate_shift(
+        project.get_recording_path(rec1['recording_filename'].iloc[0],args.profile),
+        project.get_recording_path(rec2['recording_filename'].iloc[0],args.profile),
+        offset,
+        offset,
+        interval/1000
+    ))
+    
+    print('{} and {} have a similarity score of {} . Scores lower than 0.1 indicate a strong possibility that the 2 files are similar. Scores higher than 0 indicate a sizable difference'.format(args.audio1,args.audio2,shift))
 
 def main():
     register_pipeline("process", AudioProcessingPipeline)
