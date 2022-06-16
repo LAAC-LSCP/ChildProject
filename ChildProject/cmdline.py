@@ -529,18 +529,24 @@ def correlate_audio(args):
     if rec2.empty or rec2.shape[0] > 1: raise ValueError("{} was not found in the indexed recordings in metadata/recordings.csv or has multiple occurences".format(args.audio2))
     
     if 'duration' not in rec1.columns: 
-        print("Warning : duration was not found for audio {}. We attempt to compute it...".format(args.audio1))
+        print("WARNING : duration was not found for audio {}. We attempt to compute it...".format(args.audio1))
         rec1["duration"].iloc[0] = get_audio_duration(project.get_recording_path(args.audio1, args.profile))
     if 'duration' not in rec2.columns: 
-        print("Warning : duration was not found for audio {}. We attempt to compute it...".format(args.audio2))
+        print("WARNING : duration was not found for audio {}. We attempt to compute it...".format(args.audio2))
         rec2["duration"].iloc[0] = get_audio_duration(project.get_recording_path(args.audio2, args.profile))
         
     if rec1['duration'].iloc[0] != rec2['duration'].iloc[0]:
-        print('Warning : the 2 audio files have different durations, so it is unlikely they are the same recording. {}=>{}ms - {}=>{}ms'.format(args.audio1,rec1['duration'].iloc[0],args.audio2,rec2['duration'].iloc[0]))
+        print('WARNING : the 2 audio files have different durations, it is unlikely they are the same recording:\n{} : {}ms\n{} : {}ms'.format(args.audio1,rec1['duration'].iloc[0],args.audio2,rec2['duration'].iloc[0]))
         
     interval = args.interval * 60 * 1000
     
-    offset = random.uniform(1,min(rec1['duration'].iloc[0],rec2['duration'].iloc[0]) - interval)/1000
+    dur = min(rec1['duration'].iloc[0],rec2['duration'].iloc[0])
+    if dur < interval :
+        print("WARNING : the duration of the audio is too short for an interval {}ms :\nnew interval is set to {}ms, this will cover the entire duration.".format(interval,dur))
+        interval = dur
+        offset = 0
+    else:
+        offset = random.uniform(0, dur - interval)/1000
     
     shift = abs(calculate_shift(
         project.get_recording_path(rec1['recording_filename'].iloc[0],args.profile),
@@ -550,7 +556,7 @@ def correlate_audio(args):
         interval/1000
     ))
     
-    print('{} and {} have a similarity score of {} . Scores lower than 0.1 indicate a strong possibility that the 2 files are similar. Scores higher than 0 indicate a sizable difference'.format(args.audio1,args.audio2,shift))
+    print('{} and {} have a similarity score of {} . Scores lower than 0.01 indicate a strong possibility that the 2 files are similar. Scores higher than 0 indicate a sizable difference'.format(args.audio1,args.audio2,shift))
 
 def main():
     register_pipeline("process", AudioProcessingPipeline)

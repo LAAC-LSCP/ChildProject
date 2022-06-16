@@ -76,3 +76,18 @@ in the metadata.
 .. clidoc::
 
    child-project compute-durations /path/to/dataset --help
+
+Compute the correlation between audio files
+---------------------------
+
+Compute the correlation between two audio files and prints a similarity score.
+The similarity is evaluated over a given duration (default 5min) that can be changed with the `--interval` option.
+One segment of that duration taken randomly in the recordings total duration is evluated and a similarity score is computed for every frame of that segment. Then only the highest score is kept (meaning the frame where the 2 files differed the most) and is printed.
+The closer the score is to 0, the more likely it is the 2 files are identical. We can consider that scores below <VALUE>(0.01?) reflect a very high probability that the files are the same. At the other end of the spectrum, values higher than <VALUE>(0?) almost certainly means they are different.
+So a window exists in which we can't be sure and would need additional correlation computations or manual checks.
+
+Giving a higher `-- interval` value may take more time to compute and will yield higher scores on average just because the sample is bigger, but it should be more reliable.
+
+.. clidoc::
+
+   child-project correlate-audio /path/to/dataset --help

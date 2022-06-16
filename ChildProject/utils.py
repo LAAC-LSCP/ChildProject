@@ -68,24 +68,38 @@ def read_wav(filename, start_s, length_s):
     fp = wave.open(filename)
     samples = fp.getnframes()
     sampling_rate = fp.getframerate()
+    channels = fp.getnchannels()
     audio = fp.readframes(samples)
 
-    audio_as_np_int16 = np.frombuffer(audio, dtype=np.int16, offset = int(start_s*sampling_rate), count=int(length_s*sampling_rate+1))
+    audio_as_np_int16 = np.frombuffer(audio, dtype=np.int16, offset = int(start_s*sampling_rate*channels), count=int(length_s*sampling_rate*channels))
     audio_as_np_float32 = audio_as_np_int16.astype(np.float32)
     
     max_int16 = 2**15
     audio_normalised = audio_as_np_float32 / max_int16
 
-    return audio_normalised, sampling_rate
+    return audio_normalised, sampling_rate, channels
 
 #computes a list of similarity scores, each value being for 1 frame of audio
 #returns the most differing value
 def calculate_shift(file1, file2, start1, start2, interval, correlation_output = None):
-    ref, ref_rate = read_wav(file1, start1, interval)
-    test, test_rate = read_wav(file2, start2, interval)
+    ref, ref_rate, ref_chan = read_wav(file1, start1, interval)
+    test, test_rate, test_chan = read_wav(file2, start2, interval)
 
     if ref_rate != test_rate:
-        raise Exception('audios do not match')
+        raise Exception('audios do not match, their sampling rate is :\n{} : {}\n{} : {}'.format(file1,ref_rate,file2,test_rate))
+        
+    if ref_chan != test_chan:
+        print('WARNING : different number of channels, attempting to compress channels to carry on with correlation analysis while reducing information on the higher channel file')
+        if ref_chan == 1 and test_chan == 2:
+            test = np.reshape(test,(int(len(test)/2),2))
+            test = np.mean(test,axis=1)
+            print('{} was shrunk to mono channel for the analysis, it has a higher level of information than {}'.format(file2,file1))
+        elif ref_chan == 2 and test_chan == 1:
+            ref = np.reshape(ref,(int(len(ref)/2),2))
+            ref = np.mean(ref,axis=1)
+            print('{} was shrunk to mono channel for the analysis, it has a higher level of information than {}'.format(file1,file2))
+        else:
+            raise Exception('audios do not match, {} has {} channel(s) while {} has {}'.format(file1,ref_chan,file2,test_chan))
 
     sampling_rate = ref_rate
 
