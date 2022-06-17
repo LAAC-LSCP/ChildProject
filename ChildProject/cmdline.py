@@ -556,7 +556,7 @@ def correlate_audio(args):
         interval/1000
     ))
     
-    print('{} and {} have a similarity score of {} . Scores lower than 0.01 indicate a strong possibility that the 2 files are similar. Scores higher than 0 indicate a sizable difference'.format(args.audio1,args.audio2,shift))
+    print('{} and {} have a similarity score of {} . Scores lower than 0.01 indicate a strong possibility that the 2 files are similar. Scores higher than 1 indicate a sizable difference'.format(args.audio1,args.audio2,shift))
 
 def main():
     register_pipeline("process", AudioProcessingPipeline)
