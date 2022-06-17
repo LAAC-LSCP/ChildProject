@@ -24,8 +24,8 @@ class Metrics(ABC):
         recordings: Union[str, List[str], pd.DataFrame] = None,
         from_time: str = None,
         to_time: str = None,
-        rec_cols: list = [],
-        child_cols: list = [],
+        rec_cols: str = None,
+        child_cols: str = None,
         period: str = None,
         threads: int = 1,
     ):
@@ -48,10 +48,10 @@ class Metrics(ABC):
         
         #block checking presence of required columns and evaluates the callable functions
         if isinstance(metrics_list, pd.DataFrame):
-            if set(['callable','set','arguments']).issubset(metrics_list.columns):
+            if ({'callable','set'}).issubset(metrics_list.columns):
                 metrics_list["callable"] = metrics_list.apply(check_callable,axis=1)
             else:
-                raise ValueError("metrics_list parameter must contain atleast the columns [callable,set,arguments]")
+                raise ValueError("metrics_list parameter must contain atleast the columns [callable,set]")
         else:
             raise ValueError("metrics_list parameter must be a pandas DataFrame")
         metrics_list.sort_values(by="set",inplace=True)
@@ -158,9 +158,9 @@ class Metrics(ABC):
         
             ## TODO check that a previous metric with the same name does not already exists (if so warn/raise error)
             if 'name' in line and not pd.isnull(line["name"]) and line["name"]: #the 'name' column exists and its value is not NaN or ''  => use the name given by the user
-                row[1][line["name"]] = line["callable"](annotations, duration_set, arguments = line["arguments"])[1]
+                row[1][line["name"]] = line["callable"](annotations, duration_set, **line.drop(['callable', 'set','name'],errors='ignore').dropna().to_dict())[1]
             else : # use the default name of the metric function
-                name, value = line["callable"](annotations, duration_set, arguments = line["arguments"])
+                name, value = line["callable"](annotations, duration_set, **line.drop(['callable', 'set','name'],errors='ignore').dropna().to_dict())
                 row[1][name] = value
                 
         return row[1]
@@ -260,6 +260,43 @@ class Metrics(ABC):
         if self.rec_cols:
             for label in self.rec_cols:
                 self.metrics[label] = self.metrics.apply(lambda row : check_unicity(row,label),axis=1)
+                
+class CsvMetrics(Metrics):
+    """metrics extraction from a csv file. 
+    Extracts a number of metrics listed in a csv file as s dataframe.
+    the csv file must contain the columns :
+        - 'callable' which is the name of the wanted metric from the list of available metrics
+        - 'set' which is the set of annotations to use for that specific metric (make sur this set has the required columns for that metric)
+        - 'name' is optional, this is the name to give to that metric (if not given, a default name will be attributed)
+        - any other necessary argument for the given metrics (eg the voc_speaker_ph metric requires the 'speaker' argument: add a column 'speaker' in the csv file and fill its cells for this metric with the wanted value (CHI|FEM|MAL|OCH))
+    """
+    
+    SUBCOMMAND = "csv"
+
+    def __init__(
+        self,
+        project: ChildProject.projects.ChildProject,
+        metrics: str,
+        recordings: Union[str, List[str], pd.DataFrame] = None,
+        from_time: str = None,
+        to_time: str = None,       
+        rec_cols: str = None,
+        child_cols: str = None,
+        by: str = "recording_filename",
+        period: str = None,
+        threads: int = 1,
+    ):
+        
+        metrics_df = pd.read_csv(metrics)
+        
+        super().__init__(project, metrics_df, by=by, recordings=recordings, from_time=from_time, to_time=to_time, rec_cols=rec_cols, child_cols=child_cols, period=period, threads=threads)
+    
+    @staticmethod
+    def add_parser(subparsers, subcommand):
+        parser = subparsers.add_parser(subcommand, help="metrics from a csv file")
+        parser.add_argument("metrics",
+            help="name if the csv file containing the list of metrics",
+        )
         
         
 class CustomMetrics(Metrics):
@@ -322,7 +359,6 @@ class CustomMetrics(Metrics):
         parser = subparsers.add_parser(subcommand, help="custom metrics")
         parser.add_argument("parameters",
             help="name of the .yml parameter file for custom metrics",
-            required=True,
         )
         
 class LenaMetrics(Metrics):
@@ -584,16 +620,11 @@ class MetricsPipeline(Pipeline):
         )
         
         parser.add_argument(
-            "--rec-cols",
-            help="columns from recordings.csv to include in the outputted metrics (optional), NA if ambiguous",
-            nargs="+", default=[],
+            "--child-cols",
+            help="columns from children.csv to include in the outputted metrics (optional), NA if ambiguous",
+            default=None,
         )
         
-        parser.add_argument(
-            "--child-cols",
-            help="columns from children.csv to include in the outputted metrics (optional)",
-            nargs="+", default=[],
-        )
         
         parser.add_argument(
             "--threads", help="amount of threads to run on", default=1, type=int
