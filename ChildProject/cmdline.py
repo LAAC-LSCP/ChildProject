@@ -517,7 +517,7 @@ def compute_durations(args):
     ]
 )
 def correlate_audio(args):
-    """computes the correlation between 2 given audio files of the dataset over a limited duration. Similarity scores are outputted for each frame of the audio, the printed score represents the frame with the highest difference between the two files. <GIVE HERE AN IDEA OF WHAT SCORES ARE FOUND FOR SIMILAR FILES AND DIFFERENT ONES>"""
+    """computes the difference between 2 given audio files of the dataset. A divergence score is outputted, it is the average difference of audio signal over the considered sample (random point in the audio, fixed duration). Divergence scores lower than 0.1 indicate a strong proximity"""
     
     project = ChildProject(args.source)
     project.read()
@@ -548,15 +548,16 @@ def correlate_audio(args):
     else:
         offset = random.uniform(0, dur - interval)/1000
     
-    shift = abs(calculate_shift(
+    avg,size = calculate_shift(
         project.get_recording_path(rec1['recording_filename'].iloc[0],args.profile),
         project.get_recording_path(rec2['recording_filename'].iloc[0],args.profile),
         offset,
         offset,
         interval/1000
-    ))
+    )
     
-    print('{} and {} have a similarity score of {} . Scores lower than 0.01 indicate a strong possibility that the 2 files are similar. Scores higher than 1 indicate a sizable difference'.format(args.audio1,args.audio2,shift))
+    if size < 48000 : print('WARNING : the number of values ({}) in the sample is low, raise the interval value, if possible, for a more reliable analysis'.format(size))
+    print('RESULTS :\nscore < 0.1 => the 2 files seem very similar\nscore > 1   => sizable difference\nscore = {} over a sample of {} values'.format(avg,size))
 
 def main():
     register_pipeline("process", AudioProcessingPipeline)
