@@ -1,17 +1,17 @@
 from abc import ABC, abstractmethod
+import os
 import argparse
 import datetime
 import multiprocessing as mp
 import numpy as np
 import pandas as pd
 from typing import Union, List
-import datetime
 import yaml
 
 import ChildProject
 from ChildProject.pipelines.pipeline import Pipeline
 
-import ChildProject.pipelines.metricsFunctions as metfunc
+import ChildProject.pipelines.metricsFunctions as metfunc #used by eval
 
 pipelines = {}
 
@@ -557,6 +557,14 @@ class MetricsPipeline(Pipeline):
         self.metrics = []
 
     def run(self, path, destination, pipeline, func=None, **kwargs):
+        parameters = locals()
+        parameters = [
+            {key: parameters[key]}
+            for key in parameters
+            if key not in ["self", "kwargs"]
+        ]
+        parameters.extend([{key: kwargs[key]} for key in kwargs])
+        
         self.project = ChildProject.projects.ChildProject(path)
         self.project.read()
 
@@ -568,6 +576,19 @@ class MetricsPipeline(Pipeline):
 
         self.metrics = metrics.metrics
         self.metrics.to_csv(destination)
+        
+        date = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        parameters_path = os.path.splitext(destination)[0] + "_parameters.yml"
+        print("exported metrics to {}".format(destination))
+        yaml.dump(
+            {
+                "parameters": parameters,
+                "package_version": ChildProject.__version__,
+                "date": date,
+            },
+            open(parameters_path, "w+"),
+        )
+        print("exported sampler parameters to {}".format(parameters_path))
 
         return self.metrics
 
