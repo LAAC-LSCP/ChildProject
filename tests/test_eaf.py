@@ -111,10 +111,6 @@ def test_periodic(project):
     
     speech_segs = annot_segments[pd.isnull(annot_segments['speaker_type'])]
     
-    pd.set_option('display.max_columns', None)
-    print(segments[['segment_onset', 'segment_offset']].sort_values(['segment_onset', 'segment_offset']).reset_index(drop = True))
-    print(speech_segs[['segment_onset', 'segment_offset']].sort_values(['segment_onset', 'segment_offset']).reset_index(drop = True))
-    
     pd.testing.assert_frame_equal(
         segments[['segment_onset', 'segment_offset']].sort_values(['segment_onset', 'segment_offset']).reset_index(drop = True),
         speech_segs[['segment_onset', 'segment_offset']].sort_values(['segment_onset', 'segment_offset']).reset_index(drop = True)
