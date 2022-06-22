@@ -1,9 +1,19 @@
 from collections import defaultdict
 import pandas as pd
 import re
+from enum import Enum
 
 converters = {}
 
+class Formats(Enum):
+    CSV = 'csv'
+    VTC = 'vtc_rttm'
+    VCM = 'vcm_rttm'
+    ALICE = 'alice'
+    ITS = 'its'
+    TEXTGRID = 'TextGrid'
+    EAF = 'eaf'
+    CHA = 'cha'
 
 class AnnotationConverter:
     SPEAKER_ID_TO_TYPE = defaultdict(
@@ -68,7 +78,7 @@ class AnnotationConverter:
 
 
 class CsvConverter(AnnotationConverter):
-    FORMAT = "csv"
+    FORMAT = Formats.CSV.value
 
     @staticmethod
     def convert(filename: str, filter="") -> pd.DataFrame:
@@ -76,7 +86,7 @@ class CsvConverter(AnnotationConverter):
 
 
 class VtcConverter(AnnotationConverter):
-    FORMAT = "vtc_rttm"
+    FORMAT = Formats.VTC.value
 
     SPEAKER_TYPE_TRANSLATION = defaultdict(
         lambda: "NA", {"CHI": "OCH", "KCHI": "CHI", "FEM": "FEM", "MAL": "MAL"}
@@ -130,7 +140,7 @@ class VtcConverter(AnnotationConverter):
 
 
 class VcmConverter(AnnotationConverter):
-    FORMAT = "vcm_rttm"
+    FORMAT = Formats.VCM.value
 
     SPEAKER_TYPE_TRANSLATION = defaultdict(
         lambda: "NA",
@@ -197,7 +207,7 @@ class VcmConverter(AnnotationConverter):
 
 
 class AliceConverter(AnnotationConverter):
-    FORMAT = "alice"
+    FORMAT = Formats.ALICE.value
 
     @staticmethod
     def convert(filename: str, source_file: str = "") -> pd.DataFrame:
@@ -224,7 +234,7 @@ class AliceConverter(AnnotationConverter):
 
 
 class ItsConverter(AnnotationConverter):
-    FORMAT = "its"
+    FORMAT = Formats.ITS.value
 
     SPEAKER_TYPE_TRANSLATION = defaultdict(
         lambda: "NA", {"CHN": "CHI", "CXN": "OCH", "FAN": "FEM", "MAN": "MAL"}
@@ -395,7 +405,7 @@ class ItsConverter(AnnotationConverter):
 
 
 class TextGridConverter(AnnotationConverter):
-    FORMAT = "TextGrid"
+    FORMAT = Formats.TEXTGRID.value
 
     @staticmethod
     def convert(filename: str, filter=None) -> pd.DataFrame:
@@ -437,7 +447,7 @@ class TextGridConverter(AnnotationConverter):
 
 
 class EafConverter(AnnotationConverter):
-    FORMAT = "eaf"
+    FORMAT = Formats.EAF.value
 
     @staticmethod
     def convert(filename: str, filter=None) -> pd.DataFrame:
@@ -528,7 +538,7 @@ class EafConverter(AnnotationConverter):
 
 
 class ChatConverter(AnnotationConverter):
-    FORMAT = "cha"
+    FORMAT = Formats.CHA.value
     THREAD_SAFE = False
 
     SPEAKER_ROLE_TO_TYPE = defaultdict(

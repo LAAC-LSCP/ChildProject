@@ -8,8 +8,9 @@ from ChildProject.projects import ChildProject
 from ChildProject.annotations import AnnotationManager
 from ChildProject.pipelines.pipeline import Pipeline
 from ChildProject.tables import assert_dataframe, assert_columns_presence
+from ChildProject.converters import Formats
 
-FORMAT_SPEECH = ["vtc_rttm","vcm_rttm"] #formats for which nan must be replaced with SPEECH
+FORMAT_SPEECH = {Formats.VTC.value,Formats.VCM.value} #formats for which nan must be replaced with SPEECH
 
 def create_eaf(
     etf_path: str,
