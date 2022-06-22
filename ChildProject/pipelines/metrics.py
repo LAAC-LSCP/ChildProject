@@ -557,13 +557,15 @@ class MetricsPipeline(Pipeline):
         self.metrics = []
 
     def run(self, path, destination, pipeline, func=None, **kwargs):
+        #build a dictionary with all parameters used
         parameters = locals()
-        parameters = [
-            {key: parameters[key]}
+        parameters = {
+            key: parameters[key]
             for key in parameters
-            if key not in ["self", "kwargs"]
-        ]
-        parameters.extend([{key: kwargs[key]} for key in kwargs])
+            if key not in ["self", "kwargs", "func"] #not sure what func parameter is for, seems unecessary to keep
+        }
+        for key in kwargs: #add all kwargs to dictionary
+            parameters[key] = kwargs[key]
         
         self.project = ChildProject.projects.ChildProject(path)
         self.project.read()
@@ -577,16 +579,21 @@ class MetricsPipeline(Pipeline):
         self.metrics = metrics.metrics
         self.metrics.to_csv(destination)
         
+        # get the df of metrics used from the Metrics class
+        metrics_df = metrics.metrics_list
+        metrics_df['callable'] = metrics_df.apply(lambda row: row['callable'].__name__, axis=1) #from the callables used, find their name back
+        parameters['metrics_list'] = metrics_df.to_dict(orient='records')
         date = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        # create a yaml file with all the parameters used
         parameters_path = os.path.splitext(destination)[0] + "_parameters.yml"
         print("exported metrics to {}".format(destination))
         yaml.dump(
             {
-                "parameters": parameters,
                 "package_version": ChildProject.__version__,
                 "date": date,
+                "parameters": parameters,
             },
-            open(parameters_path, "w+"),
+            open(parameters_path, "w+"),sort_keys=False,
         )
         print("exported sampler parameters to {}".format(parameters_path))
 
