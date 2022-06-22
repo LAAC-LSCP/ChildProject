@@ -105,7 +105,7 @@ class ZooniversePipeline(Pipeline):
 
     def _split_recording(self, segments: pd.DataFrame) -> list:
         
-        #from raw sound data and sampling rate, build the scpectrogram as a matplotlib figure and return it
+        #from raw sound data and sampling rate, build the spectrogram as a matplotlib figure and return it
         def _create_spectrogram(data,sr):
             snd = Sound(data,sampling_frequency=sr)
             # this parameters were chosen to output a spectrogram useful for zooniverse applications (short sounds from babies) we did not feel the need to have flexibility on them
