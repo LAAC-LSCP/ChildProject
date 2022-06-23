@@ -65,11 +65,11 @@ def test_explain():
     )
     assert exit_code == 0
     
-def test_correlate_audio():
+def test_compare_recordings():
     stdout, stderr, exit_code = cli(
         [
             "child-project",
-            "correlate-audio",
+            "compare-recordings",
             "examples/valid_raw_data",
             "sound.wav",
             "sound2.wav",
