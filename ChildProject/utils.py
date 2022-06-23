@@ -90,7 +90,7 @@ def calculate_shift(file1, file2, start1, start2, interval, correlation_output =
             test_rate = new_rate
         
     if ref_chan != test_chan: #if different number of channels, shrink if possible
-        print('WARNING : different number of channels, attempting to compress channels to carry on with correlation analysis while reducing information on the higher channel file')
+        print('WARNING : different number of channels, attempting to compress channels to carry on with analysis')
         if ref_chan == 1 and test_chan > 1 :
             test = np.mean(test,axis=0)
             test_chan = 1

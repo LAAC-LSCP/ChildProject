@@ -516,7 +516,7 @@ def compute_durations(args):
         arg("--interval", help="duration in minutes of the window used to build the correlation score", default=5, type=int),
     ]
 )
-def correlate_audio(args):
+def compare_recordings(args):
     """computes the difference between 2 given audio files of the dataset. A divergence score is outputted, it is the average difference of audio signal over the considered sample (random point in the audio, fixed duration). Divergence scores lower than 0.1 indicate a strong proximity"""
     
     project = ChildProject(args.source)
@@ -557,7 +557,7 @@ def correlate_audio(args):
     )
     
     if size < 48000 : print('WARNING : the number of values ({}) in the sample is low, raise the interval value, if possible, for a more reliable analysis'.format(size))
-    print('RESULTS :\nscore < 0.1 => the 2 files seem very similar\nscore > 1   => sizable difference\nscore = {} over a sample of {} values'.format(avg,size))
+    print('RESULTS :\ndivergence score = {} over a sample of {} values\nREFERENCE :\ndivergence score < 0.1 => the 2 files seem very similar\ndivergence score > 1   => sizable difference'.format(avg,size))
 
 def main():
     register_pipeline("process", AudioProcessingPipeline)

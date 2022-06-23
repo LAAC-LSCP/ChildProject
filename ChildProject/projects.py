@@ -260,6 +260,8 @@ class ChildProject:
 
     RAW_RECORDINGS = "recordings/raw"
     CONVERTED_RECORDINGS = "recordings/converted"
+    STANDARD_SAMPLE_RATE = 16000
+    STANDARD_PROFILE = 'standard' # profile that is expected to contain the standardized audios (16kHz). The existence and sampling rates of this profile are checked when <validating this profile> or <validating without profile and the raw recordings are not 16kHz>.
 
     PROJECT_FOLDERS = ["recordings", "annotations", "metadata", "doc", "scripts"]
 
@@ -423,7 +425,9 @@ class ChildProject:
         if ignore_recordings:
             return self.errors, self.warnings
 
+        from pydub.utils import mediainfo #mediainfo to get audio files info
         for index, row in self.recordings.iterrows():
+            
             # make sure that recordings exist
             for column_name in self.recordings.columns:
                 column_attr = next(
@@ -452,6 +456,24 @@ class ChildProject:
                         continue
 
                     if os.path.exists(path):
+                        if not profile:
+                            info = mediainfo(path)
+                            if int(info['sample_rate']) != self.STANDARD_SAMPLE_RATE:
+                                try:
+                                    std_path = self.get_recording_path(raw_filename, self.STANDARD_PROFILE)
+                                    if os.path.exists(std_path):
+                                        std_info = mediainfo(std_path)
+                                        if 'sample_rate' in std_info and int(std_info['sample_rate']) != self.STANDARD_SAMPLE_RATE:
+                                            self.warnings.append(f"converted version of recording '{raw_filename}' at '{std_path}' has unexpected sampling rate {std_info['sample_rate']}Hz when {self.STANDARD_SAMPLE_RATE}Hz is expected for profile {self.STANDARD_PROFILE}")
+                                    else:
+                                        self.warnings.append(f"recording '{raw_filename}' at '{path}' has a non standard sampling rate {info['sample_rate']}Hz and no converted version found in the standard profile at {std_path}. The file content may not be downloaded. you can create the missing standard converted audios with 'child-project process {self.path} {self.STANDARD_PROFILE} basic --format=wav --sampling={self.STANDARD_SAMPLE_RATE} --codec=pcm_s16le --skip-existing'")
+                                except:
+                                    profile_metadata = os.path.join(self.path,self.CONVERTED_RECORDINGS,self.STANDARD_PROFILE,"recordings.csv",)
+                                    self.warnings.append(f"recording '{raw_filename}' at '{path}' has a non standard sampling rate of {info['sample_rate']}Hz and no standard conversion in profile {self.STANDARD_PROFILE} was found. Does the standard profile exist? Does {profile_metadata} exist? you can create the standard profile with 'child-project process {self.path} {self.STANDARD_PROFILE} basic --format=wav --sampling={self.STANDARD_SAMPLE_RATE} --codec=pcm_s16le --skip-existing'")
+                        elif profile == self.STANDARD_PROFILE:
+                            info = mediainfo(path)
+                            if 'sample_rate' in info and int(info['sample_rate']) != self.STANDARD_SAMPLE_RATE:
+                                self.warnings.append(f"recording '{raw_filename}' at '{path}' has unexpected sampling rate {info['sample_rate']}Hz when {self.STANDARD_SAMPLE_RATE}Hz is expected for profile {self.STANDARD_PROFILE}")
                         continue
 
                     message = f"cannot find recording '{raw_filename}' at '{path}'"
