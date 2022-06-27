@@ -7,11 +7,14 @@ import numpy as np
 import pandas as pd
 from typing import Union, List
 import yaml
+from git import Repo
+from git.exc import InvalidGitRepositoryError
 
 import ChildProject
 from ChildProject.pipelines.pipeline import Pipeline
 
 import ChildProject.pipelines.metricsFunctions as metfunc #used by eval
+from ..utils import TimeInterval, time_intervals_intersect
 
 pipelines = {}
 
@@ -128,14 +131,26 @@ class Metrics(ABC):
                 closed="both",
             )
             self.periods= pd.DataFrame(self.periods.to_tuples().to_list(),columns=['period_start','period_end'])
-            self.periods = self.periods.applymap(datetime.datetime.strftime,format="%H:%M") #store as str time instead of timestamps (be careful with usage)
         
         self.segments = pd.DataFrame()
 
         self.recordings = Pipeline.recordings_from_list(recordings)
-
-        self.from_time = from_time
-        self.to_time = to_time
+        
+        if from_time:
+            try:
+                self.from_time = datetime.datetime.strptime(from_time, "%H:%M")
+            except:
+                raise ValueError(f"invalid value for from_time ('{from_time}'); should have HH:MM format instead")
+        else:
+            self.from_time = None
+        
+        if to_time:
+            try:
+                self.to_time = datetime.datetime.strptime(to_time, "%H:%M")
+            except:
+                raise ValueError(f"invalid value for to_time ('{to_time}'); should have HH:MM format instead")
+        else:
+            self.to_time = None
         
         self._initiate_metrics_df()
 
@@ -150,9 +165,10 @@ class Metrics(ABC):
             curr_set = line["set"]
             if prev_set != curr_set:
                 index, annotations = self.retrieve_segments([curr_set],row[1])
+                #print(index.to_dict(orient='records'))
                 duration_set = (
                         index["range_offset"] - index["range_onset"]
-                    ).sum() / 1000
+                    ).sum()
                 row[1]["duration_{}".format(line["set"])] = duration_set
                 prev_set = curr_set            
         
@@ -186,32 +202,36 @@ class Metrics(ABC):
     def retrieve_segments(self, sets: List[str], row: str):
         annotations = self.am.annotations[self.am.annotations[self.by] == row[self.by]]
         annotations = annotations[annotations["set"].isin(sets)]
-
+        annotations
+        
         if self.from_time and self.to_time:
-            annotations = self.am.get_within_time_range(
-                annotations, self.from_time, self.to_time, errors="coerce"
-            )
-
-        if self.period:
+            if self.period:
+                st_hour = row["period_start"]
+                end_hour = row["period_end"]
+                intervals = time_intervals_intersect(TimeInterval(self.from_time,self.to_time),TimeInterval(st_hour,end_hour))
+                matches = pd.concat([self.am.get_within_time_range(annotations,i) for i in intervals],ignore_index =True)
+            matches = self.am.get_within_time_range(
+                annotations, TimeInterval(self.from_time,self.to_time))
+        elif self.period:
             st_hour = row["period_start"]
             end_hour = row["period_end"]
-            annotations = self.am.get_within_time_range(
-                    annotations, st_hour, end_hour)
+            matches = self.am.get_within_time_range(
+                    annotations, TimeInterval(st_hour,end_hour))
 
         try:
-            segments = self.am.get_segments(annotations)
+            segments = self.am.get_segments(matches)
         except Exception as e:
             print(str(e))
             return pd.DataFrame(), pd.DataFrame()
 
         # prevent overflows
         segments["duration"] = (
-            (segments["segment_offset"] / 1000 - segments["segment_onset"] / 1000)
+            (segments["segment_offset"] - segments["segment_onset"])
             .astype(float)
             .fillna(0)
         )
 
-        return annotations, segments
+        return matches, segments
     
     def _initiate_metrics_df(self):
         """builds a dataframe with all the rows necessary and their labels
@@ -228,7 +248,7 @@ class Metrics(ABC):
             self.periods["key"]=0
             self.metrics = pd.merge(self.metrics,self.periods,on='key',how='outer').drop('key',axis=1)
         
-        #add info for child_id and duration to the dataframe
+        #add info for child_id
         self.metrics["child_id"] = self.metrics.apply(
                 lambda row:self.project.recordings[self.project.recordings[self.by] == row[self.by]
         ]["child_id"].iloc[0],
@@ -261,7 +281,7 @@ class Metrics(ABC):
             for label in self.rec_cols:
                 self.metrics[label] = self.metrics.apply(lambda row : check_unicity(row,label),axis=1)
                 
-class CsvMetrics(Metrics):
+class CustomMetrics(Metrics):
     """metrics extraction from a csv file. 
     Extracts a number of metrics listed in a csv file as s dataframe.
     the csv file must contain the columns :
@@ -271,7 +291,7 @@ class CsvMetrics(Metrics):
         - any other necessary argument for the given metrics (eg the voc_speaker_ph metric requires the 'speaker' argument: add a column 'speaker' in the csv file and fill its cells for this metric with the wanted value (CHI|FEM|MAL|OCH))
     """
     
-    SUBCOMMAND = "csv"
+    SUBCOMMAND = "custom"
 
     def __init__(
         self,
@@ -296,69 +316,6 @@ class CsvMetrics(Metrics):
         parser = subparsers.add_parser(subcommand, help="metrics from a csv file")
         parser.add_argument("metrics",
             help="name if the csv file containing the list of metrics",
-        )
-        
-        
-class CustomMetrics(Metrics):
-    """custom metrics extractor. 
-    Extracts a number of metrics from a given list of callable functions.
-    An object containing the callable functions sets desired and other arguments can be used or a path to a yaml file
-    with all necessary parameters
-
-    
-    """
-    
-    SUBCOMMAND = "custom"
-
-    def __init__(
-        self,
-        project: ChildProject.projects.ChildProject,
-        parameters: str,
-        recordings: Union[str, List[str], pd.DataFrame] = None,
-        from_time: str = None,
-        to_time: str = None,       
-        rec_cols: str = None,
-        child_cols: str = None,
-        by: str = "recording_filename",
-        period: str = None,
-        threads: int = 1,
-    ):
-        
-        ##TODO parse yml file to create the parameters and the metrics_list
-        #probably overwrite cli arguments if they are given in the yaml file
-        params = None
-        with open(parameters, "r") as stream:
-            try:
-                params = yaml.safe_load(stream)
-                #print(params)
-            except yaml.YAMLError as exc:
-                raise yaml.YAMLError("parsing of the parameters file {} failed. See above exception for more details".format(parameters)) from exc
-                
-        if params:
-            if "metrics" not in params : raise ValueError("the parameter file {} must contain at least the 'metrics' key containing the list of the desired metrics".format(parameters))
-            try:
-                metrics_df = pd.DataFrame(params["metrics"])
-            except Exception as e:
-                raise ValueError("The 'metrics' key in {} must be a list of elements".format(parameters)) from e           
-        else:
-            raise ValueError("could not find any parameters in {}".format(parameters))
-            
-        if 'recordings' in params: recordings = params['recordings'] 
-        if 'from-time' in params: from_time = params['from-time'] 
-        if 'to-time' in params: to_time = params['to-time'] 
-        if 'rec-cols' in params: rec_cols = params['rec-cols'] 
-        if 'child-cols' in params: child_cols = params['child-cols'] 
-        if 'by' in params: by = params['by'] 
-        if 'period' in params: period = params['period']
-        if 'threads' in params: threads = params['threads'] 
-        
-        super().__init__(project, metrics_df, by=by, recordings=recordings, from_time=from_time, to_time=to_time, rec_cols=rec_cols, child_cols=child_cols, period=period, threads=threads)
-    
-    @staticmethod
-    def add_parser(subparsers, subcommand):
-        parser = subparsers.add_parser(subcommand, help="custom metrics")
-        parser.add_argument("parameters",
-            help="name of the .yml parameter file for custom metrics",
         )
         
 class LenaMetrics(Metrics):
@@ -402,24 +359,24 @@ class LenaMetrics(Metrics):
         self.set = set
         
         METRICS = pd.DataFrame(np.array(
-            [["voc_speaker_ph",self.set,{'speaker': 'FEM'}],
-             ["voc_speaker_ph",self.set,{'speaker': 'MAL'}],
-             ["voc_speaker_ph",self.set,{'speaker': 'OCH'}],           
-             ["voc_speaker_ph",self.set,{'speaker': 'CHI'}],
-             ["voc_dur_speaker_ph",self.set,{'speaker': 'FEM'}],
-             ["voc_dur_speaker_ph",self.set,{'speaker': 'MAL'}],
-             ["voc_dur_speaker_ph",self.set,{'speaker': 'OCH'}],
-             ["voc_dur_speaker_ph",self.set,{'speaker': 'CHI'}],
-             ["avg_voc_dur_speaker",self.set,{'speaker': 'FEM'}],
-             ["avg_voc_dur_speaker",self.set,{'speaker': 'MAL'}],
-             ["avg_voc_dur_speaker",self.set,{'speaker': 'OCH'}],
-             ["avg_voc_dur_speaker",self.set,{'speaker': 'CHI'}],
-             ["wc_speaker_ph",self.set,{'speaker': 'FEM'}],
-             ["wc_speaker_ph",self.set,{'speaker': 'MAL'}],
-             ["wc_adu_ph",self.set,{}],
-             ["lp_n",self.set,{}],
-             ["lp_dur",self.set,{}],
-             ]), columns=["callable","set","arguments"])
+            [["voc_speaker_ph",self.set,'FEM'],
+             ["voc_speaker_ph",self.set,'MAL'],
+             ["voc_speaker_ph",self.set,'OCH'],           
+             ["voc_speaker_ph",self.set,'CHI'],
+             ["voc_dur_speaker_ph",self.set,'FEM'],
+             ["voc_dur_speaker_ph",self.set,'MAL'],
+             ["voc_dur_speaker_ph",self.set,'OCH'],
+             ["voc_dur_speaker_ph",self.set,'CHI'],
+             ["avg_voc_dur_speaker",self.set,'FEM'],
+             ["avg_voc_dur_speaker",self.set,'MAL'],
+             ["avg_voc_dur_speaker",self.set,'OCH'],
+             ["avg_voc_dur_speaker",self.set,'CHI'],
+             ["wc_speaker_ph",self.set,'FEM'],
+             ["wc_speaker_ph",self.set,'MAL'],
+             ["wc_adu_ph",self.set,pd.NA],
+             ["lp_n",self.set,pd.NA],
+             ["lp_dur",self.set,pd.NA],
+             ]), columns=["callable","set","speaker"])
 
         super().__init__(project, METRICS, by=by, recordings=recordings, from_time=from_time, to_time=to_time, rec_cols=rec_cols, child_cols=child_cols, threads=threads)
 
@@ -492,55 +449,55 @@ class AclewMetrics(Metrics):
         am = ChildProject.annotations.AnnotationManager(project) #temporary instance to check for existing sets. This is suboptimal because an annotation manager will be created by Metrics. However, the metrics classe raises a ValueError for every set passed that does not exist, here we want to check in advance which of the alice and vcm sets exist without raising an error
               
         METRICS = np.array(
-            [["voc_speaker_ph",self.vtc,{'speaker': 'FEM'}],
-             ["voc_speaker_ph",self.vtc,{'speaker': 'MAL'}],
-             ["voc_speaker_ph",self.vtc,{'speaker': 'OCH'}],
-             ["voc_speaker_ph",self.vtc,{'speaker': 'CHI'}],
-             ["voc_dur_speaker_ph",self.vtc,{'speaker': 'FEM'}],
-             ["voc_dur_speaker_ph",self.vtc,{'speaker': 'MAL'}],
-             ["voc_dur_speaker_ph",self.vtc,{'speaker': 'OCH'}],
-             ["voc_dur_speaker_ph",self.vtc,{'speaker': 'CHI'}],
-             ["avg_voc_dur_speaker",self.vtc,{'speaker': 'FEM'}],
-             ["avg_voc_dur_speaker",self.vtc,{'speaker': 'MAL'}],
-             ["avg_voc_dur_speaker",self.vtc,{'speaker': 'OCH'}],
-             ["avg_voc_dur_speaker",self.vtc,{'speaker': 'CHI'}],
+            [["voc_speaker_ph",self.vtc,'FEM'],
+             ["voc_speaker_ph",self.vtc,'MAL'],
+             ["voc_speaker_ph",self.vtc,'OCH'],
+             ["voc_speaker_ph",self.vtc,'CHI'],
+             ["voc_dur_speaker_ph",self.vtc,'FEM'],
+             ["voc_dur_speaker_ph",self.vtc,'MAL'],
+             ["voc_dur_speaker_ph",self.vtc,'OCH'],
+             ["voc_dur_speaker_ph",self.vtc,'CHI'],
+             ["avg_voc_dur_speaker",self.vtc,'FEM'],
+             ["avg_voc_dur_speaker",self.vtc,'MAL'],
+             ["avg_voc_dur_speaker",self.vtc,'OCH'],
+             ["avg_voc_dur_speaker",self.vtc,'CHI'],
              ])
         
         if self.alice not in am.annotations["set"].values:
             print(f"The ALICE set ('{self.alice}') was not found in the index.")
         else:
             METRICS = np.append(METRICS,np.array(
-             [["wc_speaker_ph",self.alice,{'speaker': 'FEM'}],
-             ["wc_speaker_ph",self.alice,{'speaker': 'MAL'}],
-             ["sc_speaker_ph",self.alice,{'speaker': 'FEM'}],
-             ["sc_speaker_ph",self.alice,{'speaker': 'MAL'}],
-             ["pc_speaker_ph",self.alice,{'speaker': 'FEM'}],
-             ["pc_speaker_ph",self.alice,{'speaker': 'MAL'}],
-             ["wc_adu_ph",self.alice,{}],
-             ["sc_adu_ph",self.alice,{}],
-             ["pc_adu_ph",self.alice,{}],
+             [["wc_speaker_ph",self.alice,'FEM'],
+             ["wc_speaker_ph",self.alice,'MAL'],
+             ["sc_speaker_ph",self.alice,'FEM'],
+             ["sc_speaker_ph",self.alice,'MAL'],
+             ["pc_speaker_ph",self.alice,'FEM'],
+             ["pc_speaker_ph",self.alice,'MAL'],
+             ["wc_adu_ph",self.alice,pd.NA],
+             ["sc_adu_ph",self.alice,pd.NA],
+             ["pc_adu_ph",self.alice,pd.NA],
              ]))
              
         if self.vcm not in am.annotations["set"].values:
             print(f"The vcm set ('{self.vcm}') was not found in the index.")
         else:
             METRICS = np.append(METRICS,np.array(
-             [["cry_voc_chi_ph",self.vcm,{}],
-             ["cry_voc_dur_chi_ph",self.vcm,{}],
-             ["avg_cry_voc_dur_chi",self.vcm,{}],
-             ["can_voc_chi_ph",self.vcm,{}],
-             ["can_voc_dur_chi_ph",self.vcm,{}],
-             ["avg_can_voc_dur_chi",self.vcm,{}],
-             ["non_can_voc_chi_ph",self.vcm,{}],
-             ["non_can_voc_dur_chi_ph",self.vcm,{}],
-             ["avg_non_can_voc_dur_chi",self.vcm,{}],
-             ["lp_n",self.vcm,{}],
-             ["lp_dur",self.vcm,{}],
-             ["cp_n",self.vcm,{}],
-             ["cp_dur",self.vcm,{}],
+             [["cry_voc_chi_ph",self.vcm,pd.NA],
+             ["cry_voc_dur_chi_ph",self.vcm,pd.NA],
+             ["avg_cry_voc_dur_chi",self.vcm,pd.NA],
+             ["can_voc_chi_ph",self.vcm,pd.NA],
+             ["can_voc_dur_chi_ph",self.vcm,pd.NA],
+             ["avg_can_voc_dur_chi",self.vcm,pd.NA],
+             ["non_can_voc_chi_ph",self.vcm,pd.NA],
+             ["non_can_voc_dur_chi_ph",self.vcm,pd.NA],
+             ["avg_non_can_voc_dur_chi",self.vcm,pd.NA],
+             ["lp_n",self.vcm,pd.NA],
+             ["lp_dur",self.vcm,pd.NA],
+             ["cp_n",self.vcm,pd.NA],
+             ["cp_dur",self.vcm,pd.NA],
              ]))
                 
-        METRICS = pd.DataFrame(METRICS, columns=["callable","set","arguments"])
+        METRICS = pd.DataFrame(METRICS, columns=["callable","set","speaker"])
 
         super().__init__(project, METRICS,by=by, recordings=recordings, from_time=from_time, to_time=to_time, rec_cols=rec_cols, child_cols=child_cols, threads=threads)
 
@@ -569,6 +526,13 @@ class MetricsPipeline(Pipeline):
         
         self.project = ChildProject.projects.ChildProject(path)
         self.project.read()
+        
+        try:
+            datarepo = Repo(path)
+            parameters['dataset_hash'] = datarepo.head.object.hexsha
+        except InvalidGitRepositoryError:
+            print("Your dataset is not currently a git repository")
+            
 
         if pipeline not in pipelines:
             raise NotImplementedError(f"invalid pipeline '{pipeline}'")
@@ -585,7 +549,7 @@ class MetricsPipeline(Pipeline):
         parameters['metrics_list'] = metrics_df.to_dict(orient='records')
         date = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         # create a yaml file with all the parameters used
-        parameters_path = os.path.splitext(destination)[0] + "_parameters.yml"
+        parameters_path = "parameters_" + os.path.splitext(destination)[0] + "_{}.yml".format(date)
         print("exported metrics to {}".format(destination))
         yaml.dump(
             {
@@ -657,3 +621,82 @@ class MetricsPipeline(Pipeline):
         parser.add_argument(
             "--threads", help="amount of threads to run on", default=1, type=int
         )
+
+
+class MetricsSpecificationPipeline(Pipeline):
+    def __init__(self):
+        self.metrics = []
+
+    def run(self, parameters):
+        #build a dictionary with all parameters used
+        params = None
+        with open(parameters, "r") as stream:
+            try:
+                params = yaml.safe_load(stream)
+                if 'parameters' in params: params = params['parameters']
+            except yaml.YAMLError as exc:
+                raise yaml.YAMLError("parsing of the parameters file {} failed. See above exception for more details".format(parameters)) from exc
+                
+        if params:
+            if "path" not in params : raise ValueError("the parameter file {} must contain at least the 'path' key specifying the path to the dataset".format(parameters))
+            if "destination" not in params : raise ValueError("the parameter file {} must contain the 'destination' key specifying the file to output the metrics to".format(parameters))
+            if "metrics_list" not in params : raise ValueError("the parameter file {} must contain at least the 'metrics_list' key containing the list of the desired metrics".format(parameters))
+            try:
+                metrics_df = pd.DataFrame(params["metrics_list"])
+            except Exception as e:
+                raise ValueError("The 'metrics_list' key in {} must be a list of elements".format(parameters)) from e           
+        else:
+            raise ValueError("could not find any parameters in {}".format(parameters))
+        
+        try:
+            datarepo = Repo(path)
+            parameters['dataset_hash'] = datarepo.head.object.hexsha
+        except InvalidGitRepositoryError:
+            print("Your dataset is not currently a git repository")
+        
+        self.project = ChildProject.projects.ChildProject(params["path"])
+        self.project.read()
+        
+        destination = params['destination']
+        
+        unwanted_keys = {'metrics', 'pipeline'}
+        for i in unwanted_keys:
+            if i in params : del params[i]
+            
+        arguments = {
+            key: params[key]
+            for key in params
+            if key not in ["metrics_list", "path", "destination"] 
+        }
+        try:
+            metrics = Metrics(self.project, metrics_df, **arguments)
+        except TypeError as e:
+            raise ValueError('Unrecognized parameter found {}'.format(e.args[0][46:])) from e
+        metrics.extract()
+
+        self.metrics = metrics.metrics
+        self.metrics.to_csv(destination)
+        
+        # get the df of metrics used from the Metrics class
+        metrics_df = metrics.metrics_list
+        metrics_df['callable'] = metrics_df.apply(lambda row: row['callable'].__name__, axis=1) #from the callables used, find their name back
+        parameters['metrics_list'] = metrics_df.to_dict(orient='records')
+        date = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        # create a yaml file with all the parameters used
+        parameters_path = "parameters_" + os.path.splitext(destination)[0] + "_{}.yml".format(date)
+        print("exported metrics to {}".format(destination))
+        yaml.dump(
+            {
+                "package_version": ChildProject.__version__,
+                "date": date,
+                "parameters": parameters,
+            },
+            open(parameters_path, "w+"),sort_keys=False,
+        )
+        print("exported metrics parameters to {}".format(parameters_path))
+
+        return self.metrics
+
+    @staticmethod
+    def setup_parser(parser):
+        parser.add_argument("path", help="path to the yml file with all parameters")

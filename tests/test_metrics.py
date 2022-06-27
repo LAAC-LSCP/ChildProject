@@ -7,7 +7,7 @@ import shutil
 
 from ChildProject.projects import ChildProject
 from ChildProject.annotations import AnnotationManager
-from ChildProject.pipelines.metrics import LenaMetrics, AclewMetrics, PeriodMetrics
+from ChildProject.pipelines.metrics import LenaMetrics, AclewMetrics, CsvMetrics, CustomMetrics
 
 
 def fake_vocs(data, filename):
@@ -81,6 +81,7 @@ def test_aclew(project):
 
 def test_period(project):
     am = AnnotationManager(project)
+    am.read()
 
     range_onset = 0
     range_offset = 86400 - 3600
@@ -98,6 +99,8 @@ def test_period(project):
             "speaker_type": ["FEM"] * len(onsets),
         }
     )
+    
+    print(am.annotations)
 
     am.import_annotations(
         pd.DataFrame(
@@ -115,11 +118,16 @@ def test_period(project):
         ),
         import_function=partial(fake_vocs, data),
     )
+    print(am.annotations)
+    print(am.annotations['imported_at'].to_list())
+    print(am.annotations['set'].to_list())
 
-    period = PeriodMetrics(project, by="child_id", period="2H", set="test")
-    period.extract()
+    parameters="tests/data/parameters_metrics.yml"
+    cmm = CustomMetrics(project, parameters)
+    cmm.extract()
+    cmm.metrics.to_csv('test.csv',index=False)
 
     truth = pd.read_csv("tests/truth/period_metrics.csv", index_col=["child_id"])
 
-    pd.testing.assert_frame_equal(period.metrics, truth)
+    pd.testing.assert_frame_equal(cmm.metrics, truth)
 

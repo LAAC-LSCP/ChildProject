@@ -10,7 +10,7 @@ New metrics can be added by defining new functions for the Metrics class to use 
  - They must return name,value . Name being the default name to attribute to the metric, value being the metric value itself.
  - to compute the metric, use 
      - annotations, which is a dataframe containing all the annotated segments  to use. It contains the annotation content (https://childproject.readthedocs.io/en/latest/format.html#id10) joined with the annotation index info (https://childproject.readthedocs.io/en/latest/format.html#id11) as well as any column that was requested to be added to the results by the user using --child-cols or --rec-cols (eg --child-cols child_dob,languages will make columns 'child_dob' and 'languaes' available)
-     - duration which is the duration of audio annotated in seconds
+     - duration which is the duration of audio annotated in milliseconds
      - kwargs, whatever parameter you chose to pass to the function (except 'name', 'callable', 'set' which can not be used)
  - to improve user experience, raise errors and print precise messages about what is wrong.
 """
@@ -27,7 +27,7 @@ def voc_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):
     if annotations.shape[0]:
         for col in required_columns : 
             if col not in annotations.columns : raise ValueError(MISSING_COLUMNS.format(annotations['set'],col,'voc_speaker_ph'))
-        value = annotations[annotations["speaker_type"]== kwargs["speaker"]].shape[0] * (3600 / duration)
+        value = annotations[annotations["speaker_type"]== kwargs["speaker"]].shape[0] * (3600000 / duration)
     else:
         value = None
     return name, value
@@ -41,7 +41,7 @@ def voc_dur_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):
     if annotations.shape[0]:
         for col in required_columns : 
             if col not in annotations.columns : raise ValueError(MISSING_COLUMNS.format(annotations['set'],col,'voc_dur_speaker_ph'))
-        value = annotations[annotations["speaker_type"]== kwargs["speaker"]]["duration"].sum() * (3600 / duration)
+        value = annotations[annotations["speaker_type"]== kwargs["speaker"]]["duration"].sum() * (3600000 / duration)
     else:
         value = None
     return name,value
@@ -69,7 +69,7 @@ def wc_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):
     if annotations.shape[0]: 
         for col in required_columns : 
             if col not in annotations.columns : raise ValueError(MISSING_COLUMNS.format(annotations['set'],col,'voc_speaker_ph'))
-        value = annotations[annotations["speaker_type"]== kwargs["speaker"]]["words"].sum() * (3600 / duration)
+        value = annotations[annotations["speaker_type"]== kwargs["speaker"]]["words"].sum() * (3600000 / duration)
     else:
         value = None
     return name,value
@@ -83,7 +83,7 @@ def sc_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):
     if annotations.shape[0]: 
         for col in required_columns : 
             if col not in annotations.columns : raise ValueError(MISSING_COLUMNS.format(annotations['set'],col,'voc_speaker_ph'))
-        value = annotations[annotations["speaker_type"]== kwargs["speaker"]]["syllables"].sum() * (3600 / duration)
+        value = annotations[annotations["speaker_type"]== kwargs["speaker"]]["syllables"].sum() * (3600000 / duration)
     else:
         value = None
     return name,value
@@ -97,7 +97,7 @@ def pc_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):
     if annotations.shape[0]:
         for col in required_columns : 
             if col not in annotations.columns : raise ValueError(MISSING_COLUMNS.format(annotations['set'],col,'voc_speaker_ph'))
-        value = annotations[annotations["speaker_type"]== kwargs["speaker"]]["phonemes"].sum() * (3600 / duration)
+        value = annotations[annotations["speaker_type"]== kwargs["speaker"]]["phonemes"].sum() * (3600000 / duration)
     else:
         value = None
     return name,value
@@ -110,7 +110,7 @@ def wc_adu_ph(annotations: pd.DataFrame, duration: int, **kwargs):
     if annotations.shape[0]:
         for col in required_columns : 
             if col not in annotations.columns : raise ValueError(MISSING_COLUMNS.format(annotations['set'],col,'voc_speaker_ph'))
-        value = annotations["words"].sum() * (3600 / duration)
+        value = annotations["words"].sum() * (3600000 / duration)
     else:
         value = None
     return name,value
@@ -123,7 +123,7 @@ def sc_adu_ph(annotations: pd.DataFrame, duration: int, **kwargs):
     if annotations.shape[0]:
         for col in required_columns : 
             if col not in annotations.columns : raise ValueError(MISSING_COLUMNS.format(annotations['set'],col,'voc_speaker_ph'))
-        value = annotations["syllables"].sum() * (3600 / duration)
+        value = annotations["syllables"].sum() * (3600000 / duration)
     else:
         value = None
     return name,value
@@ -136,7 +136,7 @@ def pc_adu_ph(annotations: pd.DataFrame, duration: int, **kwargs):
     if annotations.shape[0]:
         for col in required_columns : 
             if col not in annotations.columns : raise ValueError(MISSING_COLUMNS.format(annotations['set'],col,'voc_speaker_ph'))
-        value = annotations["phonemes"].sum() * (3600 / duration)
+        value = annotations["phonemes"].sum() * (3600000 / duration)
     else:
         value = None
     return name,value
@@ -149,7 +149,7 @@ def cry_voc_chi_ph(annotations: pd.DataFrame, duration: int, **kwargs):
     if annotations.shape[0]:
         for col in required_columns : 
             if col not in annotations.columns : raise ValueError(MISSING_COLUMNS.format(annotations['set'],col,'voc_speaker_ph'))
-        value = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "Y")].shape[0] * (3600 / duration)
+        value = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "Y")].shape[0] * (3600000 / duration)
     else:
         value = None
     return name,value
@@ -162,7 +162,7 @@ def cry_voc_dur_chi_ph(annotations: pd.DataFrame, duration: int, **kwargs):
     if annotations.shape[0]:
         for col in required_columns : 
             if col not in annotations.columns : raise ValueError(MISSING_COLUMNS.format(annotations['set'],col,'voc_speaker_ph'))
-        value = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "Y")]["duration"].sum() * (3600 / duration)
+        value = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "Y")]["duration"].sum() * (3600000 / duration)
     else:
         value = None
     return name,value
@@ -175,7 +175,7 @@ def avg_cry_voc_dur_chi(annotations: pd.DataFrame, duration: int, **kwargs):
     if annotations.shape[0]:
         for col in required_columns : 
             if col not in annotations.columns : raise ValueError(MISSING_COLUMNS.format(annotations['set'],col,'voc_speaker_ph'))
-        value = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "Y")]["duration"].mean() * (3600 / duration)
+        value = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "Y")]["duration"].mean() * (3600000 / duration)
         if pd.isnull(value) : value = 0
     else:
         value = None
@@ -189,7 +189,7 @@ def can_voc_chi_ph(annotations: pd.DataFrame, duration: int, **kwargs):
     if annotations.shape[0]:
         for col in required_columns : 
             if col not in annotations.columns : raise ValueError(MISSING_COLUMNS.format(annotations['set'],col,'voc_speaker_ph'))
-        value = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "C")].shape[0] * (3600 / duration)
+        value = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "C")].shape[0] * (3600000 / duration)
     else:
         value = None
     return name,value
@@ -202,7 +202,7 @@ def can_voc_dur_chi_ph(annotations: pd.DataFrame, duration: int, **kwargs):
     if annotations.shape[0]:
         for col in required_columns : 
             if col not in annotations.columns : raise ValueError(MISSING_COLUMNS.format(annotations['set'],col,'voc_speaker_ph'))
-        value = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "C")]["duration"].sum() * (3600 / duration)
+        value = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "C")]["duration"].sum() * (3600000 / duration)
     else:
         value = None
     return name,value
@@ -215,7 +215,7 @@ def avg_can_voc_dur_chi(annotations: pd.DataFrame, duration: int, **kwargs):
     if annotations.shape[0]:
         for col in required_columns : 
             if col not in annotations.columns : raise ValueError(MISSING_COLUMNS.format(annotations['set'],col,'voc_speaker_ph'))
-        value = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "C")]["duration"].mean() * (3600 / duration)
+        value = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "C")]["duration"].mean() * (3600000 / duration)
         if pd.isnull(value) : value = 0
     else:
         value = None
@@ -229,7 +229,7 @@ def non_can_voc_chi_ph(annotations: pd.DataFrame, duration: int, **kwargs):
     if annotations.shape[0]:
         for col in required_columns : 
             if col not in annotations.columns : raise ValueError(MISSING_COLUMNS.format(annotations['set'],col,'voc_speaker_ph'))
-        value = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "N")].shape[0] * (3600 / duration)
+        value = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "N")].shape[0] * (3600000 / duration)
     else:
         value = None
     return name,value
@@ -242,7 +242,7 @@ def non_can_voc_dur_chi_ph(annotations: pd.DataFrame, duration: int, **kwargs):
     if annotations.shape[0]:
         for col in required_columns : 
             if col not in annotations.columns : raise ValueError(MISSING_COLUMNS.format(annotations['set'],col,'voc_speaker_ph'))
-        value = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "N")]["duration"].sum() * (3600 / duration)
+        value = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "N")]["duration"].sum() * (3600000 / duration)
     else:
         value = None
     return name,value
@@ -255,7 +255,7 @@ def avg_non_can_voc_dur_chi(annotations: pd.DataFrame, duration: int, **kwargs):
     if annotations.shape[0]:
         for col in required_columns : 
             if col not in annotations.columns : raise ValueError(MISSING_COLUMNS.format(annotations['set'],col,'voc_speaker_ph'))
-        value = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "N")]["duration"].mean() * (3600 / duration)
+        value = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "N")]["duration"].mean() * (3600000 / duration)
         if pd.isnull(value) : value = 0
     else:
         value = None

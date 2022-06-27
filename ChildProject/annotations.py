@@ -13,7 +13,7 @@ from . import __version__
 from .projects import ChildProject
 from .converters import *
 from .tables import IndexTable, IndexColumn, assert_dataframe, assert_columns_presence
-from .utils import Segment, intersect_ranges, path_is_parent
+from .utils import Segment, intersect_ranges, path_is_parent, TimeInterval
 
 
 class AnnotationManager:
@@ -1191,7 +1191,7 @@ class AnnotationManager:
         return pd.concat(stack) if len(stack) else pd.DataFrame()
 
     def get_within_time_range(
-        self, annotations: pd.DataFrame, start_time: str, end_time: str, errors="raise"
+        self, annotations: pd.DataFrame, interval : TimeInterval, errors="raise"
     ):
         """Clip all input annotations within a given HH:MM clock-time range.
         Those that do not intersect the input time range at all are filtered out.
@@ -1222,25 +1222,11 @@ class AnnotationManager:
         def get_ms_since_midight(dt):
             return (dt - dt.replace(hour=0, minute=0, second=0)).total_seconds() * 1000
 
-        try:
-            start_dt = datetime.datetime.strptime(start_time, "%H:%M")
-        except:
-            raise ValueError(
-                f"invalid value for start_time ('{start_time}'); should have HH:MM format instead"
-            )
-
-        try:
-            end_dt = datetime.datetime.strptime(end_time, "%H:%M")
-        except:
-            raise ValueError(
-                f"invalid value for end_time ('{end_time}'); should have HH:MM format instead"
-            )
-
         #assert end_dt > start_dt, "end_time must follow start_time"
         # no reason to keep this condition, 23:00 to 03:00 is completely acceptable
 
-        start_ts = get_ms_since_midight(start_dt)
-        end_ts = get_ms_since_midight(end_dt)
+        start_ts = get_ms_since_midight(interval.start)
+        end_ts = get_ms_since_midight(interval.stop)
 
         annotations = annotations.merge(
             self.project.recordings[["recording_filename", "start_time"]], how="left"
