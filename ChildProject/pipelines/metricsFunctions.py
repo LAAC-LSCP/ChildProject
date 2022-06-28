@@ -141,121 +141,130 @@ def pc_adu_ph(annotations: pd.DataFrame, duration: int, **kwargs):
         value = None
     return name,value
 
-def cry_voc_chi_ph(annotations: pd.DataFrame, duration: int, **kwargs):
+def cry_voc_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):
     """metric calculating the number of cries per hour for CHI (based on vcm_type)
     """
-    name = "cry_voc_chi_ph"
+    if 'speaker' not in kwargs : raise ValueError('cry_voc_speaker_ph metric needs an argument <speaker>.')
+    name = "cry_voc_{}_ph".format(kwargs["speaker"].lower())
     required_columns = {"speaker_type",'vcm_type'}
     if annotations.shape[0]:
         for col in required_columns : 
             if col not in annotations.columns : raise ValueError(MISSING_COLUMNS.format(annotations['set'],col,'voc_speaker_ph'))
-        value = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "Y")].shape[0] * (3600000 / duration)
+        value = annotations.loc[(annotations["speaker_type"]== kwargs["speaker"]) & (annotations["vcm_type"]== "Y")].shape[0] * (3600000 / duration)
     else:
         value = None
     return name,value
 
-def cry_voc_dur_chi_ph(annotations: pd.DataFrame, duration: int, **kwargs):
+def cry_voc_dur_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):
     """metric calculating the duration of cries per hour for CHI (based on vcm_type)
     """
-    name = "cry_voc_dur_chi_ph"
+    if 'speaker' not in kwargs : raise ValueError('cry_voc_dur_speaker_ph metric needs an argument <speaker>.')
+    name = "cry_voc_dur_{}_ph".format(kwargs["speaker"].lower())
     required_columns = {"speaker_type",'vcm_type','duration'}
     if annotations.shape[0]:
         for col in required_columns : 
             if col not in annotations.columns : raise ValueError(MISSING_COLUMNS.format(annotations['set'],col,'voc_speaker_ph'))
-        value = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "Y")]["duration"].sum() * (3600000 / duration)
+        value = annotations.loc[(annotations["speaker_type"]== kwargs["speaker"]) & (annotations["vcm_type"]== "Y")]["duration"].sum() * (3600000 / duration)
     else:
         value = None
     return name,value
 
-def avg_cry_voc_dur_chi(annotations: pd.DataFrame, duration: int, **kwargs):
+def avg_cry_voc_dur_speaker(annotations: pd.DataFrame, duration: int, **kwargs):
     """metric calculating the average duration of cries for CHI (based on vcm_type)
     """
-    name = "avg_cry_voc_dur_chi"
+    if 'speaker' not in kwargs : raise ValueError('avg_cry_voc_dur_speaker metric needs an argument <speaker>.')
+    name = "avg_cry_voc_dur_{}".format(kwargs["speaker"].lower())
     required_columns = {"speaker_type",'vcm_type','duration'}
     if annotations.shape[0]:
         for col in required_columns : 
             if col not in annotations.columns : raise ValueError(MISSING_COLUMNS.format(annotations['set'],col,'voc_speaker_ph'))
-        value = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "Y")]["duration"].mean() * (3600000 / duration)
+        value = annotations.loc[(annotations["speaker_type"]== kwargs["speaker"]) & (annotations["vcm_type"]== "Y")]["duration"].mean() * (3600000 / duration)
         if pd.isnull(value) : value = 0
     else:
         value = None
     return name,value
 
-def can_voc_chi_ph(annotations: pd.DataFrame, duration: int, **kwargs):
+def can_voc_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):
     """metric calculating the number of canonical vocalizations per hour for CHI (based on vcm_type)
     """
-    name = "can_voc_chi_ph"
+    if 'speaker' not in kwargs : raise ValueError('can_voc_speaker_ph metric needs an argument <speaker>.')
+    name = "can_voc_{}_ph".format(kwargs["speaker"].lower())
     required_columns = {"speaker_type",'vcm_type'}
     if annotations.shape[0]:
         for col in required_columns : 
             if col not in annotations.columns : raise ValueError(MISSING_COLUMNS.format(annotations['set'],col,'voc_speaker_ph'))
-        value = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "C")].shape[0] * (3600000 / duration)
+        value = annotations.loc[(annotations["speaker_type"]== kwargs["speaker"]) & (annotations["vcm_type"]== "C")].shape[0] * (3600000 / duration)
     else:
         value = None
     return name,value
 
-def can_voc_dur_chi_ph(annotations: pd.DataFrame, duration: int, **kwargs):
+def can_voc_dur_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):
     """metric calculating the duration of canonical vocalizations per hour for CHI (based on vcm_type)
     """
-    name = "can_voc_dur_chi_ph"
+    if 'speaker' not in kwargs : raise ValueError('can_voc_dur_speaker_ph metric needs an argument <speaker>.')
+    name = "can_voc_dur_{}_ph".format(kwargs["speaker"].lower())
     required_columns = {"speaker_type",'vcm_type','duration'}
     if annotations.shape[0]:
         for col in required_columns : 
             if col not in annotations.columns : raise ValueError(MISSING_COLUMNS.format(annotations['set'],col,'voc_speaker_ph'))
-        value = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "C")]["duration"].sum() * (3600000 / duration)
+        value = annotations.loc[(annotations["speaker_type"]== kwargs["speaker"]) & (annotations["vcm_type"]== "C")]["duration"].sum() * (3600000 / duration)
     else:
         value = None
     return name,value
 
-def avg_can_voc_dur_chi(annotations: pd.DataFrame, duration: int, **kwargs):
+def avg_can_voc_dur_speaker(annotations: pd.DataFrame, duration: int, **kwargs):
     """metric calculating the average duration of canonical vocalizations for CHI (based on vcm_type)
     """
-    name = "avg_can_voc_dur_chi"
+    if 'speaker' not in kwargs : raise ValueError('can_voc_dur_speaker_ph metric needs an argument <speaker>.')
+    name = "avg_can_voc_dur_{}".format(kwargs["speaker"].lower())
     required_columns = {"speaker_type",'vcm_type','duration'}
     if annotations.shape[0]:
         for col in required_columns : 
             if col not in annotations.columns : raise ValueError(MISSING_COLUMNS.format(annotations['set'],col,'voc_speaker_ph'))
-        value = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "C")]["duration"].mean() * (3600000 / duration)
+        value = annotations.loc[(annotations["speaker_type"]== kwargs["speaker"]) & (annotations["vcm_type"]== "C")]["duration"].mean() * (3600000 / duration)
         if pd.isnull(value) : value = 0
     else:
         value = None
     return name,value
 
-def non_can_voc_chi_ph(annotations: pd.DataFrame, duration: int, **kwargs):
+def non_can_voc_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):
     """metric calculating the number of non canonical vocalizations per hour for CHI (based on vcm_type)
     """
-    name = "non_can_voc_chi_ph"
+    if 'speaker' not in kwargs : raise ValueError('can_voc_dur_speaker_ph metric needs an argument <speaker>.')
+    name = "non_can_voc_{}_ph".format(kwargs["speaker"].lower())
     required_columns = {"speaker_type",'vcm_type'}
     if annotations.shape[0]:
         for col in required_columns : 
             if col not in annotations.columns : raise ValueError(MISSING_COLUMNS.format(annotations['set'],col,'voc_speaker_ph'))
-        value = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "N")].shape[0] * (3600000 / duration)
+        value = annotations.loc[(annotations["speaker_type"]== kwargs["speaker"]) & (annotations["vcm_type"]== "N")].shape[0] * (3600000 / duration)
     else:
         value = None
     return name,value
 
-def non_can_voc_dur_chi_ph(annotations: pd.DataFrame, duration: int, **kwargs):
+def non_can_voc_dur_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):
     """metric calculating the duration of non canonical vocalizations per hour for CHI (based on vcm_type)
     """
-    name = "non_can_voc_dur_chi_ph"
+    if 'speaker' not in kwargs : raise ValueError('can_voc_dur_speaker_ph metric needs an argument <speaker>.')
+    name = "non_can_voc_dur_{}_ph".format(kwargs["speaker"].lower())
     required_columns = {"speaker_type",'vcm_type','duration'}
     if annotations.shape[0]:
         for col in required_columns : 
             if col not in annotations.columns : raise ValueError(MISSING_COLUMNS.format(annotations['set'],col,'voc_speaker_ph'))
-        value = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "N")]["duration"].sum() * (3600000 / duration)
+        value = annotations.loc[(annotations["speaker_type"]== kwargs["speaker"]) & (annotations["vcm_type"]== "N")]["duration"].sum() * (3600000 / duration)
     else:
         value = None
     return name,value
 
-def avg_non_can_voc_dur_chi(annotations: pd.DataFrame, duration: int, **kwargs):
+def avg_non_can_voc_dur_speaker(annotations: pd.DataFrame, duration: int, **kwargs):
     """metric calculating the average duration of non canonical vocalizations for CHI (based on vcm_type)
     """
-    name = "avg_non_can_voc_dur_chi"
+    if 'speaker' not in kwargs : raise ValueError('can_voc_dur_speaker_ph metric needs an argument <speaker>.')
+    name = "avg_non_can_voc_dur_{}".format(kwargs["speaker"].lower())
     required_columns = {"speaker_type",'vcm_type','duration'}
     if annotations.shape[0]:
         for col in required_columns : 
             if col not in annotations.columns : raise ValueError(MISSING_COLUMNS.format(annotations['set'],col,'voc_speaker_ph'))
-        value = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "N")]["duration"].mean() * (3600000 / duration)
+        value = annotations.loc[(annotations["speaker_type"]== kwargs["speaker"]) & (annotations["vcm_type"]== "N")]["duration"].mean() * (3600000 / duration)
         if pd.isnull(value) : value = 0
     else:
         value = None

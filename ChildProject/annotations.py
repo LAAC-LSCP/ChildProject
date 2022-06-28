@@ -1225,6 +1225,7 @@ class AnnotationManager:
         #assert end_dt > start_dt, "end_time must follow start_time"
         # no reason to keep this condition, 23:00 to 03:00 is completely acceptable
 
+        if not isinstance(interval, TimeInterval): raise ValueError("interval must be a TimeInterval object")
         start_ts = get_ms_since_midight(interval.start)
         end_ts = get_ms_since_midight(interval.stop)
 

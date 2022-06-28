@@ -316,11 +316,12 @@ def test_clipping(project):
 
 
 def test_within_time_range(project):
+    from ChildProject.utils import TimeInterval
     am = AnnotationManager(project)
     am.project.recordings = pd.read_csv("tests/data/time_range_recordings.csv")
 
     annotations = pd.read_csv("tests/data/time_range_annotations.csv")
-    matches = am.get_within_time_range(annotations, "09:00", "20:00")
+    matches = am.get_within_time_range(annotations, TimeInterval(datetime.datetime(1900,1,1,9,0),datetime.datetime(1900,1,1,20,0)))
 
     truth = pd.read_csv("tests/truth/time_range.csv")
 

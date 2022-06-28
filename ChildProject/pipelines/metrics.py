@@ -165,10 +165,11 @@ class Metrics(ABC):
             curr_set = line["set"]
             if prev_set != curr_set:
                 index, annotations = self.retrieve_segments([curr_set],row[1])
-                #print(index.to_dict(orient='records'))
-                duration_set = (
-                        index["range_offset"] - index["range_onset"]
-                    ).sum()
+                if index.shape[0]:
+                    duration_set = (
+                            index["range_offset"] - index["range_onset"]
+                        ).sum()
+                else : duration_set = 0
                 row[1]["duration_{}".format(line["set"])] = duration_set
                 prev_set = curr_set            
         
@@ -178,7 +179,7 @@ class Metrics(ABC):
             else : # use the default name of the metric function
                 name, value = line["callable"](annotations, duration_set, **line.drop(['callable', 'set','name'],errors='ignore').dropna().to_dict())
                 row[1][name] = value
-                
+        
         return row[1]
                 
     
@@ -195,33 +196,37 @@ class Metrics(ABC):
                 self.metrics = pd.DataFrame(
                     pool.map(self._process_unit, self.metrics.iterrows())
                 )
-            
-
+        if self.period:
+            self.metrics['period_start'] = self.metrics['period_start'].dt.strftime('%H:%M')
+            self.metrics['period_end'] = self.metrics['period_end'].dt.strftime('%H:%M')
         return self.metrics
 
     def retrieve_segments(self, sets: List[str], row: str):
         annotations = self.am.annotations[self.am.annotations[self.by] == row[self.by]]
         annotations = annotations[annotations["set"].isin(sets)]
-        annotations
         
         if self.from_time and self.to_time:
             if self.period:
                 st_hour = row["period_start"]
                 end_hour = row["period_end"]
                 intervals = time_intervals_intersect(TimeInterval(self.from_time,self.to_time),TimeInterval(st_hour,end_hour))
-                matches = pd.concat([self.am.get_within_time_range(annotations,i) for i in intervals],ignore_index =True)
-            matches = self.am.get_within_time_range(
+                matches = pd.concat([self.am.get_within_time_range(annotations,i) for i in intervals],ignore_index =True) if intervals else pd.DataFrame()
+            else:
+                matches = self.am.get_within_time_range(
                 annotations, TimeInterval(self.from_time,self.to_time))
         elif self.period:
             st_hour = row["period_start"]
             end_hour = row["period_end"]
             matches = self.am.get_within_time_range(
                     annotations, TimeInterval(st_hour,end_hour))
+        else:
+            matches = annotations
 
         try:
             segments = self.am.get_segments(matches)
         except Exception as e:
-            print(str(e))
+            #print(str(e))
+            #no annotations for that unit
             return pd.DataFrame(), pd.DataFrame()
 
         # prevent overflows
@@ -274,7 +279,7 @@ class Metrics(ABC):
                 return value.iloc[0]
             #otherwise, leave the column as NA
             else:
-                return "NA"
+                return np.nan
         
         #get and add to dataframe recordings.csv columns asked
         if self.rec_cols:
@@ -286,7 +291,7 @@ class CustomMetrics(Metrics):
     Extracts a number of metrics listed in a csv file as s dataframe.
     the csv file must contain the columns :
         - 'callable' which is the name of the wanted metric from the list of available metrics
-        - 'set' which is the set of annotations to use for that specific metric (make sur this set has the required columns for that metric)
+        - 'set' which is the set of annotations to use for that specific metric (make sure this set has the required columns for that metric)
         - 'name' is optional, this is the name to give to that metric (if not given, a default name will be attributed)
         - any other necessary argument for the given metrics (eg the voc_speaker_ph metric requires the 'speaker' argument: add a column 'speaker' in the csv file and fill its cells for this metric with the wanted value (CHI|FEM|MAL|OCH))
     """
@@ -354,6 +359,7 @@ class LenaMetrics(Metrics):
         rec_cols: str = None,
         child_cols: str = None,
         by: str = "recording_filename",
+        period: str = None,
         threads: int = 1,
     ):
         self.set = set
@@ -378,7 +384,7 @@ class LenaMetrics(Metrics):
              ["lp_dur",self.set,pd.NA],
              ]), columns=["callable","set","speaker"])
 
-        super().__init__(project, METRICS, by=by, recordings=recordings, from_time=from_time, to_time=to_time, rec_cols=rec_cols, child_cols=child_cols, threads=threads)
+        super().__init__(project, METRICS, by=by, recordings=recordings,period=period, from_time=from_time, to_time=to_time, rec_cols=rec_cols, child_cols=child_cols, threads=threads)
 
         
 
@@ -438,6 +444,7 @@ class AclewMetrics(Metrics):
         to_time: str = None,
         rec_cols: str = None,
         child_cols: str = None,
+        period: str = None,
         by: str = "recording_filename",
         threads: int = 1,
     ):
@@ -466,7 +473,7 @@ class AclewMetrics(Metrics):
         if self.alice not in am.annotations["set"].values:
             print(f"The ALICE set ('{self.alice}') was not found in the index.")
         else:
-            METRICS = np.append(METRICS,np.array(
+            METRICS = np.concatenate((METRICS,np.array(
              [["wc_speaker_ph",self.alice,'FEM'],
              ["wc_speaker_ph",self.alice,'MAL'],
              ["sc_speaker_ph",self.alice,'FEM'],
@@ -476,30 +483,30 @@ class AclewMetrics(Metrics):
              ["wc_adu_ph",self.alice,pd.NA],
              ["sc_adu_ph",self.alice,pd.NA],
              ["pc_adu_ph",self.alice,pd.NA],
-             ]))
+             ])))
              
         if self.vcm not in am.annotations["set"].values:
             print(f"The vcm set ('{self.vcm}') was not found in the index.")
         else:
-            METRICS = np.append(METRICS,np.array(
-             [["cry_voc_chi_ph",self.vcm,pd.NA],
-             ["cry_voc_dur_chi_ph",self.vcm,pd.NA],
-             ["avg_cry_voc_dur_chi",self.vcm,pd.NA],
-             ["can_voc_chi_ph",self.vcm,pd.NA],
-             ["can_voc_dur_chi_ph",self.vcm,pd.NA],
-             ["avg_can_voc_dur_chi",self.vcm,pd.NA],
-             ["non_can_voc_chi_ph",self.vcm,pd.NA],
-             ["non_can_voc_dur_chi_ph",self.vcm,pd.NA],
-             ["avg_non_can_voc_dur_chi",self.vcm,pd.NA],
+            METRICS = np.concatenate((METRICS,np.array(
+             [["cry_voc_speaker_ph",self.vcm,'CHI'],
+             ["cry_voc_dur_speaker_ph",self.vcm,'CHI'],
+             ["avg_cry_voc_dur_speaker",self.vcm,'CHI'],
+             ["can_voc_speaker_ph",self.vcm,'CHI'],
+             ["can_voc_dur_speaker_ph",self.vcm,'CHI'],
+             ["avg_can_voc_dur_speaker",self.vcm,'CHI'],
+             ["non_can_voc_speaker_ph",self.vcm,'CHI'],
+             ["non_can_voc_dur_speaker_ph",self.vcm,'CHI'],
+             ["avg_non_can_voc_dur_speaker",self.vcm,'CHI'],
              ["lp_n",self.vcm,pd.NA],
              ["lp_dur",self.vcm,pd.NA],
              ["cp_n",self.vcm,pd.NA],
              ["cp_dur",self.vcm,pd.NA],
-             ]))
+             ])))
                 
         METRICS = pd.DataFrame(METRICS, columns=["callable","set","speaker"])
 
-        super().__init__(project, METRICS,by=by, recordings=recordings, from_time=from_time, to_time=to_time, rec_cols=rec_cols, child_cols=child_cols, threads=threads)
+        super().__init__(project, METRICS,by=by, recordings=recordings,period=period, from_time=from_time, to_time=to_time, rec_cols=rec_cols, child_cols=child_cols, threads=threads)
 
     @staticmethod
     def add_parser(subparsers, subcommand):
@@ -514,6 +521,7 @@ class MetricsPipeline(Pipeline):
         self.metrics = []
 
     def run(self, path, destination, pipeline, func=None, **kwargs):
+        self.destination = destination
         #build a dictionary with all parameters used
         parameters = locals()
         parameters = {
@@ -541,25 +549,25 @@ class MetricsPipeline(Pipeline):
         metrics.extract()
 
         self.metrics = metrics.metrics
-        self.metrics.to_csv(destination)
+        self.metrics.to_csv(self.destination,index=False)
         
         # get the df of metrics used from the Metrics class
         metrics_df = metrics.metrics_list
         metrics_df['callable'] = metrics_df.apply(lambda row: row['callable'].__name__, axis=1) #from the callables used, find their name back
-        parameters['metrics_list'] = metrics_df.to_dict(orient='records')
+        parameters['metrics_list'] = [ {k:v for k,v in m.items() if pd.notnull(v)} for m in metrics_df.to_dict(orient='records')]
         date = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         # create a yaml file with all the parameters used
-        parameters_path = "parameters_" + os.path.splitext(destination)[0] + "_{}.yml".format(date)
-        print("exported metrics to {}".format(destination))
+        self.parameters_path = os.path.splitext(self.destination)[0] + "_parameters_{}.yml".format(date)
+        print("exported metrics to {}".format(self.destination))
         yaml.dump(
             {
                 "package_version": ChildProject.__version__,
                 "date": date,
                 "parameters": parameters,
             },
-            open(parameters_path, "w+"),sort_keys=False,
+            open(self.parameters_path, "w+"),sort_keys=False,
         )
-        print("exported sampler parameters to {}".format(parameters_path))
+        print("exported sampler parameters to {}".format(self.parameters_path))
 
         return self.metrics
 
@@ -627,46 +635,46 @@ class MetricsSpecificationPipeline(Pipeline):
     def __init__(self):
         self.metrics = []
 
-    def run(self, parameters):
+    def run(self, parameters_input):
         #build a dictionary with all parameters used
-        params = None
-        with open(parameters, "r") as stream:
+        parameters = None
+        with open(parameters_input, "r") as stream:
             try:
-                params = yaml.safe_load(stream)
-                if 'parameters' in params: params = params['parameters']
+                parameters = yaml.safe_load(stream)
+                if 'parameters' in parameters: parameters = parameters['parameters']
             except yaml.YAMLError as exc:
-                raise yaml.YAMLError("parsing of the parameters file {} failed. See above exception for more details".format(parameters)) from exc
+                raise yaml.YAMLError("parsing of the parameters file {} failed. See above exception for more details".format(parameters_input)) from exc
                 
-        if params:
-            if "path" not in params : raise ValueError("the parameter file {} must contain at least the 'path' key specifying the path to the dataset".format(parameters))
-            if "destination" not in params : raise ValueError("the parameter file {} must contain the 'destination' key specifying the file to output the metrics to".format(parameters))
-            if "metrics_list" not in params : raise ValueError("the parameter file {} must contain at least the 'metrics_list' key containing the list of the desired metrics".format(parameters))
+        if parameters:
+            if "path" not in parameters : raise ValueError("the parameter file {} must contain at least the 'path' key specifying the path to the dataset".format(parameters_input))
+            if "destination" not in parameters : raise ValueError("the parameter file {} must contain the 'destination' key specifying the file to output the metrics to".format(parameters_input))
+            if "metrics_list" not in parameters : raise ValueError("the parameter file {} must contain the 'metrics_list' key containing the list of the desired metrics".format(parameters_input))
             try:
-                metrics_df = pd.DataFrame(params["metrics_list"])
+                metrics_df = pd.DataFrame(parameters["metrics_list"])
             except Exception as e:
-                raise ValueError("The 'metrics_list' key in {} must be a list of elements".format(parameters)) from e           
+                raise ValueError("The 'metrics_list' key in {} must be a list of elements".format(parameters_input)) from e           
         else:
-            raise ValueError("could not find any parameters in {}".format(parameters))
+            raise ValueError("could not find any parameters in {}".format(parameters_input))
         
         try:
-            datarepo = Repo(path)
+            datarepo = Repo(parameters["path"])
             parameters['dataset_hash'] = datarepo.head.object.hexsha
         except InvalidGitRepositoryError:
             print("Your dataset is not currently a git repository")
         
-        self.project = ChildProject.projects.ChildProject(params["path"])
+        self.project = ChildProject.projects.ChildProject(parameters["path"])
         self.project.read()
         
-        destination = params['destination']
+        self.destination = parameters['destination']
         
         unwanted_keys = {'metrics', 'pipeline'}
         for i in unwanted_keys:
-            if i in params : del params[i]
+            if i in parameters : del parameters[i]
             
         arguments = {
-            key: params[key]
-            for key in params
-            if key not in ["metrics_list", "path", "destination"] 
+            key: parameters[key]
+            for key in parameters
+            if key not in {"metrics_list", "path", "destination","dataset_hash"} 
         }
         try:
             metrics = Metrics(self.project, metrics_df, **arguments)
@@ -675,25 +683,25 @@ class MetricsSpecificationPipeline(Pipeline):
         metrics.extract()
 
         self.metrics = metrics.metrics
-        self.metrics.to_csv(destination)
+        self.metrics.to_csv(self.destination,index=False)
         
         # get the df of metrics used from the Metrics class
         metrics_df = metrics.metrics_list
         metrics_df['callable'] = metrics_df.apply(lambda row: row['callable'].__name__, axis=1) #from the callables used, find their name back
-        parameters['metrics_list'] = metrics_df.to_dict(orient='records')
+        parameters['metrics_list'] = [ {k:v for k,v in m.items() if pd.notnull(v)} for m in metrics_df.to_dict(orient='records')]
         date = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         # create a yaml file with all the parameters used
-        parameters_path = "parameters_" + os.path.splitext(destination)[0] + "_{}.yml".format(date)
-        print("exported metrics to {}".format(destination))
+        self.parameters_path = os.path.splitext(self.destination)[0] + "_parameters_{}.yml".format(date)
+        print("exported metrics to {}".format(self.destination))
         yaml.dump(
             {
                 "package_version": ChildProject.__version__,
                 "date": date,
                 "parameters": parameters,
             },
-            open(parameters_path, "w+"),sort_keys=False,
+            open(self.parameters_path, "w+"),sort_keys=False,
         )
-        print("exported metrics parameters to {}".format(parameters_path))
+        print("exported metrics parameters to {}".format(self.parameters_path))
 
         return self.metrics
 

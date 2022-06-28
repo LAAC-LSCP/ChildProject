@@ -7,7 +7,7 @@ import shutil
 
 from ChildProject.projects import ChildProject
 from ChildProject.annotations import AnnotationManager
-from ChildProject.pipelines.metrics import LenaMetrics, AclewMetrics, CsvMetrics, CustomMetrics
+from ChildProject.pipelines.metrics import LenaMetrics, AclewMetrics, CustomMetrics, MetricsSpecificationPipeline
 
 
 def fake_vocs(data, filename):
@@ -71,63 +71,106 @@ def test_aclew(project):
         import_function=partial(fake_vocs, data),
     )
 
-    aclew = AclewMetrics(project, by="child_id")
+    aclew = AclewMetrics(project, by="child_id", rec_cols='date_iso', child_cols='experiment,child_dob')
     aclew.extract()
 
-    truth = pd.read_csv("tests/truth/aclew_metrics.csv", index_col="child_id")
+    truth = pd.read_csv("tests/truth/aclew_metrics.csv")
 
-    pd.testing.assert_frame_equal(aclew.metrics, truth)
+    pd.testing.assert_frame_equal(aclew.metrics, truth, check_like=True)
 
+def test_lena(project):
+    data = pd.read_csv("tests/data/lena_its.csv")
 
-def test_period(project):
     am = AnnotationManager(project)
-    am.read()
-
-    range_onset = 0
-    range_offset = 86400 - 3600
-
-    onsets = np.arange(range_onset, range_offset, 5)
-    offsets = onsets + 1
-
-    onsets = onsets * 1000
-    offsets = offsets * 1000
-
-    data = pd.DataFrame(
-        {
-            "segment_onset": onsets,
-            "segment_offset": offsets,
-            "speaker_type": ["FEM"] * len(onsets),
-        }
-    )
-    
-    print(am.annotations)
-
     am.import_annotations(
         pd.DataFrame(
             [
                 {
-                    "set": "test",
-                    "raw_filename": "file.rttm",
+                    "set": "lena_its",
+                    "raw_filename": "file.its",
                     "time_seek": 0,
                     "recording_filename": "sound.wav",
-                    "range_onset": range_onset * 1000,
-                    "range_offset": range_offset * 1000,
-                    "format": "rttm",
+                    "range_onset": 0,
+                    "range_offset": 100000000,
+                    "format": "its",
                 }
             ]
         ),
         import_function=partial(fake_vocs, data),
     )
-    print(am.annotations)
-    print(am.annotations['imported_at'].to_list())
-    print(am.annotations['set'].to_list())
 
-    parameters="tests/data/parameters_metrics.yml"
+    lena = LenaMetrics(project, set="lena_its", period='1h', from_time='10:00' , to_time= '16:00')
+    lena.extract()
+
+    truth = pd.read_csv("tests/truth/lena_metrics.csv")
+
+    pd.testing.assert_frame_equal(lena.metrics, truth, check_like=True)
+
+def test_custom(project):
+    am = AnnotationManager(project)
+    
+    data = pd.read_csv("tests/data/lena_its.csv")
+
+    am.import_annotations(
+        pd.DataFrame(
+            [
+                {
+                    "set": "custom_its",
+                    "raw_filename": "file.its",
+                    "time_seek": 0,
+                    "recording_filename": "sound.wav",
+                    "range_onset": 0,
+                    "range_offset": 100000000,
+                    "format": "its",
+                }
+            ]
+        ),
+        import_function=partial(fake_vocs, data),
+    )
+        
+    parameters="tests/data/list_metrics.csv"
     cmm = CustomMetrics(project, parameters)
     cmm.extract()
-    cmm.metrics.to_csv('test.csv',index=False)
 
-    truth = pd.read_csv("tests/truth/period_metrics.csv", index_col=["child_id"])
+    truth = pd.read_csv("tests/truth/custom_metrics.csv")
 
-    pd.testing.assert_frame_equal(cmm.metrics, truth)
+    pd.testing.assert_frame_equal(cmm.metrics, truth, check_like=True)
+
+def test_specs(project):
+    data = pd.read_csv("tests/data/lena_its.csv")
+    
+    am = AnnotationManager(project)
+    am.import_annotations(
+        pd.DataFrame(
+            [
+                {
+                    "set": "specs_its",
+                    "raw_filename": "file.its",
+                    "time_seek": 0,
+                    "recording_filename": "sound.wav",
+                    "range_onset": 0,
+                    "range_offset": 100000000,
+                    "format": "its",
+                }
+            ]
+        ),
+        import_function=partial(fake_vocs, data),
+    )
+        
+    msp = MetricsSpecificationPipeline()
+    
+    parameters = "tests/data/parameters_metrics.yml"
+    msp.run(parameters)
+    
+    output = pd.read_csv(msp.destination)
+    truth = pd.read_csv("tests/truth/specs_metrics.csv")
+
+    pd.testing.assert_frame_equal(output, truth, check_like=True)
+    
+    new_params = msp.parameters_path
+    msp.run(new_params)
+    
+    output = pd.read_csv(msp.destination)
+    
+    pd.testing.assert_frame_equal(output, truth, check_like=True)
 
