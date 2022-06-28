@@ -65,13 +65,13 @@ def test_aclew(project):
                     "range_offset": 4000,
                     "format": "rttm",
                 }
-                for set in ["vtc", "alice", "vcm"]
+                for set in ["aclew_vtc", "aclew_alice", "aclew_vcm"]
             ]
         ),
         import_function=partial(fake_vocs, data),
     )
 
-    aclew = AclewMetrics(project, by="child_id", rec_cols='date_iso', child_cols='experiment,child_dob')
+    aclew = AclewMetrics(project, by="child_id", rec_cols='date_iso', child_cols='experiment,child_dob',vtc='aclew_vtc',alice='aclew_alice',vcm='aclew_vcm')
     aclew.extract()
 
     truth = pd.read_csv("tests/truth/aclew_metrics.csv")
