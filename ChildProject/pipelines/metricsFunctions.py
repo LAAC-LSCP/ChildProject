@@ -175,7 +175,11 @@ def lp_n(annotations: pd.DataFrame, duration: int, **kwargs):
         cries = annotations["cries"].apply(lambda x: len(ast.literal_eval(x))).sum()
         vfxs = annotations["vfxs"].apply(lambda x: len(ast.literal_eval(x))).sum()
         utterances = annotations["utterances_count"].sum()
-        value = utterances / (utterances + cries + vfxs)
+        total = (utterances + cries + vfxs)
+        if total == 0:
+            value = 0
+        else:
+            value = utterances / total
     else:
         raise ValueError("the given set does not have the neccessary columns for this metric, choose a set that contains either [vcm_type] or [cries,vfxs,utterances_count]")
     return value
@@ -198,8 +202,11 @@ def lp_dur(annotations: pd.DataFrame, duration: int, **kwargs):
         value = speech_dur / (speech_dur + cry_dur)
     elif set(["child_cry_vfx_len","utterances_length"]).issubset(annotations.columns):
         annotations = annotations[annotations["speaker_type"] == "CHI"]
-        value = annotations["utterances_length"].sum() / (
-            annotations["child_cry_vfx_len"].sum() + annotations["utterances_length"].sum() )
+        total = annotations["child_cry_vfx_len"].sum() + annotations["utterances_length"].sum() )
+         if total == 0:
+             value = 0
+        else:
+            value = annotations["utterances_length"].sum() / (total)
     else:
         raise ValueError("the {} set does not have the neccessary columns for this metric, choose a set that contains either [vcm_type] or [child_cry_vfx_len,utterances_length]")
     return value
