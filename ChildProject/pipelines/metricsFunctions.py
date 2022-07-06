@@ -1,32 +1,30 @@
 import pandas as pd
+import numpy as np
 import ast
 import re
 import functools
 """
 This file lists all the metrics functions commonly used.
 New metrics can be added by defining new functions for the Metrics class to use :
- - New metric functions must have the same arguments:
-     - annotations, the metrics pipeline will this
-     - duration, also provided by the pipeline
-     - kwargs, any keyword argument that is necessary to the metric, those will have to be provided in the metrics_list dataframe to the Metrics class
- - They must return name,value . Name being the default name to attribute to the metric, value being the metric value itself.
- - to compute the metric, use 
-     - annotations, which is a dataframe containing all the annotated segments  to use. It contains the annotation content (https://childproject.readthedocs.io/en/latest/format.html#id10) joined with the annotation index info (https://childproject.readthedocs.io/en/latest/format.html#id11) as well as any column that was requested to be added to the results by the user using --child-cols or --rec-cols (eg --child-cols child_dob,languages will make columns 'child_dob' and 'languaes' available)
+ - Create a new function using the same arguments (i.e. annotations, duration, **kwargs)
+ - Define calculation of the metric with:
+     - annotations, which is a dataframe containing all the relevant annotated segments  to use. It contains the annotation content (https://childproject.readthedocs.io/en/latest/format.html#id10) joined with the annotation index info (https://childproject.readthedocs.io/en/latest/format.html#id11) as well as any column that was requested to be added to the results by the user using --child-cols or --rec-cols (eg --child-cols child_dob,languages will make columns 'child_dob' and 'languaes' available)
      - duration which is the duration of audio annotated in milliseconds
-     - kwargs, whatever parameter you chose to pass to the function (except 'name', 'callable', 'set' which can not be used)
- - to improve user experience, raise errors and print precise messages about what is wrong.
+     - kwargs, whatever keyword parameter you chose to pass to the function (except 'name', 'callable', 'set' which can not be used). This will need to be given with the list of metrics when called
+ - Wrap you function with the 'metricFunction' decorator to make it callable by the pipeline, read metricFunction help for more info
 """
 
 #error message in case of missing columns in annotations
-MISSING_COLUMNS = 'The given set {} does not have the required column {} for computing the {} metric'
-
-#decorator for checking required arguments (e.g. @argumentsChecks({'speaker','interactant'}) will check for arguments 'speaker' and 'interactant' and raise a ValueError if they don't exist)
-
-#decorator for checking required columns in the annotations (e.g. @columnsChecks({'speaker_type','vcm_type'}) will check for arguments 'speaker_type' and 'vcm_type' and raise a ValueError if they don't exist)
-
-#decorator for giving a name to a function in addition to its result, if no name is given, the function name will be used. existing keyword arguments values replace their key in the name (e.g. @metric("voc_speaker") and kwargs['speaker'] == 'CHI'  then the name will be 'voc_chi')    
-
-def metricFunction(args: set, columns: set, name : str = None):
+MISSING_COLUMNS = 'The given set <{}> does not have the required column <{}> for computing the {} metric'
+    
+def metricFunction(args: set, columns: set, emptyValue = 0, name : str = None):
+    """
+    Decorator for all metrics functions to make them ready to be called by the pipeline. arguments:
+        - args : set of required keyword arguments for that function, raise ValueError if were not given
+        - columns : set of required columns in the dataframe given, missing columns raise ValueError
+        - name : str of default name to use for the metric in the resulting dataframe. Every keyword argument found in the name will be replaced by its value (e.g. 'voc_speaker_ph' uses kwarg 'speaker' so if speaker = 'CHI', name will be 'voc_chi_ph'). if no name is given, the __name__ of the function is used
+        - emptyValue : value to return when annotations are empty but the unit was annotated (e.g. 0 for counts like voc_speaker_ph , None for proportions like lp_n)
+    """
     def decorator(function):
         @functools.wraps(function)
         def new_func(annotations: pd.DataFrame, duration: int, **kwargs):
@@ -38,10 +36,10 @@ def metricFunction(args: set, columns: set, name : str = None):
                 metname = re.sub(arg , str(kwargs[arg]).lower(),metname)
             if annotations.shape[0]:
                 for column in columns:
-                    if column not in annotations.columns : raise ValueError(MISSING_COLUMNS.format(annotations['set'],column,'voc_speaker_ph'))
+                    if column not in annotations.columns : raise ValueError(MISSING_COLUMNS.format(annotations['set'].iloc[0],column,'voc_speaker_ph'))
                 res = function(annotations, duration, **kwargs)
-            else:
-                res = None
+            else: #no annotation for that unit
+                res = emptyValue if duration else None #duration != 0 => was annotated but not segments there
             return metname, res
         return new_func
     return decorator
@@ -56,13 +54,13 @@ def voc_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):
 
 @metricFunction({"speaker"},{"speaker_type","duration"})
 def voc_dur_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):
-    """metric calculating number of vocalizations per hour for a given speaker type 
+    """metric calculating number of milliseconds of vocalizations per hour for a given speaker type 
     """
     return annotations[annotations["speaker_type"]== kwargs["speaker"]]["duration"].sum() * (3600000 / duration)
 
-@metricFunction({"speaker"},{"speaker_type","duration"})
+@metricFunction({"speaker"},{"speaker_type","duration"},np.nan)
 def avg_voc_dur_speaker(annotations: pd.DataFrame, duration: int, **kwargs):
-    """metric calculating the average duration for vocalizations for a given speaker type 
+    """metric calculating the average duration in milliseconds for vocalizations for a given speaker type 
     """
     return annotations[annotations["speaker_type"]== kwargs["speaker"]]["duration"].mean()
 
@@ -110,11 +108,11 @@ def cry_voc_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):
 
 @metricFunction({"speaker"},{"speaker_type","vcm_type","duration"})
 def cry_voc_dur_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):
-    """metric calculating the duration of cries per hour for CHI (based on vcm_type)
+    """metric calculating the numbers of milliseconds of cries per hour for CHI (based on vcm_type)
     """
     return annotations.loc[(annotations["speaker_type"]== kwargs["speaker"]) & (annotations["vcm_type"]== "Y")]["duration"].sum() * (3600000 / duration)
 
-@metricFunction({"speaker"},{"speaker_type","vcm_type","duration"})
+@metricFunction({"speaker"},{"speaker_type","vcm_type","duration"},np.nan)
 def avg_cry_voc_dur_speaker(annotations: pd.DataFrame, duration: int, **kwargs):
     """metric calculating the average duration of cries for CHI (based on vcm_type)
     """
@@ -134,7 +132,7 @@ def can_voc_dur_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):
     """
     return annotations.loc[(annotations["speaker_type"]== kwargs["speaker"]) & (annotations["vcm_type"]== "C")]["duration"].sum() * (3600000 / duration)
 
-@metricFunction({"speaker"},{"speaker_type","vcm_type","duration"})
+@metricFunction({"speaker"},{"speaker_type","vcm_type","duration"},np.nan)
 def avg_can_voc_dur_speaker(annotations: pd.DataFrame, duration: int, **kwargs):
     """metric calculating the average duration of canonical vocalizations for CHI (based on vcm_type)
     """
@@ -154,7 +152,7 @@ def non_can_voc_dur_speaker_ph(annotations: pd.DataFrame, duration: int, **kwarg
     """
     return annotations.loc[(annotations["speaker_type"]== kwargs["speaker"]) & (annotations["vcm_type"]== "N")]["duration"].sum() * (3600000 / duration)
 
-@metricFunction({"speaker"},{"speaker_type","vcm_type","duration"})
+@metricFunction({"speaker"},{"speaker_type","vcm_type","duration"},np.nan)
 def avg_non_can_voc_dur_speaker(annotations: pd.DataFrame, duration: int, **kwargs):
     """metric calculating the average duration of non canonical vocalizations for CHI (based on vcm_type)
     """
@@ -162,7 +160,7 @@ def avg_non_can_voc_dur_speaker(annotations: pd.DataFrame, duration: int, **kwar
     if pd.isnull(value) : value = 0
     return value
 
-@metricFunction({},{})
+@metricFunction({},{},np.nan)
 def lp_n(annotations: pd.DataFrame, duration: int, **kwargs):
     """metric calculating the linguistic proportion on the number of vocalizations for CHI (based on vcm_type or [cries,vfxs,utterances_count] if vcm_type does not exist)
     """
@@ -170,29 +168,38 @@ def lp_n(annotations: pd.DataFrame, duration: int, **kwargs):
         speech_voc = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"].isin(["N","C"]))].shape[0]
         cry_voc = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "Y")].shape[0]
         value = speech_voc / (speech_voc + cry_voc)
+        total = speech_voc + cry_voc
+        if total:
+            value = speech_voc / total
+        else:
+            value = np.nan
     elif set(["cries","vfxs","utterances_count"]).issubset(annotations.columns):
         annotations = annotations[annotations["speaker_type"] == "CHI"]
         cries = annotations["cries"].apply(lambda x: len(ast.literal_eval(x))).sum()
         vfxs = annotations["vfxs"].apply(lambda x: len(ast.literal_eval(x))).sum()
         utterances = annotations["utterances_count"].sum()
         total = (utterances + cries + vfxs)
-        if total == 0:
-            value = 0
-        else:
+        if total:
             value = utterances / total
+        else:
+            value = np.nan
     else:
         raise ValueError("the given set does not have the neccessary columns for this metric, choose a set that contains either [vcm_type] or [cries,vfxs,utterances_count]")
     return value
 
-@metricFunction({},{"speaker_type","vcm_type"})
+@metricFunction({},{"speaker_type","vcm_type"},np.nan)
 def cp_n(annotations: pd.DataFrame, duration: int, **kwargs):
     """metric calculating the canonical proportion on the number of vocalizations for CHI (based on vcm_type)
     """
     speech_voc = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"].isin(["N","C"]))].shape[0]
     can_voc = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "C")].shape[0]
-    return can_voc / speech_voc
+    if speech_voc:
+        value = can_voc / speech_voc
+    else:
+        value = np.nan
+    return value
     
-@metricFunction({},{})
+@metricFunction({},{},np.nan)
 def lp_dur(annotations: pd.DataFrame, duration: int, **kwargs):
     """metric calculating the linguistic proportion on the duration of vocalizations for CHI (based on vcm_type or [child_cry_vfxs_len,utterances_length] if vcm_type does not exist)
     """
@@ -200,21 +207,31 @@ def lp_dur(annotations: pd.DataFrame, duration: int, **kwargs):
         speech_dur = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"].isin(["N","C"]))]["duration"].sum()
         cry_dur = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "Y")]["duration"].sum()
         value = speech_dur / (speech_dur + cry_dur)
+        total = speech_dur + cry_dur
+        if total:
+            value = speech_dur / total
+        else:
+            value = np.nan
     elif set(["child_cry_vfx_len","utterances_length"]).issubset(annotations.columns):
         annotations = annotations[annotations["speaker_type"] == "CHI"]
-        total = annotations["child_cry_vfx_len"].sum() + annotations["utterances_length"].sum() )
-         if total == 0:
-             value = 0
+        utter_len = annotations["utterances_length"].sum()
+        total = annotations["child_cry_vfx_len"].sum() + utter_len
+        if total:
+            value = utter_len / total
         else:
-            value = annotations["utterances_length"].sum() / (total)
+            value = np.nan
     else:
         raise ValueError("the {} set does not have the neccessary columns for this metric, choose a set that contains either [vcm_type] or [child_cry_vfx_len,utterances_length]")
     return value
 
-@metricFunction({},{"speaker_type","vcm_type","duration"})
+@metricFunction({},{"speaker_type","vcm_type","duration"},np.nan)
 def cp_dur(annotations: pd.DataFrame, duration: int, **kwargs):
     """metric calculating the canonical proportion on the number of vocalizations for CHI (based on vcm_type)
     """
     speech_dur = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"].isin(["N","C"]))]["duration"].sum()
     can_dur = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "C")]["duration"].sum()
-    return can_dur / speech_dur
+    if speech_dur:
+        value = can_dur / speech_dur
+    else:
+        value = np.nan
+    return value
