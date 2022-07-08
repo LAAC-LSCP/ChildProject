@@ -18,12 +18,17 @@ New metrics can be added by defining new functions for the Metrics class to use 
 MISSING_COLUMNS = 'The given set <{}> does not have the required column <{}> for computing the {} metric'
     
 def metricFunction(args: set, columns: set, emptyValue = 0, name : str = None):
-    """
-    Decorator for all metrics functions to make them ready to be called by the pipeline. arguments:
-        - args : set of required keyword arguments for that function, raise ValueError if were not given
-        - columns : set of required columns in the dataframe given, missing columns raise ValueError
-        - name : str of default name to use for the metric in the resulting dataframe. Every keyword argument found in the name will be replaced by its value (e.g. 'voc_speaker_ph' uses kwarg 'speaker' so if speaker = 'CHI', name will be 'voc_chi_ph'). if no name is given, the __name__ of the function is used
-        - emptyValue : value to return when annotations are empty but the unit was annotated (e.g. 0 for counts like voc_speaker_ph , None for proportions like lp_n)
+    """Decorator for all metrics functions to make them ready to be called by the pipeline.
+    
+    :param args: set of required keyword arguments for that function, raise ValueError if were not given
+    :type args: set
+    :param columns: set of required columns in the dataframe given, missing columns raise ValueError
+    :type columns: set
+    :param name: default name to use for the metric in the resulting dataframe. Every keyword argument found in the name will be replaced by its value (e.g. 'voc_speaker_ph' uses kwarg 'speaker' so if speaker = 'CHI', name will be 'voc_chi_ph'). if no name is given, the __name__ of the function is used
+    :type name: str
+    :param emptyValue: value to return when annotations are empty but the unit was annotated (e.g. 0 for counts like voc_speaker_ph , None for proportions like lp_n)
+    :return: new function to substitute the metric function
+    :rtype: Callable
     """
     def decorator(function):
         @functools.wraps(function)
@@ -48,73 +53,106 @@ def metricFunction(args: set, columns: set, emptyValue = 0, name : str = None):
 
 @metricFunction({"speaker"},{"speaker_type"}) 
 def voc_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):
-    """metric calculating number of vocalizations per hour for a given speaker type 
+    """number of vocalizations per hour for a given speaker type
+    
+    Required keyword arguments:
+        - speaker : speaker_type to use
     """
     return annotations[annotations["speaker_type"]== kwargs["speaker"]].shape[0] * (3600000 / duration)
 
 @metricFunction({"speaker"},{"speaker_type","duration"})
 def voc_dur_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):
-    """metric calculating number of milliseconds of vocalizations per hour for a given speaker type 
+    """total duration of vocalizations by a given speaker type in milliseconds per hour
+    
+    Required keyword arguments:
+        - speaker : speaker_type to use
     """
     return annotations[annotations["speaker_type"]== kwargs["speaker"]]["duration"].sum() * (3600000 / duration)
 
 @metricFunction({"speaker"},{"speaker_type","duration"},np.nan)
 def avg_voc_dur_speaker(annotations: pd.DataFrame, duration: int, **kwargs):
-    """metric calculating the average duration in milliseconds for vocalizations for a given speaker type 
+    """average duration in milliseconds of vocalizations for a given speaker type 
+    
+    Required keyword arguments:
+        - speaker : speaker_type to use
     """
     return annotations[annotations["speaker_type"]== kwargs["speaker"]]["duration"].mean()
 
 @metricFunction({"speaker"},{"speaker_type","words"})
 def wc_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):
-    """metric calculating the number of words per hour for a given speaker type 
+    """number of words per hour for a given speaker type
+    
+    Required keyword arguments:
+        - speaker : speaker_type to use
     """
     return annotations[annotations["speaker_type"]== kwargs["speaker"]]["words"].sum() * (3600000 / duration)
 
 @metricFunction({"speaker"},{"speaker_type","syllables"})
 def sc_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):
-    """metric calculating the number of syllables per hour for a given speaker type 
+    """number of syllables per hour for a given speaker type
+    
+    Required keyword arguments:
+        - speaker : speaker_type to use
     """
     return annotations[annotations["speaker_type"]== kwargs["speaker"]]["syllables"].sum() * (3600000 / duration)
 
 @metricFunction({"speaker"},{"speaker_type","phonemes"})
 def pc_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):
-    """metric calculating the number of phonemes per hour for a given speaker type 
+    """number of phonemes per hour for a given speaker type
+    
+    Required keyword arguments:
+        - speaker : speaker_type to use
     """
     return annotations[annotations["speaker_type"]== kwargs["speaker"]]["phonemes"].sum() * (3600000 / duration)
 
 @metricFunction({},{"words"})
 def wc_adu_ph(annotations: pd.DataFrame, duration: int, **kwargs):
-    """metric calculating the number of words per hour for all speakers
+    """number of words per hour for all speakers
+    
+    Required keyword arguments:
     """
     return annotations["words"].sum() * (3600000 / duration)
 
 @metricFunction({},{"syllables"})
 def sc_adu_ph(annotations: pd.DataFrame, duration: int, **kwargs):
-    """metric calculating the number of syllables per hour for all speakers
+    """number of syllables per hour for all speakers
+    
+    Required keyword arguments:
     """
     return annotations["syllables"].sum() * (3600000 / duration)
 
 @metricFunction({},{"phonemes"})
 def pc_adu_ph(annotations: pd.DataFrame, duration: int, **kwargs):
-    """metric calculating the number of phonemes per hour for all speakers
+    """number of phonemes per hour for all speakers
+    
+    Required keyword arguments:
     """
     return annotations["phonemes"].sum() * (3600000 / duration)
     
 @metricFunction({"speaker"},{"speaker_type","vcm_type"})
 def cry_voc_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):
-    """metric calculating the number of cries per hour for CHI (based on vcm_type)
+    """number of cry vocalizations per hour for a given speaker (based on vcm_type)
+    
+    Required keyword arguments:
+        - speaker : speaker_type to use
     """
     return annotations.loc[(annotations["speaker_type"]== kwargs["speaker"]) & (annotations["vcm_type"]== "Y")].shape[0] * (3600000 / duration)
 
 @metricFunction({"speaker"},{"speaker_type","vcm_type","duration"})
 def cry_voc_dur_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):
-    """metric calculating the numbers of milliseconds of cries per hour for CHI (based on vcm_type)
+    """total duration of cry vocalizations by a given speaker type in milliseconds per hour (based on vcm_type)
+    
+    Required keyword arguments:
+        - speaker : speaker_type to use
     """
     return annotations.loc[(annotations["speaker_type"]== kwargs["speaker"]) & (annotations["vcm_type"]== "Y")]["duration"].sum() * (3600000 / duration)
 
 @metricFunction({"speaker"},{"speaker_type","vcm_type","duration"},np.nan)
 def avg_cry_voc_dur_speaker(annotations: pd.DataFrame, duration: int, **kwargs):
-    """metric calculating the average duration of cries for CHI (based on vcm_type)
+    """average duration of cry vocalizations by a given speaker type (based on vcm_type)
+    
+    Required keyword arguments:
+        - speaker : speaker_type to use
     """
     value = annotations.loc[(annotations["speaker_type"]== kwargs["speaker"]) & (annotations["vcm_type"]== "Y")]["duration"].mean() * (3600000 / duration)
     if pd.isnull(value) : value = 0
@@ -122,19 +160,28 @@ def avg_cry_voc_dur_speaker(annotations: pd.DataFrame, duration: int, **kwargs):
 
 @metricFunction({"speaker"},{"speaker_type","vcm_type"})
 def can_voc_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):
-    """metric calculating the number of canonical vocalizations per hour for CHI (based on vcm_type)
+    """number of canonical vocalizations per hour for a given speaker type (based on vcm_type)
+    
+    Required keyword arguments:
+        - speaker : speaker_type to use
     """
     return annotations.loc[(annotations["speaker_type"]== kwargs["speaker"]) & (annotations["vcm_type"]== "C")].shape[0] * (3600000 / duration)
     
 @metricFunction({"speaker"},{"speaker_type","vcm_type","duration"})
 def can_voc_dur_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):
-    """metric calculating the duration of canonical vocalizations per hour for CHI (based on vcm_type)
+    """total duration of canonical vocalizations by a given speaker type in milliseconds per hour (based on vcm_type)
+    
+    Required keyword arguments:
+        - speaker : speaker_type to use
     """
     return annotations.loc[(annotations["speaker_type"]== kwargs["speaker"]) & (annotations["vcm_type"]== "C")]["duration"].sum() * (3600000 / duration)
 
 @metricFunction({"speaker"},{"speaker_type","vcm_type","duration"},np.nan)
 def avg_can_voc_dur_speaker(annotations: pd.DataFrame, duration: int, **kwargs):
-    """metric calculating the average duration of canonical vocalizations for CHI (based on vcm_type)
+    """average duration of canonical vocalizations for a given speaker type (based on vcm_type)
+    
+    Required keyword arguments:
+        - speaker : speaker_type to use
     """
     value =  annotations.loc[(annotations["speaker_type"]== kwargs["speaker"]) & (annotations["vcm_type"]== "C")]["duration"].mean() * (3600000 / duration)
     if pd.isnull(value) : value = 0
@@ -142,19 +189,28 @@ def avg_can_voc_dur_speaker(annotations: pd.DataFrame, duration: int, **kwargs):
 
 @metricFunction({"speaker"},{"speaker_type","vcm_type"})
 def non_can_voc_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):
-    """metric calculating the number of non canonical vocalizations per hour for CHI (based on vcm_type)
+    """number of non canonical vocalizations per hour for a given speaker type (based on vcm_type)
+    
+    Required keyword arguments:
+        - speaker : speaker_type to use
     """
     return annotations.loc[(annotations["speaker_type"]== kwargs["speaker"]) & (annotations["vcm_type"]== "N")].shape[0] * (3600000 / duration)
 
 @metricFunction({"speaker"},{"speaker_type","vcm_type","duration"})
 def non_can_voc_dur_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):
-    """metric calculating the duration of non canonical vocalizations per hour for CHI (based on vcm_type)
+    """total duration of non canonical vocalizations by a given speaker type in milliseconds per hour (based on vcm_type)
+    
+    Required keyword arguments:
+        - speaker : speaker_type to use
     """
     return annotations.loc[(annotations["speaker_type"]== kwargs["speaker"]) & (annotations["vcm_type"]== "N")]["duration"].sum() * (3600000 / duration)
 
 @metricFunction({"speaker"},{"speaker_type","vcm_type","duration"},np.nan)
 def avg_non_can_voc_dur_speaker(annotations: pd.DataFrame, duration: int, **kwargs):
-    """metric calculating the average duration of non canonical vocalizations for CHI (based on vcm_type)
+    """average duration of non canonical vocalizations for a given speaker type (based on vcm_type)
+    
+    Required keyword arguments:
+        - speaker : speaker_type to use
     """
     value = annotations.loc[(annotations["speaker_type"]== kwargs["speaker"]) & (annotations["vcm_type"]== "N")]["duration"].mean() * (3600000 / duration)
     if pd.isnull(value) : value = 0
@@ -162,7 +218,9 @@ def avg_non_can_voc_dur_speaker(annotations: pd.DataFrame, duration: int, **kwar
 
 @metricFunction({},{},np.nan)
 def lp_n(annotations: pd.DataFrame, duration: int, **kwargs):
-    """metric calculating the linguistic proportion on the number of vocalizations for CHI (based on vcm_type or [cries,vfxs,utterances_count] if vcm_type does not exist)
+    """linguistic proportion on the number of vocalizations for CHI (based on vcm_type or [cries,vfxs,utterances_count] if vcm_type does not exist)
+    
+    Required keyword arguments:
     """
     if "vcm_type" in annotations.columns:
         speech_voc = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"].isin(["N","C"]))].shape[0]
@@ -189,7 +247,9 @@ def lp_n(annotations: pd.DataFrame, duration: int, **kwargs):
 
 @metricFunction({},{"speaker_type","vcm_type"},np.nan)
 def cp_n(annotations: pd.DataFrame, duration: int, **kwargs):
-    """metric calculating the canonical proportion on the number of vocalizations for CHI (based on vcm_type)
+    """canonical proportion on the number of vocalizations for CHI (based on vcm_type)
+    
+    Required keyword arguments:
     """
     speech_voc = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"].isin(["N","C"]))].shape[0]
     can_voc = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "C")].shape[0]
@@ -201,7 +261,9 @@ def cp_n(annotations: pd.DataFrame, duration: int, **kwargs):
     
 @metricFunction({},{},np.nan)
 def lp_dur(annotations: pd.DataFrame, duration: int, **kwargs):
-    """metric calculating the linguistic proportion on the duration of vocalizations for CHI (based on vcm_type or [child_cry_vfxs_len,utterances_length] if vcm_type does not exist)
+    """linguistic proportion on the duration of vocalizations for CHI (based on vcm_type or [child_cry_vfxs_len,utterances_length] if vcm_type does not exist)
+    
+    Required keyword arguments:
     """
     if "vcm_type" in annotations.columns:
         speech_dur = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"].isin(["N","C"]))]["duration"].sum()
@@ -226,7 +288,9 @@ def lp_dur(annotations: pd.DataFrame, duration: int, **kwargs):
 
 @metricFunction({},{"speaker_type","vcm_type","duration"},np.nan)
 def cp_dur(annotations: pd.DataFrame, duration: int, **kwargs):
-    """metric calculating the canonical proportion on the number of vocalizations for CHI (based on vcm_type)
+    """canonical proportion on the number of vocalizations for CHI (based on vcm_type)
+    
+    Required keyword arguments:
     """
     speech_dur = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"].isin(["N","C"]))]["duration"].sum()
     can_dur = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "C")]["duration"].sum()

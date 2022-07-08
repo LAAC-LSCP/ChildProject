@@ -3,10 +3,14 @@ from docutils.parsers.rst import Directive
 from docutils.parsers.rst.directives.tables import CSVTable
 from docutils import Component
 
+from inspect import getmembers, isfunction, cleandoc
+
 from sphinx.directives.code import CodeBlock
 
 from ChildProject.projects import ChildProject
 from ChildProject.annotations import AnnotationManager
+
+from ChildProject.pipelines import metricsFunctions
 
 import subprocess
 
@@ -58,6 +62,10 @@ class IndexTable(CSVTable):
             table = [c for c in AnnotationManager.INDEX_COLUMNS if (c.generated or c.required)]
         elif array == 'documentation':
             table = ChildProject.DOCUMENTATION_COLUMNS
+        elif array == 'list-metrics':
+            metrics = getmembers(metricsFunctions, isfunction)
+            for name, func in metrics:
+                
 
         if not table:
             raise Exception("invalid table '{}'".format(array))
@@ -90,14 +98,46 @@ class IndexTable(CSVTable):
 
         dir_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
         pd.DataFrame(df).to_csv(os.path.join(dir_path, self.options['file']), index = False)
+        
+class CustomTable(CSVTable):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
-
+        if 'header' not in self.options:
+            raise KeyError("IndexTable is missing a header attribute.")
+        
+        array = self.options.pop('header')
+        
+        df = []
+        if array == 'list-metrics':
+            ignores = {'metricFunction'}
+            metrics = getmembers(metricsFunctions, isfunction)
+            for name, func in metrics:
+                if name in ignores : continue
+                doc = func.__doc__.split('Required keyword arguments:',1)
+                description = cleandoc(doc[0])
+                arguments = cleandoc(doc[1]) if len(doc) > 1 else ""
+                df_entry = {
+                    'Callable': name,
+                    'Description': wrap(description, 50),
+                    'Required arguments': wrap(arguments,25),
+                }
+                df.append(df_entry)
+                
+        self.options['file'] = '{}.csv'.format(array)
+        self.options['header-rows'] = 1
+        self.options['widths'] = [20, 50, 25]
+        
+        dir_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
+        pd.DataFrame(df).to_csv(os.path.join(dir_path, self.options['file']), index = False)
+                
 def setup(app):
     app.add_directive("clidoc", CliDoc)
     app.add_directive("index-table", IndexTable)
+    app.add_directive("custom-table", CustomTable)
 
     return {
-        'version': '0.1',
+        'version': '0.2',
         'parallel_read_safe': True,
         'parallel_write_safe': True,
     }

@@ -159,6 +159,13 @@ class Metrics(ABC):
         pipelines[cls.SUBCOMMAND] = cls
 
     def _process_unit(self,row):
+        """for one unit (i.e. 1 {recording|session|child} [period]) compute the list of required metrics and store the results in the current row of self.metrics
+        
+        :param row: index and Series of the unit to process, to be modified with the results
+        :type row: (int , pandas.Series)
+        :return: Series containing all the computed metrics result for that unit
+        :rtype: pandas.Series
+        """
         prev_set = ""
         duration_set = 0
         for i, line in self.metrics_list.iterrows():
@@ -182,8 +189,13 @@ class Metrics(ABC):
         return row[1]
                 
     
-    #from the initiated self.metrics, compute each row metrics (with threads or not)
     def extract(self):
+        """from the initiated self.metrics, compute each row metrics (handles threading)
+        Once the Metrics class is initialized, call this function to extract the metrics and populate self.metrics
+        
+        :return: DataFrame of computed metrics
+        :rtype: pandas.DataFrame
+        """
         if self.threads == 1:
             self.metrics = pd.DataFrame(
                 [self._process_unit(row) for row in self.metrics.iterrows()]
@@ -196,11 +208,20 @@ class Metrics(ABC):
                     pool.map(self._process_unit, self.metrics.iterrows())
                 )
         if self.period:
-            self.metrics['period_start'] = self.metrics['period_start'].dt.strftime('%H:%M')
-            self.metrics['period_end'] = self.metrics['period_end'].dt.strftime('%H:%M')
+            self.metrics['period_start'] = self.metrics['period_start'].dt.strftime('%H:%M:%S')
+            self.metrics['period_end'] = self.metrics['period_end'].dt.strftime('%H:%M:%S')
         return self.metrics
 
     def retrieve_segments(self, sets: List[str], row: str):
+        """from a list of sets and and a row identifying the unit computed, return the relevant annotation segments
+        
+        :param sets: List of annotation sets to keep
+        :type sets: List[str]
+        :param row: Series storing the unit to compute information
+        :type row: pandas.Series
+        :return: relevant annotation DataFrame and index DataFrame
+        :rtype: (pandas.DataFrame , pandas.DataFrame)
+        """
         annotations = self.am.annotations[self.am.annotations[self.by] == row[self.by]]
         annotations = annotations[annotations["set"].isin(sets)]
         
@@ -258,9 +279,6 @@ class Metrics(ABC):
         ]["child_id"].iloc[0],
         axis=1)
         
-        #durations will need to be computed per set because annotated time may change between sets and that will influence raw numbers and rates.
-        #metrics["duration"] = unit_duration
-        
         #get and add to dataframe children.csv columns asked
         if self.child_cols:
             for label in self.child_cols:
@@ -285,7 +303,7 @@ class Metrics(ABC):
             else:
                 names.add(name)
             
-                
+        #checking that columns added by the user are unique (e.g. date_iso may be different when extract by child_id), replace with NA if they are not
         def check_unicity(row, label):
             value=self.project.recordings[
                         self.project.recordings[self.by] == row[self.by]
@@ -304,12 +322,31 @@ class Metrics(ABC):
                 
 class CustomMetrics(Metrics):
     """metrics extraction from a csv file. 
-    Extracts a number of metrics listed in a csv file as s dataframe.
+    Extracts a number of metrics listed in a csv file as a dataframe.
     the csv file must contain the columns :
         - 'callable' which is the name of the wanted metric from the list of available metrics
         - 'set' which is the set of annotations to use for that specific metric (make sure this set has the required columns for that metric)
         - 'name' is optional, this is the name to give to that metric (if not given, a default name will be attributed)
         - any other necessary argument for the given metrics (eg the voc_speaker_ph metric requires the 'speaker' argument: add a column 'speaker' in the csv file and fill its cells for this metric with the wanted value (CHI|FEM|MAL|OCH))
+        
+    :param project: ChildProject instance of the target dataset.
+    :type project: ChildProject.projects.ChildProject
+    :param metrics: name of the csv file listing the metrics to extract
+    :type metrics: str
+    :param recordings: recordings to sample from; if None, all recordings will be sampled, defaults to None
+    :type recordings: Union[str, List[str], pd.DataFrame], optional
+    :param from_time: If specified (in HH:MM format), ignore annotations outside of the given time-range, defaults to None
+    :type from_time: str, optional
+    :param to_time:  If specified (in HH:MM format), ignore annotations outside of the given time-range, defaults to None
+    :type to_time: str, optional
+    :param rec_cols: columns from recordings.csv to include in the outputted metrics (optional), recording_filename,session_id,child_id,duration are always included if possible and dont need to be specified. Any column that is not unique for a given unit (eg date_iso for a child_id being recorded on multiple days) will output a <NA> value
+    :type rec_cols: str, optional
+    :param child_cols: columns from children.csv to include in the outputted metrics (optional), None by default
+    :type child_cols: str, optional
+    :param by: units to sample from, defaults to 'recording_filename'
+    :type by: str, optional
+    :param threads: amount of threads to run on, defaults to 1
+    :type threads: int, optional
     """
     
     SUBCOMMAND = "custom"
@@ -611,7 +648,7 @@ class MetricsPipeline(Pipeline):
         
         parser.add_argument(
             "--period",
-            help="time units to aggregate (optional); equivalent to ``pandas.Grouper``'s freq argument.",
+            help="time units to aggregate (optional); equivalent to ``pandas.Grouper``'s freq argument. The resulting metrics will be split for each unit across all the resulting periods.",
             default=None,
         )
 
