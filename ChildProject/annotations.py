@@ -375,7 +375,7 @@ class AnnotationManager:
         """Update the annotations index,
         while enforcing its good shape.
         """
-        self.annotations[["time_seek", "range_onset", "range_offset"]].fillna(
+        self.annotations.loc[:,["time_seek", "range_onset", "range_offset"]].fillna(
             0, inplace=True
         )
         self.annotations[

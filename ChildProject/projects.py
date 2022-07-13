@@ -343,7 +343,7 @@ class ChildProject:
 
             df["line"] = df.index
             df = (
-                df[(set(df.columns) - set(dataframe.columns)) | {merge_column}]
+                df[list((set(df.columns) - set(dataframe.columns)) | {merge_column})]
                 .merge(
                     dataframe, how="left", left_on=merge_column, right_on=merge_column
                 )

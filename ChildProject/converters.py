@@ -635,6 +635,8 @@ class ChatConverter(AnnotationConverter):
 
         df = pd.DataFrame(reader.utterances())
 
+        #no segments in the file
+        if not df.shape[0]: return pd.DataFrame()
         ### extract tiers
         df["transcription"] = df.apply(
             lambda r: r["tiers"][r["participant"]], axis=1
