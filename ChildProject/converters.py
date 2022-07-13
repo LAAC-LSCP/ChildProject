@@ -648,7 +648,7 @@ class ChatConverter(AnnotationConverter):
             lambda d: {k.replace("%", ""): d[k] for k in d.keys() if k[0] == "%"}
         )
         df = pd.concat(
-            [df.drop(["tiers"], axis=1), df["tiers"].apply(pd.Series)], axis=1
+            [df.drop(["tiers"], axis=1), df["tiers"].apply(lambda x: pd.Series(x) if x else pd.Series(dtype='object'))], axis=1
         )
 
         df["segment_onset"] = df["time_marks"].apply(lambda tm: tm[0] if tm else "NA")
@@ -681,7 +681,9 @@ class ChatConverter(AnnotationConverter):
                 )
             )
 
+        initial_size = df.shape[0]
         df = df[(df["segment_onset"] != "NA") & (df["segment_offset"] != "NA")]
+        if df.shape[0] < initial_size : print("WARNING : Some annotations in file '{}' don't have timestamps, the importation will discard those lines".format(filename))
         df.drop(columns=["participant", "tokens", "time_marks"], inplace=True)
         df.fillna("NA", inplace=True)
 
