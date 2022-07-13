@@ -160,7 +160,7 @@ class ChildProject:
         ),
         IndexColumn(
             name="start_time",
-            description="local time in which recording was started in format 24-hour (H)H:MM; if minutes are unknown, use 00. Set as ‘NA’ if unknown.",
+            description="local time in which recording was started in format 24-hour (H)H:MM; if minutes are unknown, use 00. ‘NA’ if unknown, this will raise a Warning when validating.",
             required=True,
             datetime="%H:%M",
         ),
