@@ -90,4 +90,4 @@ Giving a higher `--interval` value may take more time to compute.
 
 .. clidoc::
 
-   child-project correlate-audio /path/to/dataset --help
+   child-project compare-recordings /path/to/dataset --help

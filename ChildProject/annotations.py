@@ -1204,11 +1204,11 @@ class AnnotationManager:
         :type end: str
         :param errors: how to deal with invalid start_time values for the recordings. Takes the same values as ``pandas.to_datetime``.
         :type errors: str
-        :return: a DataFrame of annotations;
-        For each row, ``range_onset`` and ``range_offset`` are clipped within the desired clock-time range.
-        The clock-time corresponding to the onset and offset of each annotation
-        is stored in two newly created columns named ``range_onset_time`` and ``range_offset_time``.
-        If the input annotation exceeds 24 hours, one row per matching interval is returned.
+        :return: a DataFrame of annotations; \
+        For each row, ``range_onset`` and ``range_offset`` are clipped within the desired clock-time range. \
+        The clock-time corresponding to the onset and offset of each annotation \
+        is stored in two newly created columns named ``range_onset_time`` and ``range_offset_time``. \
+        If the input annotation exceeds 24 hours, one row per matching interval is returned. \
         :rtype: pd.DataFrame
         """
 
@@ -1318,10 +1318,10 @@ class AnnotationManager:
         :type onset: str, optional
         :param offset: column storing the offset timestamp in milliseconds, defaults to "segment_offset"
         :type offset: str, optional
-        :return: Returns the input dataframe with two new columns ``onset_time`` and ``offset_time``.
-        ``onset_time`` is a datetime object corresponding to the onset of the segment.
-        ``offset_time`` is a datetime object corresponding to the offset of the segment.
-        In case either ``start_time`` or ``date_iso`` is not specified for the corresponding recording,
+        :return: Returns the input dataframe with two new columns ``onset_time`` and ``offset_time``. \
+        ``onset_time`` is a datetime object corresponding to the onset of the segment. \
+        ``offset_time`` is a datetime object corresponding to the offset of the segment. \
+        In case either ``start_time`` or ``date_iso`` is not specified for the corresponding recording, \
         both values will be set to NaT.
         :rtype: pd.DataFrame
         """
