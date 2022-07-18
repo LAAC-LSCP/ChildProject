@@ -617,7 +617,9 @@ class ChildProject:
                 recs = pd.Series(recordings)
                 missing_recs = recs[~recs.isin(self.recordings['recording_filename'])].tolist()
                 #self.recordings[~self.recordings['recording_filename'].isin(recordings)]['recording_filename'].tolist()
-                raise ValueError("recordings {} were not found in the dataset index. Check the names and make sure they exist in 'metadata/recordings.csv'".format(missing_recs))
+                raise ValueError("recordings {} were not found in the dataset index.\
+                                 Check the names and make sure they exist in\
+                                 'metadata/recordings.csv'".format(missing_recs))
                 
 
         return _recordings

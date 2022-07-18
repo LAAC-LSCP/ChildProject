@@ -37,12 +37,12 @@ class Metrics(ABC):
         self.am = ChildProject.annotations.AnnotationManager(self.project)
         self.threads = int(threads)
         
-        #check that the callable column is either a callable function or a string that can be evaluated as being part of the list of metrics in ChildProject/pipelines/metricsFunctions.py
+        #check that the callable column is either a callable function or a string that can be found as being part of the list of metrics in ChildProject/pipelines/metricsFunctions.py
         def check_callable(row):
             if callable(row["callable"]): return row["callable"]
             if isinstance(row["callable"],str):
                 try:
-                    f = eval("metfunc."+row["callable"])
+                    f = getattr(metfunc , row["callable"])
                 except Exception:
                     raise ValueError("{} function is not defined and was not found in ChildProject/pipelines/metricsFunctions.py".format(row["callable"]))
                 return f
@@ -166,6 +166,8 @@ class Metrics(ABC):
         :return: Series containing all the computed metrics result for that unit
         :rtype: pandas.Series
         """
+        #row[0] is the index of the row we are processing
+        #row[1] is the actual Series containing all the metrics for the currently processed line
         prev_set = ""
         duration_set = 0
         for i, line in self.metrics_list.iterrows():
@@ -367,7 +369,9 @@ class CustomMetrics(Metrics):
         
         metrics_df = pd.read_csv(metrics)
         
-        super().__init__(project, metrics_df, by=by, recordings=recordings, from_time=from_time, to_time=to_time, rec_cols=rec_cols, child_cols=child_cols, period=period, threads=threads)
+        super().__init__(project, metrics_df, by=by, recordings=recordings,
+             from_time=from_time, to_time=to_time, rec_cols=rec_cols,
+             child_cols=child_cols, period=period, threads=threads)
     
     @staticmethod
     def add_parser(subparsers, subcommand):
@@ -437,7 +441,9 @@ class LenaMetrics(Metrics):
              ["lp_dur",self.set,pd.NA],
              ]), columns=["callable","set","speaker"])
 
-        super().__init__(project, METRICS, by=by, recordings=recordings,period=period, from_time=from_time, to_time=to_time, rec_cols=rec_cols, child_cols=child_cols, threads=threads)
+        super().__init__(project, METRICS, by=by, recordings=recordings,
+             period=period, from_time=from_time, to_time=to_time, rec_cols=rec_cols,
+             child_cols=child_cols, threads=threads)
 
         
 
@@ -559,7 +565,9 @@ class AclewMetrics(Metrics):
                 
         METRICS = pd.DataFrame(METRICS, columns=["callable","set","speaker"])
 
-        super().__init__(project, METRICS,by=by, recordings=recordings,period=period, from_time=from_time, to_time=to_time, rec_cols=rec_cols, child_cols=child_cols, threads=threads)
+        super().__init__(project, METRICS,by=by, recordings=recordings,
+             period=period, from_time=from_time, to_time=to_time,
+             rec_cols=rec_cols, child_cols=child_cols, threads=threads)
 
     @staticmethod
     def add_parser(subparsers, subcommand):
@@ -699,9 +707,12 @@ class MetricsSpecificationPipeline(Pipeline):
                 raise yaml.YAMLError("parsing of the parameters file {} failed. See above exception for more details".format(parameters_input)) from exc
                 
         if parameters:
-            if "path" not in parameters : raise ValueError("the parameter file {} must contain at least the 'path' key specifying the path to the dataset".format(parameters_input))
-            if "destination" not in parameters : raise ValueError("the parameter file {} must contain the 'destination' key specifying the file to output the metrics to".format(parameters_input))
-            if "metrics_list" not in parameters : raise ValueError("the parameter file {} must contain the 'metrics_list' key containing the list of the desired metrics".format(parameters_input))
+            if "path" not in parameters :
+                raise ValueError("the parameter file {} must contain at least the 'path' key specifying the path to the dataset".format(parameters_input))
+            if "destination" not in parameters :
+                raise ValueError("the parameter file {} must contain the 'destination' key specifying the file to output the metrics to".format(parameters_input))
+            if "metrics_list" not in parameters :
+                raise ValueError("the parameter file {} must contain the 'metrics_list' key containing the list of the desired metrics".format(parameters_input))
             try:
                 metrics_df = pd.DataFrame(parameters["metrics_list"])
             except Exception as e:

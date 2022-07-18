@@ -73,11 +73,16 @@ def time_intervals_intersect(ti1 : TimeInterval, ti2 : TimeInterval):
     e = ti1.start <= ti2.stop
     f = ti2.start <= ti1.stop
     r = []
+    #case where correct resulting interval is [start of the 2nd interval : end of the 1st interval]
     if c and (d and (not e or f) or not e and f) or d and not e and f : r = [TimeInterval(ti2.start,ti1.stop)]
+    #case where correct resulting interval is [start of the 2nd interval : end of the 2nd interval]
     elif not c and (d and (b or not a) or not a and b) or not a and b and d : r = [ti2]
+    #case where correct resulting interval is [start of the 1st interval : end of the 2nd interval]
     elif not c and (not d and (not e and not f or e) or e and not f) or not d and e and not f : r = [TimeInterval(ti1.start,ti2.stop)]
+    #case where correct resulting interval is [start of the 1st interval : end of the 1st interval]
     elif c and (not d and (not a and not b or a) or a and not b) or a and not b and not d : r = [ti1]
     # !! here the expression was simplified because previous statements should already have caught their relevant cases (ie this statement should always be last or changed)
+    #case where correct resulting interval is [start of the 1st interval : end of the 2nd interval] U [start of the 2nd interval : end of the 1st interval]
     elif not a and (not b or e) or d and e and f : r = [TimeInterval(ti1.start,ti2.stop),TimeInterval(ti2.start,ti1.stop)]
     
     #remove the intervals having equal values (3:00 to 3:00)
