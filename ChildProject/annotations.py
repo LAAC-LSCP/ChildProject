@@ -125,8 +125,8 @@ class AnnotationManager:
         ),
         IndexColumn(
             name="vcm_type",
-            description="vocal maturity defined as: C (canonical), N (non-canonical), Y (crying) L (laughing), J (junk)",
-            choices=["C", "N", "Y", "L", "J", "NA"],
+            description="vocal maturity defined as: C (canonical), N (non-canonical), Y (crying) L (laughing), J (junk), U (uncertain)",
+            choices=["C", "N", "Y", "L", "J", "U","NA"],
         ),
         IndexColumn(
             name="lex_type",
@@ -140,13 +140,18 @@ class AnnotationManager:
         ),
         IndexColumn(
             name="msc_type",
-            description="morphosyntactical complexity of the utterances defined as: 0 (0 meaningful word), 1 (1 meaningful word), S (simple utterance), C (complex utterance)",
-            choices=["0", "1", "S", "C"],
+            description="morphosyntactical complexity of the utterances defined as: 0 (0 meaningful word), 1 (1 meaningful word), 2 (2 meaningful words), S (simple utterance), C (complex utterance), U (uncertain)",
+            choices=["0", "1", "2", "S", "C", "U"],
+        ),
+        IndexColumn(
+            name="gra_type",
+            description="grammaticality of the utterances defined as: G (grammatical), J (ungrammatical), U (uncertain)",
+            choices=["G", "J", "U"],
         ),
         IndexColumn(
             name="addressee",
-            description="T if target-child-directed, C if other-child-directed, A if adult-directed, U if uncertain or other. Multiple values should be sorted and separated by commas",
-            choices=["T", "C", "A", "U", "NA"],
+            description="T if target-child-directed, C if other-child-directed, A if adult-directed, O if addressed to other, P if addressed to a pet, U if uncertain or other. Multiple values should be sorted and separated by commas",
+            choices=["T", "C", "A", "O", "P", "U", "NA"],
         ),
         IndexColumn(
             name="transcription", description="orthographic transcription of the speach"
