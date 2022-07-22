@@ -186,8 +186,8 @@ def conf_matrix(rows_grid, columns_grid):
 def vectors_to_annotation_task(*args, drop: List[str] = []):
     """transform vectors of labels into a nltk AnnotationTask object.
 
-    :param *args: vector of labels for each annotator; add one argument per annotator.
-    :type *args: 1d np.array() of labels
+    :param args: vector of labels for each annotator; add one argument per annotator.
+    :type args: 1d np.array() of labels
     :param drop: list of labels that should be ignored
     :type drop: List[str]
     :return: the AnnotationTask object

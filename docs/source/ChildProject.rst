@@ -30,7 +30,7 @@ ChildProject.cmdline module
    :show-inheritance:
 
 ChildProject.converters module
----------------------------
+------------------------------
 
 .. automodule:: ChildProject.converters
    :members:

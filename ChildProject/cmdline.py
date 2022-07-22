@@ -2,11 +2,13 @@
 from ChildProject.projects import ChildProject
 from ChildProject.annotations import AnnotationManager
 from ChildProject.pipelines import *
+from .utils import read_wav, calculate_shift, get_audio_duration
 
 import argparse
 import os
 import pandas as pd
 import sys
+import random
 
 parser = argparse.ArgumentParser()
 subparsers = parser.add_subparsers()
@@ -504,7 +506,58 @@ def compute_durations(args):
     recordings.to_csv(
         os.path.join(project.path, "metadata/recordings.csv"), index=False
     )
-
+    
+@subcommand(
+    [
+        arg("source", help="project path"),
+        arg("audio1", help="name of the first audio file as it is indexed in recordings.csv in column <recording_filename>"),
+        arg("audio2", help="name of the second audio file as it is indexed in recordings.csv in column <recording_filename>"),
+        arg("--profile", help="which audio profile to use", default=""),
+        arg("--interval", help="duration in minutes of the window used to build the correlation score", default=5, type=int),
+    ]
+)
+def compare_recordings(args):
+    """computes the difference between 2 given audio files of the dataset. A divergence score is outputted, it is the average difference of audio signal over the considered sample (random point in the audio, fixed duration). Divergence scores lower than 0.1 indicate a strong proximity"""
+    
+    project = ChildProject(args.source)
+    project.read()
+    
+    rec1 = project.recordings[project.recordings['recording_filename'] == args.audio1]
+    if rec1.empty or rec1.shape[0] > 1: raise ValueError("{} was not found in the indexed recordings in metadata/recordings.csv or has multiple occurences".format(args.audio1))
+    
+    rec2 = project.recordings[project.recordings['recording_filename'] == args.audio2]
+    if rec2.empty or rec2.shape[0] > 1: raise ValueError("{} was not found in the indexed recordings in metadata/recordings.csv or has multiple occurences".format(args.audio2))
+    
+    if 'duration' not in rec1.columns: 
+        print("WARNING : duration was not found for audio {}. We attempt to compute it...".format(args.audio1))
+        rec1["duration"].iloc[0] = get_audio_duration(project.get_recording_path(args.audio1, args.profile))
+    if 'duration' not in rec2.columns: 
+        print("WARNING : duration was not found for audio {}. We attempt to compute it...".format(args.audio2))
+        rec2["duration"].iloc[0] = get_audio_duration(project.get_recording_path(args.audio2, args.profile))
+        
+    if rec1['duration'].iloc[0] != rec2['duration'].iloc[0]:
+        print('WARNING : the 2 audio files have different durations, it is unlikely they are the same recording:\n{} : {}ms\n{} : {}ms'.format(args.audio1,rec1['duration'].iloc[0],args.audio2,rec2['duration'].iloc[0]))
+        
+    interval = args.interval * 60 * 1000
+    
+    dur = min(rec1['duration'].iloc[0],rec2['duration'].iloc[0])
+    if dur < interval :
+        print("WARNING : the duration of the audio is too short for an interval {}ms :\nnew interval is set to {}ms, this will cover the entire duration.".format(interval,dur))
+        interval = dur
+        offset = 0
+    else:
+        offset = random.uniform(0, dur - interval)/1000
+    
+    avg,size = calculate_shift(
+        project.get_recording_path(rec1['recording_filename'].iloc[0],args.profile),
+        project.get_recording_path(rec2['recording_filename'].iloc[0],args.profile),
+        offset,
+        offset,
+        interval/1000
+    )
+    
+    if size < 48000 : print('WARNING : the number of values ({}) in the sample is low, raise the interval value, if possible, for a more reliable analysis'.format(size))
+    print('RESULTS :\ndivergence score = {} over a sample of {} values\nREFERENCE :\ndivergence score < 0.1 => the 2 files seem very similar\ndivergence score > 1   => sizable difference'.format(avg,size))
 
 def main():
     register_pipeline("process", AudioProcessingPipeline)
