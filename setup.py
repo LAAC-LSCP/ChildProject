@@ -1,5 +1,9 @@
 from setuptools import setup, find_packages
 import ChildProject
+import os
+
+DIRECTORY = os.path.dirname(__file__)
+README = open(os.path.join(DIRECTORY, "README.md")).read()
 
 requires = {
     "core": ["pandas>=0.25.0", "jinja2", "numpy>=1.16.5", "sox", "datalad"],
@@ -22,6 +26,8 @@ setup(
     name="ChildProject",
     version=ChildProject.__version__,
     description="LAAC@LSCP",
+    long_description=README,
+    long_description_content_type="text/markdown",
     url="https://github.com/LAAC-LSCP/ChildProject",
     author="Lucas Gautheron",
     author_email="lucas.gautheron@gmail.com",
