@@ -4,6 +4,33 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.0.5] - 2022-07-25
+
+### Added
+
+ - `--spectrogram` option in the `zooniverse extract-chunks` pipeline to generate an image of a spectrogram that will help citizen-scientists with the classification on zooniverse.
+ - `child-project compare-recordings` command added to allow users to prin a divergence score. This will help identify audio files that are just duplicates of others (and possibily have different codecs/sampling rate/number of channels)
+ - `--import-speech-from` command added to the eaf builder to integrate previous annotations to the eaf file (e.g. VTC segments) to facilitate annotation process
+
+### Changed
+
+- `metrics` pipeline, reworked to be more flexible. Performance hit with it.
+    - Old pipelines still exist
+    - new usage of `--period` option on every pipeline and for eveery metric.
+    - Usage of a csv file to specify the list of metrics wanted
+    - Ease of adding new metrics to the supported list
+    - Outputs a yml parameter file that can be reused to compute the same metrics and keep a trace of what was run.
+- changes to standard annotation value (addressee, vcm_type etc)
+
+### Fixed
+
+- importation of empty file now correctly generates an empty converted file
+- `--period` option correctly works with other units than `recording_filename`
+
+### Dropped
+
+- Support for python 3.6
+
 ## [0.0.4] - 2022-02-02
 
 ### Added 
@@ -60,7 +87,8 @@ All notable changes to this project will be documented in this file.
 
 - First proper release of the package.
 
-[unreleased]: https://github.com/LAAC-LSCP/ChildProject/compare/v0.0.4...HEAD
+[unreleased]: https://github.com/LAAC-LSCP/ChildProject/compare/v0.0.5...HEAD
+[0.0.5]: https://github.com/LAAC-LSCP/ChildProject/releases/tag/v0.0.5
 [0.0.4]: https://github.com/LAAC-LSCP/ChildProject/releases/tag/v0.0.4
 [0.0.3]: https://github.com/LAAC-LSCP/ChildProject/releases/tag/v0.0.3
 [0.0.2]: https://github.com/LAAC-LSCP/ChildProject/releases/tag/v0.0.2
