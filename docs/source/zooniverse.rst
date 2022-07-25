@@ -81,6 +81,7 @@ The output dataframe will contain the following columns:
    segment_offset,"offset timestamp of the segment from which the chunk was extracted"
    wav,"name of the wav file"
    mp3,"name of the mp3 file"
+   png,"name of the png file if spectrogram option"
    date_extracted,"date at which the chunk was extracted"
    uploaded,"boolean flag set to True if the chunk was uploaded to Zooniverse, False otherwise"
    project_id,"zooniverse project ID"

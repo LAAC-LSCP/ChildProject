@@ -125,8 +125,8 @@ class AnnotationManager:
         ),
         IndexColumn(
             name="vcm_type",
-            description="vocal maturity defined as: C (canonical), N (non-canonical), Y (crying) L (laughing), J (junk)",
-            choices=["C", "N", "Y", "L", "J", "NA"],
+            description="vocal maturity defined as: C (canonical), N (non-canonical), Y (crying) L (laughing), J (junk), U (uncertain)",
+            choices=["C", "N", "Y", "L", "J", "U","NA"],
         ),
         IndexColumn(
             name="lex_type",
@@ -140,13 +140,18 @@ class AnnotationManager:
         ),
         IndexColumn(
             name="msc_type",
-            description="morphosyntactical complexity of the utterances defined as: 0 (0 meaningful word), 1 (1 meaningful word), S (simple utterance), C (complex utterance)",
-            choices=["0", "1", "S", "C"],
+            description="morphosyntactical complexity of the utterances defined as: 0 (0 meaningful word), 1 (1 meaningful word), 2 (2 meaningful words), S (simple utterance), C (complex utterance), U (uncertain)",
+            choices=["0", "1", "2", "S", "C", "U"],
+        ),
+        IndexColumn(
+            name="gra_type",
+            description="grammaticality of the utterances defined as: G (grammatical), J (ungrammatical), U (uncertain)",
+            choices=["G", "J", "U"],
         ),
         IndexColumn(
             name="addressee",
-            description="T if target-child-directed, C if other-child-directed, A if adult-directed, U if uncertain or other. Multiple values should be sorted and separated by commas",
-            choices=["T", "C", "A", "U", "NA"],
+            description="T if target-child-directed, C if other-child-directed, A if adult-directed, O if addressed to other, P if addressed to a pet, U if uncertain or other. Multiple values should be sorted and separated by commas",
+            choices=["T", "C", "A", "O", "P", "U", "NA"],
         ),
         IndexColumn(
             name="transcription", description="orthographic transcription of the speach"
@@ -375,7 +380,7 @@ class AnnotationManager:
         """Update the annotations index,
         while enforcing its good shape.
         """
-        self.annotations[["time_seek", "range_onset", "range_offset"]].fillna(
+        self.annotations.loc[:,["time_seek", "range_onset", "range_offset"]].fillna(
             0, inplace=True
         )
         self.annotations[
@@ -1204,11 +1209,11 @@ class AnnotationManager:
         :type end: str
         :param errors: how to deal with invalid start_time values for the recordings. Takes the same values as ``pandas.to_datetime``.
         :type errors: str
-        :return: a DataFrame of annotations;
-        For each row, ``range_onset`` and ``range_offset`` are clipped within the desired clock-time range.
-        The clock-time corresponding to the onset and offset of each annotation
-        is stored in two newly created columns named ``range_onset_time`` and ``range_offset_time``.
-        If the input annotation exceeds 24 hours, one row per matching interval is returned.
+        :return: a DataFrame of annotations; \
+        For each row, ``range_onset`` and ``range_offset`` are clipped within the desired clock-time range. \
+        The clock-time corresponding to the onset and offset of each annotation \
+        is stored in two newly created columns named ``range_onset_time`` and ``range_offset_time``. \
+        If the input annotation exceeds 24 hours, one row per matching interval is returned. \
         :rtype: pd.DataFrame
         """
 
@@ -1316,10 +1321,10 @@ class AnnotationManager:
         :type onset: str, optional
         :param offset: column storing the offset timestamp in milliseconds, defaults to "segment_offset"
         :type offset: str, optional
-        :return: Returns the input dataframe with two new columns ``onset_time`` and ``offset_time``.
-        ``onset_time`` is a datetime object corresponding to the onset of the segment.
-        ``offset_time`` is a datetime object corresponding to the offset of the segment.
-        In case either ``start_time`` or ``date_iso`` is not specified for the corresponding recording,
+        :return: Returns the input dataframe with two new columns ``onset_time`` and ``offset_time``. \
+        ``onset_time`` is a datetime object corresponding to the onset of the segment. \
+        ``offset_time`` is a datetime object corresponding to the offset of the segment. \
+        In case either ``start_time`` or ``date_iso`` is not specified for the corresponding recording, \
         both values will be set to NaT.
         :rtype: pd.DataFrame
         """

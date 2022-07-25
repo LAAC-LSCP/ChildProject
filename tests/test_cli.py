@@ -64,3 +64,17 @@ def test_explain():
         ]
     )
     assert exit_code == 0
+    
+def test_compare_recordings():
+    stdout, stderr, exit_code = cli(
+        [
+            "child-project",
+            "compare-recordings",
+            "examples/valid_raw_data",
+            "sound.wav",
+            "sound2.wav",
+            "--interval",
+            "10"
+        ]
+    )
+    assert exit_code == 0

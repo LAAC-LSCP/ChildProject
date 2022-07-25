@@ -1,5 +1,5 @@
 Metrics extraction
-----------------
+------------------
 
 Overview
 ~~~~~~~~
@@ -45,7 +45,7 @@ LENA Metrics
    child-project metrics /path/to/dataset output.csv lena --help
 
 ACLEW Metrics
-~~~~~~~~~~~~
+~~~~~~~~~~~~~
 
 .. clidoc::
 

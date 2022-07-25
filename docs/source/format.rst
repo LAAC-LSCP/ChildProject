@@ -123,9 +123,9 @@ in a separate file.
 .. warning::
 
    For recursive metadata, two dataframes cannot share the same basename.
-   For instance, if one dataframe is located at `metadata/children/dates-of-birth.csv`,
+   For instance, if one dataframe is located at `metadata/children/dates-of-birth.csv` ,
    an error will be thrown if another dataframe exists at
-   `metadata/children/private/dates-of-birth.csv `.
+   `metadata/children/private/dates-of-birth.csv ` .
 
 Annotations
 -----------
@@ -162,7 +162,7 @@ Annotations index
     The index is maintained through the package functions only; it should never be updated by hand.
 
 Annotations are indexed in one unique dataframe located at
-``/metadata/annotations.csv``, with the following format :
+``/metadata/annotations.csv`` , with the following format :
 
 .. index-table:: Annotations metadata
    :header: annotations
@@ -243,9 +243,9 @@ to the following table:
 .. comment::
     This comment fixes an issue introduced in Sphinx 4.3.1
 
- - Documentation for the children metadata should be stored in ``docs/children.csv``
- - Documentation for the recordings metadata should be stored in ``docs/recordings.csv``
- - Documentation for annotations should be stored in ``docs/annotations.csv``
+- Documentation for the children metadata should be stored in ``docs/children.csv``
+- Documentation for the recordings metadata should be stored in ``docs/recordings.csv``
+- Documentation for annotations should be stored in ``docs/annotations.csv``
 
 Authorship
 ~~~~~~~~~~

@@ -346,7 +346,13 @@ Publish to GIN
    and to link your `SSH public key <https://gin.g-node.org/user/settings/ssh>`_ to your
    GIN account.
 
-1. Create a new repository from `GIN's web interface <https://gin.g-node.org/repo/create>`_.
+1. Create a new repository from `GIN's web interface <https://gin.g-node.org/repo/create>`_. Uncheck "Initialize this repository with selected files and template"
+
+.. figure:: images/gin-create.png
+   :alt: Create an empty repository on GIN
+
+   creating a repository on GIN
+
 2. Copy the SSH url of your repository to your clipboard, e.g.: ``git@gin.g-node.org:/<username>/<reponame>.git``
 3. Add a datalad sibling pointing to this repository:
 
