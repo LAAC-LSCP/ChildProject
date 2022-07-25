@@ -64,9 +64,14 @@ class TimeInterval:
 def time_intervals_intersect(ti1 : TimeInterval, ti2 : TimeInterval):
     """
     given 2 time intervals (those do not take in consideration days, only time in the day), return an array of new interval(s) representing the intersections of the original ones.
-    eg :
-        - time_intervals_intersect(TimeInterval(datetime(1900,1,1,8,57),datetime(1900,1,1,21,4)),TimeInterval(datetime(1900,1,1,10,36),datetime(1900,1,1,22,1))) => [TimeInterval(10:36 , 21:04)]
-        - time_intervals_intersect(TimeInterval(datetime(1900,1,1,8,57),datetime(1900,1,1,22,1)),TimeInterval(datetime(1900,1,1,21,4),datetime(1900,1,1,10,36))) => [TimeInterval(08:57 , 10:36),TimeInterval(21:04 , 22:01)]
+    Examples
+    1. time_intervals_intersect( TimeInterval( datetime(1900,1,1,8,57), datetime(1900,1,1,21,4)), TimeInterval( datetime(1900,1,1,10,36), datetime(1900,1,1,22,1))) => [TimeInterval(10:36 , 21:04)]
+    2. time_intervals_intersect( TimeInterval( datetime(1900,1,1,8,57), datetime(1900,1,1,22,1)), TimeInterval( datetime(1900,1,1,21,4), datetime(1900,1,1,10,36))) => [TimeInterval(08:57 , 10:36),TimeInterval(21:04 , 22:01)]
+    
+    :param ti1: first interval
+    :param ti2: second interval
+    :type ti1: TimeInterval
+    :type ti2: TimeInterval
     """
     #The calculation and boolean evaluation is done that way to optimize the process, those expressions were obtained using a Karnaugh table. Given the relations between the different start and ending times, the boolean relations used below gives the correct intervals
     a = ti1.start <= ti1.stop

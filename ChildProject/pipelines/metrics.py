@@ -349,10 +349,10 @@ class CustomMetrics(Metrics):
     """metrics extraction from a csv file. 
     Extracts a number of metrics listed in a csv file as a dataframe.
     the csv file must contain the columns :
-        - 'callable' which is the name of the wanted metric from the list of available metrics
-        - 'set' which is the set of annotations to use for that specific metric (make sure this set has the required columns for that metric)
-        - 'name' is optional, this is the name to give to that metric (if not given, a default name will be attributed)
-        - any other necessary argument for the given metrics (eg the voc_speaker_ph metric requires the 'speaker' argument: add a column 'speaker' in the csv file and fill its cells for this metric with the wanted value (CHI|FEM|MAL|OCH))
+    - 'callable' which is the name of the wanted metric from the list of available metrics
+    - 'set' which is the set of annotations to use for that specific metric (make sure this set has the required columns for that metric)
+    - 'name' is optional, this is the name to give to that metric (if not given, a default name will be attributed)
+    - any other necessary argument for the given metrics (eg the voc_speaker_ph metric requires the 'speaker' argument: add a column 'speaker' in the csv file and fill its cells for this metric with the wanted value (CHI|FEM|MAL|OCH))
         
     :param project: ChildProject instance of the target dataset.
     :type project: ChildProject.projects.ChildProject
