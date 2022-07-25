@@ -6,7 +6,7 @@ def test_valid_project():
     errors, warnings = project.validate()
 
     assert len(errors) == 0, "valid input validation failed (expected to pass)"
-    assert len(warnings) == 1, "expected 1 warning, got {}".format(len(warnings))
+    assert len(warnings) == 3, "expected 1 warning, got {}".format(len(warnings))
 
 
 def test_invalid_project():
@@ -15,8 +15,8 @@ def test_invalid_project():
 
     expected_errors = [
         "examples/invalid_raw_data/metadata/children.csv: child_id '1' appears 2 times in lines [2,3], should appear once",
-        "cannot find recording 'test_1_20200918.mp3'",
-        "examples/invalid_raw_data/metadata/recordings.csv: 'USB' is not a permitted value for column 'recording_device_type' on line 2, should be any of [lena,usb,olympus,babylogger]",
+        "cannot find recording 'test_1_20200918.mp3' at 'examples/invalid_raw_data/recordings/raw/test_1_20200918.mp3'",
+        "examples/invalid_raw_data/metadata/recordings.csv: 'USB' is not a permitted value for column 'recording_device_type' on line 2, should be any of [lena,usb,olympus,babylogger,unknown]",
     ]
 
     expected_warnings = [

@@ -1,9 +1,19 @@
 from collections import defaultdict
 import pandas as pd
 import re
+from enum import Enum
 
 converters = {}
 
+class Formats(Enum):
+    CSV = 'csv'
+    VTC = 'vtc_rttm'
+    VCM = 'vcm_rttm'
+    ALICE = 'alice'
+    ITS = 'its'
+    TEXTGRID = 'TextGrid'
+    EAF = 'eaf'
+    CHA = 'cha'
 
 class AnnotationConverter:
     SPEAKER_ID_TO_TYPE = defaultdict(
@@ -68,22 +78,22 @@ class AnnotationConverter:
 
 
 class CsvConverter(AnnotationConverter):
-    FORMAT = "csv"
+    FORMAT = Formats.CSV.value
 
     @staticmethod
-    def convert(filename: str, filter="") -> pd.DataFrame:
+    def convert(filename: str, filter: str="", **kwargs) -> pd.DataFrame:
         return pd.read_csv(filename)
 
 
 class VtcConverter(AnnotationConverter):
-    FORMAT = "vtc_rttm"
+    FORMAT = Formats.VTC.value
 
     SPEAKER_TYPE_TRANSLATION = defaultdict(
         lambda: "NA", {"CHI": "OCH", "KCHI": "CHI", "FEM": "FEM", "MAL": "MAL"}
     )
 
     @staticmethod
-    def convert(filename: str, source_file: str = "") -> pd.DataFrame:
+    def convert(filename: str, source_file: str = "", **kwargs) -> pd.DataFrame:
         rttm = pd.read_csv(
             filename,
             sep=" ",
@@ -100,6 +110,15 @@ class VtcConverter(AnnotationConverter):
                 "unk",
             ],
         )
+
+        n_recordings = len(rttm["file"].unique())
+        if  n_recordings > 1 and not source_file:
+            print(
+                f"""WARNING: {filename} contains annotations from {n_recordings} different audio files, """
+                """but no filter was specified which means all of these annotations will be imported\n"""
+                """as if they belonged to the same recording. Please make sure this is the intended behavior """
+                """(it probably isn't)."""
+            )
 
         df = rttm
         df["segment_onset"] = df["tbeg"].mul(1000).round().astype(int)
@@ -130,7 +149,7 @@ class VtcConverter(AnnotationConverter):
 
 
 class VcmConverter(AnnotationConverter):
-    FORMAT = "vcm_rttm"
+    FORMAT = Formats.VCM.value
 
     SPEAKER_TYPE_TRANSLATION = defaultdict(
         lambda: "NA",
@@ -149,7 +168,7 @@ class VcmConverter(AnnotationConverter):
     )
 
     @staticmethod
-    def convert(filename: str, source_file: str = "") -> pd.DataFrame:
+    def convert(filename: str, source_file: str = "", **kwargs) -> pd.DataFrame:
         rttm = pd.read_csv(
             filename,
             sep=" ",
@@ -197,16 +216,25 @@ class VcmConverter(AnnotationConverter):
 
 
 class AliceConverter(AnnotationConverter):
-    FORMAT = "alice"
+    FORMAT = Formats.ALICE.value
 
     @staticmethod
-    def convert(filename: str, source_file: str = "") -> pd.DataFrame:
+    def convert(filename: str, source_file: str = "", **kwargs) -> pd.DataFrame:
         df = pd.read_csv(
             filename,
             sep=r"\s",
             names=["file", "phonemes", "syllables", "words"],
             engine="python",
         )
+
+        n_recordings = len(df["file"].unique())
+        if  n_recordings > 1 and not source_file:
+            print(
+                f"""WARNING: {filename} contains annotations from {n_recordings} different audio files, """
+                """but no filter was specified which means all of these annotations will be imported.\n"""
+                """as if they belonged to the same recording. Please make sure this is the intended behavior """
+                """(it probably isn't)."""
+            )
 
         if source_file:
             df = df[df["file"].str.contains(source_file)]
@@ -224,14 +252,14 @@ class AliceConverter(AnnotationConverter):
 
 
 class ItsConverter(AnnotationConverter):
-    FORMAT = "its"
+    FORMAT = Formats.ITS.value
 
     SPEAKER_TYPE_TRANSLATION = defaultdict(
         lambda: "NA", {"CHN": "CHI", "CXN": "OCH", "FAN": "FEM", "MAN": "MAL"}
     )
 
     @staticmethod
-    def convert(filename: str, recording_num: int = None) -> pd.DataFrame:
+    def convert(filename: str, recording_num: int = None, **kwargs) -> pd.DataFrame:
         from lxml import etree
 
         xml = etree.parse(filename)
@@ -369,6 +397,7 @@ class ItsConverter(AnnotationConverter):
                         "speaker_type": ItsConverter.SPEAKER_TYPE_TRANSLATION[
                             seg.get("spkr")
                         ],
+                        "lena_speaker": seg.get("spkr"),
                         "words": words,
                         "lena_block_number": lena_block_number,
                         "lena_block_type": lena_block_type,
@@ -394,10 +423,10 @@ class ItsConverter(AnnotationConverter):
 
 
 class TextGridConverter(AnnotationConverter):
-    FORMAT = "TextGrid"
+    FORMAT = Formats.TEXTGRID.value
 
     @staticmethod
-    def convert(filename: str, filter=None) -> pd.DataFrame:
+    def convert(filename: str, filter=None, **kwargs) -> pd.DataFrame:
         import pympi
 
         textgrid = pympi.Praat.TextGrid(filename)
@@ -436,10 +465,10 @@ class TextGridConverter(AnnotationConverter):
 
 
 class EafConverter(AnnotationConverter):
-    FORMAT = "eaf"
+    FORMAT = Formats.EAF.value
 
     @staticmethod
-    def convert(filename: str, filter=None) -> pd.DataFrame:
+    def convert(filename: str, filter=None, **kwargs) -> pd.DataFrame:
         import pympi
 
         eaf = pympi.Elan.Eaf(filename)
@@ -520,12 +549,16 @@ class EafConverter(AnnotationConverter):
                     segment["addressee"] = value
                 elif label == "vcm":
                     segment["vcm_type"] = value
+                elif label == "msc":
+                    segment["msc_type"] = value
+                elif label in kwargs["new_tiers"]:
+                    segment[label] = value
 
         return pd.DataFrame(segments.values())
 
 
 class ChatConverter(AnnotationConverter):
-    FORMAT = "cha"
+    FORMAT = Formats.CHA.value
     THREAD_SAFE = False
 
     SPEAKER_ROLE_TO_TYPE = defaultdict(
@@ -589,7 +622,7 @@ class ChatConverter(AnnotationConverter):
         return ChatConverter.ADDRESSEE_TABLE[ChatConverter.SPEAKER_ROLE_TO_TYPE[role]]
 
     @staticmethod
-    def convert(filename: str, filter=None) -> pd.DataFrame:
+    def convert(filename: str, filter=None, **kwargs) -> pd.DataFrame:
 
         import pylangacq
 
@@ -602,6 +635,8 @@ class ChatConverter(AnnotationConverter):
 
         df = pd.DataFrame(reader.utterances())
 
+        #no segments in the file
+        if not df.shape[0]: return pd.DataFrame()
         ### extract tiers
         df["transcription"] = df.apply(
             lambda r: r["tiers"][r["participant"]], axis=1
@@ -615,7 +650,7 @@ class ChatConverter(AnnotationConverter):
             lambda d: {k.replace("%", ""): d[k] for k in d.keys() if k[0] == "%"}
         )
         df = pd.concat(
-            [df.drop(["tiers"], axis=1), df["tiers"].apply(pd.Series)], axis=1
+            [df.drop(["tiers"], axis=1), df["tiers"].apply(lambda x: pd.Series(x) if x else pd.Series(dtype='object'))], axis=1
         )
 
         df["segment_onset"] = df["time_marks"].apply(lambda tm: tm[0] if tm else "NA")
@@ -648,7 +683,9 @@ class ChatConverter(AnnotationConverter):
                 )
             )
 
+        initial_size = df.shape[0]
         df = df[(df["segment_onset"] != "NA") & (df["segment_offset"] != "NA")]
+        if df.shape[0] < initial_size : print("WARNING : Some annotations in file '{}' don't have timestamps, the importation will discard those lines".format(filename))
         df.drop(columns=["participant", "tokens", "time_marks"], inplace=True)
         df.fillna("NA", inplace=True)
 

@@ -3,7 +3,7 @@ import argparse
 import datetime
 import multiprocessing as mp
 import numpy as np
-import os
+import os, glob
 import sys
 import pandas as pd
 import shutil
@@ -82,12 +82,16 @@ class AudioProcessor(ABC):
 
         os.makedirs(name=self.output_directory(), exist_ok=True)
 
-        with mp.Pool(
-            processes=self.threads if self.threads > 0 else mp.cpu_count()
-        ) as pool:
-            self.converted = pool.map(
-                self.process_recording, recordings.to_dict("records")
-            )
+        if self.threads == 1:
+            self.converted = [
+                self.process_recording(recording)
+                for recording in recordings.to_dict("records")
+            ]
+        else:
+            with mp.Pool(processes=self.threads) as pool:
+                self.converted = pool.map(
+                    self.process_recording, recordings.to_dict("records")
+                )
 
         previously_converted = self.read_metadata()
         self.converted = pd.concat(self.converted)
@@ -128,7 +132,7 @@ class BasicProcessor(AudioProcessor):
         codec: str,
         sampling: int,
         split: str = None,
-        threads: int = None,
+        threads: int = 1,
         recordings: Union[str, List[str], pd.DataFrame] = None,
         skip_existing: bool = False,
         input_profile: str = None,
@@ -291,7 +295,7 @@ class VettingProcessor(AudioProcessor):
         project: ChildProject.projects.ChildProject,
         name: str,
         segments_path: str,
-        threads: int = None,
+        threads: int = 1,
         recordings: Union[str, List[str], pd.DataFrame] = None,
         input_profile: str = None,
     ):

@@ -3,6 +3,32 @@ import os
 import re
 import datetime
 import numpy as np
+from typing import Union, Set, List
+
+
+class MissingColumnsException(Exception):
+    def __init__(self, name: str, missing: Set):
+        missing = ",".join(list(missing))
+
+        super().__init__(
+            f"dataframe {name} misses the following required columns: {missing}"
+        )
+
+
+def assert_dataframe(name: str, df: pd.DataFrame, not_empty: bool = False):
+    assert isinstance(
+        df, pd.DataFrame
+    ), f"{name} should be a dataframe, but type is '{type(df)}' instead."
+
+    if not_empty:
+        assert len(df) > 0, f"{name} should not be empty."
+
+
+def assert_columns_presence(name: str, df: pd.DataFrame, columns: Union[Set, List]):
+    missing = set(columns) - set(df.columns)
+
+    if len(missing):
+        raise MissingColumnsException(name, missing)
 
 
 def is_boolean(x):
@@ -20,6 +46,7 @@ class IndexColumn:
         datetime=None,
         function=None,
         choices=None,
+        dtype=None,
         unique=False,
         generated=False,
     ):
@@ -33,6 +60,7 @@ class IndexColumn:
         self.choices = choices
         self.unique = unique
         self.generated = generated
+        self.dtype = dtype
 
     def __str__(self):
         return "IndexColumn(name = {})".format(self.name)
@@ -42,11 +70,12 @@ class IndexColumn:
 
 
 class IndexTable:
-    def __init__(self, name, path=None, columns=[]):
+    def __init__(self, name, path=None, columns=[], enforce_dtypes: bool = False):
         self.name = name
         self.path = path
         self.columns = columns
         self.df = None
+        self.enforce_dtypes = enforce_dtypes
 
     def read(self):
         pd_flags = {
@@ -74,7 +103,14 @@ class IndexTable:
             "index_col": False,
         }
 
-        self.df = pd.read_csv(self.path, **pd_flags)
+        if self.enforce_dtypes:
+            dtype = {
+                column.name: column.dtype for column in self.columns if column.dtype
+            }
+            self.df = pd.read_csv(self.path, dtype=dtype, **pd_flags)
+        else:
+            self.df = pd.read_csv(self.path, **pd_flags)
+
         self.df.index = self.df.index + 2
         return self.df
 
@@ -114,7 +150,7 @@ class IndexTable:
         if len(unknown_columns) > 0:
             warnings.append(
                 self.msg(
-                    "unknown column{} '{}' in {}, exepected columns are: {}".format(
+                    "unknown column{} '{}' in {}, expected columns are: {}".format(
                         "s" if len(unknown_columns) > 1 else "",
                         ",".join(unknown_columns),
                         self.name,

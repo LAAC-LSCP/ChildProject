@@ -6,20 +6,31 @@ import math
 import multiprocessing as mp
 import os
 import pandas as pd
-from panoptes_client import Panoptes, Project, Subject, SubjectSet, Classification
 import shutil
 import subprocess
 import sys
+import array
 import traceback
 from typing import List
 from yaml import dump
 
+import matplotlib.pyplot as plt
+from matplotlib.ticker import ScalarFormatter
+from numpy import log10
+
 from pydub import AudioSegment
+from pydub.utils import get_array_type
+
+from parselmouth import Sound
+from parselmouth import SpectralAnalysisWindowShape
 
 import ChildProject
 from ChildProject.pipelines.pipeline import Pipeline
+from ChildProject.tables import assert_dataframe, assert_columns_presence
 
 from typing import Tuple
+
+import time
 
 
 def pad_interval(
@@ -93,6 +104,42 @@ class ZooniversePipeline(Pipeline):
         return (self.zooniverse_login, self.zooniverse_pwd)
 
     def _split_recording(self, segments: pd.DataFrame) -> list:
+        
+        #from raw sound data and sampling rate, build the spectrogram as a matplotlib figure and return it
+        def _create_spectrogram(data,sr):
+            snd = Sound(data,sampling_frequency=sr)
+            # this parameters were chosen to output a spectrogram useful for zooniverse applications (short sounds from babies) we did not feel the need to have flexibility on them
+            spectrogram = snd.to_spectrogram(window_length=0.0075,maximum_frequency=8000, time_step= 0.0001 ,frequency_step = 0.1,window_shape= SpectralAnalysisWindowShape.GAUSSIAN)
+            
+            fig = plt.figure(figsize=(12, 6.75)) #size of the image, we chose 1200x675 pixels for a better display on zooniverse
+            gs = fig.add_gridspec(2, hspace=0, height_ratios=[1, 3]) #2 plots (spectrogram 3x bigger than oscillogram)
+            axs = gs.subplots(sharex=True)
+            
+            #scpectrogram plot
+            dynamic_range=65
+            X, Y = spectrogram.x_grid(), spectrogram.y_grid()
+            sg_db = 10 * log10(spectrogram.values)
+            axs[1].pcolormesh(X, Y, sg_db, vmin=sg_db.max() - dynamic_range, cmap='Greys')
+            axs[1].set_ylim([spectrogram.ymin, spectrogram.ymax])
+            axs[1].set_xlabel("time [s]")
+            axs[1].set_ylabel("frequency [Hz]")
+            axs[1].tick_params( labelright=True)
+            axs[1].set_xlim([snd.xmin, snd.xmax])
+            
+            #oscillogram plot
+            axs[0].plot(snd.xs(), snd.values.T, linewidth=0.5)
+            axs[0].set_xlim([snd.xmin, snd.xmax])
+            axs[0].set_ylabel("amplitude")
+            
+            #remove overlapping labels
+            ticks = axs[0].yaxis.get_major_ticks()
+            if len(ticks) : ticks[0].label1.set_visible(False)
+            if len(ticks) > 1 : ticks[1].label1.set_visible(False)
+            
+            fig.tight_layout()
+            
+            return fig
+        
         segments = segments.to_dict(orient="records")
         chunks = []
 
@@ -138,16 +185,33 @@ class ZooniversePipeline(Pipeline):
                 wav = os.path.join(self.destination, "chunks", chunk.getbasename("wav"))
                 mp3 = os.path.join(self.destination, "chunks", chunk.getbasename("mp3"))
 
-                if not os.path.exists(wav):
-                    chunk_audio.export(wav, format="wav")
-                else:
+                if os.path.exists(wav) and os.path.getsize(wav) > 0:
                     print("{} already exists, exportation skipped.".format(wav))
-
-                if not os.path.exists(mp3):
-                    chunk_audio.export(mp3, format="mp3")
                 else:
-                    print("{} already exists, exportation skipped.".format(mp3))
+                    chunk_audio.export(wav, format="wav")
 
+                if os.path.exists(mp3) and os.path.getsize(mp3) > 0:
+                    print("{} already exists, exportation skipped.".format(mp3))
+                else:
+                    chunk_audio.export(mp3, format="mp3")
+                    
+                if self.spectro:
+                    png = os.path.join(self.destination, "chunks", chunk.getbasename("png"))
+                    
+                    #convert pydub sound data into raw data that the parselmouth library can use
+                    bit_depth = chunk_audio.sample_width * 8
+                    array_type = get_array_type(bit_depth)
+                    
+                    sound = array.array(array_type, chunk_audio._data)
+                    sr = chunk_audio.frame_rate
+                    fig = _create_spectrogram(sound,sr) #create the plot figure
+                    
+                    if os.path.exists(png) and os.path.getsize(png) > 0:
+                        print("{} already exists, exportation skipped.".format(png))
+                    else:
+                        fig.savefig(png)
+                    plt.close(fig)
+                        
                 chunks.append(chunk)
 
         return chunks
@@ -160,8 +224,9 @@ class ZooniversePipeline(Pipeline):
         segments: str,
         chunks_length: int = -1,
         chunks_min_amount: int = 1,
+        spectrogram: bool = False,
         profile: str = "",
-        threads: int = 0,
+        threads: int = 1,
         **kwargs
     ):
         """extract-audio chunks based on a list of segments and prepare them for upload
@@ -179,6 +244,8 @@ class ZooniversePipeline(Pipeline):
         :type chunks_length: int, optional
         :param chunks_min_amount: minimum amount of chunk per segment, defaults to 1
         :type chunks_min_amount: int, optional
+        :param spectrogram: the extraction generates a png spectrogram, defaults to False
+        :type spectrogram: bool, optional
         :param profile: recording profile to extract from. If undefined, raw recordings will be used.
         :type profile: str
         :param threads: amount of threads to run-on, defaults to 0
@@ -197,7 +264,8 @@ class ZooniversePipeline(Pipeline):
         self.project = ChildProject.projects.ChildProject(path)
 
         self.chunks_length = int(chunks_length)
-        self.chunks_min_amount = chunks_min_amount
+        self.chunks_min_amount = int(chunks_min_amount)
+        self.spectro = spectrogram
         self.profile = profile
 
         threads = int(threads)
@@ -206,14 +274,26 @@ class ZooniversePipeline(Pipeline):
         os.makedirs(destination_path, exist_ok=True)
 
         self.segments = pd.read_csv(segments)
+
+        assert_dataframe("segments", self.segments, not_empty=True)
+        assert_columns_presence(
+            "segments",
+            self.segments,
+            {"recording_filename", "segment_onset", "segment_offset"},
+        )
+
         shutil.copyfile(segments, os.path.join(self.destination, "segments.csv"))
 
         segments = []
         for _recording, _segments in self.segments.groupby("recording_filename"):
             segments.append(_segments.assign(recording_filename=_recording))
 
-        with mp.Pool(threads if threads > 0 else mp.cpu_count()) as pool:
-            self.chunks = pool.map(self._split_recording, segments)
+        if threads == 1:
+            self.chunks = map(self._split_recording, segments)
+        else:
+            with mp.Pool(threads if threads > 0 else mp.cpu_count()) as pool:
+                self.chunks = pool.map(self._split_recording, segments)
+
         self.chunks = itertools.chain.from_iterable(self.chunks)
         self.chunks = pd.DataFrame(
             [
@@ -225,6 +305,7 @@ class ZooniversePipeline(Pipeline):
                     "segment_offset": c.segment_offset,
                     "wav": c.getbasename("wav"),
                     "mp3": c.getbasename("mp3"),
+                    "png": c.getbasename("png") if self.spectro else "NA",
                     "date_extracted": datetime.datetime.now().strftime(
                         "%Y-%m-%d %H:%M:%S"
                     ),
@@ -269,6 +350,7 @@ class ZooniversePipeline(Pipeline):
         zooniverse_login="",
         zooniverse_pwd="",
         amount: int = 1000,
+        ignore_errors: bool = False,
         **kwargs
     ):
         """Uploads ``amount`` audio chunks from the CSV dataframe `chunks` to a zooniverse project.
@@ -297,6 +379,15 @@ class ZooniversePipeline(Pipeline):
             raise Exception(
                 "cannot read chunk metadata from {}.".format(metadata_location)
             )
+
+        assert_dataframe("chunks", self.chunks)
+        assert_columns_presence(
+            "chunks",
+            self.chunks,
+            {"recording_filename", "onset", "offset", "uploaded", "mp3"},
+        )
+        
+        from panoptes_client import Panoptes, Project, Subject, SubjectSet
 
         Panoptes.connect(username=self.zooniverse_login, password=self.zooniverse_pwd)
         zooniverse_project = Project(project_id)
@@ -350,8 +441,12 @@ class ZooniversePipeline(Pipeline):
                     )
                 )
                 print(traceback.format_exc())
-                print("subject upload halting here.")
-                break
+
+                if args.ignore_errors:
+                    continue
+                else:
+                    print("subject upload halting here.")
+                    break
 
             subjects.append(subject)
 
@@ -361,6 +456,9 @@ class ZooniversePipeline(Pipeline):
             chunk["subject_set"] = str(subject_set.display_name)
             chunk["uploaded"] = True
             subjects_metadata.append(chunk)
+
+        if len(subjects) == 0:
+            return
 
         subject_set.add(subjects)
 
@@ -395,6 +493,7 @@ class ZooniversePipeline(Pipeline):
         """
         self.get_credentials(zooniverse_login, zooniverse_pwd)
 
+        from panoptes_client import Panoptes, Project, Classification
         Panoptes.connect(username=self.zooniverse_login, password=self.zooniverse_pwd)
         project = Project(project_id)
 
@@ -488,6 +587,11 @@ class ZooniversePipeline(Pipeline):
             default=1,
         )
         parser_extraction.add_argument(
+            "--spectrogram",
+            help="the extraction generates a png spectrogram (default False)",
+            action="store_true",
+        )
+        parser_extraction.add_argument(
             "--segments", help="path to the input segments dataframe", required=True
         )
         parser_extraction.add_argument(
@@ -530,6 +634,11 @@ class ZooniversePipeline(Pipeline):
             "--zooniverse-pwd",
             help="zooniverse password. If not specified, the program attempts to get it from the environment variable ZOONIVERSE_PWD instead",
             default="",
+        )
+        parser_upload.add_argument(
+            "--ignore-errors",
+            help="keep uploading even when a subject fails to upload for some reason",
+            action="store_true",
         )
 
         parser_retrieve = subparsers.add_parser(

@@ -2,15 +2,22 @@ import os
 import pandas as pd
 import pytest
 import shutil
+from functools import partial
 
 from ChildProject.projects import ChildProject
+from ChildProject.annotations import AnnotationManager
 from ChildProject.pipelines.samplers import (
     PeriodicSampler,
     RandomVocalizationSampler,
     EnergyDetectionSampler,
     HighVolubilitySampler,
+    ConversationSampler,
     SamplerPipeline,
 )
+
+
+def fake_conversation(data, filename):
+    return data
 
 
 @pytest.fixture(scope="function")
@@ -77,6 +84,98 @@ def test_energy_detection(project):
             [["sound.wav", 1900, 2000]],
             columns=["recording_filename", "segment_onset", "segment_offset"],
         ),
+    )
+
+
+def test_conversation_sampler(project):
+    conversations = [
+        {"onset": 0, "vocs": 5},
+        {"onset": 60 * 1000, "vocs": 10},
+        {"onset": 1800 * 1000, "vocs": 15},
+    ]
+    segments = []
+    for conversation in conversations:
+        segments += [
+            {
+                "segment_onset": conversation["onset"] + i * (2000 + 500),
+                "segment_offset": conversation["onset"] + i * (2000 + 500) + 2000,
+                "speaker_type": ["FEM", "CHI"][i % 2],
+            }
+            for i in range(conversation["vocs"])
+        ]
+    segments = pd.DataFrame(segments)
+
+    am = AnnotationManager(project)
+    am.import_annotations(
+        pd.DataFrame(
+            [
+                {
+                    "set": "conv",
+                    "raw_filename": "file.rttm",
+                    "time_seek": 0,
+                    "recording_filename": "sound.wav",
+                    "range_onset": 0,
+                    "range_offset": 3600 * 1000 * 1000,
+                    "format": "rttm",
+                }
+            ]
+        ),
+        import_function=partial(fake_conversation, segments),
+    )
+    sampler = ConversationSampler(
+        project, "conv", count=5, interval=1000, speakers=["FEM", "CHI"],
+    )
+    sampler.sample()
+    
+    assert len(sampler.segments) == len(conversations)
+    assert sampler.segments["segment_onset"].tolist() == [
+        conv["onset"]
+        for conv in sorted(conversations, key=lambda c: c["vocs"], reverse=True)
+    ]
+
+def test_random_vocalization(project):
+    segments = [
+        {
+            'segment_onset': 1000,
+            'segment_offset': 2000,
+            'speaker_type': speaker
+        }
+        for speaker in ['CHI', 'FEM', 'MAL']
+    ] 
+
+    segments = pd.DataFrame(segments)
+
+    am = AnnotationManager(project)
+    am.import_annotations(
+        pd.DataFrame(
+            [
+                {
+                    "set": "random",
+                    "raw_filename": "file.rttm",
+                    "time_seek": 0,
+                    "recording_filename": "sound.wav",
+                    "range_onset": 0,
+                    "range_offset": 4000,
+                    "format": "rttm",
+                }
+            ]
+        ),
+        import_function=partial(fake_conversation, segments),
+    )
+
+    sampler = RandomVocalizationSampler(
+        project=project,
+        annotation_set="random",
+        target_speaker_type=["CHI"],
+        sample_size=1,
+        threads=1
+    )
+    sampler.sample()
+    
+    chi_segments = segments[segments["speaker_type"] == "CHI"]
+    pd.testing.assert_frame_equal(
+        sampler.segments[["segment_onset", "segment_offset"]].astype(int),
+        chi_segments[["segment_onset", "segment_offset"]].astype(int)
     )
 
 

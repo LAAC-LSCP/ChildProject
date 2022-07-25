@@ -143,14 +143,14 @@ Custom converter
 ----------------
 
 A converter is a function that takes a filename for only input, and return a dataframe
-complying with the specifications defined in :ref:`format-annotations`.
+complying with the specifications defined in :ref:`format-annotations-segments`.
 
 The output dataframe _must_ contain at least a ``segment_onset`` and a ``segment_offset`` columns
 expressing the onset and offset of each segment in milliseconds as
 integers.
 
 You are free to add as many extra columns as you want. It is however preferable to follow the
-standards listed in :ref:`format-annotations` when possible.
+standards listed in :ref:`format-annotations-segments` when possible.
 
 In our case, we'll write a very simple converter to extract only the segments onset and offset
 from rttm files:
@@ -210,6 +210,22 @@ The contents of the output CSV file can be checked:
     Make sure to remove an annotation from an index beforehand if you need to import it again.
     This can be done with :meth:`~ChildProject.annotations.AnnotationManager.remove_set` to
     remove a set of annotations from the index while preserving raw annotations.
+
+Users are advised to check the consistency and validity of the annotations and their index
+using the validation procedure.
+
+Importing any EAF tier
+----------------------
+
+When importing EAF annotation files, some tiers are supported by ChildProject, such as `vcm_type` or
+`lex_type`. 
+
+If you want to import a tier that is not supported by ChildProject, you can use
+:meth:`~ChildProject.annotations.AnnotationManager.import_annotations` as follows :
+
+.. code-block:: python
+
+    >>> am.import_annotations(input, new_tier = ['name_of_tier'])
 
 Validating annotations
 ~~~~~~~~~~~~~~~~~~~~~~

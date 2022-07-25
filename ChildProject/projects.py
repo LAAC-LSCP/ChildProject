@@ -7,20 +7,36 @@ import pandas as pd
 import re
 import subprocess
 
-from .tables import IndexTable, IndexColumn, is_boolean
+from .tables import (
+    IndexTable,
+    IndexColumn,
+    is_boolean,
+    assert_dataframe,
+    assert_columns_presence,
+)
 from .utils import get_audio_duration, path_is_parent
 
 
 class ChildProject:
-    """This class is a representation of a ChildRecords dataset.
+    """ChildProject instance
+    This class is a representation of a ChildProject dataset
 
+    Constructor parameters:
+
+    :param path: path to the root of the dataset.
+    :type path: str
+    :param enforce_dtypes: enforce dtypes on children/recordings dataframes, defaults to False
+    :type enforce_dtypes: bool, optional
+    :param ignore_discarded: ignore entries such that discard=1, defaults to False
+    :type ignore_discarded: bool, optional
+    
     Attributes:
-        :param path: path to the root of the dataset.
-        :type path: str
-        :param recordings: pandas dataframe representation of this dataset metadata/recordings.csv 
-        :type recordings: class:`pd.DataFrame`
-        :param children: pandas dataframe representation of this dataset metadata/children.csv 
-        :type children: class:`pd.DataFrame`
+    :param path: path to the root of the dataset.
+    :type path: str
+    :param recordings: pandas dataframe representation of this dataset metadata/recordings.csv 
+    :type recordings: class:`pd.DataFrame`
+    :param children: pandas dataframe representation of this dataset metadata/children.csv 
+    :type children: class:`pd.DataFrame`
     """
 
     REQUIRED_DIRECTORIES = ["recordings", "extra"]
@@ -36,6 +52,7 @@ class ChildProject:
             description="unique child ID -- unique within the experiment (Id could be repeated across experiments to refer to different children)",
             unique=True,
             required=True,
+            dtype="str",
         ),
         IndexColumn(
             name="child_dob",
@@ -115,6 +132,12 @@ class ChildProject:
             description="date of birth accuracy",
             choices=["day", "week", "month", "year", "other"],
         ),
+        IndexColumn(
+            name="discard",
+            description="set to 1 if item should be discarded in analyses",
+            choices=["0", "1"],
+            required=False,
+        ),
     ]
 
     RECORDINGS_COLUMNS = [
@@ -127,6 +150,7 @@ class ChildProject:
             name="child_id",
             description="unique child ID -- unique within the experiment (Id could be repeated across experiments to refer to different children)",
             required=True,
+            dtype="str",
         ),
         IndexColumn(
             name="date_iso",
@@ -136,7 +160,7 @@ class ChildProject:
         ),
         IndexColumn(
             name="start_time",
-            description="local time in which recording was started in format 24-hour (H)H:MM; if minutes are unknown, use 00. Set as ‘NA’ if unknown.",
+            description="local time in which recording was started in format 24-hour (H)H:MM; if minutes are unknown, use 00. ‘NA’ if unknown, this will raise a Warning when validating.",
             required=True,
             datetime="%H:%M",
         ),
@@ -144,7 +168,7 @@ class ChildProject:
             name="recording_device_type",
             description="lena, usb, olympus, babylogger (lowercase)",
             required=True,
-            choices=["lena", "usb", "olympus", "babylogger"],
+            choices=["lena", "usb", "olympus", "babylogger", "unknown"],
         ),
         IndexColumn(
             name="recording_filename",
@@ -152,6 +176,7 @@ class ChildProject:
             required=True,
             filename=True,
             unique=True,
+            dtype="str",
         ),
         IndexColumn(
             name="duration",
@@ -159,7 +184,9 @@ class ChildProject:
             regex=r"([0-9]+)",
         ),
         IndexColumn(
-            name="session_id", description="identifier of the recording session."
+            name="session_id",
+            description="identifier of the recording session.",
+            dtype="str",
         ),
         IndexColumn(
             name="session_offset",
@@ -182,6 +209,11 @@ class ChildProject:
         IndexColumn(name="trs_filename", description="trs_filename"),
         IndexColumn(name="lena_id", description=""),
         IndexColumn(
+            name="lena_recording_num",
+            description="value of the corresponding <Recording> num's attribute, for LENA recordings that have been split into contiguous parts",
+            dtype="int",
+        ),
+        IndexColumn(
             name="might_feature_gaps",
             description="1 if the audio cannot be guaranteed to be a continuous block with no time jumps, 0 or NA or undefined otherwise.",
             function=is_boolean,
@@ -200,20 +232,50 @@ class ChildProject:
             name="notes",
             description="free-style notes about individual recordings (avoid tabs and newlines)",
         ),
+        IndexColumn(
+            name="discard",
+            description="set to 1 if item should be discarded in analyses",
+            choices=["0", "1"],
+            required=False,
+        ),
+    ]
+
+    DOCUMENTATION_COLUMNS = [
+        IndexColumn(
+            name="variable",
+            description="name of the variable",
+            unique=True,
+            required=True,
+        ),
+        IndexColumn(
+            name="description", description="a definition of this field", required=True
+        ),
+        IndexColumn(name="values", description="a summary of authorized values"),
+        IndexColumn(name="scope", description="which group of users has access to it"),
+        IndexColumn(
+            name="annotation_set",
+            description="for annotations: which set(s) contain this variable",
+        ),
     ]
 
     RAW_RECORDINGS = "recordings/raw"
     CONVERTED_RECORDINGS = "recordings/converted"
+    STANDARD_SAMPLE_RATE = 16000
+    STANDARD_PROFILE = 'standard' # profile that is expected to contain the standardized audios (16kHz). The existence and sampling rates of this profile are checked when <validating this profile> or <validating without profile and the raw recordings are not 16kHz>.
 
     PROJECT_FOLDERS = ["recordings", "annotations", "metadata", "doc", "scripts"]
 
-    def __init__(self, path: str, primary_metadata_only: bool = False):
+    def __init__(
+        self, path: str, enforce_dtypes: bool = False, ignore_discarded: bool = False, primary_metadata_only: bool = False
+    ):
         """Constructor
 
         :param path: path to the root of the dataset.
         :type path: str
         """
         self.path = path
+        self.enforce_dtypes = enforce_dtypes
+        self.ignore_discarded = ignore_discarded
         self.primary_metadata_only = primary_metadata_only
 
         self.errors = []
@@ -274,7 +336,7 @@ class ChildProject:
             if not os.path.exists(md):
                 continue
 
-            table = IndexTable(table, md, columns)
+            table = IndexTable(table, md, columns, enforce_dtypes=self.enforce_dtypes)
             dataframe = table.read()
 
             replaced_columns = (set(df.columns) & set(dataframe.columns)) - {
@@ -289,7 +351,7 @@ class ChildProject:
 
             df["line"] = df.index
             df = (
-                df[(set(df.columns) - set(dataframe.columns)) | {merge_column}]
+                df[list((set(df.columns) - set(dataframe.columns)) | {merge_column})]
                 .merge(
                     dataframe, how="left", left_on=merge_column, right_on=merge_column
                 )
@@ -305,11 +367,13 @@ class ChildProject:
             "children",
             os.path.join(self.path, "metadata/children.csv"),
             self.CHILDREN_COLUMNS,
+            enforce_dtypes=self.enforce_dtypes,
         )
         self.rt = IndexTable(
             "recordings",
             os.path.join(self.path, "metadata/recordings.csv"),
             self.RECORDINGS_COLUMNS,
+            enforce_dtypes=self.enforce_dtypes,
         )
 
         self.children = self.ct.read()
@@ -328,23 +392,27 @@ class ChildProject:
                 verbose,
             )
 
+            if self.ignore_discarded and "discard" in self.ct.df:
+                self.ct.df = self.ct.df[self.ct.df["discard"].astype(str) == "1"]
+
+            if self.ignore_discarded and "discard" in self.rt.df:
+                self.rt.df = self.rt.df[self.rt.df["discard"].astype(str) == "1"]
+
             self.children = self.ct.df
             self.recordings = self.rt.df
 
-    def validate(self, ignore_files: bool = False) -> tuple:
+    def validate(self, ignore_recordings: bool = False, profile: str = None) -> tuple:
         """Validate a dataset, returning all errors and warnings.
 
-        :param ignore_files: if True, no errors will be returned for missing recordings.
-        :type ignore_files: bool, optional
+        :param ignore_recordings: if True, no errors will be returned for missing recordings.
+        :type ignore_recordings: bool, optional
         :return: A tuple containing the list of errors, and the list of warnings.
         :rtype: a tuple of two lists
         """
         self.errors = []
         self.warnings = []
 
-        path = self.path
-
-        directories = [d for d in os.listdir(path) if os.path.isdir(path)]
+        directories = [d for d in os.listdir(self.path) if os.path.isdir(self.path)]
 
         for rd in self.REQUIRED_DIRECTORIES:
             if rd not in directories:
@@ -361,10 +429,12 @@ class ChildProject:
         self.errors += errors
         self.warnings += warnings
 
-        if ignore_files:
+        if ignore_recordings:
             return self.errors, self.warnings
 
+        from pydub.utils import mediainfo #mediainfo to get audio files info
         for index, row in self.recordings.iterrows():
+            
             # make sure that recordings exist
             for column_name in self.recordings.columns:
                 column_attr = next(
@@ -374,14 +444,46 @@ class ChildProject:
                 if column_attr is None:
                     continue
 
-                if (
-                    column_attr.filename
-                    and row[column_name] != "NA"
-                    and not os.path.exists(
-                        os.path.join(path, self.RAW_RECORDINGS, str(row[column_name]))
-                    )
-                ):
-                    message = "cannot find recording '{}'".format(str(row[column_name]))
+                if column_attr.filename and row[column_name] != "NA":
+                    raw_filename = str(row[column_name])
+
+                    try:
+                        path = self.get_recording_path(raw_filename, profile)
+                    except:
+                        if profile:
+                            profile_metadata = os.path.join(
+                                self.path,
+                                self.CONVERTED_RECORDINGS,
+                                profile,
+                                "recordings.csv",
+                            )
+                            self.errors.append(
+                                f"failed to recover the path for recording '{raw_filename}' and profile '{profile}'. Does the profile exist? Does {profile_metadata} exist?"
+                            )
+                        continue
+
+                    if os.path.exists(path):
+                        if not profile:
+                            info = mediainfo(path)
+                            if int(info['sample_rate']) != self.STANDARD_SAMPLE_RATE:
+                                try:
+                                    std_path = self.get_recording_path(raw_filename, self.STANDARD_PROFILE)
+                                    if os.path.exists(std_path):
+                                        std_info = mediainfo(std_path)
+                                        if 'sample_rate' in std_info and int(std_info['sample_rate']) != self.STANDARD_SAMPLE_RATE:
+                                            self.warnings.append(f"converted version of recording '{raw_filename}' at '{std_path}' has unexpected sampling rate {std_info['sample_rate']}Hz when {self.STANDARD_SAMPLE_RATE}Hz is expected for profile {self.STANDARD_PROFILE}")
+                                    else:
+                                        self.warnings.append(f"recording '{raw_filename}' at '{path}' has a non standard sampling rate {info['sample_rate']}Hz and no converted version found in the standard profile at {std_path}. The file content may not be downloaded. you can create the missing standard converted audios with 'child-project process {self.path} {self.STANDARD_PROFILE} basic --format=wav --sampling={self.STANDARD_SAMPLE_RATE} --codec=pcm_s16le --skip-existing'")
+                                except:
+                                    profile_metadata = os.path.join(self.path,self.CONVERTED_RECORDINGS,self.STANDARD_PROFILE,"recordings.csv",)
+                                    self.warnings.append(f"recording '{raw_filename}' at '{path}' has a non standard sampling rate of {info['sample_rate']}Hz and no standard conversion in profile {self.STANDARD_PROFILE} was found. Does the standard profile exist? Does {profile_metadata} exist? you can create the standard profile with 'child-project process {self.path} {self.STANDARD_PROFILE} basic --format=wav --sampling={self.STANDARD_SAMPLE_RATE} --codec=pcm_s16le --skip-existing'")
+                        elif profile == self.STANDARD_PROFILE:
+                            info = mediainfo(path)
+                            if 'sample_rate' in info and int(info['sample_rate']) != self.STANDARD_SAMPLE_RATE:
+                                self.warnings.append(f"recording '{raw_filename}' at '{path}' has unexpected sampling rate {info['sample_rate']}Hz when {self.STANDARD_SAMPLE_RATE}Hz is expected for profile {self.STANDARD_PROFILE}")
+                        continue
+
+                    message = f"cannot find recording '{raw_filename}' at '{path}'"
                     if column_attr.required:
                         self.errors.append(message)
                     else:
@@ -406,12 +508,12 @@ class ChildProject:
         ]
 
         indexed_files = [
-            os.path.abspath(os.path.join(path, self.RAW_RECORDINGS, str(f)))
+            os.path.abspath(os.path.join(self.path, self.RAW_RECORDINGS, str(f)))
             for f in pd.core.common.flatten(files)
         ]
 
         recordings_files = glob.glob(
-            os.path.join(path, self.RAW_RECORDINGS, "**/*.*"), recursive=True
+            os.path.join(self.path, self.RAW_RECORDINGS, "**/*.*"), recursive=True
         )
 
         for rf in recordings_files:
@@ -440,11 +542,15 @@ class ChildProject:
         """
 
         if profile:
+            converted_filename = self.get_converted_recording_filename(
+                profile, recording_filename
+            )
+
+            if converted_filename is None:
+                return None
+
             return os.path.join(
-                self.path,
-                self.CONVERTED_RECORDINGS,
-                profile,
-                self.get_converted_recording_filename(profile, recording_filename),
+                self.path, self.CONVERTED_RECORDINGS, profile, converted_filename,
             )
         else:
             return os.path.join(self.path, self.RAW_RECORDINGS, recording_filename)
@@ -517,6 +623,10 @@ class ChildProject:
         :rtype: pd.DataFrame
         """
         _recordings = self.recordings.copy()
+        _recordings = _recordings[
+            (~_recordings["recording_filename"].isnull())
+            & (_recordings["recording_filename"] != "NA")
+        ]
 
         if recordings is not None:
             # if the user provided paths,
@@ -531,6 +641,15 @@ class ChildProject:
             _recordings = _recordings[
                 _recordings["recording_filename"].isin(recordings)
             ]
+            
+            if _recordings.shape[0] < len(recordings):
+                recs = pd.Series(recordings)
+                missing_recs = recs[~recs.isin(self.recordings['recording_filename'])].tolist()
+                #self.recordings[~self.recordings['recording_filename'].isin(recordings)]['recording_filename'].tolist()
+                raise ValueError("recordings {} were not found in the dataset index.\
+                                 Check the names and make sure they exist in\
+                                 'metadata/recordings.csv'".format(missing_recs))
+                
 
         return _recordings
 
@@ -553,3 +672,92 @@ class ChildProject:
         recordings["duration"] = (recordings["duration"] * 1000).astype(int)
 
         return recordings
+
+    def compute_ages(
+        self, recordings: pd.DataFrame = None, children: pd.DataFrame = None
+    ) -> pd.Series:
+        """Compute the age of the subject child for each recording (in months, as a float)
+        and return it as a pandas Series object.
+
+        Example:
+
+        >>> from ChildProject.projects import ChildProject
+        >>> project = ChildProject("examples/valid_raw_data")
+        >>> project.read()
+        >>> project.recordings["age"] = project.compute_ages()
+        >>> project.recordings[["child_id", "date_iso", "age"]]
+            child_id    date_iso       age
+        line                                
+        2            1  2020-04-20  3.613963
+        3            1  2020-04-21  3.646817
+
+        :param recordings: custom recordings DataFrame (see :ref:`format-metadata`), otherwise use all project recordings, defaults to None
+        :type recordings: pd.DataFrame, optional
+        :param children: custom children DataFrame (see :ref:`format-metadata`), otherwise use all project children data, defaults to None
+        :type children: pd.DataFrame, optional
+        """
+
+        def date_is_valid(date: str, fmt: str):
+            try:
+                datetime.datetime.strptime(date, fmt)
+            except:
+                return False
+            return True
+
+        if recordings is None:
+            recordings = self.recordings.copy()
+
+        if children is None:
+            children = self.children.copy()
+
+        assert_dataframe("recordings", recordings)
+        assert_dataframe("children", children)
+
+        assert_columns_presence("recordings", recordings, {"date_iso", "child_id"})
+        assert_columns_presence("children", children, {"child_dob", "child_id"})
+
+        index = recordings.index
+        recordings = recordings.merge(
+            children[["child_id", "child_dob"]],
+            how="left",
+            left_on="child_id",
+            right_on="child_id",
+        )
+        recordings.index = index
+
+        age = (
+            recordings[["date_iso", "child_dob"]]
+            .apply(
+                lambda r: (
+                    datetime.datetime.strptime(r["date_iso"], "%Y-%m-%d")
+                    - datetime.datetime.strptime(r["child_dob"], "%Y-%m-%d")
+                )
+                if (
+                    date_is_valid(r["child_dob"], "%Y-%m-%d")
+                    and date_is_valid(r["date_iso"], "%Y-%m-%d")
+                )
+                else None,
+                axis=1,
+            )
+            .apply(lambda dt: dt.days / (365.25 / 12) if dt else None)
+        )
+
+        return age
+
+    def read_documentation(self) -> pd.DataFrame:
+        docs = ["children", "recordings", "annotations"]
+
+        documentation = []
+
+        for doc in docs:
+            path = os.path.join(self.path, "docs", f"{doc}.csv")
+
+            if not os.path.exists(path):
+                continue
+
+            table = IndexTable(f"{doc}-documentation", path, self.DOCUMENTATION_COLUMNS)
+            table.read()
+            documentation.append(table.df.assign(table=doc))
+
+        documentation = pd.concat(documentation)
+        return documentation

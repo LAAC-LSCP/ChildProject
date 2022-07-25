@@ -10,7 +10,7 @@ Introduction
 
 Day-long (audio-)recordings of children are increasingly common, but
 there is no scientific standard formatting that can benefit the
-organization and analyses of such data. ChildRecordData provides
+organization and analyses of such data. ChildProject provides
 standardizing specifications and tools for the storage and management of
 day-long recordings of children and their associated meta-data and
 annotations.
@@ -89,11 +89,12 @@ If you are using this project for your research, please cite our [introductory p
 ```tex
 @article{gautheron_rochat_cristia_2021,
     title={Managing, storing, and sharing long-form recordings and their annotations},
-    url={https://psyarxiv.com/w8trm},
-    DOI={10.31234/osf.io/w8trm},
-    publisher={PsyArXiv},
+    url={https://link.springer.com/article/10.1007/s10579-022-09579-3},
+    DOI={10.1007/s10579-022-09579-3},
+    publisher={Springer},
+    journal={Language Resources and Evaluation}
     author={Gautheron, Lucas and Rochat, Nicolas and Cristia, Alejandrina},
-    year={2021},
-    month={May}
+    year={2022},
+    month={Feb}
 }
 ```

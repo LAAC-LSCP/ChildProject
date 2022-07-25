@@ -83,6 +83,20 @@ def test_eaf():
     )
 
 
+def test_eaf_any_tier():
+    converted = EafConverter().convert("tests/data/eaf_any_tier.eaf", new_tiers = ['newtier', 'newtier2']) \
+                              .replace('', "NA") \
+                              .fillna("NA")
+    truth = pd.read_csv("tests/truth/eaf_any_tier.csv", dtype={"transcription": str}).fillna(
+        "NA"
+    )
+
+    pd.testing.assert_frame_equal(
+        standardize_dataframe(converted, converted.columns),
+        standardize_dataframe(truth, converted.columns),
+    )
+
+
 def test_textgrid():
     converted = TextGridConverter().convert("tests/data/textgrid.TextGrid")
     truth = pd.read_csv("tests/truth/textgrid.csv", dtype={"ling_type": str}).fillna(
@@ -191,6 +205,53 @@ def test_intersect(project):
     )
 
 
+def test_within_ranges(project):
+    am = AnnotationManager(project)
+
+    annotations = [
+        {
+            "recording_filename": "sound.wav",
+            "set": "matching",
+            "range_onset": onset,
+            "range_offset": onset + 500,
+        }
+        for onset in np.arange(0, 4000, 500)
+    ]
+
+    matching_annotations = pd.DataFrame(
+        [
+            annotation
+            for annotation in annotations
+            if annotation["range_onset"] >= 1000 and annotation["range_offset"] <= 3000
+        ]
+    )
+
+    am.annotations = pd.DataFrame(annotations)
+
+    ranges = pd.DataFrame(
+        [{"recording_filename": "sound.wav", "range_onset": 1000, "range_offset": 3000}]
+    )
+
+    matches = am.get_within_ranges(ranges, ["matching"])
+
+    pd.testing.assert_frame_equal(
+        standardize_dataframe(matching_annotations, matching_annotations.columns),
+        standardize_dataframe(matches, matching_annotations.columns),
+    )
+
+    ranges["range_offset"] = 5000
+    exception_caught = False
+    try:
+        matches = am.get_within_ranges(ranges, ["matching"], "raise")
+    except Exception as e:
+        if str(e) == "annotations from set 'matching' do not cover the whole selected range for recording 'sound.wav', 3.000s covered instead of 4.000s":
+            exception_caught = True
+
+    assert (
+        exception_caught
+    ), "get_within_ranges should raise an exception when annotations do not fully cover the required ranges"
+
+
 def test_merge(project):
     am = AnnotationManager(project)
 
@@ -255,11 +316,12 @@ def test_clipping(project):
 
 
 def test_within_time_range(project):
+    from ChildProject.utils import TimeInterval
     am = AnnotationManager(project)
     am.project.recordings = pd.read_csv("tests/data/time_range_recordings.csv")
 
     annotations = pd.read_csv("tests/data/time_range_annotations.csv")
-    matches = am.get_within_time_range(annotations, "09:00", "20:00")
+    matches = am.get_within_time_range(annotations, TimeInterval(datetime.datetime(1900,1,1,9,0),datetime.datetime(1900,1,1,20,0)))
 
     truth = pd.read_csv("tests/truth/time_range.csv")
 
@@ -391,6 +453,25 @@ def test_custom_importation(project):
 
     errors, warnings = am.validate()
     assert len(errors) == 0
+
+
+def test_set_from_path(project):
+    am = AnnotationManager(project)
+
+    assert am.set_from_path(os.path.join(project.path, "annotations/set")) == "set"
+    assert am.set_from_path(os.path.join(project.path, "annotations/set/")) == "set"
+    assert (
+        am.set_from_path(os.path.join(project.path, "annotations/set/subset"))
+        == "set/subset"
+    )
+    assert (
+        am.set_from_path(os.path.join(project.path, "annotations/set/subset/converted"))
+        == "set/subset"
+    )
+    assert (
+        am.set_from_path(os.path.join(project.path, "annotations/set/subset/raw"))
+        == "set/subset"
+    )
 
 
 # its

@@ -1,23 +1,27 @@
 chardet==3.0.4
 click==7.1.1
 datalad
+GitPython
 keyring==21.4.0; python_version < "3.8"
 jinja2
 librosa
 lxml
+matplotlib
 nltk
 numpy>=1.17,<1.21
 pydub
 pandas>=0.25.0
 panoptes_client
+praat-parselmouth
 pyannote.metrics; python_version >= "3.7.0"
-pygamma-agreement; python_version >= "3.6.0"
+pygamma-agreement[notebook]; python_version >= "3.6.0"
 pylangacq
 pympi-ling
 pysoundfile
 python-dateutil>=2.8.1
 PyYAML
 requests==2.25.0
+scipy
 sklearn
 sox
 sphinx

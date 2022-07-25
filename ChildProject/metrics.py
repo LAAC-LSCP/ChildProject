@@ -3,6 +3,8 @@ import numpy as np
 
 from typing import List
 
+from .tables import assert_dataframe, assert_columns_presence
+
 
 def segments_to_annotation(segments: pd.DataFrame, column: str):
     """Transform a dataframe of annotation segments into a pyannote.core.Annotation object
@@ -14,6 +16,9 @@ def segments_to_annotation(segments: pd.DataFrame, column: str):
     :return: the pyannote.core.Annotation object.
     :rtype: pyannote.core.Annotation
     """
+
+    assert_dataframe("segments", segments)
+    assert_columns_presence("segments", segments, {"segment_onset", "segment_offset"})
 
     from pyannote.core import Annotation, Segment
 
@@ -31,6 +36,9 @@ def segments_to_annotation(segments: pd.DataFrame, column: str):
 def pyannote_metric(
     segments: pd.DataFrame, reference: str, hypothesis: str, metric, column: str
 ):
+    assert_dataframe("segments", segments)
+    assert_columns_presence("segments", segments, {"set"})
+
     ref = segments_to_annotation(segments[segments["set"] == reference], column)
     hyp = segments_to_annotation(segments[segments["set"] == hypothesis], column)
 
@@ -96,6 +104,9 @@ def segments_to_grid(
     :return: the output grid
     :rtype: numpy.array
     """
+
+    assert_dataframe("segments", segments)
+    assert_columns_presence("segments", segments, {"segment_onset", "segment_offset"})
 
     categories = list(map(str, categories))
     units = int(np.ceil((range_offset - range_onset) / timescale))
@@ -175,8 +186,8 @@ def conf_matrix(rows_grid, columns_grid):
 def vectors_to_annotation_task(*args, drop: List[str] = []):
     """transform vectors of labels into a nltk AnnotationTask object.
 
-    :param *args: vector of labels for each annotator; add one argument per annotator.
-    :type *args: 1d np.array() of labels
+    :param args: vector of labels for each annotator; add one argument per annotator.
+    :type args: 1d np.array() of labels
     :param drop: list of labels that should be ignored
     :type drop: List[str]
     :return: the AnnotationTask object
@@ -230,6 +241,11 @@ def gamma(
     :rtype: float
     """
 
+    assert_dataframe("segments", segments)
+    assert_columns_presence(
+        "segments", segments, {"set", "segment_onset", "segment_offset"}
+    )
+
     from pyannote.core import Segment
     from pygamma_agreement.continuum import Continuum
     from pygamma_agreement.dissimilarity import CombinedCategoricalDissimilarity
@@ -243,9 +259,7 @@ def gamma(
             segment[column],
         )
 
-    dissim = CombinedCategoricalDissimilarity(
-        delta_empty=1, alpha=alpha, beta=beta
-    )
+    dissim = CombinedCategoricalDissimilarity(delta_empty=1, alpha=alpha, beta=beta)
 
     gamma_results = continuum.compute_gamma(dissim, precision_level=precision_level)
 

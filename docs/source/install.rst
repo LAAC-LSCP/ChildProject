@@ -3,79 +3,60 @@
 Installation
 ------------
 
-Installing our package
-~~~~~~~~~~~~~~~~~~~~~~
+The following instructions will let you install two python packages:
 
-The package can be installed using pip :
-
-::
-
-    pip3 install ChildProject
-
-.. warning::
-    
-    Important: the package requires Python 3+. If the above command 
-    does not work, try `pip` instead of `pip3`, but make sure that `pip`
-    points to a python3 installation. You can do so by typing
-    ``pip --version``. If you have accidentally installed the package on  
-    the wrong environment, remove it with ``pip uninstall datalad``.
-
-If you are having permissions issues - or any other issue -, you can
-install the package in a virtual python environment beforehand. You will
-have to activate it everytime you need to use the package or datalad.
-
-::
-
-    python3 -m venv ~/ChildProjectVenv
-    source ~/ChildProjectVenv/bin/activate
-    pip3 install ChildProject
-
-Install ffmpeg
-==============
-
-Some of the tools for audio processing (e.g. conversion to another format)
-will require ffmpeg.
-It is usually installed on most systems. You can check by typing ``ffmpeg -version``.
-If it is not yet, it can be installed via ``apt install ffmpeg`` (Linux) or
-``brew install ffmpeg`` (Mac), or ``conda install ffmpeg`` for conda users.
-
-Installing DataLad
-~~~~~~~~~~~~~~~~~~
-
-In order to store and deliver the datasets, we recommend the use of DataLad,
-"a decentralized system for integrated discovery, management, and publication of digital objects of science",
-which we already use for several corpora.
-
-DataLad is a python package, but it also requires git-annex to be installed.
-
-For most MacOS and Linux users, these can be installed with:
-
-.. code:: bash
-
-    pip3 install datalad
-    apt-get install git-annex || brew install git-annex
-
-
-Detailed instructions for Windows, Linux and MacOS users are given in 
-`DataLad's handbook <http://handbook.datalad.org/en/latest/intro/installation.html>`_,
-including instructions to install DataLad via conda.
+ - **ChildProject**, the package that is documented here.
+ - **DataLad**, a python software for the management and delivery of scientific data. Although ChildProject may work without it, a number of datasets of daylong recordings of children require it.
 
 .. note::
 
-    After installing, please make sure your version of git-annex
-    is recent (we recommend 8.2 and later), with ``git-annex version``.
-    
-    
-At this point, you may have received a message like the following:
+    The default installation procedure requires anaconda. If you are not sure you have conda installed, please do ``conda --version``.
+    If you don't, please refer to the instructions `here <https://docs.anaconda.com/anaconda/install/index.html>`_.
 
-> It is highly recommended to configure Git before using DataLad. Set both 'user.name' and 'user.email' configuration variables.
+Linux users
+~~~~~~~~~~~
 
-You can squash this message by providing these credentials (and if you already have an account on GitHub or GitLab, you can take your name and email from your GitHub or GitLab accounts; otherwise, just provide your name and email):
+.. code:: bash
 
-```
-git config --global user.name "FIRST_NAME LAST_NAME"
-git config --global user.email "MY_NAME@example.com"
-```
+    # download the conda environment
+    wget https://raw.githubusercontent.com/LAAC-LSCP/ChildProject/master/env_linux.yml -O env.yml
+
+    # create the conda environment
+    conda env create -f env.yml
+
+    # activate the environment (this should be done systematically to use our package)
+    conda activate childproject
+
+
+MacOS users
+~~~~~~~~~~~
+
+.. code:: bash
+
+    # download the conda environment
+    curl https://raw.githubusercontent.com/LAAC-LSCP/ChildProject/master/env_macos.yml -o env.yml
+
+    # create the conda environment
+    conda env create -f env.yml
+
+    # activate the environment (this should be done systematically to use our package)
+    conda activate childproject
+
+    # install git-annex from brew
+    brew install git-annex
+
+.. note::
+
+    The ChildProject package alone can also be installed directly through pip, without using conda.
+    However, this means git-annex, ffmpeg, and other dependencies that are not installable
+    through pip will have to be installed by hand.
+
+    The following command will install the python package alone via pip and pypi:
+
+    .. code:: bash
+
+        pip install ChildProject
+
 
 Check the setup
 ~~~~~~~~~~~~~~~
@@ -84,29 +65,78 @@ You can now make sure the packages have been successfully installed:
 
 .. clidoc::
 
-    datalad --version
+   child-project --help
 
 .. clidoc::
 
-   child-project --help
+    # optional software, for getting and sharing data
+    datalad --version
 
+.. warning::
+
+    ChildProject is only officially supported on Linux and Mac for python >= 3.7.
+    We perform automated, continuous testing on these environments to look
+    for potential issues at any step of the development.
+
+    We expect the package to work on Windows, although we do not perform
+    automated tests on this OS at the moment.
 
 .. note::
 
     We recommend that you regularly keep DataLad and our package up to date. 
-    To force-upgrade this package, do ``pip3 uninstall ChildProject``
-    and then ``pip3 install ChildProject --upgrade``.
+    To force-upgrade this package, do ``pip uninstall ChildProject``
+    and then ``pip install ChildProject --upgrade``.
 
     You may also want to install the development version from GitHub in order
     to receive more recent updates before their release:
 
     .. code:: bash
     
-        pip3 install git+https://github.com/LAAC-LSCP/ChildProject.git --force-reinstall
+        pip install git+https://github.com/LAAC-LSCP/ChildProject.git --force-reinstall
 
     Since some updates may break compatibility with previous versions,
     we advise you to read the `Change Log <https://github.com/LAAC-LSCP/ChildProject/blob/master/CHANGELOG.md>`_
     before upgrading.
     
-    DataLad can also be upgraded with ``pip3 install datalad --upgrade``
+    DataLad can also be upgraded with ``pip install datalad --upgrade``
     (see DataLad's documentation for more details).
+
+Troubleshooting
+~~~~~~~~~~~~~~~
+
+If you are having trouble installing ChildProject, please look
+for similar issues on our GithHub (in `Issues <https://github.com/LAAC-LSCP/ChildProject/issues>`__ or `Discussions <https://github.com/LAAC-LSCP/ChildProject/discussions>`__).
+
+If this issue is related to a dependency of the package, we recommend that you ask
+the developers of the depdendency directly as you may get more accurate advice.
+
+If this issue is related to DataLad, please create an issue on `DataLad's GitHub <https://github.com/datalad/datalad/issues>`__.
+
+
+Frequently Asked Questions
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    *I don't have anaconda and I can't install it. What should I do?*
+
+You should try to install the package inside of a python environment instead, e.g.:
+
+.. code:: bash
+
+    python3 -m venv ~/ChildProjectVenv
+    source ~/ChildProjectVenv/bin/activate
+    pip3 install ChildProject
+
+You will still need git-annex in order to use DataLad.
+It can be installed with brew for Mac users (`brew install git-annex`)
+or through apt for Linux users (`apt install git-annex`).
+Most likely, you will lack permissions to do so if you failed to install anaconda.
+In this case, pleaser refer to your system administrator.
+
+    *``brew install git-annex`` does not work!*
+
+Please try ``brew install --build-from-source git-annex``. 
+
+If this does not work better for you, make sure that your version of Mac OS is 10.14 or later.
+We are aware of issues with Mac OS 10.13 (High Sierra) and earlier.
+
+If your issues persistent, please report it to [DataLad](https://github.com/datalad/datalad).

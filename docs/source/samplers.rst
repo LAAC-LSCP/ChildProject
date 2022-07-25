@@ -81,8 +81,37 @@ or ``child_id`` (to sample equally from each child).
 High-Volubility sampler
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-(TODO)
+Return the top ``windows_count`` windows (of length ``windows_length``) with the highest volubility from each recording, as calculated from the metric ``metric``.
+
+``metrics`` can be any of three values: words, turns, and vocs.
+
+- The **words** metric sums the amount of words within each window. For LENA annotations, it is equivalent to **awc**.
+- The **turns** metric (aka ctc) sums conversational turns within each window. It relies on **lena_conv_turn_type** for LENA annotations. For other annotations, turns are estimated as adult/child speech switches in close temporal proximity.
+- The **vocs** metric sums utterances (for LENA annotations) or vocalizations (for other annotations) within each window. If ``metric="vocs"`` and ``speakers=['CHI']``, it is equivalent to the usual cvc metric (child vocalization counts).
 
 .. clidoc::
 
    child-project sampler /path/to/dataset /path/to/destination high-volubility --help
+
+Conversation sampler
+~~~~~~~~~~~~~~~~~~~~
+
+The conversation sampler returns the conversational blocks with the highest amount of turns (between adults and the key child).
+The first step is the detection of conversational blocks.
+Two consecutive vocalizations are considered part of the same conversational block if they are not separated
+by an interval longer than a certain duration, which by default is set to 1000 milliseconds.
+
+Then, the amount of conversational turns (by default, between the key child and female/male adults) is calculated for each conversational block.
+The sampler returns, for each unit, the desired amount of conversations with the higher amount of turns.
+
+This sampler, unlike the High-Volubility sampler, returns portions of audio with variable durations.
+Fixed duration can still be achieved by clipping or splitting each conversational block.
+
+
+.. clidoc::
+
+   child-project sampler /path/to/dataset /path/to/destination conversations --help
+
+.. note::
+
+   This sampler ignores LENA's conversational turn types.
