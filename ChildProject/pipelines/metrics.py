@@ -268,10 +268,9 @@ class Metrics(ABC):
         else:
             matches = annotations
 
-        try:
+        if matches.shape[0]:
             segments = self.am.get_segments(matches)
-        except Exception as e:
-            #print(str(e))
+        else:
             #no annotations for that unit
             return pd.DataFrame(), pd.DataFrame()
 
