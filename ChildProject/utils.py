@@ -1,6 +1,5 @@
 import os
 from datetime import datetime
-import librosa
 from scipy.fftpack import fft, ifft
 import numpy as np
 
@@ -116,6 +115,7 @@ def get_audio_duration(filename):
 
 #reads a wav file for a given start point and duration (both in seconds)
 def read_wav(filename, start_s, length_s):
+    import librosa
     #we use librosa because it supports more codecs and is less likely to crash on an unsual encoding
     y,sr = librosa.load(filename, sr=None,mono=False, offset=start_s, duration = length_s)
     channels = 1 if len(y.shape) == 1 else y.shape[0]
