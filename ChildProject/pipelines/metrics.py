@@ -19,6 +19,30 @@ from ..utils import TimeInterval, time_intervals_intersect
 pipelines = {}
 
 class Metrics(ABC):
+    """
+    Main class for generating metrics from a project object and a list of desired metrics
+    
+    :param project: ChildProject instance of the target dataset.
+    :type project: ChildProject.projects.ChildProject
+    :param metrics_list: pandas DataFrame containing the desired metrics (metrics functions are in metricsFunctions.py)
+    :type metrics_list: pd.DataFrame
+    :param by: unit to extract metric from (recording_filename, experiment, child_id, session_id), defaults to 'recording_filename'
+    :type by: str, optional
+    :param recordings: recordings to sample from; if None, all recordings will be sampled, defaults to None
+    :type recordings: Union[str, List[str], pd.DataFrame], optional
+    :param from_time: If specified (in HH:MM format), ignore annotations outside of the given time-range, defaults to None
+    :type from_time: str, optional
+    :param to_time:  If specified (in HH:MM format), ignore annotations outside of the given time-range, defaults to None
+    :type to_time: str, optional
+    :param rec_cols: columns from recordings.csv to include in the outputted metrics (optional), recording_filename,session_id,child_id,duration are always included if possible and dont need to be specified. Any column that is not unique for a given unit (eg date_iso for a child_id being recorded on multiple days) will output a <NA> value
+    :type rec_cols: str, optional
+    :param child_cols: columns from children.csv to include in the outputted metrics (optional), None by default
+    :type child_cols: str, optional
+    :param period: time units to aggregate (optional); equivalent to ``pandas.Grouper``'s freq argument.
+    :type period: str, optional
+    :param threads: amount of threads to run on, defaults to 1
+    :type threads: int, optional
+    """
     def __init__(
         self,
         project: ChildProject.projects.ChildProject,
@@ -347,6 +371,8 @@ class CustomMetrics(Metrics):
     :type child_cols: str, optional
     :param by: units to sample from, defaults to 'recording_filename'
     :type by: str, optional
+    :param period: time units to aggregate (optional); equivalent to ``pandas.Grouper``'s freq argument.
+    :type period: str, optional
     :param threads: amount of threads to run on, defaults to 1
     :type threads: int, optional
     """
@@ -400,6 +426,8 @@ class LenaMetrics(Metrics):
     :type child_cols: str, optional
     :param by: units to sample from, defaults to 'recording_filename'
     :type by: str, optional
+    :param period: time units to aggregate (optional); equivalent to ``pandas.Grouper``'s freq argument.
+    :type period: str, optional
     :param threads: amount of threads to run on, defaults to 1
     :type threads: int, optional
     """
@@ -486,6 +514,8 @@ class AclewMetrics(Metrics):
     :type child_cols: str, optional
     :param by: units to sample from, defaults to 'recording_filename'
     :type by: str, optional
+    :param period: time units to aggregate (optional); equivalent to ``pandas.Grouper``'s freq argument.
+    :type period: str, optional
     :param threads: amount of threads to run on, defaults to 1
     :type threads: int, optional
     """
