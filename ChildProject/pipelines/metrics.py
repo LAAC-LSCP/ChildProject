@@ -1,31 +1,95 @@
 from abc import ABC, abstractmethod
+import os
 import argparse
 import datetime
 import multiprocessing as mp
 import numpy as np
 import pandas as pd
 from typing import Union, List
+import yaml
+from git import Repo
+from git.exc import InvalidGitRepositoryError
 
 import ChildProject
 from ChildProject.pipelines.pipeline import Pipeline
 
+import ChildProject.pipelines.metricsFunctions as metfunc #used by eval
+from ..utils import TimeInterval, time_intervals_intersect
+
 pipelines = {}
 
-
 class Metrics(ABC):
+    """
+    Main class for generating metrics from a project object and a list of desired metrics
+    
+    :param project: ChildProject instance of the target dataset.
+    :type project: ChildProject.projects.ChildProject
+    :param metrics_list: pandas DataFrame containing the desired metrics (metrics functions are in metricsFunctions.py)
+    :type metrics_list: pd.DataFrame
+    :param by: unit to extract metric from (recording_filename, experiment, child_id, session_id), defaults to 'recording_filename'
+    :type by: str, optional
+    :param recordings: recordings to sample from; if None, all recordings will be sampled, defaults to None
+    :type recordings: Union[str, List[str], pd.DataFrame], optional
+    :param from_time: If specified (in HH:MM format), ignore annotations outside of the given time-range, defaults to None
+    :type from_time: str, optional
+    :param to_time:  If specified (in HH:MM format), ignore annotations outside of the given time-range, defaults to None
+    :type to_time: str, optional
+    :param rec_cols: columns from recordings.csv to include in the outputted metrics (optional), recording_filename,session_id,child_id,duration are always included if possible and dont need to be specified. Any column that is not unique for a given unit (eg date_iso for a child_id being recorded on multiple days) will output a <NA> value
+    :type rec_cols: str, optional
+    :param child_cols: columns from children.csv to include in the outputted metrics (optional), None by default
+    :type child_cols: str, optional
+    :param period: time units to aggregate (optional); equivalent to ``pandas.Grouper``'s freq argument.
+    :type period: str, optional
+    :param threads: amount of threads to run on, defaults to 1
+    :type threads: int, optional
+    """
     def __init__(
         self,
         project: ChildProject.projects.ChildProject,
+        metrics_list: pd.DataFrame,
         by: str = "recording_filename",
         recordings: Union[str, List[str], pd.DataFrame] = None,
         from_time: str = None,
         to_time: str = None,
         rec_cols: str = None,
         child_cols: str = None,
+        period: str = None,
+        threads: int = 1,
     ):
 
         self.project = project
         self.am = ChildProject.annotations.AnnotationManager(self.project)
+        self.threads = int(threads)
+        
+        #check that the callable column is either a callable function or a string that can be found as being part of the list of metrics in ChildProject/pipelines/metricsFunctions.py
+        def check_callable(row):
+            if callable(row["callable"]): return row["callable"]
+            if isinstance(row["callable"],str):
+                try:
+                    f = getattr(metfunc , row["callable"])
+                except Exception:
+                    raise ValueError("{} function is not defined and was not found in ChildProject/pipelines/metricsFunctions.py".format(row["callable"]))
+                return f
+            else :
+                raise ValueError("{} cannot be evaluated as a metric, must be a callable object or a string".format(row["callable"]))
+        
+        #block checking presence of required columns and evaluates the callable functions
+        if isinstance(metrics_list, pd.DataFrame):
+            if ({'callable','set'}).issubset(metrics_list.columns):
+                metrics_list["callable"] = metrics_list.apply(check_callable,axis=1)
+            else:
+                raise ValueError("metrics_list parameter must contain atleast the columns [callable,set]")
+        else:
+            raise ValueError("metrics_list parameter must be a pandas DataFrame")
+        metrics_list.sort_values(by="set",inplace=True)
+        
+        for setname in np.unique(metrics_list['set'].values):
+            if setname not in self.am.annotations["set"].values:
+                raise ValueError(
+                    f"annotation set '{setname}' was not found in the index; "
+                    "check spelling and make sure the set was properly imported."
+                )
+        self.metrics_list = metrics_list
 
         #necessary columns to construct the metrics
         join_columns = {
@@ -80,56 +144,220 @@ class Metrics(ABC):
             self.child_cols = None
         
         self.by = by
+        self.period = period
+        
+        #build a dataframe with all the periods we will want for each unit
+        if self.period: 
+            self.periods = pd.interval_range(
+                start=datetime.datetime(1900, 1, 1, 0, 0, 0, 0),
+                end=datetime.datetime(1900, 1, 2, 0, 0, 0, 0),
+                freq=self.period,
+                closed="both",
+            )
+            self.periods= pd.DataFrame(self.periods.to_tuples().to_list(),columns=['period_start','period_end'])
+        
         self.segments = pd.DataFrame()
 
         self.recordings = Pipeline.recordings_from_list(recordings)
-
-        self.from_time = from_time
-        self.to_time = to_time
+        
+        if from_time:
+            try:
+                self.from_time = datetime.datetime.strptime(from_time, "%H:%M")
+            except:
+                raise ValueError(f"invalid value for from_time ('{from_time}'); should have HH:MM format instead")
+        else:
+            self.from_time = None
+        
+        if to_time:
+            try:
+                self.to_time = datetime.datetime.strptime(to_time, "%H:%M")
+            except:
+                raise ValueError(f"invalid value for to_time ('{to_time}'); should have HH:MM format instead")
+        else:
+            self.to_time = None
+        
+        self._initiate_metrics_df()
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         pipelines[cls.SUBCOMMAND] = cls
 
-    @abstractmethod
+    def _process_unit(self,row):
+        """for one unit (i.e. 1 {recording|session|child} [period]) compute the list of required metrics and store the results in the current row of self.metrics
+        
+        :param row: index and Series of the unit to process, to be modified with the results
+        :type row: (int , pandas.Series)
+        :return: Series containing all the computed metrics result for that unit
+        :rtype: pandas.Series
+        """
+        #row[0] is the index of the row we are processing
+        #row[1] is the actual Series containing all the metrics for the currently processed line
+        prev_set = ""
+        duration_set = 0
+        for i, line in self.metrics_list.iterrows():
+            curr_set = line["set"]
+            if prev_set != curr_set:
+                index, annotations = self.retrieve_segments([curr_set],row[1])
+                if index.shape[0]:
+                    duration_set = (
+                            index["range_offset"] - index["range_onset"]
+                        ).sum()
+                else : duration_set = 0
+                row[1]["duration_{}".format(line["set"])] = duration_set
+                prev_set = curr_set            
+
+            if 'name' in line and not pd.isnull(line["name"]) and line["name"]: #the 'name' column exists and its value is not NaN or ''  => use the name given by the user
+                row[1][line["name"]] = line["callable"](annotations, duration_set, **line.drop(['callable', 'set','name'],errors='ignore').dropna().to_dict())[1]
+            else : # use the default name of the metric function
+                name, value = line["callable"](annotations, duration_set, **line.drop(['callable', 'set','name'],errors='ignore').dropna().to_dict())
+                row[1][name] = value
+        
+        return row[1]
+                
+    
     def extract(self):
-        pass
-
-    def retrieve_segments(self, sets: List[str], unit: str):
-        annotations = self.am.annotations[self.am.annotations[self.by] == unit]
-        annotations = annotations[annotations["set"].isin(sets)]
-
-        if self.from_time and self.to_time:
-            annotations = self.am.get_within_time_range(
-                annotations, self.from_time, self.to_time, errors="coerce"
+        """from the initiated self.metrics, compute each row metrics (handles threading)
+        Once the Metrics class is initialized, call this function to extract the metrics and populate self.metrics
+        
+        :return: DataFrame of computed metrics
+        :rtype: pandas.DataFrame
+        """
+        if self.threads == 1:
+            self.metrics = pd.DataFrame(
+                [self._process_unit(row) for row in self.metrics.iterrows()]
             )
+        else:
+            with mp.Pool(
+                processes=self.threads if self.threads >= 1 else mp.cpu_count()
+            ) as pool:
+                self.metrics = pd.DataFrame(
+                    pool.map(self._process_unit, self.metrics.iterrows())
+                )
+        if self.period:
+            self.metrics['period_start'] = self.metrics['period_start'].dt.strftime('%H:%M:%S')
+            self.metrics['period_end'] = self.metrics['period_end'].dt.strftime('%H:%M:%S')
+        return self.metrics
 
-        try:
-            segments = self.am.get_segments(annotations)
-        except Exception as e:
-            print(str(e))
+    def retrieve_segments(self, sets: List[str], row: str):
+        """from a list of sets and and a row identifying the unit computed, return the relevant annotation segments
+        
+        :param sets: List of annotation sets to keep
+        :type sets: List[str]
+        :param row: Series storing the unit to compute information
+        :type row: pandas.Series
+        :return: relevant annotation DataFrame and index DataFrame
+        :rtype: (pandas.DataFrame , pandas.DataFrame)
+        """
+        annotations = self.am.annotations[self.am.annotations[self.by] == row[self.by]]
+        annotations = annotations[annotations["set"].isin(sets)]
+        
+        if self.from_time and self.to_time:
+            if self.period:
+                st_hour = row["period_start"]
+                end_hour = row["period_end"]
+                intervals = time_intervals_intersect(TimeInterval(self.from_time,self.to_time),TimeInterval(st_hour,end_hour))
+                matches = pd.concat([self.am.get_within_time_range(annotations,i) for i in intervals],ignore_index =True) if intervals else pd.DataFrame()
+            else:
+                matches = self.am.get_within_time_range(
+                annotations, TimeInterval(self.from_time,self.to_time))
+        elif self.period:
+            st_hour = row["period_start"]
+            end_hour = row["period_end"]
+            matches = self.am.get_within_time_range(
+                    annotations, TimeInterval(st_hour,end_hour))
+        else:
+            matches = annotations
+
+        if matches.shape[0]:
+            segments = self.am.get_segments(matches)
+        else:
+            #no annotations for that unit
             return pd.DataFrame(), pd.DataFrame()
 
         # prevent overflows
         segments["duration"] = (
-            (segments["segment_offset"] / 1000 - segments["segment_onset"] / 1000)
+            (segments["segment_offset"] - segments["segment_onset"])
             .astype(float)
             .fillna(0)
         )
 
-        return annotations, segments
-
-
-class LenaMetrics(Metrics):
-    """LENA metrics extractor. 
-    Extracts a number of metrics from the LENA .its annotations.
-
+        return matches, segments
+    
+    def _initiate_metrics_df(self):
+        """builds a dataframe with all the rows necessary and their labels
+        eg : - one row per child if --by child_id and no --period
+             - 48 rows if 2 recordings in the corpus --period 1h --by recording_filename
+        Then the extract() method should populate the dataframe with actual metrics
+        """
+        recordings = self.project.get_recordings_from_list(self.recordings)
+        self.metrics = pd.DataFrame(recordings[self.by].unique(), columns=[self.by])
+        
+        if self.period:
+            #if period, use the self.periods dataframe to build all the list of segments per unit
+            self.metrics["key"]=0 #with old versions of pandas, we are forced to have a common column to do a cross join, we drop the column after
+            self.periods["key"]=0
+            self.metrics = pd.merge(self.metrics,self.periods,on='key',how='outer').drop('key',axis=1)
+        
+        #add info for child_id
+        self.metrics["child_id"] = self.metrics.apply(
+                lambda row:self.project.recordings[self.project.recordings[self.by] == row[self.by]
+        ]["child_id"].iloc[0],
+        axis=1)
+        
+        #get and add to dataframe children.csv columns asked
+        if self.child_cols:
+            for label in self.child_cols:
+                self.metrics[label]= self.metrics.apply(lambda row:
+                    self.project.children[
+                        self.project.children["child_id"] == row["child_id"]
+                ][label].iloc[0], axis=1)
+            
+        #this loop is for the purpose of checking for name duplicates in the metrics
+        #we do a dry run on the first line with no annotations bc impractical to check in multiprocessing
+        df = pd.DataFrame()
+        duration_set = 0
+        names = set()
+        for i, line in self.metrics_list.iterrows():
+            if 'name' in line and not pd.isnull(line["name"]) and line["name"]: 
+                name = line["name"]
+            else : # use the default name of the metric function
+                name, value = line["callable"](df, duration_set, **line.drop(['callable', 'set','name'],errors='ignore').dropna().to_dict())
+                
+            if name in names:
+                raise ValueError('the metric name <{}> is used multiple times, make sure it is unique'.format(name))
+            else:
+                names.add(name)
+            
+        #checking that columns added by the user are unique (e.g. date_iso may be different when extract by child_id), replace with NA if they are not
+        def check_unicity(row, label):
+            value=self.project.recordings[
+                        self.project.recordings[self.by] == row[self.by]
+                ][label].drop_duplicates()
+            #check that there is only one row remaining (ie this column has a unique value for that unit)
+            if len(value) == 1:
+                return value.iloc[0]
+            #otherwise, leave the column as NA
+            else:
+                return np.nan
+        
+        #get and add to dataframe recordings.csv columns asked
+        if self.rec_cols:
+            for label in self.rec_cols:
+                self.metrics[label] = self.metrics.apply(lambda row : check_unicity(row,label),axis=1)
+                
+class CustomMetrics(Metrics):
+    """metrics extraction from a csv file. 
+    Extracts a number of metrics listed in a csv file as a dataframe.
+    the csv file must contain the columns :
+        - 'callable' which is the name of the wanted metric from the list of available metrics
+        - 'set' which is the set of annotations to use for that specific metric (make sure this set has the required columns for that metric)
+        - 'name' is optional, this is the name to give to that metric (if not given, a default name will be attributed)
+        - any other necessary argument for the given metrics (eg the voc_speaker_ph metric requires the 'speaker' argument: add a column 'speaker' in the csv file and fill its cells for this metric with the wanted value (CHI|FEM|MAL|OCH))
+        
     :param project: ChildProject instance of the target dataset.
     :type project: ChildProject.projects.ChildProject
-    :param set: name of the set associated to the .its annotations
-    :type set: str
-    :param types: list of LENA vocalization/noise types (e.g. OLN, TVN)
-    :type types: list
+    :param metrics: name of the csv file listing the metrics to extract
+    :type metrics: str
     :param recordings: recordings to sample from; if None, all recordings will be sampled, defaults to None
     :type recordings: Union[str, List[str], pd.DataFrame], optional
     :param from_time: If specified (in HH:MM format), ignore annotations outside of the given time-range, defaults to None
@@ -142,6 +370,63 @@ class LenaMetrics(Metrics):
     :type child_cols: str, optional
     :param by: units to sample from, defaults to 'recording_filename'
     :type by: str, optional
+    :param period: time units to aggregate (optional); equivalent to ``pandas.Grouper``'s freq argument.
+    :type period: str, optional
+    :param threads: amount of threads to run on, defaults to 1
+    :type threads: int, optional
+    """
+    
+    SUBCOMMAND = "custom"
+
+    def __init__(
+        self,
+        project: ChildProject.projects.ChildProject,
+        metrics: str,
+        recordings: Union[str, List[str], pd.DataFrame] = None,
+        from_time: str = None,
+        to_time: str = None,       
+        rec_cols: str = None,
+        child_cols: str = None,
+        by: str = "recording_filename",
+        period: str = None,
+        threads: int = 1,
+    ):
+        
+        metrics_df = pd.read_csv(metrics)
+        
+        super().__init__(project, metrics_df, by=by, recordings=recordings,
+             from_time=from_time, to_time=to_time, rec_cols=rec_cols,
+             child_cols=child_cols, period=period, threads=threads)
+    
+    @staticmethod
+    def add_parser(subparsers, subcommand):
+        parser = subparsers.add_parser(subcommand, help="metrics from a csv file")
+        parser.add_argument("metrics",
+            help="name if the csv file containing the list of metrics",
+        )
+        
+class LenaMetrics(Metrics):
+    """LENA metrics extractor. 
+    Extracts a number of metrics from the LENA .its annotations.
+
+    :param project: ChildProject instance of the target dataset.
+    :type project: ChildProject.projects.ChildProject
+    :param set: name of the set associated to the .its annotations
+    :type set: str
+    :param recordings: recordings to sample from; if None, all recordings will be sampled, defaults to None
+    :type recordings: Union[str, List[str], pd.DataFrame], optional
+    :param from_time: If specified (in HH:MM format), ignore annotations outside of the given time-range, defaults to None
+    :type from_time: str, optional
+    :param to_time:  If specified (in HH:MM format), ignore annotations outside of the given time-range, defaults to None
+    :type to_time: str, optional
+    :param rec_cols: columns from recordings.csv to include in the outputted metrics (optional), recording_filename,session_id,child_id,duration are always included if possible and dont need to be specified. Any column that is not unique for a given unit (eg date_iso for a child_id being recorded on multiple days) will output a <NA> value
+    :type rec_cols: str, optional
+    :param child_cols: columns from children.csv to include in the outputted metrics (optional), None by default
+    :type child_cols: str, optional
+    :param by: units to sample from, defaults to 'recording_filename'
+    :type by: str, optional
+    :param period: time units to aggregate (optional); equivalent to ``pandas.Grouper``'s freq argument.
+    :type period: str, optional
     :param threads: amount of threads to run on, defaults to 1
     :type threads: int, optional
     """
@@ -152,21 +437,42 @@ class LenaMetrics(Metrics):
         self,
         project: ChildProject.projects.ChildProject,
         set: str,
-        types: list = [],
         recordings: Union[str, List[str], pd.DataFrame] = None,
         from_time: str = None,
         to_time: str = None,       
         rec_cols: str = None,
         child_cols: str = None,
         by: str = "recording_filename",
+        period: str = None,
         threads: int = 1,
     ):
-
-        super().__init__(project, by, recordings, from_time, to_time, rec_cols, child_cols)
-
         self.set = set
-        self.types = types
-        self.threads = int(threads)
+        
+        METRICS = pd.DataFrame(np.array(
+            [["voc_speaker_ph",self.set,'FEM'],
+             ["voc_speaker_ph",self.set,'MAL'],
+             ["voc_speaker_ph",self.set,'OCH'],           
+             ["voc_speaker_ph",self.set,'CHI'],
+             ["voc_dur_speaker_ph",self.set,'FEM'],
+             ["voc_dur_speaker_ph",self.set,'MAL'],
+             ["voc_dur_speaker_ph",self.set,'OCH'],
+             ["voc_dur_speaker_ph",self.set,'CHI'],
+             ["avg_voc_dur_speaker",self.set,'FEM'],
+             ["avg_voc_dur_speaker",self.set,'MAL'],
+             ["avg_voc_dur_speaker",self.set,'OCH'],
+             ["avg_voc_dur_speaker",self.set,'CHI'],
+             ["wc_speaker_ph",self.set,'FEM'],
+             ["wc_speaker_ph",self.set,'MAL'],
+             ["wc_adu_ph",self.set,pd.NA],
+             ["lp_n",self.set,pd.NA],
+             ["lp_dur",self.set,pd.NA],
+             ]), columns=["callable","set","speaker"])
+
+        super().__init__(project, METRICS, by=by, recordings=recordings,
+             period=period, from_time=from_time, to_time=to_time, rec_cols=rec_cols,
+             child_cols=child_cols, threads=threads)
+
+        
 
         if self.set not in self.am.annotations["set"].values:
             raise ValueError(
@@ -174,166 +480,10 @@ class LenaMetrics(Metrics):
                 "check spelling and make sure the set was properly imported."
             )
 
-    def _process_unit(self, unit: str):
-        import ast
-
-        metrics = {self.by: unit}
-        annotations, its = self.retrieve_segments([self.set], unit)
-
-        speaker_types = ["FEM", "MAL", "CHI", "OCH"]
-        adults = ["FEM", "MAL"]
-
-        if "speaker_type" in its.columns:
-            its = its[
-                (its["speaker_type"].isin(speaker_types))
-                | (its["lena_speaker"].isin(self.types))
-            ]
-        else:
-            return metrics
-
-        if len(its) == 0:
-            return metrics
-
-        unit_duration = (
-            annotations["range_offset"] - annotations["range_onset"]
-        ).sum() / 1000
-
-        its_agg = its.groupby("speaker_type").agg(
-            voc_ph=("duration", "count"),
-            voc_dur_ph=("duration", "sum"),
-            avg_voc_dur=("duration", "mean"),
-            wc_ph=("words", "sum"),
-        )
-
-        for speaker in speaker_types:
-            if speaker not in its_agg.index:
-                continue
-
-            metrics["voc_{}_ph".format(speaker.lower())] = (
-                3600 / unit_duration
-            ) * its_agg.loc[speaker, "voc_ph"]
-            metrics["voc_dur_{}_ph".format(speaker.lower())] = (
-                3600 / unit_duration
-            ) * its_agg.loc[speaker, "voc_dur_ph"]
-            metrics["avg_voc_dur_{}".format(speaker.lower())] = its_agg.loc[
-                speaker, "avg_voc_dur"
-            ]
-
-            if speaker in adults:
-                metrics["wc_{}_ph".format(speaker.lower())] = (
-                    3600 / unit_duration
-                ) * its_agg.loc[speaker, "wc_ph"]
-
-        if len(self.types):
-            its_agg = its.groupby("lena_speaker").agg(
-                voc_ph=("duration", "count"),
-                voc_dur_ph=("duration", "sum"),
-                avg_voc_dur=("duration", "mean"),
-            )
-
-        for lena_type in self.types:
-            if lena_type not in its_agg.index:
-                continue
-
-            metrics["voc_{}_ph".format(lena_type.lower())] = (
-                3600 / unit_duration
-            ) * its_agg.loc[lena_type, "voc_ph"]
-            metrics["voc_dur_{}_ph".format(lena_type.lower())] = (
-                3600 / unit_duration
-            ) * its_agg.loc[lena_type, "voc_dur_ph"]
-            metrics["avg_voc_dur_{}".format(lena_type.lower())] = its_agg.loc[
-                lena_type, "avg_voc_dur"
-            ]
-
-        chi = its[its["speaker_type"] == "CHI"]
-        cries = chi["cries"].apply(lambda x: len(ast.literal_eval(x))).sum()
-        vfxs = chi["vfxs"].apply(lambda x: len(ast.literal_eval(x))).sum()
-        utterances = chi["utterances_count"].sum()
-
-        metrics["lp_n"] = utterances / (utterances + cries + vfxs)
-        metrics["lp_dur"] = chi["utterances_length"].sum() / (
-            chi["child_cry_vfx_len"].sum() + chi["utterances_length"].sum()
-        )
-
-        metrics["wc_adu_ph"] = its["words"].sum() * 3600 / unit_duration
-
-        #add info for child_id and duration to the dataframe
-        metrics["child_id"] = self.project.recordings[
-            self.project.recordings[self.by] == unit
-        ]["child_id"].iloc[0]
-        metrics["duration"] = unit_duration
-        
-        #get and add to dataframe children.csv columns asked
-        if self.child_cols:
-            for label in self.child_cols:
-                metrics[label]=self.project.children[
-                        self.project.children["child_id"] == metrics["child_id"]
-                ][label].iloc[0]
-                
-        #get and add to dataframe recordings.csv columns asked
-        if self.rec_cols:
-            for label in self.rec_cols:
-                #for every unit drop the duplicates for that column
-                value=self.project.recordings[
-                        self.project.recordings[self.by] == unit
-                ][label].drop_duplicates()
-                #check that there is only one row remaining (ie this column has a unique value for that unit)
-                if len(value) == 1:
-                    metrics[label]=value.iloc[0]
-                #otherwise, leave the column as NA
-                else:
-                    metrics[label]="NA"
-
-        return metrics
-
-    def extract(self):
-        recordings = self.project.get_recordings_from_list(self.recordings)
-
-        if self.threads == 1:
-            self.metrics = pd.DataFrame(
-                [self._process_unit(unit) for unit in recordings[self.by].unique()]
-            )
-        else:
-            with mp.Pool(
-                processes=self.threads if self.threads >= 1 else mp.cpu_count()
-            ) as pool:
-                self.metrics = pd.DataFrame(
-                    pool.map(self._process_unit, recordings[self.by].unique())
-                )
-
-        self.metrics.set_index(self.by, inplace=True)
-        return self.metrics
-
     @staticmethod
     def add_parser(subparsers, subcommand):
         parser = subparsers.add_parser(subcommand, help="LENA metrics")
         parser.add_argument("set", help="name of the LENA its annotations set")
-        parser.add_argument(
-            "--types",
-            help="list of LENA vocalizaton types to include",
-            choices=[
-                "TVF",
-                "FAN",
-                "OLN",
-                "SIL",
-                "NOF",
-                "CXF",
-                "OLF",
-                "CHF",
-                "MAF",
-                "TVN",
-                "NON",
-                "CXN",
-                "CHN",
-                "MAN",
-                "FAF",
-            ],
-            nargs="+", default=[],
-        )
-        parser.add_argument(
-            "--threads", help="amount of threads to run on", default=1, type=int
-        )
-
 
 class AclewMetrics(Metrics):
     """ACLEW metrics extractor.
@@ -363,6 +513,8 @@ class AclewMetrics(Metrics):
     :type child_cols: str, optional
     :param by: units to sample from, defaults to 'recording_filename'
     :type by: str, optional
+    :param period: time units to aggregate (optional); equivalent to ``pandas.Grouper``'s freq argument.
+    :type period: str, optional
     :param threads: amount of threads to run on, defaults to 1
     :type threads: int, optional
     """
@@ -380,206 +532,71 @@ class AclewMetrics(Metrics):
         to_time: str = None,
         rec_cols: str = None,
         child_cols: str = None,
+        period: str = None,
         by: str = "recording_filename",
         threads: int = 1,
     ):
-
-        super().__init__(project, by, recordings, from_time, to_time, rec_cols, child_cols)
-
+        
         self.vtc = vtc
         self.alice = alice
         self.vcm = vcm
-        self.threads = int(threads)
         
-        if self.vtc not in self.am.annotations["set"].values:
-            raise ValueError(
-                f"The VTC set '{self.vtc}' was not found in the index; "
-                "check spelling and make sure the set was properly imported."
-            )
-
-        if self.alice not in self.am.annotations["set"].values:
+        am = ChildProject.annotations.AnnotationManager(project) #temporary instance to check for existing sets. This is suboptimal because an annotation manager will be created by Metrics. However, the metrics classe raises a ValueError for every set passed that does not exist, here we want to check in advance which of the alice and vcm sets exist without raising an error
+              
+        METRICS = np.array(
+            [["voc_speaker_ph",self.vtc,'FEM'],
+             ["voc_speaker_ph",self.vtc,'MAL'],
+             ["voc_speaker_ph",self.vtc,'OCH'],
+             ["voc_speaker_ph",self.vtc,'CHI'],
+             ["voc_dur_speaker_ph",self.vtc,'FEM'],
+             ["voc_dur_speaker_ph",self.vtc,'MAL'],
+             ["voc_dur_speaker_ph",self.vtc,'OCH'],
+             ["voc_dur_speaker_ph",self.vtc,'CHI'],
+             ["avg_voc_dur_speaker",self.vtc,'FEM'],
+             ["avg_voc_dur_speaker",self.vtc,'MAL'],
+             ["avg_voc_dur_speaker",self.vtc,'OCH'],
+             ["avg_voc_dur_speaker",self.vtc,'CHI'],
+             ])
+        
+        if self.alice not in am.annotations["set"].values:
             print(f"The ALICE set ('{self.alice}') was not found in the index.")
-
-        if self.vcm not in self.am.annotations["set"].values:
-            print(f"The VCM set ('{self.vcm}') was not found in the index.")
-
-    def _process_unit(self, unit: str):
-        metrics = {self.by: unit}
-        annotations, segments = self.retrieve_segments(
-            [self.vtc, self.alice, self.vcm], unit
-        )
-
-        speaker_types = ["FEM", "MAL", "CHI", "OCH"]
-        adults = ["FEM", "MAL"]
-
-        if "speaker_type" in segments.columns:
-            segments = segments[segments["speaker_type"].isin(speaker_types)]
         else:
-            return metrics
-
-        if len(segments) == 0:
-            return metrics
-
-        vtc_ann = annotations[annotations["set"] == self.vtc]
-        unit_duration = (vtc_ann["range_offset"] - vtc_ann["range_onset"]).sum() / 1000
-
-        vtc = segments[segments["set"] == self.vtc]
-        alice = segments[segments["set"] == self.alice]
-        vcm = segments[segments["set"] == self.vcm]
-
-        vtc_agg = vtc.groupby("speaker_type").agg(
-            voc_ph=("duration", "count"),
-            voc_dur_ph=("duration", "sum"),
-            avg_voc_dur=("duration", "mean"),
-        )
-
-        for speaker in speaker_types:
-            if speaker not in vtc_agg.index:
-                continue
-
-            metrics["voc_{}_ph".format(speaker.lower())] = (
-                3600 / unit_duration
-            ) * vtc_agg.loc[speaker, "voc_ph"]
-            metrics["voc_dur_{}_ph".format(speaker.lower())] = (
-                3600 / unit_duration
-            ) * vtc_agg.loc[speaker, "voc_dur_ph"]
-            metrics["avg_voc_dur_{}".format(speaker.lower())] = vtc_agg.loc[
-                speaker, "avg_voc_dur"
-            ]
-        
-        if len(alice):
-            alice_agg = alice.groupby("speaker_type").agg(
-                wc_ph=("words", "sum"),
-                sc_ph=("syllables", "sum"),
-                pc_ph=("phonemes", "sum"),
-            )
-
-            for speaker in adults:
-                if speaker not in alice_agg.index:
-                    continue
-
-                metrics["wc_{}_ph".format(speaker.lower())] = (
-                    3600 / unit_duration
-                ) * alice_agg.loc[speaker, "wc_ph"]
-                metrics["sc_{}_ph".format(speaker.lower())] = (
-                    3600 / unit_duration
-                ) * alice_agg.loc[speaker, "sc_ph"]
-                metrics["pc_{}_ph".format(speaker.lower())] = (
-                    3600 / unit_duration
-                ) * alice_agg.loc[speaker, "pc_ph"]
-
-            metrics["wc_adu_ph"] = alice["words"].sum() * 3600 / unit_duration
-            metrics["sc_adu_ph"] = alice["syllables"].sum() * 3600 / unit_duration
-            metrics["pc_adu_ph"] = alice["phonemes"].sum() * 3600 / unit_duration
-
-        if len(vcm):
-            vcm_agg = (
-                vcm[vcm["speaker_type"] == "CHI"]
-                .groupby("vcm_type")
-                .agg(
-                    voc_chi_ph=("duration", "count"),
-                    voc_dur_chi_ph=("duration", "sum",),
-                    avg_voc_dur_chi=("duration", "mean"),
-                )
-            )
-
-            metrics["cry_voc_chi_ph"] = (3600 / unit_duration) * (
-                vcm_agg.loc["Y", "voc_chi_ph"] if "Y" in vcm_agg.index else 0
-            )
-            metrics["cry_voc_dur_chi_ph"] = (3600 / unit_duration) * (
-                vcm_agg.loc["Y", "voc_dur_chi_ph"] if "Y" in vcm_agg.index else 0
-            )
-
-            if "Y" in vcm_agg.index:
-                metrics["avg_cry_voc_dur_chi"] = (3600 / unit_duration) * vcm_agg.loc[
-                    "Y", "avg_voc_dur_chi"
-                ]
-
-            metrics["can_voc_chi_ph"] = (3600 / unit_duration) * (
-                vcm_agg.loc["C", "voc_chi_ph"] if "C" in vcm_agg.index else 0
-            )
-            metrics["can_voc_dur_chi_ph"] = (3600 / unit_duration) * (
-                vcm_agg.loc["C", "voc_dur_chi_ph"] if "C" in vcm_agg.index else 0
-            )
-
-            if "C" in vcm_agg.index:
-                metrics["avg_can_voc_dur_chi"] = (3600 / unit_duration) * vcm_agg.loc[
-                    "C", "avg_voc_dur_chi"
-                ]
-
-            metrics["non_can_voc_chi_ph"] = (3600 / unit_duration) * (
-                vcm_agg.loc["N", "voc_chi_ph"] if "N" in vcm_agg.index else 0
-            )
-            metrics["non_can_voc_dur_chi_ph"] = (3600 / unit_duration) * (
-                vcm_agg.loc["N", "voc_dur_chi_ph"] if "N" in vcm_agg.index else 0
-            )
-
-            if "N" in vcm_agg.index:
-                metrics["avg_non_can_voc_dur_chi"] = (
-                    3600 / unit_duration
-                ) * vcm_agg.loc["N", "avg_voc_dur_chi"]
-
-            speech_voc = metrics["can_voc_chi_ph"] + metrics["non_can_voc_chi_ph"]
-            speech_dur = (
-                metrics["can_voc_dur_chi_ph"] + metrics["non_can_voc_dur_chi_ph"]
-            )
-
-            cry_voc = metrics["cry_voc_chi_ph"]
-            cry_dur = metrics["cry_voc_dur_chi_ph"]
-
-            if speech_voc + cry_voc:
-                metrics["lp_n"] = speech_voc / (speech_voc + cry_voc)
-                metrics["cp_n"] = metrics["can_voc_chi_ph"] / speech_voc
-
-                metrics["lp_dur"] = speech_dur / (speech_dur + cry_dur)
-                metrics["cp_dur"] = metrics["can_voc_dur_chi_ph"] / speech_dur
-
-        #get child_id and duration that are always given
-        metrics["child_id"] = self.project.recordings[
-            self.project.recordings[self.by] == unit
-        ]["child_id"].iloc[0]
-        metrics["duration"] = unit_duration
-        
-        #get and add to dataframe children.csv columns asked
-        if self.child_cols:
-            for label in self.child_cols:
-                metrics[label]=self.project.children[
-                        self.project.children["child_id"] == metrics["child_id"]
-                ][label].iloc[0]
+            METRICS = np.concatenate((METRICS,np.array(
+             [["wc_speaker_ph",self.alice,'FEM'],
+             ["wc_speaker_ph",self.alice,'MAL'],
+             ["sc_speaker_ph",self.alice,'FEM'],
+             ["sc_speaker_ph",self.alice,'MAL'],
+             ["pc_speaker_ph",self.alice,'FEM'],
+             ["pc_speaker_ph",self.alice,'MAL'],
+             ["wc_adu_ph",self.alice,pd.NA],
+             ["sc_adu_ph",self.alice,pd.NA],
+             ["pc_adu_ph",self.alice,pd.NA],
+             ])))
+             
+        if self.vcm not in am.annotations["set"].values:
+            print(f"The vcm set ('{self.vcm}') was not found in the index.")
+        else:
+            METRICS = np.concatenate((METRICS,np.array(
+             [["cry_voc_speaker_ph",self.vcm,'CHI'],
+             ["cry_voc_dur_speaker_ph",self.vcm,'CHI'],
+             ["avg_cry_voc_dur_speaker",self.vcm,'CHI'],
+             ["can_voc_speaker_ph",self.vcm,'CHI'],
+             ["can_voc_dur_speaker_ph",self.vcm,'CHI'],
+             ["avg_can_voc_dur_speaker",self.vcm,'CHI'],
+             ["non_can_voc_speaker_ph",self.vcm,'CHI'],
+             ["non_can_voc_dur_speaker_ph",self.vcm,'CHI'],
+             ["avg_non_can_voc_dur_speaker",self.vcm,'CHI'],
+             ["lp_n",self.vcm,pd.NA],
+             ["lp_dur",self.vcm,pd.NA],
+             ["cp_n",self.vcm,pd.NA],
+             ["cp_dur",self.vcm,pd.NA],
+             ])))
                 
-        #get and add to dataframe recordings.csv columns asked
-        if self.rec_cols:
-            for label in self.rec_cols:
-                #for every unit drop the duplicates for that column
-                value=self.project.recordings[
-                        self.project.recordings[self.by] == unit
-                ][label].drop_duplicates()
-                #check that there is only one row remaining (ie this column has a unique value for that unit)
-                if len(value) == 1:
-                    metrics[label]=value.iloc[0]
-                #otherwise, leave the column as NA
-                else:
-                    metrics[label]="NA"
-        
-        return metrics
+        METRICS = pd.DataFrame(METRICS, columns=["callable","set","speaker"])
 
-    def extract(self):
-        recordings = self.project.get_recordings_from_list(self.recordings)
-
-        if self.threads == 1:
-            self.metrics = pd.DataFrame(
-                [self._process_unit(unit) for unit in recordings[self.by].unique()]
-            )
-        else:
-            with mp.Pool(
-                processes=self.threads if self.threads >= 1 else mp.cpu_count()
-            ) as pool:
-                self.metrics = pd.DataFrame(
-                    pool.map(self._process_unit, recordings[self.by].unique())
-                )
-
-        self.metrics.set_index(self.by, inplace=True)
-        return self.metrics
+        super().__init__(project, METRICS,by=by, recordings=recordings,
+             period=period, from_time=from_time, to_time=to_time,
+             rec_cols=rec_cols, child_cols=child_cols, threads=threads)
 
     @staticmethod
     def add_parser(subparsers, subcommand):
@@ -587,266 +604,6 @@ class AclewMetrics(Metrics):
         parser.add_argument("--vtc", help="vtc set", default="vtc")
         parser.add_argument("--alice", help="alice set", default="alice")
         parser.add_argument("--vcm", help="vcm set", default="vcm")
-        parser.add_argument(
-            "--threads", help="amount of threads to run on", default=1, type=int
-        )
-
-
-class PeriodMetrics(Metrics):
-    """Time-aggregated metrics extractor.
-
-    Aggregates vocalizations for each time-of-the-day-unit based on a period specified by the user.
-    For instance, if the period is set to ``15Min`` (i.e. 15 minutes), vocalization rates will be reported for each
-    recording and time-unit (e.g. 09:00 to 09:15, 09:15 to 09:30, etc.).
-
-    The output dataframe has ``rp`` rows, where ``r`` is the amount of recordings (or children if the ``--by`` option is set to ``child_id``), ``p`` is the 
-    amount of time-bins per day (i.e. 24 x 4 = 96 for a 15-minute period).
-
-    The output dataframe includes a ``period`` column that contains the onset of each time-unit in HH:MM:SS format.
-    The ``duration`` columns contains the total amount of annotations covering each time-bin, in milliseconds.
-
-    If ``--by`` is set to e.g. ``child_id``, then the values for each time-bin will be the average rates across
-    all the recordings of every child.
-
-    :param project: ChildProject instance of the target dataset
-    :type project: ChildProject.projects.ChildProject
-    :param set: name of the set of annotations to derive the metrics from
-    :type set: str
-    :param period: Time-period. Values should be formatted as `pandas offset aliases <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__. For instance, `15Min` corresponds to a 15 minute period; `2H` corresponds to a 2 hour period.
-    :type period: str
-    :param period_origin: NotImplemented, defaults to None
-    :type period_origin: str, optional
-    :param recordings: white-list of recordings to process, defaults to None
-    :type recordings: Union[str, List[str], pd.DataFrame], optional
-    :param from_time: If specified (in HH:MM format), ignore annotations outside of the given time-range, defaults to None
-    :type from_time: str, optional
-    :param to_time:  If specified (in HH:MM format), ignore annotations outside of the given time-range, defaults to None
-    :type to_time: str, optional
-    :param rec_cols: columns from recordings.csv to include in the outputted metrics (optional), recording_filename,session_id,child_id,duration are always included if possible and dont need to be specified. Any column that is not unique for a given unit (eg date_iso for a child_id being recorded on multiple days) will output a <NA> value
-    :type rec_cols: str, optional
-    :param child_cols: columns from children.csv to include in the outputted metrics (optional), None by default
-    :type child_cols: str, optional
-    :param by: units to sample from, defaults to 'recording_filename'
-    :type by: str, optional
-    :param threads: amount of threads to run on, defaults to 1
-    :type threads: int, optional
-    """
-
-    SUBCOMMAND = "period"
-
-    def __init__(
-        self,
-        project: ChildProject.projects.ChildProject,
-        set: str,
-        period: str,
-        period_origin: str = None,
-        recordings: Union[str, List[str], pd.DataFrame] = None,
-        from_time: str = None,
-        to_time: str = None,
-        rec_cols: str = None,
-        child_cols: str = None,
-        by: str = "recording_filename",
-        threads: int = 1,
-    ):
-
-        super().__init__(project, by, recordings, from_time, to_time, rec_cols, child_cols)
-
-        self.set = set
-        self.threads = int(threads)
-
-        self.period = period
-        self.period_origin = period_origin
-
-        if self.period_origin is not None:
-            raise NotImplementedError("period-origin is not supported yet")
-
-        if self.set not in self.am.annotations["set"].values:
-            raise ValueError(
-                f"'{self.set}' was not found in the index; "
-                "check spelling and make sure the set was properly imported."
-            )
-
-        self.periods = pd.date_range(
-            start=datetime.datetime(1900, 1, 1, 0, 0, 0, 0),
-            end=datetime.datetime(1900, 1, 2, 0, 0, 0, 0),
-            freq=self.period,
-            closed="left",
-        )
-
-    def _process_unit(self, unit: str):
-        annotations, segments = self.retrieve_segments([self.set], unit)
-
-        # retrieve timestamps for each vocalization, ignoring the day of occurence
-        segments = self.am.get_segments_timestamps(segments, ignore_date=True)
-
-        # dropping segments for which no time information is available
-        segments.dropna(subset=["onset_time"], inplace=True)
-
-        # update the timestamps so that all vocalizations appear
-        # to happen on the same day
-        segments["onset_time"] -= pd.to_timedelta(
-            86400
-            * ((segments["onset_time"] - self.periods[0]).dt.total_seconds() // 86400),
-            unit="s",
-        )
-
-        if len(segments) == 0:
-            return pd.DataFrame()
-
-        # calculate length of available annotations within each bin.
-        # this is necessary in order to calculate correct rates
-        bins = np.array(
-            [dt.total_seconds() for dt in self.periods - self.periods[0]] + [86400]
-        )
-
-        # retrieve the timestamps for all annotated portions of the recordings
-        annotations = self.am.get_segments_timestamps(
-            annotations, ignore_date=True, onset="range_onset", offset="range_offset"
-        )
-
-        # calculate time elapsed since the first time bin
-        annotations["onset_time"] = (
-            annotations["onset_time"]
-            .apply(lambda dt: (dt - self.periods[0]).total_seconds())
-            .astype(int)
-        )
-        annotations["offset_time"] = (
-            annotations["offset_time"]
-            .apply(lambda dt: (dt - self.periods[0]).total_seconds())
-            .astype(int)
-        )
-
-        # split annotations to intervals each within a 0-24h range
-        annotations["stops"] = annotations.apply(
-            lambda row: [row["onset_time"]]
-            + list(
-                86400
-                * np.arange(
-                    (row["onset_time"] // 86400) + 1,
-                    (row["offset_time"] // 86400) + 1,
-                    1,
-                )
-            )
-            + [row["offset_time"]],
-            axis=1,
-        )
-
-        annotations = annotations.explode("stops")
-        annotations["onset"] = annotations["stops"]
-        annotations["offset"] = annotations["stops"].shift(-1)
-
-        annotations.dropna(subset=["offset"], inplace=True)
-        annotations["onset"] = annotations["onset"].astype(int) % 86400
-        annotations["offset"] = (annotations["offset"] - 1e-4) % 86400
-
-        durations = [
-            (
-                annotations["offset"].clip(bins[i], bins[i + 1])
-                - annotations["onset"].clip(bins[i], bins[i + 1])
-            ).sum()
-            for i, t in enumerate(bins[:-1])
-        ]
-
-        durations = pd.Series(durations, index=self.periods)
-        metrics = pd.DataFrame(index=self.periods)
-
-        grouper = pd.Grouper(key="onset_time", freq=self.period, closed="left")
-
-        speaker_types = ["FEM", "MAL", "CHI", "OCH"]
-        adults = ["FEM", "MAL"]
-
-        for speaker in speaker_types:
-            vocs = segments[segments["speaker_type"] == speaker].groupby(grouper)
-
-            vocs = vocs.agg(
-                voc_ph=("segment_onset", "count"),
-                voc_dur_ph=("duration", "sum"),
-                avg_voc_dur=("duration", "mean"),
-            )
-
-            metrics["voc_{}_ph".format(speaker.lower())] = (
-                vocs["voc_ph"].reindex(self.periods, fill_value=0) * 3600 / durations
-            )
-            metrics["voc_dur_{}_ph".format(speaker.lower())] = (
-                vocs["voc_dur_ph"].reindex(self.periods, fill_value=0)
-                * 3600
-                / durations
-            )
-            metrics["avg_voc_dur_{}".format(speaker.lower())] = vocs[
-                "avg_voc_dur"
-            ].reindex(self.periods)
-
-        #add duration and child_id to dataframe as they are always given
-        metrics["duration"] = (durations * 1000).astype(int)
-        metrics[self.by] = unit
-        metrics["child_id"] = self.project.recordings[
-            self.project.recordings[self.by] == unit
-        ]["child_id"].iloc[0]
-        
-        #get and add to dataframe children.csv columns asked
-        if self.child_cols:
-            for label in self.child_cols:
-                metrics[label]=self.project.children[
-                        self.project.children["child_id"] == metrics["child_id"].iloc[0]
-                ][label].iloc[0]
-                
-        #get and add to dataframe recordings.csv columns asked
-        if self.rec_cols:
-            for label in self.rec_cols:
-                #for every unit drop the duplicates for that column
-                value=self.project.recordings[
-                        self.project.recordings[self.by] == unit
-                ][label].drop_duplicates()
-                #check that there is only one row remaining (ie this column has a unique value for that unit)
-                if len(value) == 1:
-                    metrics[label]=value.iloc[0]
-                #otherwise, leave the column as NA
-                else:
-                    metrics[label]="NA"
-        
-        return metrics
-
-    def extract(self):
-        recordings = self.project.get_recordings_from_list(self.recordings)
-
-        if self.threads == 1:
-            self.metrics = pd.concat(
-                [self._process_unit(unit) for unit in recordings[self.by].unique()]
-            )
-        else:
-            with mp.Pool(
-                processes=self.threads if self.threads >= 1 else mp.cpu_count()
-            ) as pool:
-                self.metrics = pd.concat(
-                    pool.map(self._process_unit, recordings[self.by].unique())
-                )
-
-        if len(self.metrics):
-            self.metrics["period"] = self.metrics.index.strftime("%H:%M:%S")
-            self.metrics.set_index(self.by, inplace=True)
-
-        return self.metrics
-
-    @staticmethod
-    def add_parser(subparsers, subcommand):
-        parser = subparsers.add_parser(subcommand, help="LENA metrics")
-        parser.add_argument("--set", help="annotations set", required=True)
-
-        parser.add_argument(
-            "--period",
-            help="time units to aggregate (optional); equivalent to ``pandas.Grouper``'s freq argument.",
-            required=True,
-        )
-
-        parser.add_argument(
-            "--period-origin",
-            help="time origin of each time period; equivalent to ``pandas.Grouper``'s origin argument.",
-            default=None,
-        )
-
-        parser.add_argument(
-            "--threads", help="amount of threads to run on", default=1, type=int
-        )
 
 
 class MetricsPipeline(Pipeline):
@@ -854,8 +611,26 @@ class MetricsPipeline(Pipeline):
         self.metrics = []
 
     def run(self, path, destination, pipeline, func=None, **kwargs):
+        self.destination = destination
+        #build a dictionary with all parameters used
+        parameters = locals()
+        parameters = {
+            key: parameters[key]
+            for key in parameters
+            if key not in ["self", "kwargs", "func"] #not sure what func parameter is for, seems unecessary to keep
+        }
+        for key in kwargs: #add all kwargs to dictionary
+            parameters[key] = kwargs[key]
+        
         self.project = ChildProject.projects.ChildProject(path)
         self.project.read()
+        
+        try:
+            datarepo = Repo(path)
+            parameters['dataset_hash'] = datarepo.head.object.hexsha
+        except InvalidGitRepositoryError:
+            print("Your dataset is not currently a git repository")
+            
 
         if pipeline not in pipelines:
             raise NotImplementedError(f"invalid pipeline '{pipeline}'")
@@ -864,7 +639,25 @@ class MetricsPipeline(Pipeline):
         metrics.extract()
 
         self.metrics = metrics.metrics
-        self.metrics.to_csv(destination)
+        self.metrics.to_csv(self.destination,index=False)
+        
+        # get the df of metrics used from the Metrics class
+        metrics_df = metrics.metrics_list
+        metrics_df['callable'] = metrics_df.apply(lambda row: row['callable'].__name__, axis=1) #from the callables used, find their name back
+        parameters['metrics_list'] = [ {k:v for k,v in m.items() if pd.notnull(v)} for m in metrics_df.to_dict(orient='records')]
+        date = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        # create a yaml file with all the parameters used
+        self.parameters_path = os.path.splitext(self.destination)[0] + "_parameters_{}.yml".format(date)
+        print("exported metrics to {}".format(self.destination))
+        yaml.dump(
+            {
+                "package_version": ChildProject.__version__,
+                "date": date,
+                "parameters": parameters,
+            },
+            open(self.parameters_path, "w+"),sort_keys=False,
+        )
+        print("exported sampler parameters to {}".format(self.parameters_path))
 
         return self.metrics
 
@@ -886,8 +679,14 @@ class MetricsPipeline(Pipeline):
         parser.add_argument(
             "--by",
             help="units to sample from (default behavior is to sample by recording)",
-            choices=["recording_filename", "session_id", "child_id"],
+            choices=["recording_filename", "session_id", "child_id","experiment"],
             default="recording_filename",
+        )
+        
+        parser.add_argument(
+            "--period",
+            help="time units to aggregate (optional); equivalent to ``pandas.Grouper``'s freq argument. The resulting metrics will be split for each unit across all the resulting periods.",
+            default=None,
         )
 
         parser.add_argument(
@@ -912,6 +711,93 @@ class MetricsPipeline(Pipeline):
         
         parser.add_argument(
             "--child-cols",
-            help="columns from children.csv to include in the outputted metrics (optional)",
+            help="columns from children.csv to include in the outputted metrics (optional), NA if ambiguous",
             default=None,
         )
+        
+        
+        parser.add_argument(
+            "--threads", help="amount of threads to run on", default=1, type=int
+        )
+
+
+class MetricsSpecificationPipeline(Pipeline):
+    def __init__(self):
+        self.metrics = []
+
+    def run(self, parameters_input):
+        #build a dictionary with all parameters used
+        parameters = None
+        with open(parameters_input, "r") as stream:
+            try:
+                parameters = yaml.safe_load(stream)
+                if 'parameters' in parameters: parameters = parameters['parameters']
+            except yaml.YAMLError as exc:
+                raise yaml.YAMLError("parsing of the parameters file {} failed. See above exception for more details".format(parameters_input)) from exc
+                
+        if parameters:
+            if "path" not in parameters :
+                raise ValueError("the parameter file {} must contain at least the 'path' key specifying the path to the dataset".format(parameters_input))
+            if "destination" not in parameters :
+                raise ValueError("the parameter file {} must contain the 'destination' key specifying the file to output the metrics to".format(parameters_input))
+            if "metrics_list" not in parameters :
+                raise ValueError("the parameter file {} must contain the 'metrics_list' key containing the list of the desired metrics".format(parameters_input))
+            try:
+                metrics_df = pd.DataFrame(parameters["metrics_list"])
+            except Exception as e:
+                raise ValueError("The 'metrics_list' key in {} must be a list of elements".format(parameters_input)) from e           
+        else:
+            raise ValueError("could not find any parameters in {}".format(parameters_input))
+        
+        try:
+            datarepo = Repo(parameters["path"])
+            parameters['dataset_hash'] = datarepo.head.object.hexsha
+        except InvalidGitRepositoryError:
+            print("Your dataset is not currently a git repository")
+        
+        self.project = ChildProject.projects.ChildProject(parameters["path"])
+        self.project.read()
+        
+        self.destination = parameters['destination']
+        
+        unwanted_keys = {'metrics', 'pipeline'}
+        for i in unwanted_keys:
+            if i in parameters : del parameters[i]
+            
+        arguments = {
+            key: parameters[key]
+            for key in parameters
+            if key not in {"metrics_list", "path", "destination","dataset_hash"} 
+        }
+        try:
+            metrics = Metrics(self.project, metrics_df, **arguments)
+        except TypeError as e:
+            raise ValueError('Unrecognized parameter found {}'.format(e.args[0][46:])) from e
+        metrics.extract()
+
+        self.metrics = metrics.metrics
+        self.metrics.to_csv(self.destination,index=False)
+        
+        # get the df of metrics used from the Metrics class
+        metrics_df = metrics.metrics_list
+        metrics_df['callable'] = metrics_df.apply(lambda row: row['callable'].__name__, axis=1) #from the callables used, find their name back
+        parameters['metrics_list'] = [ {k:v for k,v in m.items() if pd.notnull(v)} for m in metrics_df.to_dict(orient='records')]
+        date = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        # create a yaml file with all the parameters used
+        self.parameters_path = os.path.splitext(self.destination)[0] + "_parameters_{}.yml".format(date)
+        print("exported metrics to {}".format(self.destination))
+        yaml.dump(
+            {
+                "package_version": ChildProject.__version__,
+                "date": date,
+                "parameters": parameters,
+            },
+            open(self.parameters_path, "w+"),sort_keys=False,
+        )
+        print("exported metrics parameters to {}".format(self.parameters_path))
+
+        return self.metrics
+
+    @staticmethod
+    def setup_parser(parser):
+        parser.add_argument("path", help="path to the yml file with all parameters")

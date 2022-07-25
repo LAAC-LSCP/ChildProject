@@ -6,48 +6,36 @@ Overview
 
 This package allows to extract metrics that are commonly used from annotations
 produced by the LENA or other pipelines.
+A csv file containing the metrics is produced along with a YML parameter file storing all the options used
 
 .. clidoc::
 
    child-project metrics --help
 
+The Period option aggregates vocalizations for each time-of-the-day-unit based on a period specified by the user.
+For instance, if the period is set to ``15Min`` (i.e. 15 minutes), vocalization rates will be reported for each
+recording and time-unit (e.g. 09:00 to 09:15, 09:15 to 09:30, etc.).
+
+The output dataframe has :math:`r \times p` rows, where :math:`r` is the amount of recordings (or children if the ``-by`` option is set to ``child_id`` etc.), and :math:`p` is the 
+amount of time-bins per day (i.e. :math:`24 \times 4=96` for a 15-minute period).
+
+The output dataframe includes a ``period_start`` and a ``period_end`` columns that contain the onset and offset of each time-unit in HH:MM:SS format.
+The ``duration_<set>`` columns contain the total amount of annotated time covering each time-bin and each set, in milliseconds.
+
+If ``--by`` is set to e.g. ``child_id``, then the values for each time-bin will be the average rates across
+all the recordings of every child.
+
 The list of supported metrics is shown below:
 
-.. csv-table::
-    :header: "Variable", "Description", "pipelines"
-    :widths: 15, 50, 5
+.. warning::
 
-    voc_fem/mal/och_ph,number of vocalizations by different talker types per hour,"ACLEW,LENA,Period"
-    voc_dur_fem/mal/och_ph,total duration of vocalizations by different talker types in seconds per hour,"ACLEW,LENA,Period"
-    avg_voc_dur_fem/mal/och,average vocalization length (conceptually akin to MLU) by different talker types,"ACLEW,LENA,Period"
-    wc_adu_ph,adult word count (collapsing across males and females),"ACLEW,LENA"
-    wc_fem/mal_ph,adult word count by different talker types,"ACLEW,LENA"
-    sc_adu_ph,adult syllable count (collapsing across males and females),ACLEW
-    sc_fem/mal_ph,adult syllable count by different talker types,ACLEW
-    pc_adu_ph,adult phoneme count (collapsing across males and females),ACLEW
-    pc_fem/mal_ph,adult phoneme count by different talker types,ACLEW
-    freq_n,frequency of child voc out of all vocs based on number of vocalizations,"ACLEW,LENA"
-    freq_dur,frequency of child voc out of all vocs based on duration of vocalizations,"ACLEW,LENA"
-    cry_voc_chi_ph,number of child vocalizations that are crying,"ACLEW,LENA"
-    can_voc_chi_ph,number of child vocs that are canonical,ACLEW
-    non_can_vpc_chi_ph,number of child vocs that are non-canonical,ACLEW
-    sp_voc_chi_ph,number of child vocs that are speech-like (can+noncan for ACLEW),"ACLEW,LENA"
-    cry_voc_dur_chi_ph,total duration of child vocalizations that are crying,"ACLEW,LENA"
-    can_voc_dur_chi_ph,total duration of child vocs that are canonical,ACLEW
-    non_can_voc_dur_chi_ph,total duration of child vocs that are non-canonical,ACLEW
-    sp_voc_dur_chi_ph,total duration of child vocs that are speech-like (can+noncan for ACLEW),"ACLEW,LENA"
-    avg_cry_voc_dur_chi,average duration of child vocalizations that are crying,"ACLEW,LENA"
-    avg_cran_voc_dur_chi,average duration of child vocs that are canonical,ACLEW
-    avg_non_can_voc_dur_chi,average duration of child vocs that are non-canonical,ACLEW
-    avg_sp_voc_dur_chi,average duration of child vocs that are speech-like (can+noncan for ACLEW),"ACLEW,LENA"
-    lp_n,linguistic proportion = (speech)/(cry+speech) based on number of vocalizations,"ACLEW,LENA"
-    cp_n,canonical proportion = canonical /(can+noncan) based on number of vocalizations,ACLEW
-    lp_dur,linguistic proportion = (speech)/(cry+speech) based on duration of vocalizations,"ACLEW,LENA"
-    cp_dur,canonical proportion = canonical /(can+noncan) based on duration of vocalizations,ACLEW
+    Be aware that numerous metrics are rates (every metric ending with 'ph' is) and not absolute counts!
+    This can differ with results from other methods of extraction (e.g. LENA metrics).
+    Rates are expressed in counts/hour (for events) or in milliseconds/hour (for durations).
 
-.. note::
-
-    Average rates are expressed in counts/hour (for events) or in seconds/hour (for durations).
+.. _list-metrics:
+.. custom-table::
+    :header: list-metrics
 
 LENA Metrics
 ~~~~~~~~~~~~
@@ -63,26 +51,44 @@ ACLEW Metrics
 
     child-project metrics /path/to/dataset output.csv aclew --help
 
-Period-aggregated metrics
-~~~~~~~~~~~~~~~~~~~~~~~~~
+Custom metrics
+~~~~~~~~~~~~~~
 
-The Period Metrics pipeline aggregates vocalizations for each time-of-the-day-unit based on a period specified by the user.
-For instance, if the period is set to ``15Min`` (i.e. 15 minutes), vocalization rates will be reported for each
-recording and time-unit (e.g. 09:00 to 09:15, 09:15 to 09:30, etc.).
+The Custom metrics pipeline allows you to provide your own list of desired metrics to the pipeline to be extracted.
+The list must be in a csv file containing the following colums:
+ - callable (required) : name of the metric to extract, see :ref:`list-metrics`
+ - set (required) : name of the set to extract from, make sure this annotations set is capable (has the required information) to extract this specific metric
+ - name (optional) : name to use in the resulting metrics. If none is given, a default name will be used. Use this to extract the same metric for different sets and avoid name clashes.
+ - <argument> (depending on the requirements of the metric you chose) : For each required argument of a metric, add a column of that argument's name.
 
-The output dataframe has :math:`r \times p` rows, where :math:`r` is the amount of recordings (or children if the ``-by`` option is set to ``child_id``), and :math:`p` is the 
-amount of time-bins per day (i.e. :math:`24 \times 4=96` for a 15-minute period).
+This is an example of a csv file we use to extract metrics.
+We want to extract the number of vocalizations per hour of the key child (CHI), male adult (MAL) and female adult (FEM) on 2 different sets to compare their result.
+So we write 3 lines per set (vtc and its), each having a different speaker and we also give each metric an explicit name because the default names `voc_chi_ph`, `voc_mal_ph` and `voc_fem_ph` would have clashed between the 2 sets.
+Additionaly, we extract linguistic proportion on number of vocalizations and on duration separately from the vcm set. the default names won't clash and no speaker is needed (linguistic proportion is used on CHI) so we leave those columns empty.
 
-The output dataframe includes a ``period`` column that contains the onset of each time-unit in HH:MM:SS format.
-The ``duration`` columns contains the total amount of annotations covering each time-bin, in milliseconds.
+.. csv-table::
+    :header: "callable", "set", "name", "speaker"
+    :widths: 20, 10, 20,20
 
-If ``--by`` is set to e.g. ``child_id``, then the values for each time-bin will be the average rates across
-all the recordings of every child.
+    voc_speaker_ph,vtc,voc_chi_ph_vtc,CHI
+    voc_speaker_ph,vtc,voc_mal_ph_vtc,MAL
+    voc_speaker_ph,vtc,voc_fem_ph_vtc,FEM
+    voc_speaker_ph,its,voc_chi_ph_its,CHI
+    voc_speaker_ph,its,voc_mal_ph_its,MAL
+    voc_speaker_ph,its,voc_fem_ph_its,FEM
+    lp_n,vcm,,
+    lp_dur,vcm,,
 
 .. clidoc::
 
-    child-project metrics /path/to/dataset output.csv period --help
+    child-project metrics /path/to/dataset output.csv custom --help
 
-..note::
+Metrics from parameter file
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    Average rates are expressed in seconds/hour regardless of the period.
+To facilitate the extraction of metrics, one can simply use an exhaustive yml parameter file to launch a new extraction.
+This file has the exact same structure as the one produced by the pipeline. So you can use an output parameter file to rerun the same analysis.
+
+.. clidoc::
+
+    child-project metrics-specification --help

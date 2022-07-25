@@ -1,0 +1,3 @@
+recording_filename,child_id,duration_custom_its,voc_chi_ph_its,voc_fem_ph_its,voc_mal_ph_its,voc_dur_chi_ph,voc_dur_fem_ph,voc_dur_mal_ph
+sound.wav,1,100000000,66.88799999999999,75.276,23.651999999999997,64576.079999999994,90352.79999999999,34702.2
+sound2.wav,1,0,,,,,,

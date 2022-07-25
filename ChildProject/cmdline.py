@@ -566,6 +566,7 @@ def main():
     register_pipeline("eaf-builder", EafBuilderPipeline)
     register_pipeline("anonymize", AnonymizationPipeline)
     register_pipeline("metrics", MetricsPipeline)
+    register_pipeline("metrics-specification", MetricsSpecificationPipeline)
 
     args = parser.parse_args()
     args.func(args)

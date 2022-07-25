@@ -139,3 +139,6 @@ docs/PROJECTS.md
 
 # vim
 *~
+
+# sphinx created csvs
+docs/source/*.csv
