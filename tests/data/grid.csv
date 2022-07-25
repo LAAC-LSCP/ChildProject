@@ -1,0 +1,5 @@
+set,segment_onset,segment_offset,speaker_type
+Alice,0,2,CHI
+Alice,2,4,FEM
+Alice,6,8,CHI
+Alice,6,9,FEM

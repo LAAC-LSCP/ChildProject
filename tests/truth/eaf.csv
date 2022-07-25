@@ -1,297 +1,223 @@
-annotation_file,segment_onset,segment_offset,speaker_id,speaker_type,ling_type,vcm_type,lex_type,mwu_type,addresseee,transcription,phonemes,syllables,words
-example.eaf,3.15,3.332,CHI,CHI,,,0,,,0.,,,
-example.eaf,4.409,5.699,CHI,CHI,,,W,M,,0.,,,
-example.eaf,6.32,8.775,CHI,CHI,,,W,M,,0.,,,
-example.eaf,9.92,10.48,CHI,CHI,,,W,1,,0.,,,
-example.eaf,10.78,12.44,CHI,CHI,,,W,M,,0.,,,
-example.eaf,12.822,13.16,CHI,CHI,,,0,,,0.,,,
-example.eaf,13.393,13.811,CHI,CHI,,,W,1,,0.,,,
-example.eaf,14.238,14.711,CHI,CHI,,,W,M,,0.,,,
-example.eaf,17.6,17.96,CHI,CHI,,,W,1,,0.,,,
-example.eaf,18.22,19.299,CHI,CHI,,,W,1,,0.,,,
-example.eaf,19.975,21.202,CHI,CHI,,,W,M,,0.,,,
-example.eaf,22.002,22.728,CHI,CHI,,,W,M,,0.,,,
-example.eaf,23.371,23.567,CHI,CHI,,,W,1,,0.,,,
-example.eaf,27.174,28.977,CHI,CHI,,,W,M,,0.,,,
-example.eaf,29.94,30.15,CHI,CHI,,,W,1,,0.,,,
-example.eaf,30.481,33.191,CHI,CHI,,,W,M,,0.,,,
-example.eaf,38.529,40.027,CHI,CHI,,,W,1,,0.,,,
-example.eaf,40.869,41.908,CHI,CHI,,,W,1,,0.,,,
-example.eaf,42.38,43.041,CHI,CHI,,,W,1,,0.,,,
-example.eaf,43.37,43.626,CHI,CHI,,,W,1,,0.,,,
-example.eaf,46.146,48.855,CHI,CHI,,,W,M,,0.,,,
-example.eaf,49.911,50.207,CHI,CHI,,,W,1,,0.,,,
-example.eaf,56.227,57.027,CHI,CHI,,,W,1,,0.,,,
-example.eaf,58.404,58.57,CHI,CHI,,,W,1,,0.,,,
-example.eaf,60.61,60.914,CHI,CHI,,,W,1,,0.,,,
-example.eaf,63.619,64.72,CHI,CHI,,,W,M,,0.,,,
-example.eaf,64.98,65.897,CHI,CHI,,,W,M,,0.,,,
-example.eaf,67.73,69.06,CHI,CHI,,,W,M,,0.,,,
-example.eaf,69.62,70.351,CHI,CHI,,,W,M,,0.,,,
-example.eaf,71.736,72.85,CHI,CHI,,,W,M,,0.,,,
-example.eaf,74.878,75.678,CHI,CHI,,,W,M,,0.,,,
-example.eaf,76.5,77.565,CHI,CHI,,,W,M,,0.,,,
-example.eaf,77.739,78.4,CHI,CHI,,,W,M,,0.,,,
-example.eaf,79.817,81.005,CHI,CHI,,,W,1,,0.,,,
-example.eaf,81.315,82.005,CHI,CHI,,,W,1,,0.,,,
-example.eaf,82.47,82.833,CHI,CHI,,,W,1,,0.,,,
-example.eaf,83.401,84.861,CHI,CHI,,,W,M,,0.,,,
-example.eaf,85.349,85.761,CHI,CHI,,,W,1,,0.,,,
-example.eaf,88.644,90.448,CHI,CHI,,,W,1,,0.,,,
-example.eaf,91.584,92.56,CHI,CHI,,,W,1,,0.,,,
-example.eaf,93.958,95.739,CHI,CHI,,,W,1,,0.,,,
-example.eaf,98.09,98.76,CHI,CHI,,,W,M,,0.,,,
-example.eaf,99.24,100.135,CHI,CHI,,,W,M,,0.,,,
-example.eaf,100.581,100.986,CHI,CHI,,,W,1,,0.,,,
-example.eaf,101.204,102.44,CHI,CHI,,,W,M,,0.,,,
-example.eaf,103.085,104.545,CHI,CHI,,,W,1,,0.,,,
-example.eaf,104.831,105.265,CHI,CHI,,,W,1,,0.,,,
-example.eaf,105.82,106.088,CHI,CHI,,,W,1,,0.,,,
-example.eaf,106.459,107.576,CHI,CHI,,,W,1,,0.,,,
-example.eaf,107.64,108.08,CHI,CHI,,,W,1,,0.,,,
-example.eaf,108.18,108.598,CHI,CHI,,,W,1,,0.,,,
-example.eaf,111.7,113.772,CHI,CHI,,,W,1,,0.,,,
-example.eaf,114.78,116.476,CHI,CHI,,,W,1,,0.,,,
-example.eaf,118.76,119.93,CHI,CHI,,,W,M,,0.,,,
-example.eaf,120.1,120.891,CHI,CHI,,,W,M,,0.,,,
-example.eaf,123.41,124.357,CHI,CHI,,,W,M,,0.,,,
-example.eaf,125.349,127.07,CHI,CHI,,,W,M,,0.,,,
-example.eaf,128.765,129.251,CHI,CHI,,,0,,,0.,,,
-example.eaf,129.731,130.056,CHI,CHI,,,0,,,0.,,,
-example.eaf,130.531,131.16,CHI,CHI,,,0,,,0.,,,
-example.eaf,131.659,132.199,CHI,CHI,,,W,1,,0.,,,
-example.eaf,133.063,133.756,CHI,CHI,,,0,,,0.,,,
-example.eaf,135.85,136.63,CHI,CHI,,,W,M,,0.,,,
-example.eaf,136.94,137.44,CHI,CHI,,,0,,,0.,,,
-example.eaf,137.834,139.421,CHI,CHI,,,W,M,,0.,,,
-example.eaf,141.55,141.91,CHI,CHI,,,W,1,,0.,,,
-example.eaf,143.468,144.329,CHI,CHI,,,W,M,,0.,,,
-example.eaf,145.451,145.7,CHI,CHI,,,W,1,,0.,,,
-example.eaf,148.426,149.919,CHI,CHI,,,W,M,,0.,,,
-example.eaf,151.825,153.761,CHI,CHI,,,W,M,,0.,,,
-example.eaf,154.094,154.731,CHI,CHI,,,W,1,,0.,,,
-example.eaf,157.437,158.639,CHI,CHI,,,W,M,,0.,,,
-example.eaf,159.724,161.22,CHI,CHI,,,W,1,,0.,,,
-example.eaf,164.695,165.609,CHI,CHI,,,W,M,,0.,,,
-example.eaf,165.659,167.288,CHI,CHI,,,W,M,,0.,,,
-example.eaf,167.833,169.005,CHI,CHI,,,W,M,,0.,,,
-example.eaf,173.736,174.43,CHI,CHI,,,W,1,,0.,,,
-example.eaf,176.515,177.29,CHI,CHI,,,W,1,,0.,,,
-example.eaf,177.731,178.094,CHI,CHI,,,W,1,,0.,,,
-example.eaf,178.443,179.72,CHI,CHI,,,W,1,,0.,,,
-example.eaf,180.18,181.177,CHI,CHI,,,W,1,,0.,,,
-example.eaf,182.099,182.83,CHI,CHI,,,W,1,,0.,,,
-example.eaf,183.08,183.631,CHI,CHI,,,W,1,,0.,,,
-example.eaf,183.855,184.524,CHI,CHI,,,W,1,,0.,,,
-example.eaf,184.567,185.074,CHI,CHI,,,W,1,,0.,,,
-example.eaf,185.304,186.07,CHI,CHI,,,W,1,,0.,,,
-example.eaf,186.346,186.8,CHI,CHI,,,W,1,,0.,,,
-example.eaf,187.049,188.216,CHI,CHI,,,W,M,,0.,,,
-example.eaf,192.8,193.745,CHI,CHI,,,0,,,0.,,,
-example.eaf,202.612,204.814,CHI,CHI,,,W,M,,0.,,,
-example.eaf,223.207,223.7,CHI,CHI,,,W,1,,0.,,,
-example.eaf,224.049,224.565,CHI,CHI,,,W,1,,0.,,,
-example.eaf,227.116,227.806,CHI,CHI,,,W,1,,0.,,,
-example.eaf,228.229,228.952,CHI,CHI,,,W,1,,0.,,,
-example.eaf,230.72,231.03,CHI,CHI,,,W,1,,0.,,,
-example.eaf,231.434,232.022,CHI,CHI,,,W,1,,0.,,,
-example.eaf,232.396,233.178,CHI,CHI,,,W,1,,0.,,,
-example.eaf,233.69,234.263,CHI,CHI,,,W,1,,0.,,,
-example.eaf,234.647,235.379,CHI,CHI,,,W,1,,0.,,,
-example.eaf,235.947,236.526,CHI,CHI,,,W,1,,0.,,,
-example.eaf,237.102,237.753,CHI,CHI,,,W,1,,0.,,,
-example.eaf,238.099,238.7,CHI,CHI,,,W,1,,0.,,,
-example.eaf,238.977,239.57,CHI,CHI,,,W,1,,0.,,,
-example.eaf,241.9,243.02,CHI,CHI,,,W,1,,0.,,,
-example.eaf,243.6,244.41,CHI,CHI,,,W,1,,0.,,,
-example.eaf,244.889,245.81,CHI,CHI,,,W,1,,0.,,,
-example.eaf,246.24,247,CHI,CHI,,,W,1,,0.,,,
-example.eaf,247.576,248.42,CHI,CHI,,,W,1,,0.,,,
-example.eaf,248.983,250.066,CHI,CHI,,,W,M,,0.,,,
-example.eaf,251.27,251.53,CHI,CHI,,,0,,,0.,,,
-example.eaf,252.48,254.182,CHI,CHI,,,W,M,,0.,,,
-example.eaf,255.354,256.64,CHI,CHI,,,W,M,,0.,,,
-example.eaf,257.32,258.099,CHI,CHI,,,W,M,,0.,,,
-example.eaf,258.398,259.005,CHI,CHI,,,W,M,,0.,,,
-example.eaf,265.088,265.742,CHI,CHI,,,0,,,0.,,,
-example.eaf,265.93,266.277,CHI,CHI,,,0,,,0.,,,
-example.eaf,267.216,267.49,CHI,CHI,,,W,1,,0.,,,
-example.eaf,267.734,268.094,CHI,CHI,,,W,1,,0.,,,
-example.eaf,268.373,269.446,CHI,CHI,,,W,M,,0.,,,
-example.eaf,271.016,271.29,CHI,CHI,,,0,,,0.,,,
-example.eaf,271.778,272.268,CHI,CHI,,,0,,,0.,,,
-example.eaf,272.88,274.446,CHI,CHI,,,W,M,,0.,,,
-example.eaf,276.897,277.207,CHI,CHI,,,W,1,,0.,,,
-example.eaf,278.218,279.409,CHI,CHI,,,0,,,0.,,,
-example.eaf,279.867,280.459,CHI,CHI,,,W,M,,0.,,,
-example.eaf,280.67,281.1,CHI,CHI,,,W,M,,0.,,,
-example.eaf,284.767,285.202,CHI,CHI,,,W,1,,0.,,,
-example.eaf,287.587,288.243,CHI,CHI,,,W,1,,0.,,,
-example.eaf,289.49,289.8,CHI,CHI,,,W,1,,0.,,,
-example.eaf,291.614,293.509,CHI,CHI,,,W,M,,0.,,,
-example.eaf,293.745,294.645,CHI,CHI,,,W,M,,0.,,,
-example.eaf,296.72,297.62,CHI,CHI,,,W,M,,0.,,,
-example.eaf,298.138,298.656,CHI,CHI,,,W,M,,0.,,,
-example.eaf,299.55,300.113,CHI,CHI,,,W,1,,0.,,,
-example.eaf,9.243,10.504,FA1,FEM,,,,,C,"a fish, right.",,,
-example.eaf,12.55,12.9,FA1,FEM,,,,,C,d'you [: did you]?,,,
-example.eaf,15.342,15.81,FA1,FEM,,,,,C,yup [: yeah].,,,
-example.eaf,15.961,16.781,FA1,FEM,,,,,C,I like fish.,,,
-example.eaf,26.26,26.922,FA1,FEM,,,,,C,what's that?,,,
-example.eaf,29.301,30.66,FA1,FEM,,,,,C,"it's a turtle, right!",,,
-example.eaf,33.113,34.26,FA1,FEM,,,,,C,right!,,,
-example.eaf,44.044,44.908,FA1,FEM,,,,,C,gimme [: give me] five.,,,
-example.eaf,45.09,46.074,FA1,FEM,,,,,C,nice colors.,,,
-example.eaf,48.559,49.01,FA1,FEM,,,,,C,four.,,,
-example.eaf,49.188,50.578,FA1,FEM,,,,,C,one two three four.,,,
-example.eaf,50.919,51.401,FA1,FEM,,,,,C,right.,,,
-example.eaf,52.249,52.936,FA1,FEM,,,,,C,gimme [:give me] five.,,,
-example.eaf,55.37,55.872,FA1,FEM,,,,,C,you rock.,,,
-example.eaf,56.43,57.05,FA1,FEM,,,,,C,g'job [: good job] buddy.,,,
-example.eaf,57.393,58.13,FA1,FEM,,,,,C,kay [:okay] turn the page.,,,
-example.eaf,61.7,61.85,FA1,FEM,,,,,C,yup [: yeah].,,,
-example.eaf,62.149,62.526,FA1,FEM,,,,,C,that's right.,,,
-example.eaf,65.991,66.62,FA1,FEM,,,,,C,a duck.,,,
-example.eaf,67.495,68,FA1,FEM,,,,,C,that's right.,,,
-example.eaf,70.77,71.002,FA1,FEM,,,,,C,what?,,,
-example.eaf,73.259,73.975,FA1,FEM,,,,,C,it's not a goose.,,,
-example.eaf,74.853,75.418,FA1,FEM,,,,,C,it's a duck.,,,
-example.eaf,83.055,83.742,FA1,FEM,,,,,C,right.,,,
-example.eaf,85.745,86.166,FA1,FEM,,,,,C,nope.,,,
-example.eaf,86.595,87.196,FA1,FEM,,,,,C,count em [: them] again.,,,
-example.eaf,87.919,88.578,FA1,FEM,,,,,C,touch each one.,,,
-example.eaf,88.78,89.7,FA1,FEM,,,,,C,one.,,,
-example.eaf,91.06,92.55,FA1,FEM,,,,,C,two.,,,
-example.eaf,93.144,95.11,FA1,FEM,,,,,C,three!,,,
-example.eaf,95.28,96.085,FA1,FEM,,,,,C,good three!,,,
-example.eaf,102.385,103.365,FA1,FEM,,,,,C,right!,,,
-example.eaf,105.379,105.963,FA1,FEM,,,,,C,right!,,,
-example.eaf,106.714,108.09,FA1,FEM,,,,,C,"how many are there, should we count em [: them]?",,,
-example.eaf,108.598,109.15,FA1,FEM,,,,,C,"no, count em [: them].",,,
-example.eaf,109.706,110.83,FA1,FEM,,,,,C,touch each one when you count.,,,
-example.eaf,111.904,112.88,FA1,FEM,,,,,C,one.,,,
-example.eaf,114.904,116.44,FA1,FEM,,,,,C,two.,,,
-example.eaf,116.448,118.008,FA1,FEM,,,,,C,"nice job, James!",,,
-example.eaf,119.817,120.412,FA1,FEM,,,,,C,go brush em [: them].,,,
-example.eaf,127.25,127.631,FA1,FEM,,,,,C,xxx.,,,
-example.eaf,130.282,131.21,FA1,FEM,,,,,C,that's a lot of fives.,,,
-example.eaf,132.429,132.803,FA1,FEM,,,,,C,okay.,,,
-example.eaf,133.459,133.756,FA1,FEM,,,,,C,turn it.,,,
-example.eaf,134.67,135.484,FA1,FEM,,,,,C,now what d'you [: do you] see?,,,
-example.eaf,139.324,139.835,FA1,FEM,,,,,C,right.,,,
-example.eaf,140.119,140.76,FA1,FEM,,,,,C,just one.,,,
-example.eaf,141.975,142.875,FA1,FEM,,,,,C,what else d'you [: do you] see?,,,
-example.eaf,144.628,145.282,FA1,FEM,,,,,C,that's a one.,,,
-example.eaf,146.99,148.7,FA1,FEM,,,,,C,and what d'you [: do you] see over here what are all these?,,,
-example.eaf,153.47,155.745,FA1,FEM,,,,,C,"nope, no animals but what are these?",,,
-example.eaf,156.709,157.376,FA1,FEM,,,,,C,what are these?,,,
-example.eaf,158.46,159.124,FA1,FEM,,,,,C,what are these?,,,
-example.eaf,160.969,161.66,FA1,FEM,,,,,C,flowers.,,,
-example.eaf,164.612,165.15,FA1,FEM,,,,,C,mm.,,,
-example.eaf,165.58,166.365,FA1,FEM,,,,,C,what're [: what are] dose [: those]?,,,
-example.eaf,166.526,167.37,FA1,FEM,,,,,C,wha- [: what-] yeah.,,,
-example.eaf,168.85,169.385,FA1,FEM,,,,,C,what's that?,,,
-example.eaf,175.01,176.116,FA1,FEM,,,,,C,that's a grasshoper.,,,
-example.eaf,176.53,177.86,FA1,FEM,,,,,C,and that's a butterfly.,,,
-example.eaf,179,181.2,FA1,FEM,,,,,C,I know these pictures are kinda [: kind of] hard to tell.,,,
-example.eaf,186.81,193.904,FA1,FEM,,,,,C,"Erin can you find me the animal book that we left- you know the little white one, My First Book at xxx it's called.",,,
-example.eaf,228.4,229.06,FA1,FEM,,,,,A,0.,,,
-example.eaf,229.803,230.108,FA1,FEM,,,,,A,0.,,,
-example.eaf,232.027,233.38,FA1,FEM,,,,,U,0.,,,
-example.eaf,234.579,235.098,FA1,FEM,,,,,A,0.,,,
-example.eaf,236.508,236.745,FA1,FEM,,,,,A,0.,,,
-example.eaf,239.246,240.26,FA1,FEM,,,,,A,0.,,,
-example.eaf,244.996,245.852,FA1,FEM,,,,,C,xxx.,,,
-example.eaf,247.364,247.941,FA1,FEM,,,,,C,hold on.,,,
-example.eaf,248.656,249.809,FA1,FEM,,,,,C,xxx.,,,
-example.eaf,254.337,255.673,FA1,FEM,,,,,C,xxx.,,,
-example.eaf,261.312,263.304,FA1,FEM,,,,,C,hang on I wanna read a little bit xxx kay [: okay]?,,,
-example.eaf,264.133,264.97,FA1,FEM,,,,,C,then we'll do that.,,,
-example.eaf,266.277,266.997,FA1,FEM,,,,,C,found it.,,,
-example.eaf,267.19,267.652,FA1,FEM,,,,,C,come sit here.,,,
-example.eaf,269.466,270.53,FA1,FEM,,,,,C,"yes, that would be great.",,,
-example.eaf,271.659,272.098,FA1,FEM,,,,,C,gimme [: give me] hug.,,,
-example.eaf,274.201,275.53,FA1,FEM,,,,,C,y'hafta [: you have to] get up here first.,,,
-example.eaf,277.08,277.914,FA1,FEM,,,,,A,0.,,,
-example.eaf,278.269,278.632,FA1,FEM,,,,,A,0.,,,
-example.eaf,278.989,279.455,FA1,FEM,,,,,A,0.,,,
-example.eaf,281.755,282.002,FA1,FEM,,,,,C,good.,,,
-example.eaf,283.478,284.398,FA1,FEM,,,,,C,kay [: okay] show me whatcha [: what you] got.,,,
-example.eaf,284.879,285.51,FA1,FEM,,,,,C,what's on the front?,,,
-example.eaf,287.584,288.93,FA1,FEM,,,,,C,"no on the front, that's the back.",,,
-example.eaf,289.579,290.1,FA1,FEM,,,,,C,here's the front.,,,
-example.eaf,290.911,291.35,FA1,FEM,,,,,C,what d'you [: do you] see?,,,
-example.eaf,294.78,295.216,FA1,FEM,,,,,C,right.,,,
-example.eaf,295.36,296.19,FA1,FEM,,,,,C,what else do you see?,,,
-example.eaf,297.884,298.471,FA1,FEM,,,,,C,mm-hm.,,,
-example.eaf,38.058,39.008,UC2,OCH,,,,,U,0.,,,
-example.eaf,49.19,49.94,UC2,OCH,,,,,U,0.,,,
-example.eaf,50.4,51.714,UC2,OCH,,,,,U,0.,,,
-example.eaf,52.459,53.461,UC2,OCH,,,,,U,0.,,,
-example.eaf,54.094,54.837,UC2,OCH,,,,,U,0.,,,
-example.eaf,59.452,59.993,UC2,OCH,,,,,A,0.,,,
-example.eaf,65.395,65.788,UC2,OCH,,,,,U,0.,,,
-example.eaf,65.99,66.612,UC2,OCH,,,,,U,0.,,,
-example.eaf,66.96,68.462,UC2,OCH,,,,,U,0.,,,
-example.eaf,121.553,123.339,UC2,OCH,,,,,A,0.,,,
-example.eaf,124.53,124.87,UC2,OCH,,,,,A,0.,,,
-example.eaf,125.1,126.033,UC2,OCH,,,,,A,0.,,,
-example.eaf,127.276,128.838,UC2,OCH,,,,,A,0.,,,
-example.eaf,169.007,171.21,UC2,OCH,,,,,U,0.,,,
-example.eaf,171.912,174.71,UC2,OCH,,,,,U,0.,,,
-example.eaf,181.966,184.223,UC2,OCH,,,,,U,0.,,,
-example.eaf,194.396,194.974,UC2,OCH,,,,,A,0.,,,
-example.eaf,195.941,196.559,UC2,OCH,,,,,A,0.,,,
-example.eaf,196.838,199.289,UC2,OCH,,,,,A,0.,,,
-example.eaf,200.149,202.328,UC2,OCH,,,,,A,0.,,,
-example.eaf,202.726,203.312,UC2,OCH,,,,,A,0.,,,
-example.eaf,203.791,206.537,UC2,OCH,,,,,A,0.,,,
-example.eaf,207.174,210.104,UC2,OCH,,,,,A,0.,,,
-example.eaf,210.218,211.65,UC2,OCH,,,,,A,0.,,,
-example.eaf,212.04,212.19,UC2,OCH,,,,,A,0.,,,
-example.eaf,213.674,213.86,UC2,OCH,,,,,A,0.,,,
-example.eaf,214.13,215.41,UC2,OCH,,,,,A,0.,,,
-example.eaf,251.741,253.454,UC2,OCH,,,,,U,0.,,,
-example.eaf,254.545,256.588,UC2,OCH,,,,,A,0.,,,
-example.eaf,263.885,264.215,UC2,OCH,,,,,U,0.,,,
-example.eaf,43.465,46.451,FA2,FEM,,,,,U,0.,,,
-example.eaf,48.762,49.492,FA2,FEM,,,,,U,0.,,,
-example.eaf,55.148,55.715,FA2,FEM,,,,,U,0.,,,
-example.eaf,57.27,58.793,FA2,FEM,,,,,C,xxx.,,,
-example.eaf,58.924,59.428,FA2,FEM,,,,,C,xxx.,,,
-example.eaf,60.392,62.672,FA2,FEM,,,,,U,0.,,,
-example.eaf,66.853,68.232,FA2,FEM,,,,,U,0.,,,
-example.eaf,69.098,70.747,FA2,FEM,,,,,U,0.,,,
-example.eaf,199.633,199.851,FA2,FEM,,,,,C,yup.,,,
-example.eaf,206.503,207.252,FA2,FEM,,,,,U,0.,,,
-example.eaf,210.189,211.346,FA2,FEM,,,,,U,0.,,,
-example.eaf,213.592,214.52,FA2,FEM,,,,,C,that's not cool.,,,
-example.eaf,228.679,229.199,FA2,FEM,,,,,A,0.,,,
-example.eaf,231.109,231.878,FA2,FEM,,,,,A,0.,,,
-example.eaf,235.526,236.287,FA2,FEM,,,,,A,0.,,,
-example.eaf,237.313,238.267,FA2,FEM,,,,,A,0.,,,
-example.eaf,240.194,241.689,FA2,FEM,,,,,A,0.,,,
-example.eaf,275.8,276.51,FA2,FEM,,,,,A,0.,,,
-example.eaf,103.104,104.293,UC1,OCH,,,,,U,0.,,,
-example.eaf,105.07,105.921,UC1,OCH,,,,,U,0.,,,
-example.eaf,121.164,121.961,UC1,OCH,,,,,U,0.,,,
-example.eaf,196.216,199.144,UC1,OCH,,,,,U,0.,,,
-example.eaf,201.46,202.6,UC1,OCH,,,,,U,0.,,,
-example.eaf,213.312,213.794,UC1,OCH,,,,,U,0.,,,
-example.eaf,217.241,218.241,UC1,OCH,,,,,U,0.,,,
-example.eaf,223.098,224.936,UC1,OCH,,,,,U,0.,,,
-example.eaf,225.274,226.503,UC1,OCH,,,,,A,0.,,,
-example.eaf,226.683,227.299,UC1,OCH,,,,,A,0.,,,
-example.eaf,230.261,230.537,UC1,OCH,,,,,A,0.,,,
-example.eaf,232.383,233.373,UC1,OCH,,,,,A,0.,,,
-example.eaf,233.668,234.218,UC1,OCH,,,,,A,0.,,,
-example.eaf,243.091,244.824,UC1,OCH,,,,,A,0.,,,
-example.eaf,245.643,246.04,UC1,OCH,,,,,A,0.,,,
-example.eaf,246.693,247.996,UC1,OCH,,,,,A,0.,,,
-example.eaf,253.8,254.16,UC1,OCH,,,,,U,0.,,,
-example.eaf,259.599,260.585,UC1,OCH,,,,,A,0.,,,
-example.eaf,75.172,76.24,UC3,OCH,,,,,U,0.,,,
-example.eaf,113.048,114.911,UC3,OCH,,,,,A,0.,,,
-example.eaf,122.961,123.42,UC3,OCH,,,,,U,0.,,,
-example.eaf,193.245,193.593,UC3,OCH,,,,,U,0.,,,
-example.eaf,250.858,251.606,UC3,OCH,,,,,A,0.,,,
+segment_onset,segment_offset,speaker_id,speaker_type,vcm_type,lex_type,mwu_type,addressee,transcription,words
+2040011,2041402,CHI,CHI,C,NA,NA,NA,0.,NA
+2041636,2042189,CHI,CHI,N,NA,NA,NA,0.,NA
+2042882,2044815,CHI,CHI,C,NA,NA,NA,0.,NA
+2045358,2047390,CHI,CHI,C,NA,NA,NA,0.,NA
+2047780,2049921,CHI,CHI,C,NA,NA,NA,0.,NA
+2050738,2052385,CHI,CHI,C,NA,NA,NA,0.,NA
+5640583,5641625,CHI,CHI,C,NA,NA,NA,0.,NA
+5642197,5643019,CHI,CHI,C,NA,NA,NA,0.,NA
+5643356,5644721,CHI,CHI,N,NA,NA,NA,0.,NA
+5645560,5646356,CHI,CHI,C,NA,NA,NA,0.,NA
+5648323,5649199,CHI,CHI,C,NA,NA,NA,0.,NA
+5650566,5651740,CHI,CHI,C,NA,NA,NA,0.,NA
+5653545,5654849,CHI,CHI,C,NA,NA,NA,0.,NA
+9250190,9251137,CHI,CHI,C,NA,NA,NA,0.,NA
+9253136,9253979,CHI,CHI,N,NA,NA,NA,0.,NA
+9258465,9259223,CHI,CHI,C,NA,NA,NA,0.,NA
+9260768,9261403,CHI,CHI,N,NA,NA,NA,0.,NA
+9261973,9262486,CHI,CHI,C,NA,NA,NA,0.,NA
+9268778,9269241,CHI,CHI,N,NA,NA,NA,0.,NA
+9276268,9277697,CHI,CHI,C,NA,NA,NA,0.,NA
+9279693,9280185,CHI,CHI,N,NA,NA,NA,0.,NA
+9292510,9293043,CHI,CHI,N,NA,NA,NA,0.,NA
+9297693,9298775,CHI,CHI,C,NA,NA,NA,0.,NA
+9299360,9300001,CHI,CHI,C,NA,NA,NA,0.,NA
+16468675,16469743,CHI,CHI,N,NA,NA,NA,0.,NA
+16480850,16481485,CHI,CHI,N,NA,NA,NA,0.,NA
+20040816,20041540,CHI,CHI,N,NA,NA,NA,0.,NA
+20041780,20042636,CHI,CHI,C,NA,NA,NA,0.,NA
+20043206,20045540,CHI,CHI,C,NA,NA,NA,0.,NA
+20045846,20047261,CHI,CHI,Y,NA,NA,NA,0.,NA
+20047880,20049240,CHI,CHI,Y,NA,NA,NA,0.,NA
+20050058,20052126,CHI,CHI,Y,NA,NA,NA,0.,NA
+20085822,20087628,CHI,CHI,N,NA,NA,NA,0.,NA
+20089511,20092278,CHI,CHI,Y,NA,NA,NA,0.,NA
+20092996,20093708,CHI,CHI,Y,NA,NA,NA,0.,NA
+20094588,20095900,CHI,CHI,C,NA,NA,NA,0.,NA
+20098784,20099958,CHI,CHI,Y,NA,NA,NA,0.,NA
+30840296,30842035,CHI,CHI,C,NA,NA,NA,0.,NA
+30842672,30843932,CHI,CHI,N,NA,NA,NA,0.,NA
+30845174,30846688,CHI,CHI,N,NA,NA,NA,0.,NA
+30859894,30861840,CHI,CHI,N,NA,NA,NA,0.,NA
+30863948,30865684,CHI,CHI,N,NA,NA,NA,0.,NA
+30867618,30868798,CHI,CHI,N,NA,NA,NA,0.,NA
+30870094,30871266,CHI,CHI,N,NA,NA,NA,0.,NA
+30883626,30883978,CHI,CHI,N,NA,NA,NA,0.,NA
+30889086,30889668,CHI,CHI,C,NA,NA,NA,0.,NA
+30892420,30892990,CHI,CHI,C,NA,NA,NA,0.,NA
+30893642,30894166,CHI,CHI,N,NA,NA,NA,0.,NA
+30894676,30895216,CHI,CHI,N,NA,NA,NA,0.,NA
+30895751,30896356,CHI,CHI,N,NA,NA,NA,0.,NA
+34481908,34482516,CHI,CHI,N,NA,NA,NA,0.,NA
+34484776,34485896,CHI,CHI,N,NA,NA,NA,0.,NA
+38046133,38046333,CHI,CHI,N,NA,NA,NA,0.,NA
+38047344,38048408,CHI,CHI,N,NA,NA,NA,0.,NA
+38049948,38052451,CHI,CHI,N,NA,NA,NA,0.,NA
+38053104,38053832,CHI,CHI,N,NA,NA,NA,0.,NA
+38058740,38059595,CHI,CHI,C,NA,NA,NA,0.,NA
+38061800,38062612,CHI,CHI,C,NA,NA,NA,0.,NA
+38062835,38064128,CHI,CHI,C,NA,NA,NA,0.,NA
+38066504,38067816,CHI,CHI,N,NA,NA,NA,0.,NA
+38068440,38069164,CHI,CHI,N,NA,NA,NA,0.,NA
+38071060,38073233,CHI,CHI,Y,NA,NA,NA,0.,NA
+38074764,38075544,CHI,CHI,N,NA,NA,NA,0.,NA
+38076996,38078500,CHI,CHI,N,NA,NA,NA,0.,NA
+38079536,38080096,CHI,CHI,N,NA,NA,NA,0.,NA
+38081888,38083588,CHI,CHI,C,NA,NA,NA,0.,NA
+38084006,38085410,CHI,CHI,C,NA,NA,NA,0.,NA
+2061245,2062770,FA1,FEM,C,NA,NA,NA,0.,NA
+2063608,2064346,FA1,FEM,L,NA,NA,NA,0.,NA
+2086745,2088016,FA1,FEM,C,NA,NA,NA,0.,NA
+5651911,5652924,FA1,FEM,C,NA,NA,NA,0.,NA
+5654890,5656763,FA1,FEM,C,NA,NA,NA,0.,NA
+5657314,5657903,FA1,FEM,C,NA,NA,NA,0.,NA
+5658016,5659553,FA1,FEM,C,NA,NA,NA,0.,NA
+5666343,5668472,FA1,FEM,C,NA,NA,NA,0.,NA
+5674612,5675024,FA1,FEM,C,NA,NA,NA,0.,NA
+5680458,5686093,FA1,FEM,C,NA,NA,NA,0.,NA
+5687161,5689723,FA1,FEM,C,NA,NA,NA,0.,NA
+5699746,5700032,FA1,FEM,C,NA,NA,NA,0.,NA
+9240153,9244760,FA1,FEM,C,NA,NA,NA,0.,NA
+9264821,9265671,FA1,FEM,C,NA,NA,NA,0.,NA
+9266718,9268345,FA1,FEM,C,NA,NA,NA,0.,NA
+9270848,9271842,FA1,FEM,C,NA,NA,NA,0.,NA
+9274278,9274715,FA1,FEM,C,NA,NA,NA,0.,NA
+9289818,9291794,FA1,FEM,C,NA,NA,NA,0.,NA
+9295398,9296633,FA1,FEM,C,NA,NA,NA,0.,NA
+12840000,12840324,FA1,FEM,C,NA,NA,NA,0.,NA
+12840717,12841438,FA1,FEM,C,NA,NA,NA,0.,NA
+12846118,12846797,FA1,FEM,C,NA,NA,NA,0.,NA
+12848613,12851055,FA1,FEM,C,NA,NA,NA,0.,NA
+12853698,12854645,FA1,FEM,C,NA,NA,NA,0.,NA
+12858621,12859423,FA1,FEM,C,NA,NA,NA,0.,NA
+12871450,12873755,FA1,FEM,C,NA,NA,NA,0.,NA
+12875586,12880468,FA1,FEM,C,NA,NA,NA,0.,NA
+12880945,12882458,FA1,FEM,C,NA,NA,NA,0.,NA
+12882845,12884219,FA1,FEM,C,NA,NA,NA,0.,NA
+12896473,12900000,FA1,FEM,C,NA,NA,NA,0.,NA
+16486956,16487658,FA1,FEM,C,NA,NA,NA,0.,NA
+16496005,16497335,FA1,FEM,C,NA,NA,NA,0.,NA
+20040028,20041392,FA1,FEM,C,NA,NA,NA,0.,NA
+20041540,20043828,FA1,FEM,C,NA,NA,NA,0.,NA
+20046831,20047182,FA1,FEM,C,NA,NA,NA,0.,NA
+20050512,20050956,FA1,FEM,C,NA,NA,NA,0.,NA
+20053345,20057680,FA1,FEM,C,NA,NA,NA,0.,NA
+20058230,20059248,FA1,FEM,C,NA,NA,NA,0.,NA
+20060790,20061650,FA1,FEM,C,NA,NA,NA,0.,NA
+20061862,20063870,FA1,FEM,C,NA,NA,NA,0.,NA
+20064368,20068631,FA1,FEM,C,NA,NA,NA,0.,NA
+20075488,20077838,FA1,FEM,C,NA,NA,NA,0.,NA
+20081693,20083941,FA1,FEM,C,NA,NA,NA,0.,NA
+20086966,20088722,FA1,FEM,C,NA,NA,NA,0.,NA
+20095675,20096660,FA1,FEM,C,NA,NA,NA,0.,NA
+20098721,20099003,FA1,FEM,N,NA,NA,NA,0.,NA
+34482740,34484808,FA1,FEM,L,NA,NA,NA,0.,NA
+34485885,34488052,FA1,FEM,C,NA,NA,NA,0.,NA
+34492052,34492672,FA1,FEM,C,NA,NA,NA,0.,NA
+34496998,34498084,FA1,FEM,C,NA,NA,NA,0.,NA
+34498980,34499415,FA1,FEM,N,NA,NA,NA,0.,NA
+38048096,38048972,FA1,FEM,C,NA,NA,NA,0.,NA
+38059212,38060200,FA1,FEM,C,NA,NA,NA,0.,NA
+38069720,38071072,FA1,FEM,N,NA,NA,NA,0.,NA
+38072108,38072852,FA1,FEM,C,NA,NA,NA,0.,NA
+38084664,38085616,FA1,FEM,N,NA,NA,NA,0.,NA
+38092555,38093461,FA1,FEM,C,NA,NA,NA,0.,NA
+38099160,38100008,FA1,FEM,C,NA,NA,NA,0.,NA
+2052379,2054899,FA2,FEM,C,NA,NA,NA,0.,NA
+2066262,2067201,FA2,FEM,C,NA,NA,NA,0.,NA
+2067625,2070530,FA2,FEM,C,NA,NA,NA,0.,NA
+2076276,2077670,FA2,FEM,C,NA,NA,NA,0.,NA
+2084316,2085201,FA2,FEM,C,NA,NA,NA,0.,NA
+2087407,2089301,FA2,FEM,C,NA,NA,NA,0.,NA
+5660275,5660985,FA2,FEM,C,NA,NA,NA,0.,NA
+5661492,5662900,FA2,FEM,C,NA,NA,NA,0.,NA
+5663070,5665229,FA2,FEM,C,NA,NA,NA,0.,NA
+5665356,5666286,FA2,FEM,C,NA,NA,NA,0.,NA
+5672385,5673720,FA2,FEM,C,NA,NA,NA,0.,NA
+5673863,5674471,FA2,FEM,C,NA,NA,NA,0.,NA
+5675106,5676207,FA2,FEM,C,NA,NA,NA,0.,NA
+5677188,5679631,FA2,FEM,C,NA,NA,NA,0.,NA
+5689708,5691048,FA2,FEM,C,NA,NA,NA,0.,NA
+5692754,5694001,FA2,FEM,C,NA,NA,NA,0.,NA
+5696901,5698993,FA2,FEM,C,NA,NA,NA,0.,NA
+9246063,9246931,FA2,FEM,C,NA,NA,NA,0.,NA
+9251233,9252631,FA2,FEM,C,NA,NA,NA,0.,NA
+9255275,9255730,FA2,FEM,C,NA,NA,NA,0.,NA
+9256234,9257043,FA2,FEM,C,NA,NA,NA,0.,NA
+9259392,9260172,FA2,FEM,C,NA,NA,NA,0.,NA
+9262843,9264466,FA2,FEM,C,NA,NA,NA,0.,NA
+9269583,9272051,FA2,FEM,C,NA,NA,NA,0.,NA
+9273134,9274023,FA2,FEM,C,NA,NA,NA,0.,NA
+9292122,9293921,FA2,FEM,C,NA,NA,NA,0.,NA
+12840465,12840692,FA2,FEM,C,NA,NA,NA,0.,NA
+12841507,12843743,FA2,FEM,C,NA,NA,NA,0.,NA
+12844253,12845278,FA2,FEM,C,NA,NA,NA,0.,NA
+12848015,12848523,FA2,FEM,C,NA,NA,NA,0.,NA
+12852228,12852905,FA2,FEM,C,NA,NA,NA,0.,NA
+12860572,12863368,FA2,FEM,C,NA,NA,NA,0.,NA
+12864665,12868420,FA2,FEM,C,NA,NA,NA,0.,NA
+12868660,12871453,FA2,FEM,C,NA,NA,NA,0.,NA
+12884091,12885940,FA2,FEM,C,NA,NA,NA,0.,NA
+12887845,12888913,FA2,FEM,C,NA,NA,NA,0.,NA
+12889666,12890760,FA2,FEM,C,NA,NA,NA,0.,NA
+12891592,12896093,FA2,FEM,C,NA,NA,NA,0.,NA
+16441043,16442263,FA2,FEM,C,NA,NA,NA,0.,NA
+16489360,16490011,FA2,FEM,C,NA,NA,NA,0.,NA
+16498076,16500000,FA2,FEM,C,NA,NA,NA,0.,NA
+20051262,20053082,FA2,FEM,C,NA,NA,NA,0.,NA
+20059248,20060742,FA2,FEM,C,NA,NA,NA,0.,NA
+20072578,20075488,FA2,FEM,C,NA,NA,NA,0.,NA
+20080464,20081904,FA2,FEM,C,NA,NA,NA,0.,NA
+20084116,20086361,FA2,FEM,C,NA,NA,NA,0.,NA
+20088718,20089846,FA2,FEM,C,NA,NA,NA,0.,NA
+30874082,30875914,FA2,FEM,C,NA,NA,NA,0.,NA
+34491376,34492275,FA2,FEM,C,NA,NA,NA,0.,NA
+34493480,34493918,FA2,FEM,N,NA,NA,NA,0.,NA
+34498204,34498983,FA2,FEM,C,NA,NA,NA,0.,NA
+2059525,2060653,MA1,MAL,C,NA,NA,NA,0.,NA
+2075295,2076027,MA1,MAL,C,NA,NA,NA,0.,NA
+2095000,2096068,MA1,MAL,L,NA,NA,NA,0.,NA
+5679749,5680182,MA1,MAL,C,NA,NA,NA,0.,NA
+27268420,27269794,MA1,MAL,C,NA,NA,NA,0.,NA
+2074205,2075038,MC1,OCH,C,NA,NA,NA,0.,NA
+12852905,12854312,MC1,OCH,N,NA,NA,NA,0.,NA
+12854913,12859380,MC1,OCH,N,NA,NA,NA,0.,NA
+12861184,12863266,MC1,OCH,N,NA,NA,NA,0.,NA
+12863478,12865986,MC1,OCH,N,NA,NA,NA,0.,NA
+12867083,12868605,MC1,OCH,N,NA,NA,NA,0.,NA
+12870216,12871477,MC1,OCH,N,NA,NA,NA,0.,NA
+12875291,12876758,MC1,OCH,N,NA,NA,NA,0.,NA
+12881783,12883521,MC1,OCH,N,NA,NA,NA,0.,NA
+12886499,12889160,MC1,OCH,N,NA,NA,NA,0.,NA
+12890681,12892080,MC1,OCH,N,NA,NA,NA,0.,NA
+12895230,12896595,MC1,OCH,N,NA,NA,NA,0.,NA
+16442316,16444347,MC1,OCH,C,NA,NA,NA,0.,NA
+16445096,16445991,MC1,OCH,C,NA,NA,NA,0.,NA
+16446395,16447543,MC1,OCH,C,NA,NA,NA,0.,NA
+16447976,16449096,MC1,OCH,C,NA,NA,NA,0.,NA
+16450193,16451004,MC1,OCH,C,NA,NA,NA,0.,NA
+16451548,16452735,MC1,OCH,C,NA,NA,NA,0.,NA
+16453219,16454476,MC1,OCH,C,NA,NA,NA,0.,NA
+16454899,16455968,MC1,OCH,C,NA,NA,NA,0.,NA
+16456625,16457338,MC1,OCH,C,NA,NA,NA,0.,NA
+16458114,16458698,MC1,OCH,C,NA,NA,NA,0.,NA
+16459169,16460301,MC1,OCH,C,NA,NA,NA,0.,NA
+16460760,16461109,MC1,OCH,N,NA,NA,NA,0.,NA
+16462191,16463340,MC1,OCH,C,NA,NA,NA,0.,NA
+16463968,16464851,MC1,OCH,N,NA,NA,NA,0.,NA
+16465301,16466530,MC1,OCH,C,NA,NA,NA,0.,NA
+16470330,16472183,MC1,OCH,N,NA,NA,NA,0.,NA
+16474246,16479086,MC1,OCH,C,NA,NA,NA,0.,NA
+16480278,16480786,MC1,OCH,C,NA,NA,NA,0.,NA
+16482578,16484366,MC1,OCH,C,NA,NA,NA,0.,NA
+16486260,16487009,MC1,OCH,C,NA,NA,NA,0.,NA
+16488453,16489490,MC1,OCH,C,NA,NA,NA,0.,NA
+16490045,16490668,MC1,OCH,C,NA,NA,NA,0.,NA
+20071038,20071626,MC1,OCH,C,NA,NA,NA,0.,NA
+30862998,30863476,MC1,OCH,N,NA,NA,NA,0.,NA
+30866286,30867630,MC1,OCH,C,NA,NA,NA,0.,NA
+30873810,30875048,MC1,OCH,C,NA,NA,NA,0.,NA
+30875568,30877592,MC1,OCH,N,NA,NA,NA,0.,NA
+30884562,30885692,MC1,OCH,N,NA,NA,NA,0.,NA
+30886696,30887208,MC1,OCH,N,NA,NA,NA,0.,NA

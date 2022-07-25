@@ -1,7 +1,9 @@
 __all__= [
     'table',
     'projects',
-    'annotations'
+    'annotations',
+    'converters',
+    'metrics'
 ]
 
-__version__ = '0.0.1'
+__version__ = '0.0.5'

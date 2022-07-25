@@ -1,0 +1,7 @@
+recording_filename,set,range_onset,range_offset,range_onset_time,range_offset_time
+1.wav,auto,3600000.0,43200000.0,09:00,20:00
+1.wav,manual,3600000.0,7200000.0,09:00,10:00
+2.wav,auto,0.0,37800000.0,09:30,20:00
+2.wav,auto,84600000.0,124200000.0,09:00,20:00
+2.wav,auto,171000000.0,172800000.0,09:00,09:30
+2.wav,manual,90000000.0,93600000.0,10:30,11:30

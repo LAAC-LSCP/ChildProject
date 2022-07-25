@@ -5,8 +5,8 @@
 Datasets structure
 ==================
 
-ChildRecordsData assumes your data is structured in a specific way
-before it is imported. This structure is necessary to check, for
+ChildProject assumes your data is structured in a specific way.
+This structure is necessary to check, for
 instance, that there are no unreferenced files, and no referenced files
 that are actually missing. The data curator therefore needs to organize
 their data in a specific way (respecting the dataset tree, with all
@@ -17,6 +17,9 @@ To be imported, datasets must pass the the validation
 routine (see :ref:`tools-data-validation`).
 with no error. We also recommend you pay attention to the warnings, and
 try to sort as many of those out as possible before submission.
+
+An example of dataset structured according to ChildProject's format
+can be found `here <https://gin.g-node.org/LAAC-LSCP/vandam-data>`__.
 
 Dataset tree
 ------------
@@ -46,36 +49,95 @@ organize your files into this structure):
    │   │   └───raw
    │   │   │   │   child1_3600.TextGrid
    │
+   └───docs (*)
+   │   │   children.csv
+   │   │   recordings.csv
    └───extra
        │   notes.txt
 
-The children and recordings notebooks should be formatted according to
+The children and recordings notebooks should be CSV dataframes formatted according to
 the standards detailed right below.
+
+   (*) The ``docs`` folder is optional.
 
 .. _format-metadata:
 
 Metadata
 --------
 
-children notebook
+Children notebook
 ~~~~~~~~~~~~~~~~~
 
-The children dataframe needs to be saved at ``metadata/children.csv``.
+The children metadata dataframe needs to be saved at ``metadata/children.csv``.
+It should be formatted as instructed below; you can add more fields beyond those that are
+standardized, but make sure to document them.
 
 .. index-table:: Children metadata
    :header: children
 
-recording notebook
-~~~~~~~~~~~~~~~~~~
 
-The recordings dataframe needs to be saved at
+Recordings notebook
+~~~~~~~~~~~~~~~~~~~
+
+The recordings metadata dataframe needs to be saved at
 ``metadata/recordings.csv``.
+It should be formatted as instructed below; you can add more fields beyond those that are
+standardized, but make sure to document them.
 
 .. index-table:: Recordings metadata
    :header: recordings
 
+Splitting the metadata across several files
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Sometimes, access to parts of the metadata should be limited
+to a list of authorized users. This can be achieved by moving confidential
+information out of the main notebook to a separate CSV file to
+be only delivered to authorized users. These additional files
+should be placed according to the table below:
+
+
+.. csv-table:: Additional metadata
+   :header: data,main notebook,location of additional notebooks
+
+   children,``metadata/children.csv``,``metadata/children/``
+   recordings,``metadata/recordings.csv``,``metadata/recordings/``
+
+There can be as many additional notebooks as necessary, and recursion
+is permitted.
+
+This is also useful if your metadata includes many columns and you'd like to
+spread it across several dataframes. This can also be used to deliver survey data
+in a separate file.
+
+.. note::
+
+   In case two or more notebooks contain the same column, the files
+   whose names come first in alphabetical order will prevail while
+   loading the dataset with our package. For instance, if
+   ``child_dob`` is specified in both  ``metadata/recordings/0_private.csv``
+   and ``metadata/recordings/1_public.csv``, the values in the former file will prevail if it is available.
+   This is useful when anonymized values for a certain parameter still need to be shared,
+   but should be replaced with the true values for those who have access to the full dataset.
+
+.. warning::
+
+   For recursive metadata, two dataframes cannot share the same basename.
+   For instance, if one dataframe is located at `metadata/children/dates-of-birth.csv` ,
+   an error will be thrown if another dataframe exists at
+   `metadata/children/private/dates-of-birth.csv ` .
+
 Annotations
 -----------
+
+Upon importation, annotations are converted to standardized
+CSV dataframes (using built-in or custom ingestors)
+and registered into an index.
+The index of annotations stores the list of each interval
+that has been annotated for each annotator.
+This allows a number of functionalities
+such as the quick computation of the intersection of the
+portions of audio covered by a given set of annotators.
 
 .. _format-annotations-segments:
 
@@ -83,21 +145,57 @@ Annotations format
 ~~~~~~~~~~~~~~~~~~
 
 The package provides functions to convert any annotation into the
-following csv format, with one row per segment :
+following CSV format, with one row per segment (e.g. per vocalization event):
 
 .. index-table:: Annotations format
    :header: annotation_segments
+
+Custom columns may be used, although they should be documented somewhere in your dataset.
 
 .. _format-annotations:
 
 Annotations index
 ~~~~~~~~~~~~~~~~~
 
+.. warning::
+
+    The index is maintained through the package functions only; it should never be updated by hand.
+
 Annotations are indexed in one unique dataframe located at
-``/metadata/annotations.csv``, with the following format :
+``/metadata/annotations.csv`` , with the following format :
 
 .. index-table:: Annotations metadata
    :header: annotations
+
+Below is shown an example of an index file
+(some uninformative columns were hidden for clarity).
+In this case, one recording has been fully
+annotated using the Voice Type Classifier (vtc),
+and partially annotated by two humans (LM and SP).
+These humans have both annotated the same seven 15 second clips.
+
+.. csv-table:: 
+   :header-rows: 1
+
+   set,recording_filename,time_seek,range_onset,range_offset,raw_filename,format,annotation_filename
+   vtc,A730/A730_001105.wav,0,0,42764250,A730/A730_001105.rttm,vtc_rttm,A730/A730_001105_0_42764250.csv
+   eaf_2021/SP,A730/A730_001105.wav,0,2910000,2925000,A730_001105.eaf,eaf,A730/A730_001105_2910000_2925000.csv
+   eaf_2021/SP,A730/A730_001105.wav,0,4680000,4695000,A730_001105.eaf,eaf,A730/A730_001105_4680000_4695000.csv
+   eaf_2021/SP,A730/A730_001105.wav,0,4695000,4710000,A730_001105.eaf,eaf,A730/A730_001105_4695000_4710000.csv
+   eaf_2021/SP,A730/A730_001105.wav,0,14055000,14070000,A730_001105.eaf,eaf,A730/A730_001105_14055000_14070000.csv
+   eaf_2021/SP,A730/A730_001105.wav,0,15030000,15045000,A730_001105.eaf,eaf,A730/A730_001105_15030000_15045000.csv
+   eaf_2021/SP,A730/A730_001105.wav,0,36465000,36480000,A730_001105.eaf,eaf,A730/A730_001105_36465000_36480000.csv
+   eaf_2021/SP,A730/A730_001105.wav,0,39450000,39465000,A730_001105.eaf,eaf,A730/A730_001105_39450000_39465000.csv
+   eaf_2021/LM,A730/A730_001105.wav,0,2910000,2925000,A730_001105.eaf,eaf,A730/A730_001105_2910000_2925000.csv
+   eaf_2021/LM,A730/A730_001105.wav,0,4680000,4695000,A730_001105.eaf,eaf,A730/A730_001105_4680000_4695000.csv
+   eaf_2021/LM,A730/A730_001105.wav,0,4695000,4710000,A730_001105.eaf,eaf,A730/A730_001105_4695000_4710000.csv
+   eaf_2021/LM,A730/A730_001105.wav,0,14055000,14070000,A730_001105.eaf,eaf,A730/A730_001105_14055000_14070000.csv
+   eaf_2021/LM,A730/A730_001105.wav,0,15030000,15045000,A730_001105.eaf,eaf,A730/A730_001105_15030000_15045000.csv
+   eaf_2021/LM,A730/A730_001105.wav,0,36465000,36480000,A730_001105.eaf,eaf,A730/A730_001105_36465000_36480000.csv
+   eaf_2021/LM,A730/A730_001105.wav,0,39450000,39465000,A730_001105.eaf,eaf,A730/A730_001105_39450000_39465000.csv
+
+.. comment::
+    This comment fixes an issue introduced in Sphinx 4.3.1
 
 .. _format-input-annotations:
 
@@ -109,3 +207,48 @@ following format as an input:
 
 .. index-table:: Input annotations
    :header: input_annotations
+
+.. note::
+   In order to avoid rounding errors, all timestamps are integers,
+   expressed in milliseconds.
+
+Documentation
+-------------
+
+An important aspect of a dataset is its documentation.
+Documentation includes:
+
+ - authorship, references, contact information
+ - a description of the corpus (population, collection process, etc.)
+ - instructions to re-use the data
+ - description of the data itself (e.g. a definition of each metadata field)
+
+We currently do not provide a format for *all* these annotations.
+It is up to you to decide how to provide users with each of these information.
+
+However, we suggest several options below.
+
+Metadata and annotations
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ChildProject package supports a machine-readable format 
+to describe the contents of the metadata and the annotations.
+
+This format consists in CSV dataframe structured according 
+to the following table:
+
+.. index-table:: Machine-readable documentation
+   :header: documentation
+
+.. comment::
+    This comment fixes an issue introduced in Sphinx 4.3.1
+
+- Documentation for the children metadata should be stored in ``docs/children.csv``
+- Documentation for the recordings metadata should be stored in ``docs/recordings.csv``
+- Documentation for annotations should be stored in ``docs/annotations.csv``
+
+Authorship
+~~~~~~~~~~
+
+We recommend DataCite's .yaml format (see `here <https://github.com/G-Node/gogs/blob/master/conf/datacite/datacite.yml>`_)
+

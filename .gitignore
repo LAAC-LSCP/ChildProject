@@ -1,3 +1,6 @@
+output
+.DS_Store
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -133,3 +136,9 @@ output/
 
 docs/FORMATTING.md
 docs/PROJECTS.md
+
+# vim
+*~
+
+# sphinx created csvs
+docs/source/*.csv

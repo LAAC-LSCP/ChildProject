@@ -1,10 +1,10 @@
-.. ChildRecordsData documentation master file, created by
+.. ChildProject documentation master file, created by
    sphinx-quickstart on Sat Feb 20 21:27:49 2021.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to ChildRecordsData's documentation!
-============================================
+Welcome to ChildProject's documentation!
+========================================
 
 .. toctree::
    :maxdepth: 2
@@ -12,8 +12,9 @@ Welcome to ChildRecordsData's documentation!
 
    introduction
    install
-   getting-data
    format
+   getting-data
+   projects
 
 .. toctree::
    :maxdepth: 2
@@ -27,14 +28,21 @@ Welcome to ChildRecordsData's documentation!
    :caption: Command-line tools
 
    tools
+   annotations
+   metrics
+   processors
    samplers
+   elan
    zooniverse
    cheatsheet
 
 .. toctree::
    :maxdepth: 2
-   :caption: Package reference
+   :caption: Python API
 
+   api-annotations
+   api-metrics
+   examples
    modules
 
 * :ref:`genindex`

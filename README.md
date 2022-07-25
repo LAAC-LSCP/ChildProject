@@ -1,17 +1,16 @@
-ChildRecordsData
-================
+ChildProject
+============
 
-- [ChildRecordsData](#childrecordsdata)
-  - [Introduction](#introduction)
-  - [Available tools](#available-tools)
-  - [Installation](#installation)
+- [Introduction](#introduction)
+- [Available tools](#available-tools)
+- [Installation](#installation)
 
 Introduction
 ------------
 
 Day-long (audio-)recordings of children are increasingly common, but
 there is no scientific standard formatting that can benefit the
-organization and analyses of such data. ChildRecordData provides
+organization and analyses of such data. ChildProject provides
 standardizing specifications and tools for the storage and management of
 day-long recordings of children and their associated meta-data and
 annotations.
@@ -67,16 +66,35 @@ In this context, we provide tools and a procedure to:
 -   Validate datasets (making sure that metadata, recordings and
     annotations are in the right place and format)
 -   Convert your raw recordings into the desired format
--   Import raw annotations (from ELAN, Praat, csv, rttm from VTC and
-    ALICE) into our standardized format
+-   Import annotations (from the LENA, ELAN, Praat, VTC/ALICE/VCM rttms, CHAT files) into a standardized format
+-   Generate reliability metrics by comparing annotators (confusion matrices, agreement coefficients, pyannote metrics)
+-   Extract metrics from the annotations (e.g. average vocalization rates, durations, etc.)
 -   Sample segments of the recordings to annotate from a set of sampling
     algorithms
 -   Add clips to an annotation pipeline in Zooniverse, and retrieve the
     ensuing annotations
 
-These tools can be used both in [command-line](https://laac-lscp.github.io/ChildRecordsData/tools.html) or from within your python code, by importing our [modules](https://laac-lscp.github.io/ChildRecordsData/modules.html).
+These tools can be used both in [command-line](https://childproject.readthedocs.io/en/latest/tools.html) or from within your python code, by importing our [modules](https://childproject.readthedocs.io/en/latest/modules.html).
 
 Installation
 ------------
 
-You can find instructions to install and use our package in our [documentation](https://laac-lscp.github.io/ChildRecordsData/install.html).
+You can find instructions to install and use our package in our [documentation](https://childproject.readthedocs.io/en/latest/install.html).
+
+Citation
+--------
+
+If you are using this project for your research, please cite our [introductory paper](https://psyarxiv.com/w8trm):
+
+```tex
+@article{gautheron_rochat_cristia_2021,
+    title={Managing, storing, and sharing long-form recordings and their annotations},
+    url={https://link.springer.com/article/10.1007/s10579-022-09579-3},
+    DOI={10.1007/s10579-022-09579-3},
+    publisher={Springer},
+    journal={Language Resources and Evaluation}
+    author={Gautheron, Lucas and Rochat, Nicolas and Cristia, Alejandrina},
+    year={2022},
+    month={Feb}
+}
+```

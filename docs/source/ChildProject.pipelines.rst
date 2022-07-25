@@ -12,10 +12,18 @@ ChildProject.pipelines.anonymize module
    :undoc-members:
    :show-inheritance:
 
-ChildProject.pipelines.conversion module
+ChildProject.pipelines.eafbuilder module
 ----------------------------------------
 
-.. automodule:: ChildProject.pipelines.conversion
+.. automodule:: ChildProject.pipelines.eafbuilder
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+ChildProject.pipelines.metrics module
+--------------------------------------
+
+.. automodule:: ChildProject.pipelines.metrics
    :members:
    :undoc-members:
    :show-inheritance:
@@ -27,6 +35,15 @@ ChildProject.pipelines.pipeline module
    :members:
    :undoc-members:
    :show-inheritance:
+
+ChildProject.pipelines.processors module
+----------------------------------------
+
+.. automodule:: ChildProject.pipelines.processors
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   
 
 ChildProject.pipelines.samplers module
 --------------------------------------
@@ -43,7 +60,6 @@ ChildProject.pipelines.zooniverse module
    :members:
    :undoc-members:
    :show-inheritance:
-
 
 Module contents
 ---------------
