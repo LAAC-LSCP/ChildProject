@@ -167,34 +167,37 @@ def calculate_shift(file1, file2, start1, start2, interval, correlation_output =
 
     return res,len(ref)
 
-    def series_to_datetime(time_series, time_index_list, time_column_name:str, date_series = None, date_index_list = None, date_column_name = None):
-        """
-        returns a series of datetimes from a series of str. Using pd.to_datetime on all the formats listed for a specific column name in an index consisting of IndexColumn items. To have the date included and not only time), one can use a second series for date, with also the corresponding index and column
-        
-        :param time_series: pandas series of strings to transform into datetime (can contain NA value => NaT datetime), if date_series is given, time_series should only have the time
-        :type time_series: pandas.Series
-        :param time_index_list: list of index to use where the column wanted is present
-        :type time_index_list: List[IndexColumn]
-        :param time_column_name: name of the IndexColumn to use (IndexColumn.name value) for accepted formats
-        :type time_column_name: str
-        :param date_series: pandas series of strings to transform into the date component of datetime (can contain NA value)
-        :type date_series: pandas.Series
-        :param date_index_list: list of index to use where the column wanted is present
-        :type date_index_list: List[IndexColumn]
-        :param date_column_name: name of the IndexColumn to use (IndexColumn.name value) for accepted formats for dates
-        :type date_column_name: str
-        """
-        time_formats = next(x for x in time_index_list if x.name==time_column_name).datetime
-        series = pd.Series(np.nan, index=time_series.shape[0] , dtype='datetime64[ns]')
-        if date_series:
-            time_sr = time_series + ' ' + date_series
-            date_formats = next(x for x in date_index_list if x.name==date_column_name).datetime
-            for frmt in time_formats:
-                for dfrmt in date_formats:
-                    series = series.fillna(pd.to_datetime(time_sr, format="{} {}".format(dfrmt,frmt), errors="coerce"))
-        else:
-            time_sr = series.copy()
-            for frmt in time_formats:
-                series = series.fillna(pd.to_datetime(time_sr, format=frmt, errors="coerce"))
-        return series
+def series_to_datetime(time_series, time_index_list, time_column_name:str, date_series = None, date_index_list = None, date_column_name = None):
+    """
+    returns a series of datetimes from a series of str. Using pd.to_datetime on all the formats \
+    listed for a specific column name in an index consisting of IndexColumn items. \
+    To have the date included and not only time), one can use a second series for date, \
+    with also the corresponding index and column
+    
+    :param time_series: pandas series of strings to transform into datetime (can contain NA value => NaT datetime), if date_series is given, time_series should only have the time
+    :type time_series: pandas.Series
+    :param time_index_list: list of index to use where the column wanted is present
+    :type time_index_list: List[IndexColumn]
+    :param time_column_name: name of the IndexColumn to use (IndexColumn.name value) for accepted formats
+    :type time_column_name: str
+    :param date_series: pandas series of strings to transform into the date component of datetime (can contain NA value)
+    :type date_series: pandas.Series
+    :param date_index_list: list of index to use where the column wanted is present
+    :type date_index_list: List[IndexColumn]
+    :param date_column_name: name of the IndexColumn to use (IndexColumn.name value) for accepted formats for dates
+    :type date_column_name: str
+    """
+    time_formats = next(x for x in time_index_list if x.name==time_column_name).datetime
+    series = pd.Series(np.nan, index=time_series.shape[0] , dtype='datetime64[ns]')
+    if date_series:
+        time_sr = time_series + ' ' + date_series
+        date_formats = next(x for x in date_index_list if x.name==date_column_name).datetime
+        for frmt in time_formats:
+            for dfrmt in date_formats:
+                series = series.fillna(pd.to_datetime(time_sr, format="{} {}".format(dfrmt,frmt), errors="coerce"))
+    else:
+        time_sr = series.copy()
+        for frmt in time_formats:
+            series = series.fillna(pd.to_datetime(time_sr, format=frmt, errors="coerce"))
+    return series
     
