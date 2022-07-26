@@ -13,7 +13,7 @@ from . import __version__
 from .projects import ChildProject
 from .converters import *
 from .tables import IndexTable, IndexColumn, assert_dataframe, assert_columns_presence
-from .utils import Segment, intersect_ranges, path_is_parent, TimeInterval
+from .utils import Segment, intersect_ranges, path_is_parent, TimeInterval, series_to_datetime
 
 
 class AnnotationManager:
@@ -1198,15 +1198,13 @@ class AnnotationManager:
     def get_within_time_range(
         self, annotations: pd.DataFrame, interval : TimeInterval, errors="raise"
     ):
-        """Clip all input annotations within a given HH:MM clock-time range.
+        """Clip all input annotations within a given HH:MM:SS clock-time range.
         Those that do not intersect the input time range at all are filtered out.
 
         :param annotations: DataFrame of input annotations to filter. The only columns that are required are: ``recording_filename``, ``range_onset``, and ``range_offset``.
         :type annotations: pd.DataFrame
-        :param start: onset HH:MM clocktime
-        :type start: str
-        :param end: offset HH:MM clocktime
-        :type end: str
+        :param interval: Interval of hours to consider, contains the start hour and end hour
+        :type interval: TimeInterval
         :param errors: how to deal with invalid start_time values for the recordings. Takes the same values as ``pandas.to_datetime``.
         :type errors: str
         :return: a DataFrame of annotations; \
@@ -1237,8 +1235,9 @@ class AnnotationManager:
         annotations = annotations.merge(
             self.project.recordings[["recording_filename", "start_time"]], how="left"
         )
-        annotations["start_time"] = pd.to_datetime(
-            annotations["start_time"], format="%H:%M", errors=errors
+        
+        annotations['start_time'] = series_to_datetime(
+                annotations['start_time'], ChildProject.RECORDINGS_COLUMNS, 'start_time'
         )
 
         # remove values with NaT start_time
@@ -1353,19 +1352,12 @@ class AnnotationManager:
         )
 
         if ignore_date:
-            segments["start_time"] = pd.to_datetime(
-                segments["start_time"], format="%H:%M", errors="coerce",
+            segments['start_time'] = series_to_datetime(
+                segments['start_time'], ChildProject.RECORDINGS_COLUMNS, 'start_time'
             )
         else:
-            segments["start_time"] = pd.to_datetime(
-                segments[["date_iso", "start_time"]].apply(
-                    lambda row: "{} {}".format(
-                        str(row["date_iso"]), str(row["start_time"])
-                    ),
-                    axis=1,
-                ),
-                format="%Y-%m-%d %H:%M",
-                errors="coerce",
+            segments['start_time'] = series_to_datetime(
+                segments['start_time'], ChildProject.RECORDINGS_COLUMNS, 'start_time', date_series = segments['date_iso'], date_index_list = ChildProject.RECORDINGS_COLUMNS, date_column_name = 'date_iso'
             )
 
         segments["onset_time"] = segments["start_time"] + pd.to_timedelta(

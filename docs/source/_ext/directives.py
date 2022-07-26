@@ -76,7 +76,7 @@ class IndexTable(CSVTable):
 
             df_entry['Format'] = ''
             if column.datetime:
-                df_entry['Format'] = "``{}``".format(column.datetime)
+                df_entry['Format'] = "``{}``".format(' / '.join(column.datetime))
             elif column.regex:
                 df_entry['Format'] = "``{}``".format(column.regex)
             elif column.function:

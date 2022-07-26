@@ -199,15 +199,21 @@ class IndexTable:
                         warnings.append(self.msg(message))
 
                 elif column_attr.datetime:
-                    try:
-                        dt = datetime.datetime.strptime(
-                            row[column_name], column_attr.datetime
-                        )
-                    except:
-                        message = "'{}' is not a proper date/time for column '{}' (expected {}) on line {}".format(
+                    passed = False
+                    for i in column_attr.datetime:
+                        try:
+                            dt = datetime.datetime.strptime(
+                                row[column_name], column_attr.datetime
+                            )
+                            passed = True
+                            break
+                        except:
+                            pass
+                    if not passed:
+                        message = "'{}' is not a proper date/time for column '{}' (expected: {}) on line {}".format(
                             row[column_name],
                             column_name,
-                            column_attr.datetime,
+                            ' / '.join(column_attr.datetime),
                             line_number,
                         )
                         if column_attr.required and str(row[column_name]) != "NA":
