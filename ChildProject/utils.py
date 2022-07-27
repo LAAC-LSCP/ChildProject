@@ -62,6 +62,9 @@ class TimeInterval:
     def __repr__(self):
         return "TimeInterval([{}, {}])".format(self.start, self.stop)
     
+    def __eq__(self, other):
+        return self.start == other.start and self.stop == other.stop
+    
 def time_intervals_intersect(ti1 : TimeInterval, ti2 : TimeInterval):
     """
     given 2 time intervals (those do not take in consideration days, only time in the day), return an array of new interval(s) representing the intersections of the original ones.
@@ -186,6 +189,8 @@ def series_to_datetime(time_series, time_index_list, time_column_name:str, date_
     :type date_index_list: List[IndexColumn]
     :param date_column_name: name of the IndexColumn to use (IndexColumn.name value) for accepted formats for dates
     :type date_column_name: str
+    :return: series with dtype datetime containing the converted datetimes
+    :rtype: pandas.Series
     """
     time_formats = next(x for x in time_index_list if x.name==time_column_name).datetime
     series = pd.Series(np.nan, index=np.arange(time_series.shape[0]) , dtype='datetime64[ns]')

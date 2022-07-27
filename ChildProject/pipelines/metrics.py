@@ -162,17 +162,17 @@ class Metrics(ABC):
         
         if from_time:
             try:
-                self.from_time = datetime.datetime.strptime(from_time, "%H:%M")
+                self.from_time = datetime.datetime.strptime(from_time, "%H:%M:%S")
             except:
-                raise ValueError(f"invalid value for from_time ('{from_time}'); should have HH:MM format instead")
+                raise ValueError(f"invalid value for from_time ('{from_time}'); should have HH:MM:SS format instead")
         else:
             self.from_time = None
         
         if to_time:
             try:
-                self.to_time = datetime.datetime.strptime(to_time, "%H:%M")
+                self.to_time = datetime.datetime.strptime(to_time, "%H:%M:%S")
             except:
-                raise ValueError(f"invalid value for to_time ('{to_time}'); should have HH:MM format instead")
+                raise ValueError(f"invalid value for to_time ('{to_time}'); should have HH:MM:SS format instead")
         else:
             self.to_time = None
         
@@ -692,14 +692,14 @@ class MetricsPipeline(Pipeline):
         parser.add_argument(
             "-f",
             "--from-time",
-            help="time range start in HH:MM format (optional)",
+            help="time range start in HH:MM:SS format (optional)",
             default=None,
         )
 
         parser.add_argument(
             "-t",
             "--to-time",
-            help="time range end in HH:MM format (optional)",
+            help="time range end in HH:MM:SS format (optional)",
             default=None,
         )
         
