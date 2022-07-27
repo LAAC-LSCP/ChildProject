@@ -200,10 +200,10 @@ class IndexTable:
 
                 elif column_attr.datetime:
                     passed = False
-                    for i in column_attr.datetime:
+                    for frmt in column_attr.datetime:
                         try:
                             dt = datetime.datetime.strptime(
-                                row[column_name], column_attr.datetime
+                                row[column_name], frmt
                             )
                             passed = True
                             break

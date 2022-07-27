@@ -188,15 +188,15 @@ def series_to_datetime(time_series, time_index_list, time_column_name:str, date_
     :type date_column_name: str
     """
     time_formats = next(x for x in time_index_list if x.name==time_column_name).datetime
-    series = pd.Series(np.nan, index=time_series.shape[0] , dtype='datetime64[ns]')
-    if date_series:
-        time_sr = time_series + ' ' + date_series
+    series = pd.Series(np.nan, index=np.arange(time_series.shape[0]) , dtype='datetime64[ns]')
+    if date_series is not None:
+        time_sr = date_series + ' ' + time_series
         date_formats = next(x for x in date_index_list if x.name==date_column_name).datetime
         for frmt in time_formats:
             for dfrmt in date_formats:
                 series = series.fillna(pd.to_datetime(time_sr, format="{} {}".format(dfrmt,frmt), errors="coerce"))
     else:
-        time_sr = series.copy()
+        time_sr = time_series.copy()
         for frmt in time_formats:
             series = series.fillna(pd.to_datetime(time_sr, format=frmt, errors="coerce"))
     return series
