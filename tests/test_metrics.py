@@ -99,7 +99,7 @@ def test_lena(project):
         import_function=partial(fake_vocs, data),
     )
 
-    lena = LenaMetrics(project, set="lena_its", period='1h', from_time='10:00' , to_time= '16:00')
+    lena = LenaMetrics(project, set="lena_its", period='1h', from_time='10:00:00' , to_time= '16:00:00')
     lena.extract()
 
     truth = pd.read_csv("tests/truth/lena_metrics.csv")

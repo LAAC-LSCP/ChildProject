@@ -58,7 +58,7 @@ class ChildProject:
             name="child_dob",
             description="child's date of birth",
             required=True,
-            datetime="%Y-%m-%d",
+            datetime={"%Y-%m-%d"},
         ),
         IndexColumn(
             name="location_id",
@@ -156,13 +156,13 @@ class ChildProject:
             name="date_iso",
             description="date in which recording was started in ISO (eg 2020-09-17)",
             required=True,
-            datetime="%Y-%m-%d",
+            datetime={"%Y-%m-%d"},
         ),
         IndexColumn(
             name="start_time",
-            description="local time in which recording was started in format 24-hour (H)H:MM; if minutes are unknown, use 00. ‘NA’ if unknown, this will raise a Warning when validating.",
+            description="local time in which recording was started in format 24-hour (H)H:MM:SS or (H)H:MM; if minutes or seconds are unknown, use 00. ‘NA’ if unknown, this will raise a Warning when validating as some analysis that rely on times will not consider this recordings.",
             required=True,
-            datetime="%H:%M",
+            datetime={"%H:%M","%H:%M:%S"},
         ),
         IndexColumn(
             name="recording_device_type",
@@ -220,8 +220,8 @@ class ChildProject:
         ),
         IndexColumn(
             name="start_time_accuracy",
-            description="Accuracy of start_time for this recording. If not specified, assumes minute-accuray.",
-            choices=["minute", "hour", "reliable"],
+            description="Accuracy of start_time for this recording. If not specified, assumes second-accuray.",
+            choices=["second", "minute", "hour", "reliable"],
         ),
         IndexColumn(
             name="noisy_setting",
