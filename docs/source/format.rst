@@ -21,6 +21,12 @@ try to sort as many of those out as possible before submission.
 An example of dataset structured according to ChildProject's format
 can be found `here <https://gin.g-node.org/LAAC-LSCP/vandam-data>`__.
 
+A set of procedures exists for new datasets, handling the creation of the
+base structure and folders as well as linkage to an online repository.
+These procedures are used with `datalad <https://www.datalad.org/>__` and
+ can be accessed `here <https://github.com/LAAC-LSCP/datalad-procedures>__`.
+ To create a new entire dataset, consider following our `guide in our lab handbook <https://laac-lscp.github.io/docs/create-a-new-dataset.html>`__. 
+
 Dataset tree
 ------------
 

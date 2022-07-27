@@ -6,6 +6,12 @@ existing dataset. We will use the `VanDam-Daylong dataset from
 HomeBank <https://homebank.talkbank.org/access/Public/VanDam-Daylong.html>`__
 as an example.
 
+This is mainly an introduction to the way ChildProject handles things and how
+files are articulated together. If you need to create an entire new dataset,
+ consider following our `handbook guide <https://laac-lscp.github.io/docs/create-a-new-dataset.html>`__,
+ or making use of our ready to go `datalad procedures <https://github.com/LAAC-LSCP/datalad-procedures>`__
+ to create the base structure and linkage to an online repository.
+
 Set-up datalad and child-project
 --------------------------------
 
