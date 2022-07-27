@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Start times can include seconds (e.g. 12:34:59) while still accepting the old format (This change will allow other columns to accept multiple formats easily).
+
+### Changed
+
+- `metrics` pipeline's options `--from --to` require a HH:MM:SS format now.
+
 ## [0.0.5] - 2022-07-25
 
 ### Added
