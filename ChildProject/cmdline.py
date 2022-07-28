@@ -14,7 +14,7 @@ import random
 
 parser = argparse.ArgumentParser()
 subparsers = parser.add_subparsers()
-parser.add_argument('--version', action='store_true', help='displays the current version of the package')
+parser.add_argument('--version', action='version', version="{} {}".format(__name__, __version__), help='displays the current version of the package')
 
 def arg(*name_or_flags, **kwargs):
     return (list(name_or_flags), kwargs)
@@ -571,7 +571,4 @@ def main():
     register_pipeline("metrics-specification", MetricsSpecificationPipeline)
 
     args = parser.parse_args()
-    if args.version:
-        print("{} {}".format(__name__, __version__))
-    else:
-        args.func(args)
+    args.func(args)
