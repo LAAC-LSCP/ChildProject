@@ -13,6 +13,10 @@ All notable changes to this project will be documented in this file.
 
 - `metrics` pipeline's options `--from --to` require a HH:MM:SS format now.
 
+### Dropped
+
+- `child-project process --split` --split option dropped as there is no further need of reducing long audios (>15hs)
+
 ## [0.0.5] - 2022-07-25
 
 ### Added
