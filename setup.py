@@ -11,7 +11,7 @@ requires = {
     "metrics": ['pyannote.metrics; python_version >= "3.7.0"', "nltk", "sklearn", "GitPython"],
     "audio": ["librosa", "pydub", "pysoundfile"],
     "samplers": ["PyYAML"],
-    "zooniverse": ["panoptes-client"],
+    "zooniverse": ["panoptes-client", "praat-parselmouth"],
     "eaf-builder": ["importlib-resources"],
     "constraints": [
         "click==7.1.1",

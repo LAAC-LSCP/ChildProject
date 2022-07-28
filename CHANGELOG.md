@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - Start times can include seconds (e.g. 12:34:59) while still accepting the old format (This change will allow other columns to accept multiple formats easily).
+- `child-project --version` command
 
 ### Changed
 

@@ -3,6 +3,8 @@ from ChildProject.projects import ChildProject
 from ChildProject.annotations import AnnotationManager
 from ChildProject.pipelines import *
 from .utils import read_wav, calculate_shift, get_audio_duration
+from ChildProject import __version__
+from ChildProject import __name__
 
 import argparse
 import os
@@ -12,7 +14,7 @@ import random
 
 parser = argparse.ArgumentParser()
 subparsers = parser.add_subparsers()
-
+parser.add_argument('--version', action='store_true', help='displays the current version of the package')
 
 def arg(*name_or_flags, **kwargs):
     return (list(name_or_flags), kwargs)
@@ -569,4 +571,7 @@ def main():
     register_pipeline("metrics-specification", MetricsSpecificationPipeline)
 
     args = parser.parse_args()
-    args.func(args)
+    if args.version:
+        print("{} {}".format(__name__, __version__))
+    else:
+        args.func(args)
