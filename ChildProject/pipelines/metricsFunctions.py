@@ -36,9 +36,10 @@ def metricFunction(args: set, columns: set, emptyValue = 0, name : str = None):
             for arg in args:
                 if arg not in kwargs : raise ValueError('{} metric needs an argument <{}>'.format(function.__name__,arg))
             metname = name
-            if not name : metname = function.__name__            
+            if not name : metname = function.__name__
+            metname_replaced = metname
             for arg in kwargs:
-                metname_replaced = re.sub(arg , str(kwargs[arg]).lower(),metname)
+                metname_replaced = re.sub(arg , str(kwargs[arg]).lower(),metname_replaced)
             if annotations.shape[0]:
                 for column in columns:
                     if column not in annotations.columns : raise ValueError(MISSING_COLUMNS.format(annotations['set'].iloc[0],column,metname))
