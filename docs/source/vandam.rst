@@ -21,6 +21,8 @@ Create a dataset
 ----------------
 
 The first step is to create a new dataset named vandam-data :
+To do this, you will need to use a terminal and navigate to the folder you want your dataset created in.
+This command will not only create the necessary folders but also the necessary datalad configuration files.
 
 .. code:: bash
 
@@ -50,7 +52,8 @@ The first step is to create the directories:
    mkdir extra # Create the subfolder for extra data (that are neither metadata, recordings or annotations)
    touch extra/.gitignore # Make sure the directory is present even though it's empty
 
-Then, download the original data-set from HomeBank.
+Then, download the original data-set from HomeBank. You need to identify what key files are necessary for
+the dataset. We will get the audio files, the annotation files and some metadata.
 
 The audio first:
 
@@ -349,7 +352,7 @@ Publish to GIN
 .. note::
    
    Before anything, you will need to create an account on `GIN <https://gin.g-node.org/>`_,
-   and to link your `SSH public key <https://gin.g-node.org/user/settings/ssh>`_ to your
+   and to link your `SSH public key <https://childproject.readthedocs.io/en/latest/reuse.html?highlight=ssh#setup-your-gin-account>`_ to your
    GIN account.
 
 1. Create a new repository from `GIN's web interface <https://gin.g-node.org/repo/create>`_. Uncheck "Initialize this repository with selected files and template"
