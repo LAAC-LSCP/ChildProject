@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - `metrics` pipeline's options `--from --to` require a HH:MM:SS format now.
+- `merge-annotations` command fails when the output_set already exists or if the required sets don't exist
 
 ## [0.0.5] - 2022-07-25
 
