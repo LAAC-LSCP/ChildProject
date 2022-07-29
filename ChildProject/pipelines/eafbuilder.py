@@ -11,6 +11,7 @@ from ChildProject.tables import assert_dataframe, assert_columns_presence
 from ChildProject.converters import Formats
 
 FORMAT_SPEECH = {Formats.VTC.value,Formats.VCM.value} #formats for which nan must be replaced with SPEECH
+CHILDPROJECT_TYPE = "childProject_generated"
 
 def create_eaf(
     etf_path: str,
@@ -29,17 +30,14 @@ def create_eaf(
     import pympi
 
     eaf = pympi.Elan.Eaf(etf_path)
-
-    ling_type = "transcription"
-    """
-    eaf.add_tier("code_" + eaf_type, ling=ling_type)
-    eaf.add_tier("context_" + eaf_type, ling=ling_type)
-    eaf.add_tier("code_num_" + eaf_type, ling=ling_type)
-    """
-    eaf.add_tier("SAMPLER", ling=ling_type)
-    eaf.add_tier("code_" + eaf_type, ling=ling_type, parent="SAMPLER")
-    eaf.add_tier("context_" + eaf_type, ling=ling_type, parent="SAMPLER")
-    eaf.add_tier("code_num_" + eaf_type, ling=ling_type, parent="SAMPLER")
+    
+    #create a default ling_type for generated tiers to be always time-aligneable
+    eaf.add_linguistic_type(CHILDPROJECT_TYPE, timealignable=True)
+    
+    eaf.add_tier("SAMPLER", ling=CHILDPROJECT_TYPE)
+    eaf.add_tier("code_" + eaf_type, ling=CHILDPROJECT_TYPE, parent="SAMPLER")
+    eaf.add_tier("context_" + eaf_type, ling=CHILDPROJECT_TYPE, parent="SAMPLER")
+    eaf.add_tier("code_num_" + eaf_type, ling=CHILDPROJECT_TYPE, parent="SAMPLER")
 
     for i, ts in enumerate(timestamps_list):
         print("Creating eaf code segment # ", i + 1)
@@ -79,7 +77,7 @@ def create_eaf(
             if imported_set: speaker_id = "{}-{}".format(imported_set.replace("/","_").upper(),speaker_id)
 
             if speaker_id not in eaf.tiers:
-                eaf.add_tier(speaker_id)
+                eaf.add_tier(speaker_id, ling=CHILDPROJECT_TYPE)
 
             eaf.add_annotation(
                 speaker_id,
