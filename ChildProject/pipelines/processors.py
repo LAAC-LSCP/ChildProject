@@ -247,7 +247,7 @@ class BasicProcessor(AudioProcessor):
         )
         parser.add_argument(
             "--recordings",
-            help="list of recordings to process, separated by commas; only values of 'recording_filename' present in the metadata are supported.",
+            help="list of recordings to process, separated by whitespaces; only values of 'recording_filename' present in the metadata are supported.",
             default=None,
             nargs="+",
         )

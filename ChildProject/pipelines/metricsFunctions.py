@@ -36,16 +36,17 @@ def metricFunction(args: set, columns: set, emptyValue = 0, name : str = None):
             for arg in args:
                 if arg not in kwargs : raise ValueError('{} metric needs an argument <{}>'.format(function.__name__,arg))
             metname = name
-            if not name : metname = function.__name__            
+            if not name : metname = function.__name__
+            metname_replaced = metname
             for arg in kwargs:
-                metname = re.sub(arg , str(kwargs[arg]).lower(),metname)
+                metname_replaced = re.sub(arg , str(kwargs[arg]).lower(),metname_replaced)
             if annotations.shape[0]:
                 for column in columns:
-                    if column not in annotations.columns : raise ValueError(MISSING_COLUMNS.format(annotations['set'].iloc[0],column,'voc_speaker_ph'))
+                    if column not in annotations.columns : raise ValueError(MISSING_COLUMNS.format(annotations['set'].iloc[0],column,metname))
                 res = function(annotations, duration, **kwargs)
             else: #no annotation for that unit
                 res = emptyValue if duration else None #duration != 0 => was annotated but not segments there
-            return metname, res
+            return metname_replaced, res
         return new_func
     return decorator
             
