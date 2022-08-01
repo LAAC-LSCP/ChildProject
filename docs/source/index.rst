@@ -42,6 +42,7 @@ Welcome to ChildProject's documentation!
 
    api-annotations
    api-metrics
+   api-extract-metrics
    examples
    modules
 

@@ -226,7 +226,6 @@ def lp_n(annotations: pd.DataFrame, duration: int, **kwargs):
     if "vcm_type" in annotations.columns:
         speech_voc = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"].isin(["N","C"]))].shape[0]
         cry_voc = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "Y")].shape[0]
-        value = speech_voc / (speech_voc + cry_voc)
         total = speech_voc + cry_voc
         if total:
             value = speech_voc / total
@@ -269,7 +268,6 @@ def lp_dur(annotations: pd.DataFrame, duration: int, **kwargs):
     if "vcm_type" in annotations.columns:
         speech_dur = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"].isin(["N","C"]))]["duration"].sum()
         cry_dur = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "Y")]["duration"].sum()
-        value = speech_dur / (speech_dur + cry_dur)
         total = speech_dur + cry_dur
         if total:
             value = speech_dur / total

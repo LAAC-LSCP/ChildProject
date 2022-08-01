@@ -54,12 +54,13 @@ ACLEW Metrics
 Custom metrics
 ~~~~~~~~~~~~~~
 
+.. _list_structure:
 The Custom metrics pipeline allows you to provide your own list of desired metrics to the pipeline to be extracted.
 The list must be in a csv file containing the following colums:
-- callable (required) : name of the metric to extract, see :ref:`_list-metrics`
-- set (required) : name of the set to extract from, make sure this annotations set is capable (has the required information) to extract this specific metric
-- name (optional) : name to use in the resulting metrics. If none is given, a default name will be used. Use this to extract the same metric for different sets and avoid name clashes.
-- <argument> (depending on the requirements of the metric you chose) : For each required argument of a metric, add a column of that argument's name.
+ - callable (required) : name of the metric to extract, see :ref:`list-metrics`
+ - set (required) : name of the set to extract from, make sure this annotations set is capable (has the required information) to extract this specific metric
+ - name (optional) : name to use in the resulting metrics. If none is given, a default name will be used. Use this to extract the same metric for different sets and avoid name clashes.
+ - <argument> (depending on the requirements of the metric you chose) : For each required argument of a metric, add a column of that argument's name.
 
 This is an example of a csv file we use to extract metrics.
 We want to extract the number of vocalizations per hour of the key child (CHI), male adult (MAL) and female adult (FEM) on 2 different sets to compare their result.

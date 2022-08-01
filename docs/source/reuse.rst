@@ -104,22 +104,25 @@ That’s it ! Your dataset is ready to go. By default, large files do not
 get downloaded automatically. See the next section for help with
 downloading those files.
 
-Downloading large files
+Downloading annexed files
 -----------------------
 
+by default, many files are just pointers when they don't need to be versioned. This 
+is most of the time the case when they are too large for us to keep every change made 
+them.
 Files can be retrieved using ``datalad get [path]``. For instance,
 ``datalad get recordings`` will download all recordings.
 
 .. note::
 
-   Technically speaking, the large files in your repository are symbolic links
+   Technically speaking, the annexed files in your repository are symbolic links
    pointing to their actual location, somewhere under `.git`.
    You can ignore that and read/copy the content of these files as if they where
    actual files.
 
 .. warning::
 
-   If you want to *edit* the content of a large file, you will need to unlock it
+   If you want to *edit* the content of an annexed file, you will need to unlock it
    beforehand, using ``datalad unlock``,
    e.g.: ``datalad unlock annotations/vtc/converted``.
 
