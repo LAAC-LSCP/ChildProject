@@ -18,6 +18,10 @@ All notable changes to this project will be documented in this file.
 
 - eafbuilder attributes a default time-aligneable ling-type to created tiers to avoid random attribution that can lead to wrong behaviour and crashes
 
+### Dropped
+
+- `child-project process --split` --split option dropped as there is no further need of reducing long audios (>15hs)
+
 ## [0.0.5] - 2022-07-25
 
 ### Added

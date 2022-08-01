@@ -131,7 +131,6 @@ class BasicProcessor(AudioProcessor):
         format: str,
         codec: str,
         sampling: int,
-        split: str = None,
         threads: int = 1,
         recordings: Union[str, List[str], pd.DataFrame] = None,
         skip_existing: bool = False,
@@ -151,14 +150,6 @@ class BasicProcessor(AudioProcessor):
         self.sampling = int(sampling)
         self.skip_existing = bool(skip_existing)
 
-        if split is not None:
-            try:
-                split_time = datetime.datetime.strptime(split, "%H:%M:%S")
-            except:
-                raise ValueError("split should be specified as HH:MM:SS")
-
-        self.split = split
-
     def process_recording(self, recording):
         if recording["recording_filename"] == "NA":
             return pd.DataFrame()
@@ -170,10 +161,6 @@ class BasicProcessor(AudioProcessor):
         destination_file = os.path.join(
             self.output_directory(),
             os.path.splitext(recording["recording_filename"])[0]
-            + ".%03d."
-            + self.format
-            if self.split
-            else os.path.splitext(recording["recording_filename"])[0]
             + "."
             + self.format,
         )
@@ -200,9 +187,6 @@ class BasicProcessor(AudioProcessor):
             str(self.sampling),
         ]
 
-        if self.split:
-            args.extend(["-segment_time", self.split, "-f", "segment"])
-
         args.append(destination_file)
 
         proc = subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
@@ -223,24 +207,11 @@ class BasicProcessor(AudioProcessor):
                 ]
             )
         else:
-            if self.split:
-                converted_files = [
-                    os.path.basename(cf)
-                    for cf in glob.glob(
-                        os.path.join(
-                            self.output_directory(),
-                            os.path.splitext(recording["recording_filename"])[0]
-                            + ".*."
-                            + self.format,
-                        )
-                    )
-                ]
-            else:
-                converted_files = [
-                    os.path.splitext(recording["recording_filename"])[0]
-                    + "."
-                    + self.format
-                ]
+            converted_files = [
+                os.path.splitext(recording["recording_filename"])[0]
+                + "."
+                + self.format
+            ]
 
         return pd.DataFrame(
             [
@@ -266,12 +237,7 @@ class BasicProcessor(AudioProcessor):
             required=True,
             type=int,
         )
-        parser.add_argument(
-            "--split",
-            help="split duration (e.g. 15:00:00)",
-            required=False,
-            default=None,
-        )
+        
         parser.add_argument(
             "--skip-existing",
             dest="skip_existing",
