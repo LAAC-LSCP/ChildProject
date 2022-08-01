@@ -872,7 +872,8 @@ class AnnotationManager:
     ):
         """Merge columns from ``left_set`` and ``right_set`` annotations, 
         for all matching segments, into a new set of annotations named
-        ``output_set``.
+        ``output_set`` that will be saved in the dataset. ``output_set``
+        must not already exist. 
 
         :param left_set: Left set of annotations.
         :type left_set: str
@@ -887,6 +888,10 @@ class AnnotationManager:
         :return: [description]
         :rtype: [type]
         """
+        existing_sets = self.annotations['set'].unique()
+        assert output_set not in existing_sets, "output_set <{}> already exists, remove the existing set or choose an other name.".format(output_set)
+        assert left_set in existing_sets, "left_set <{}> was not found, check the spelling.".format(left_set)
+        assert right_set in existing_sets, "right_set <{}> was not found, check the spelling.".format(right_set)
         assert left_set != right_set, "sets must differ"
         assert not (
             set(left_columns) & set(right_columns)
