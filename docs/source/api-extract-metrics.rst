@@ -77,8 +77,7 @@ To do so, define a function taking as arguments:
  - \*\*kwargs : keyword arguments, this allows the user to give whatever arguments he likes through the list of metrics
 and returning, in that order:
  - a default name for the metric to take, it will be used when no specific name was explicitly required by the user
- - the value of the metric, should be a number or np.nan (a distinction is made between 0 and np.nan as np.nan indicates 
-that the value can not be calculated).
+ - the value of the metric, should be a number or np.nan (a distinction is made between 0 and np.nan as np.nan indicates that the value can not be calculated).
 
 The function should check the presence of the required columns in the annotations and of the required keyword arguments. 
 To make this easier, use the function :func:`ChildProject.pipelines.metricsFunctions.metricFunction` as a decorator 
