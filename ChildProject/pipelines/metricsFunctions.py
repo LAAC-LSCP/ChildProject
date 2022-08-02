@@ -155,7 +155,7 @@ def avg_cry_voc_dur_speaker(annotations: pd.DataFrame, duration: int, **kwargs):
     Required keyword arguments:
         - speaker : speaker_type to use
     """
-    value = annotations.loc[(annotations["speaker_type"]== kwargs["speaker"]) & (annotations["vcm_type"]== "Y")]["duration"].mean() * (3600000 / duration)
+    value = annotations.loc[(annotations["speaker_type"]== kwargs["speaker"]) & (annotations["vcm_type"]== "Y")]["duration"].mean()
     if pd.isnull(value) : value = 0
     return value
 
@@ -184,7 +184,7 @@ def avg_can_voc_dur_speaker(annotations: pd.DataFrame, duration: int, **kwargs):
     Required keyword arguments:
         - speaker : speaker_type to use
     """
-    value =  annotations.loc[(annotations["speaker_type"]== kwargs["speaker"]) & (annotations["vcm_type"]== "C")]["duration"].mean() * (3600000 / duration)
+    value =  annotations.loc[(annotations["speaker_type"]== kwargs["speaker"]) & (annotations["vcm_type"]== "C")]["duration"].mean()
     if pd.isnull(value) : value = 0
     return value
 
@@ -213,7 +213,7 @@ def avg_non_can_voc_dur_speaker(annotations: pd.DataFrame, duration: int, **kwar
     Required keyword arguments:
         - speaker : speaker_type to use
     """
-    value = annotations.loc[(annotations["speaker_type"]== kwargs["speaker"]) & (annotations["vcm_type"]== "N")]["duration"].mean() * (3600000 / duration)
+    value = annotations.loc[(annotations["speaker_type"]== kwargs["speaker"]) & (annotations["vcm_type"]== "N")]["duration"].mean()
     if pd.isnull(value) : value = 0
     return value
 

@@ -73,7 +73,7 @@ class AnnotationManager:
         IndexColumn(
             name="imported_at",
             description="importation date (automatic column, don't specify)",
-            datetime="%Y-%m-%d %H:%M:%S",
+            datetime={"%Y-%m-%d %H:%M:%S"},
             required=False,
             generated=True,
         ),

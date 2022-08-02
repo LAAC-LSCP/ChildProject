@@ -156,6 +156,9 @@ def test_import(project):
 
     errors, warnings = am.validate()
     assert len(errors) == 0 and len(warnings) == 0, "malformed annotations detected"
+    
+    errors, warnings = am.read()
+    assert len(errors) == 0 and len(warnings) == 0, "malformed annotation indexes detected"
 
     for dataset in ["eaf_basic", "textgrid", "eaf_solis"]:
         annotations = am.annotations[am.annotations["set"] == dataset]

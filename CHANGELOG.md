@@ -17,6 +17,8 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
 - eafbuilder attributes a default time-aligneable ling-type to created tiers to avoid random attribution that can lead to wrong behaviour and crashes
+- 'imported_at' column in annotations.csv did not have a new correct format (in a set)
+- metrics avg_cry_... avg_can_... and avg_non_can_... were not calculated correctly
 
 ### Dropped
 
