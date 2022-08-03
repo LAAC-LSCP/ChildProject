@@ -223,15 +223,7 @@ def lp_n(annotations: pd.DataFrame, duration: int, **kwargs):
     
     Required keyword arguments:
     """
-    if "vcm_type" in annotations.columns:
-        speech_voc = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"].isin(["N","C"]))].shape[0]
-        cry_voc = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "Y")].shape[0]
-        total = speech_voc + cry_voc
-        if total:
-            value = speech_voc / total
-        else:
-            value = np.nan
-    elif set(["cries","vfxs","utterances_count"]).issubset(annotations.columns):
+    if set(["cries","vfxs","utterances_count"]).issubset(annotations.columns):
         annotations = annotations[annotations["speaker_type"] == "CHI"]
         cries = annotations["cries"].apply(lambda x: len(ast.literal_eval(x))).sum()
         vfxs = annotations["vfxs"].apply(lambda x: len(ast.literal_eval(x))).sum()
@@ -239,6 +231,14 @@ def lp_n(annotations: pd.DataFrame, duration: int, **kwargs):
         total = (utterances + cries + vfxs)
         if total:
             value = utterances / total
+        else:
+            value = np.nan
+    elif "vcm_type" in annotations.columns:
+        speech_voc = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"].isin(["N","C"]))].shape[0]
+        cry_voc = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "Y")].shape[0]
+        total = speech_voc + cry_voc
+        if total:
+            value = speech_voc / total
         else:
             value = np.nan
     else:
@@ -265,20 +265,20 @@ def lp_dur(annotations: pd.DataFrame, duration: int, **kwargs):
     
     Required keyword arguments:
     """
-    if "vcm_type" in annotations.columns:
-        speech_dur = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"].isin(["N","C"]))]["duration"].sum()
-        cry_dur = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "Y")]["duration"].sum()
-        total = speech_dur + cry_dur
-        if total:
-            value = speech_dur / total
-        else:
-            value = np.nan
-    elif set(["child_cry_vfx_len","utterances_length"]).issubset(annotations.columns):
+    if set(["child_cry_vfx_len","utterances_length"]).issubset(annotations.columns):
         annotations = annotations[annotations["speaker_type"] == "CHI"]
         utter_len = annotations["utterances_length"].sum()
         total = annotations["child_cry_vfx_len"].sum() + utter_len
         if total:
             value = utter_len / total
+        else:
+            value = np.nan
+    elif "vcm_type" in annotations.columns:
+        speech_dur = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"].isin(["N","C"]))]["duration"].sum()
+        cry_dur = annotations.loc[(annotations["speaker_type"]== "CHI") & (annotations["vcm_type"]== "Y")]["duration"].sum()
+        total = speech_dur + cry_dur
+        if total:
+            value = speech_dur / total
         else:
             value = np.nan
     else:
