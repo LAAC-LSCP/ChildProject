@@ -34,11 +34,27 @@ The list of supported metrics is shown below:
     Rates are expressed in counts/hour (for events) or in milliseconds/hour (for durations).
 
 .. _list-metrics:
+
 .. custom-table::
     :header: list-metrics
 
 LENA Metrics
 ~~~~~~~~~~~~
+
+The LENA pipeline will extract a list of usual metrics that can be obtained from the lena automated annotations (its files). Using this pipeline with a set of its annotations 
+will extract the following metrics:
+
+.. csv-table::
+    :header: "metric | speaker", "FEM", "MAL", "OCH", "CHI"
+    :widths: 20, 20, 20, 20, 20
+    :stub-columns: 1
+
+    voc_speaker_ph,voc_fem_ph,voc_mal_ph,voc_och_ph,voc_chi_ph
+    voc_dur_speaker_ph,voc_dur_fem_ph,voc_dur_mal_ph,voc_dur_och_ph,voc_dur_chi_ph
+    avg_voc_dur_speaker,avg_voc_dur_fem,avg_voc_dur_mal,avg_voc_dur_och,avg_voc_dur_chi
+    wc_speaker_ph,wc_fem_ph,wc_mal_ph,,
+    lp_n,,,,lp_n
+    lp_dur,,,,lp_dur
 
 .. clidoc::
 
@@ -46,6 +62,57 @@ LENA Metrics
 
 ACLEW Metrics
 ~~~~~~~~~~~~~
+
+The ACLEW pipeline will extract a list of usual metrics that can be `obtained from the automated annotations <https://laac-lscp.github.io/docs/running-models.html>`__ 
+produced by the `VTC <https://github.com/MarvinLvn/voice-type-classifier/>`__, `ALICE <https://github.com/orasanen/ALICE>`__ and 
+`VCM <https://github.com/LAAC-LSCP/vcm/>`__ models. VTC is the only set required to run the pipeline, having the others will allow for more metrics but their presence 
+is not mandatory. Using this pipeline with a set of vtc annotations and optionally alice and vcm sets will extract :
+
+- From VTC:
+
+.. csv-table::
+    :header: "metric | speaker", "FEM", "MAL", "OCH", "CHI"
+    :widths: 20, 20, 20, 20, 20
+    :stub-columns: 1
+
+    voc_speaker_ph,voc_fem_ph,voc_mal_ph,voc_och_ph,voc_chi_ph
+    voc_dur_speaker_ph,voc_dur_fem_ph,voc_dur_mal_ph,voc_dur_och_ph,voc_dur_chi_ph
+    avg_voc_dur_speaker,avg_voc_dur_fem,avg_voc_dur_mal,avg_voc_dur_och,avg_voc_dur_chi
+
+- From ALICE:
+
+.. csv-table::
+    :header: "metric | speaker", "FEM", "MAL", "All speakers"
+    :widths: 20, 20, 20, 20
+    :stub-columns: 1
+
+    wc_speaker_ph,wc_fem_ph,wc_mal_ph,
+    sc_speaker_ph,sc_fem_ph,sc_mal_ph,
+    pc_speaker_ph,pc_fem_ph,pc_mal_ph,
+    wc_adu_ph,,,wc_adu_ph
+    sc_adu_ph,,,sc_adu_ph
+    pc_adu_ph,,,pc_adu_ph
+
+- From VCM:
+
+.. csv-table::
+    :header: "metric | speaker", "CHI"
+    :widths: 20, 20
+    :stub-columns: 1
+
+    cry_voc_speaker_ph,cry_voc_chi_ph
+    cry_voc_dur_speaker_ph,cry_voc_dur_chi_ph
+    avg_cry_voc_dur_speaker,avg_cry_voc_dur_chi
+    can_voc_speaker_ph,can_voc_chi_ph
+    can_voc_dur_speaker_ph,can_voc_dur_chi_ph
+    avg_can_voc_dur_speaker,avg_can_voc_dur_chi
+    non_can_voc_speaker_ph,non_can_voc_chi_ph
+    non_can_voc_dur_speaker_ph,non_can_voc_dur_chi_ph
+    avg_non_can_voc_dur_speaker,avg_non_can_voc_dur_chi
+    lp_n,lp_n
+    lp_dur,lp_dur
+    cp_n,cp_n
+    cp_dur,cp_dur
 
 .. clidoc::
 
@@ -55,12 +122,14 @@ Custom metrics
 ~~~~~~~~~~~~~~
 
 .. _list_structure:
+
 The Custom metrics pipeline allows you to provide your own list of desired metrics to the pipeline to be extracted.
 The list must be in a csv file containing the following colums:
- - callable (required) : name of the metric to extract, see :ref:`list-metrics`
- - set (required) : name of the set to extract from, make sure this annotations set is capable (has the required information) to extract this specific metric
- - name (optional) : name to use in the resulting metrics. If none is given, a default name will be used. Use this to extract the same metric for different sets and avoid name clashes.
- - <argument> (depending on the requirements of the metric you chose) : For each required argument of a metric, add a column of that argument's name.
+
+- callable (required) : name of the metric to extract, see :ref:`the list <list-metrics>`
+- set (required) : name of the set to extract from, make sure this annotations set is capable (has the required information) to extract this specific metric
+- name (optional) : name to use in the resulting metrics. If none is given, a default name will be used. Use this to extract the same metric for different sets and avoid name clashes.
+- <argument> (depending on the requirements of the metric you chose) : For each required argument of a metric, add a column of that argument's name.
 
 This is an example of a csv file we use to extract metrics.
 We want to extract the number of vocalizations per hour of the key child (CHI), male adult (MAL) and female adult (FEM) on 2 different sets to compare their result.

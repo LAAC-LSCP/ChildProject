@@ -30,15 +30,15 @@ class Metrics(ABC):
     :type by: str, optional
     :param recordings: recordings to sample from; if None, all recordings will be sampled, defaults to None
     :type recordings: Union[str, List[str], pd.DataFrame], optional
-    :param from_time: If specified (in HH:MM format), ignore annotations outside of the given time-range, defaults to None
+    :param from_time: If specified (in HH:MM:SS format), ignore annotations outside of the given time-range, defaults to None
     :type from_time: str, optional
-    :param to_time:  If specified (in HH:MM format), ignore annotations outside of the given time-range, defaults to None
+    :param to_time:  If specified (in HH:MM:SS format), ignore annotations outside of the given time-range, defaults to None
     :type to_time: str, optional
-    :param rec_cols: columns from recordings.csv to include in the outputted metrics (optional), recording_filename,session_id,child_id,duration are always included if possible and dont need to be specified. Any column that is not unique for a given unit (eg date_iso for a child_id being recorded on multiple days) will output a <NA> value
+    :param rec_cols: comma separated columns from recordings.csv to include in the outputted metrics (optional), recording_filename,session_id,child_id,duration are always included if possible and dont need to be specified. Any column that is not unique for a given unit (eg date_iso for a child_id being recorded on multiple days) will output a <NA> value
     :type rec_cols: str, optional
-    :param child_cols: columns from children.csv to include in the outputted metrics (optional), None by default
+    :param child_cols: comma separated columns from children.csv to include in the outputted metrics (optional), None by default
     :type child_cols: str, optional
-    :param period: time units to aggregate (optional); equivalent to ``pandas.Grouper``'s freq argument.
+    :param period: time units to aggregate (optional); equivalent to ``pandas.Grouper`` freq argument.
     :type period: str, optional
     :param threads: amount of threads to run on, defaults to 1
     :type threads: int, optional
@@ -360,17 +360,17 @@ class CustomMetrics(Metrics):
     :type metrics: str
     :param recordings: recordings to sample from; if None, all recordings will be sampled, defaults to None
     :type recordings: Union[str, List[str], pd.DataFrame], optional
-    :param from_time: If specified (in HH:MM format), ignore annotations outside of the given time-range, defaults to None
+    :param from_time: If specified (in HH:MM:SS format), ignore annotations outside of the given time-range, defaults to None
     :type from_time: str, optional
-    :param to_time:  If specified (in HH:MM format), ignore annotations outside of the given time-range, defaults to None
+    :param to_time:  If specified (in HH:MM:SS format), ignore annotations outside of the given time-range, defaults to None
     :type to_time: str, optional
-    :param rec_cols: columns from recordings.csv to include in the outputted metrics (optional), recording_filename,session_id,child_id,duration are always included if possible and dont need to be specified. Any column that is not unique for a given unit (eg date_iso for a child_id being recorded on multiple days) will output a <NA> value
+    :param rec_cols: comma separated columns from recordings.csv to include in the outputted metrics (optional), recording_filename,session_id,child_id,duration are always included if possible and dont need to be specified. Any column that is not unique for a given unit (eg date_iso for a child_id being recorded on multiple days) will output a <NA> value
     :type rec_cols: str, optional
-    :param child_cols: columns from children.csv to include in the outputted metrics (optional), None by default
+    :param child_cols: comma separated columns from children.csv to include in the outputted metrics (optional), None by default
     :type child_cols: str, optional
     :param by: units to sample from, defaults to 'recording_filename'
     :type by: str, optional
-    :param period: time units to aggregate (optional); equivalent to ``pandas.Grouper``'s freq argument.
+    :param period: time units to aggregate (optional); equivalent to ``pandas.Grouper`` freq argument.
     :type period: str, optional
     :param threads: amount of threads to run on, defaults to 1
     :type threads: int, optional
@@ -415,17 +415,17 @@ class LenaMetrics(Metrics):
     :type set: str
     :param recordings: recordings to sample from; if None, all recordings will be sampled, defaults to None
     :type recordings: Union[str, List[str], pd.DataFrame], optional
-    :param from_time: If specified (in HH:MM format), ignore annotations outside of the given time-range, defaults to None
+    :param from_time: If specified (in HH:MM:SS format), ignore annotations outside of the given time-range, defaults to None
     :type from_time: str, optional
-    :param to_time:  If specified (in HH:MM format), ignore annotations outside of the given time-range, defaults to None
+    :param to_time:  If specified (in HH:MM:SS format), ignore annotations outside of the given time-range, defaults to None
     :type to_time: str, optional
-    :param rec_cols: columns from recordings.csv to include in the outputted metrics (optional), recording_filename,session_id,child_id,duration are always included if possible and dont need to be specified. Any column that is not unique for a given unit (eg date_iso for a child_id being recorded on multiple days) will output a <NA> value
+    :param rec_cols: comma separated columns from recordings.csv to include in the outputted metrics (optional), recording_filename,session_id,child_id,duration are always included if possible and dont need to be specified. Any column that is not unique for a given unit (eg date_iso for a child_id being recorded on multiple days) will output a <NA> value
     :type rec_cols: str, optional
-    :param child_cols: columns from children.csv to include in the outputted metrics (optional), None by default
+    :param child_cols: comma separated columns from children.csv to include in the outputted metrics (optional), None by default
     :type child_cols: str, optional
     :param by: units to sample from, defaults to 'recording_filename'
     :type by: str, optional
-    :param period: time units to aggregate (optional); equivalent to ``pandas.Grouper``'s freq argument.
+    :param period: time units to aggregate (optional); equivalent to ``pandas.Grouper`` freq argument.
     :type period: str, optional
     :param threads: amount of threads to run on, defaults to 1
     :type threads: int, optional
@@ -503,17 +503,17 @@ class AclewMetrics(Metrics):
     :type vcm: str
     :param recordings: recordings to sample from; if None, all recordings will be sampled, defaults to None
     :type recordings: Union[str, List[str], pd.DataFrame], optional
-    :param from_time: If specified (in HH:MM format), ignore annotations outside of the given time-range, defaults to None
+    :param from_time: If specified (in HH:MM:SS format), ignore annotations outside of the given time-range, defaults to None
     :type from_time: str, optional
-    :param to_time:  If specified (in HH:MM format), ignore annotations outside of the given time-range, defaults to None
+    :param to_time:  If specified (in HH:MM:SS format), ignore annotations outside of the given time-range, defaults to None
     :type to_time: str, optional
-    :param rec_cols: columns from recordings.csv to include in the outputted metrics (optional), recording_filename,session_id,child_id,duration are always included if possible and dont need to be specified. Any column that is not unique for a given unit (eg date_iso for a child_id being recorded on multiple days) will output a <NA> value
+    :param rec_cols: comma separated columns from recordings.csv to include in the outputted metrics (optional), recording_filename,session_id,child_id,duration are always included if possible and dont need to be specified. Any column that is not unique for a given unit (eg date_iso for a child_id being recorded on multiple days) will output a <NA> value
     :type rec_cols: str, optional
-    :param child_cols: columns from children.csv to include in the outputted metrics (optional), None by default
+    :param child_cols: comma separated columns from children.csv to include in the outputted metrics (optional), None by default
     :type child_cols: str, optional
     :param by: units to sample from, defaults to 'recording_filename'
     :type by: str, optional
-    :param period: time units to aggregate (optional); equivalent to ``pandas.Grouper``'s freq argument.
+    :param period: time units to aggregate (optional); equivalent to ``pandas.Grouper`` freq argument.
     :type period: str, optional
     :param threads: amount of threads to run on, defaults to 1
     :type threads: int, optional
@@ -541,7 +541,7 @@ class AclewMetrics(Metrics):
         self.alice = alice
         self.vcm = vcm
         
-        am = ChildProject.annotations.AnnotationManager(project) #temporary instance to check for existing sets. This is suboptimal because an annotation manager will be created by Metrics. However, the metrics classe raises a ValueError for every set passed that does not exist, here we want to check in advance which of the alice and vcm sets exist without raising an error
+        am = ChildProject.annotations.AnnotationManager(project) #temporary instance to check for existing sets. This is suboptimal because an annotation manager will be created by Metrics. However, the metrics class raises a ValueError for every set passed that does not exist, here we want to check in advance which of the alice and vcm sets exist without raising an error
               
         METRICS = np.array(
             [["voc_speaker_ph",self.vtc,'FEM'],
@@ -685,7 +685,7 @@ class MetricsPipeline(Pipeline):
         
         parser.add_argument(
             "--period",
-            help="time units to aggregate (optional); equivalent to ``pandas.Grouper``'s freq argument. The resulting metrics will be split for each unit across all the resulting periods.",
+            help="time units to aggregate (optional); equivalent to ``pandas.Grouper`` freq argument. The resulting metrics will be split for each unit across all the resulting periods.",
             default=None,
         )
 
@@ -705,13 +705,13 @@ class MetricsPipeline(Pipeline):
         
         parser.add_argument(
             "--rec-cols",
-            help="columns from recordings.csv to include in the outputted metrics (optional), NA if ambiguous",
+            help="comma separated columns from recordings.csv to include in the outputted metrics (optional), NA if ambiguous",
             default=None,
         )
         
         parser.add_argument(
             "--child-cols",
-            help="columns from children.csv to include in the outputted metrics (optional), NA if ambiguous",
+            help="comma separated columns from children.csv to include in the outputted metrics (optional), NA if ambiguous",
             default=None,
         )
         
