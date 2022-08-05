@@ -705,6 +705,24 @@ class AnnotationManager:
     def merge_annotations(
         self, left_columns, right_columns, columns, output_set, input
     ):
+        """From 2 DataFrames listing the annotation indexes to merge together (those indexes should come from
+        the intersection of the left_set and right_set indexes), the listing of the columns
+        to merge and name of the output_set, creates the resulting csv files containing the converted merged
+        segments and returns the new indexes to add to annotations.csv.
+
+        :param left_columns: list of the columns to include from the left set
+        :type left_columns: list[str]
+        :param right_columns: list of the columns to include from the right set
+        :type right_columns: list[str]
+        :param columns: additional columns to add to the segments, key is the column name
+        :type columns: dict
+        :param output_set: name of the set to save the new merged files into
+        :type output_set: str
+        :param input: annotation indexes to use for the merge, contains keys 'left_annotations' and 'right_annotations' to separate indexes from left and right set
+        :type input: dict
+        :return: annotation indexes created by the merge, should be added to annotations.csv
+        :rtype: pandas.DataFrame
+        """
         left_annotations = input["left_annotations"]
         right_annotations = input["right_annotations"]
 
