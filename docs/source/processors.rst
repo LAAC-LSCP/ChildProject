@@ -30,7 +30,7 @@ Example:
 .. hours, because the software we use for human annotation (ELAN, Praat)
 .. works better with audio that is maximally 15h long:
 
-..    child-project process /path/to/dataset 16kHz basic --split=15:00:00 --format=wav --sampling=16000 --codec=pcm_s16le
+..    child-project process /path/to/dataset 16kHz basic --format=wav --sampling=16000 --codec=pcm_s16le
 
 Processing can be restricted to a white-list of recordings only using the ``--recordings`` option:
 
@@ -53,7 +53,7 @@ guide <https://slurm.schedmd.com/quickstart.html>`__
 
 ::
 
-   sbatch --mem=64G --time=5:00:00 --cpus-per-task=4 --ntasks=1 -o namibia.txt child-project process --threads 4 /path/to/dataset 16kHz basic --split=15:00:00 --format=wav --sampling=16000 --codec=pcm_s16le
+   sbatch --mem=64G --time=5:00:00 --cpus-per-task=4 --ntasks=1 -o namibia.txt child-project process --threads 4 /path/to/dataset 16kHz basic --format=wav --sampling=16000 --codec=pcm_s16le
 
 Vetting
 ~~~~~~~
