@@ -154,7 +154,10 @@ class Metrics(ABC):
         
         if segments is not None:
             assert by == 'segments' and period is None and recordings is None and from_time is None and to_time is None, "the <segments> option can not be used with options [period,recordings,from_time,to_time], and <by> should be set to 'segments'"
-            self.segments = pd.read_csv(segments)
+            if isinstance(segments, pd.DataFrame):
+                self.segments = segments
+            else:
+                self.segments = pd.read_csv(segments)
 
             assert_dataframe("segments", self.segments, not_empty=True)
             assert_columns_presence(
