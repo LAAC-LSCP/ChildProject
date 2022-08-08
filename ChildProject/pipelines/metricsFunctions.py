@@ -51,6 +51,14 @@ def metricFunction(args: set, columns: set, emptyValue = 0, name : str = None):
     return decorator
             
 
+@metricFunction({"speaker"},{"speaker_type"}) 
+def voc_speaker(annotations: pd.DataFrame, duration: int, **kwargs):
+    """number of vocalizations for a given speaker type
+    
+    Required keyword arguments:
+        - speaker : speaker_type to use
+    """
+    return annotations[annotations["speaker_type"]== kwargs["speaker"]].shape[0]
 
 @metricFunction({"speaker"},{"speaker_type"}) 
 def voc_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):

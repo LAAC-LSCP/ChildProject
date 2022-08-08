@@ -1,0 +1,3 @@
+recording_filename,segment_onset,segment_offset,child_id,experiment,child_dob,date_iso,duration_segments_alice,wc_fem_ph,duration_segments_vcm,lp_n,lp_dur,duration_segments_vtc,voc_fem,voc_chi,voc_fem_ph,voc_chi_ph
+sound.wav,0,1000,1,test,2020-01-01,2020-04-20,1000,7200.0,1000,1.0,1.0,1000,2,5,7200.0,18000.0
+sound.wav,1500,4000,1,test,2020-01-01,2020-04-20,2500,7200.0,2500,1.0,1.0,2500,5,12,7200.0,17280.0
