@@ -27,7 +27,7 @@ class Metrics(ABC):
     :type project: ChildProject.projects.ChildProject
     :param metrics_list: pandas DataFrame containing the desired metrics (metrics functions are in metricsFunctions.py)
     :type metrics_list: pd.DataFrame
-    :param by: unit to extract metric from (recording_filename, experiment, child_id, session_id, segments), defaults to 'recording_filename', use 'segments' to use the segments argument
+    :param by: unit to extract metric from (recording_filename, experiment, child_id, session_id, segments), defaults to 'recording_filename', 'segments' is mandatory if passing the segments argument
     :type by: str, optional
     :param recordings: recordings to sample from; if None, all recordings will be sampled, defaults to None
     :type recordings: Union[str, List[str], pd.DataFrame], optional
@@ -41,7 +41,7 @@ class Metrics(ABC):
     :type child_cols: str, optional
     :param period: time units to aggregate (optional); equivalent to ``pandas.Grouper`` freq argument.
     :type period: str, optional
-    :param segments: DataFrame or path to csv file of the segments to extract from, containing 'recording_filename', 'segment_onset' and 'segment_offset' columns. To use this option, the <by> option must be set to 'segments', can not be used along with options [recordings,period,from_time,to_time].
+    :param segments: DataFrame or path to csv file of the segments to extract from, containing 'recording_filename', 'segment_onset' and 'segment_offset' columns. To use this option, the option must be set to 'segments'. Also, this option cannot be combined with options [recordings,period,from_time,to_time].
     :type segments: Union[str, pd.DataFrame], optional
     :param threads: amount of threads to run on, defaults to 1
     :type threads: int, optional
@@ -153,7 +153,7 @@ class Metrics(ABC):
         self.recordings = Pipeline.recordings_from_list(recordings)
         
         if segments is not None:
-            assert by == 'segments' and period is None and recordings is None and from_time is None and to_time is None, "the <segments> option can not be used with options [period,recordings,from_time,to_time], and <by> should be set to 'segments'"
+            assert by == 'segments' and period is None and recordings is None and from_time is None and to_time is None, "the <segments> option can not be combined with options [period,recordings,from_time,to_time], and <by> should be set to 'segments'"
             if isinstance(segments, pd.DataFrame):
                 self.segments = segments
             else:
@@ -396,11 +396,11 @@ class CustomMetrics(Metrics):
     :type rec_cols: str, optional
     :param child_cols: comma separated columns from children.csv to include in the outputted metrics (optional), None by default
     :type child_cols: str, optional
-    :param by: units to sample from, defaults to 'recording_filename', use 'segments' to use the segments argument
+    :param by: unit to extract metric from (recording_filename, experiment, child_id, session_id, segments), defaults to 'recording_filename', 'segments' is mandatory if passing the segments argument
     :type by: str, optional
     :param period: time units to aggregate (optional); equivalent to ``pandas.Grouper`` freq argument.
     :type period: str, optional
-    :param segments: DataFrame or path to csv file of the segments to extract from, containing 'recording_filename', 'segment_onset' and 'segment_offset' columns. To use this option, the <by> option must be set to 'segments', can not be used along with options [recordings,period,from_time,to_time].
+    :param segments: DataFrame or path to csv file of the segments to extract from, containing 'recording_filename', 'segment_onset' and 'segment_offset' columns. To use this option, the option must be set to 'segments'. Also, this option cannot be combined with options [recordings,period,from_time,to_time].
     :type segments: Union[str, pd.DataFrame], optional
     :param threads: amount of threads to run on, defaults to 1
     :type threads: int, optional
@@ -454,11 +454,11 @@ class LenaMetrics(Metrics):
     :type rec_cols: str, optional
     :param child_cols: comma separated columns from children.csv to include in the outputted metrics (optional), None by default
     :type child_cols: str, optional
-    :param by: units to sample from, defaults to 'recording_filename', use 'segments' to use the segments argument
+    :param by: unit to extract metric from (recording_filename, experiment, child_id, session_id, segments), defaults to 'recording_filename', 'segments' is mandatory if passing the segments argument
     :type by: str, optional
     :param period: time units to aggregate (optional); equivalent to ``pandas.Grouper`` freq argument.
     :type period: str, optional
-    :param segments: DataFrame or path to csv file of the segments to extract from, containing 'recording_filename', 'segment_onset' and 'segment_offset' columns. To use this option, the <by> option must be set to 'segments', can not be used along with options [recordings,period,from_time,to_time].
+    :param segments: DataFrame or path to csv file of the segments to extract from, containing 'recording_filename', 'segment_onset' and 'segment_offset' columns. To use this option, the option must be set to 'segments'. Also, this option cannot be combined with options [recordings,period,from_time,to_time].
     :type segments: Union[str, pd.DataFrame], optional
     :param threads: amount of threads to run on, defaults to 1
     :type threads: int, optional
@@ -545,11 +545,11 @@ class AclewMetrics(Metrics):
     :type rec_cols: str, optional
     :param child_cols: comma separated columns from children.csv to include in the outputted metrics (optional), None by default
     :type child_cols: str, optional
-    :param by: units to sample from, defaults to 'recording_filename'
+    :param by: unit to extract metric from (recording_filename, experiment, child_id, session_id, segments), defaults to 'recording_filename', 'segments' is mandatory if passing the segments argument
     :type by: str, optional
     :param period: time units to aggregate (optional); equivalent to ``pandas.Grouper`` freq argument.
     :type period: str, optional
-    :param segments: DataFrame or path to csv file of the segments to extract from, containing 'recording_filename', 'segment_onset' and 'segment_offset' columns. To use this option, the <by> option must be set to 'segments', can not be used along with options [recordings,period,from_time,to_time].
+    :param segments: DataFrame or path to csv file of the segments to extract from, containing 'recording_filename', 'segment_onset' and 'segment_offset' columns. To use this option, the option must be set to 'segments'. Also, this option cannot be combined with options [recordings,period,from_time,to_time].
     :type segments: Union[str, pd.DataFrame], optional
     :param threads: amount of threads to run on, defaults to 1
     :type threads: int, optional
