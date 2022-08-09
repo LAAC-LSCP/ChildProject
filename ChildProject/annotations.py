@@ -90,6 +90,12 @@ class AnnotationManager:
             required=False,
             generated=True,
         ),
+        IndexColumn(
+            name="merged_from",
+            description="sets used to generate this annotation by merging (comma separated)",
+            required=False,
+            generated=True,
+        ),
     ]
 
     SEGMENTS_COLUMNS = [
@@ -703,7 +709,7 @@ class AnnotationManager:
         self.write()
 
     def merge_annotations(
-        self, left_columns, right_columns, columns, output_set, input
+        self, left_columns, right_columns, columns, output_set, input, skip_existing: bool = False
     ):
         """From 2 DataFrames listing the annotation indexes to merge together (those indexes should come from
         the intersection of the left_set and right_set indexes), the listing of the columns
@@ -720,14 +726,19 @@ class AnnotationManager:
         :type output_set: str
         :param input: annotation indexes to use for the merge, contains keys 'left_annotations' and 'right_annotations' to separate indexes from left and right set
         :type input: dict
+        :param input:
+        :type input: bool
         :return: annotation indexes created by the merge, should be added to annotations.csv
         :rtype: pandas.DataFrame
         """
         left_annotations = input["left_annotations"]
         right_annotations = input["right_annotations"]
-
+        
         annotations = left_annotations.copy()
-        annotations["format"] = ""
+        annotations['left_annotation_filename'] = annotations["annotation_filename"]
+        annotations['right_annotation_filename'] = right_annotations['annotation_filename']
+        
+        annotations["format"] = ""      
         annotations["annotation_filename"] = annotations.apply(
             lambda annotation: "{}_{}_{}.csv".format(
                 os.path.splitext(annotation["recording_filename"])[0],
@@ -736,7 +747,12 @@ class AnnotationManager:
             ),
             axis=1,
         )
-
+        
+        if skip_existing:
+            annotations = annotations[not os.path.lexists(annotations['annotation_filename'])]
+            left_annotations['annotation_filename'].isin(annotations['left_annotation_filename'].to_list())
+            right_annotations['annotation_filename'].isin(annotations['right_annotation_filename'].to_list())
+        
         for key in columns:
             annotations[key] = columns[key]
 
@@ -817,7 +833,7 @@ class AnnotationManager:
             output_segments["raw_filename_x"] + "," + output_segments["raw_filename_y"]
         )
 
-        annotations.drop(columns="raw_filename", inplace=True)
+        annotations.drop(columns=["raw_filename", 'right_annotation_filename', 'left_annotation_filename'], inplace=True)
         annotations = annotations.merge(
             output_segments[["interval", "raw_filename"]].dropna().drop_duplicates(),
             how="left",
@@ -885,13 +901,16 @@ class AnnotationManager:
         left_columns: List[str],
         right_columns: List[str],
         output_set: str,
+        full_set_merge: bool = True,
+        skip_existing: bool = False,
         columns: dict = {},
+        recording_filter: str = None
         threads=-1,
     ):
         """Merge columns from ``left_set`` and ``right_set`` annotations, 
         for all matching segments, into a new set of annotations named
         ``output_set`` that will be saved in the dataset. ``output_set``
-        must not already exist. 
+        must not already exist if full_set_merge is True. 
 
         :param left_set: Left set of annotations.
         :type left_set: str
@@ -903,11 +922,21 @@ class AnnotationManager:
         :type right_columns: List
         :param output_set: Name of the output annotations set.
         :type output_set: str
+        :param full_set_merge: The merge is meant to create the entired merged set. Therefore, the set should not already exist. defaults to True
+        :type full_set_merge: bool
+        :param skip_existing: The merge will skip already existing lines in the merged set. So both the annotation index and resulting converted csv will not change for those lines
+        :type skip_existing: bool
+        :param columns: Additional columns to add to the resulting converted annotations.
+        :type columns: dict
+        :param recording_filter: set of recording_filenames to merge.
+        :type recording_filter: set[str]
+        :param threads: number of threads
+        :type threads: int
         :return: [description]
         :rtype: [type]
         """
         existing_sets = self.annotations['set'].unique()
-        assert output_set not in existing_sets, "output_set <{}> already exists, remove the existing set or choose an other name.".format(output_set)
+        if full_set_merge: assert output_set not in existing_sets, "output_set <{}> already exists, remove the existing set or another name.".format(output_set)
         assert left_set in existing_sets, "left_set <{}> was not found, check the spelling.".format(left_set)
         assert right_set in existing_sets, "right_set <{}> was not found, check the spelling.".format(right_set)
         assert left_set != right_set, "sets must differ"
@@ -937,6 +966,9 @@ class AnnotationManager:
             self.annotations["set"].isin([left_set, right_set])
         ]
         annotations = annotations[annotations["error"].isnull()]
+        
+        if recording_filter:
+            annotations = annotations[annotations['recording_filename'].isin(recording_filter)]
 
         intersection = AnnotationManager.intersection(
             annotations, sets=[left_set, right_set]
@@ -970,7 +1002,7 @@ class AnnotationManager:
         pool = mp.Pool(processes=threads if threads > 0 else mp.cpu_count())
         annotations = pool.map(
             partial(
-                self.merge_annotations, left_columns, right_columns, columns, output_set
+                self.merge_annotations, left_columns, right_columns, columns, output_set, skip_existing=skip_existing
             ),
             input_annotations,
         )
