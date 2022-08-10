@@ -192,6 +192,7 @@ def test_intersect(project):
     columns = a.columns.tolist()
     columns.remove("imported_at")
     columns.remove("package_version")
+    columns.remove("merged_from")
 
     pd.testing.assert_frame_equal(
         standardize_dataframe(a, columns),
@@ -295,6 +296,7 @@ def test_merge(project):
         adult_segments[["phonemes", "syllables", "words"]],
         alice[["phonemes", "syllables", "words"]],
     )
+    #assert False
 
 
 def test_clipping(project):

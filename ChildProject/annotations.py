@@ -737,6 +737,10 @@ class AnnotationManager:
         annotations = left_annotations.copy()
         annotations['left_annotation_filename'] = annotations["annotation_filename"]
         annotations['right_annotation_filename'] = right_annotations['annotation_filename']
+        annotations['raw_filename'] = left_annotations['raw_filename'] + ',' + right_annotations['raw_filename']
+        
+        annotations["package_version"] = __version__
+        
         
         annotations["format"] = ""      
         annotations["annotation_filename"] = annotations.apply(
@@ -747,11 +751,13 @@ class AnnotationManager:
             ),
             axis=1,
         )
+        annotations['merged_from'] = ','.join(set(left_annotations['set'].unique()) | set(right_annotations['set'].unique()))
+        annotations['time_seek'] = 0
         
         if skip_existing:
             annotations = annotations[not os.path.lexists(annotations['annotation_filename'])]
-            left_annotations['annotation_filename'].isin(annotations['left_annotation_filename'].to_list())
-            right_annotations['annotation_filename'].isin(annotations['right_annotation_filename'].to_list())
+            left_annotations = left_annotations['annotation_filename'].isin(annotations['left_annotation_filename'].to_list())
+            right_annotations = right_annotations['annotation_filename'].isin(annotations['right_annotation_filename'].to_list())
         
         for key in columns:
             annotations[key] = columns[key]
@@ -828,31 +834,23 @@ class AnnotationManager:
         output_segments["segment_offset"] = (
             output_segments["segment_offset"].fillna(0).astype(int)
         )
-
+        
         output_segments["raw_filename"] = (
-            output_segments["raw_filename_x"] + "," + output_segments["raw_filename_y"]
+            output_segments["raw_filename_x"].fillna("")
+            + "," 
+            + output_segments["raw_filename_y"].fillna("")
+        )
+        output_segments["raw_filename"] = output_segments["raw_filename"].str.strip(',')
+        output_segments.drop(
+            columns=["raw_filename_x", "raw_filename_y", "time_seek"], inplace=True
         )
 
-        annotations.drop(columns=["raw_filename", 'right_annotation_filename', 'left_annotation_filename'], inplace=True)
-        annotations = annotations.merge(
-            output_segments[["interval", "raw_filename"]].dropna().drop_duplicates(),
-            how="left",
-            left_on="interval",
-            right_on="interval",
-        )
-        annotations.rename(columns={"raw_filename": "raw_filename"}, inplace=True)
+        annotations.drop(columns=['right_annotation_filename', 'left_annotation_filename'], inplace=True)
         annotations["generated_at"] = datetime.datetime.now().strftime(
             "%Y-%m-%d %H:%M:%S"
         )
 
-        output_segments["raw_filename"] = (
-            output_segments["raw_filename_x"].fillna("")
-            + ","
-            + output_segments["raw_filename_y"].fillna("")
-        )
-        output_segments.drop(
-            columns=["raw_filename_x", "raw_filename_y", "time_seek"], inplace=True
-        )
+        
 
         output_segments.fillna("NA", inplace=True)
 
@@ -904,7 +902,7 @@ class AnnotationManager:
         full_set_merge: bool = True,
         skip_existing: bool = False,
         columns: dict = {},
-        recording_filter: str = None
+        recording_filter: str = None,
         threads=-1,
     ):
         """Merge columns from ``left_set`` and ``right_set`` annotations, 
