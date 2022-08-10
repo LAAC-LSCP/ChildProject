@@ -13,7 +13,7 @@ from git.exc import InvalidGitRepositoryError
 import ChildProject
 from ChildProject.pipelines.pipeline import Pipeline
 
-from ChildProject.tables import assert_dataframe, assert_columns_presence
+from ChildProject.tables import assert_dataframe, assert_columns_presence, read_csv_with_dtype
 import ChildProject.pipelines.metricsFunctions as metfunc
 from ..utils import TimeInterval, time_intervals_intersect
 
@@ -154,10 +154,12 @@ class Metrics(ABC):
         
         if segments is not None:
             assert by == 'segments' and period is None and recordings is None and from_time is None and to_time is None, "the <segments> option can not be combined with options [period,recordings,from_time,to_time], and <by> should be set to 'segments'"
+            
+            dtypes = {'recording_filename':'string','segment_onset':'Int64', 'segment_offset':'Int64'}
             if isinstance(segments, pd.DataFrame):
-                self.segments = segments
+                self.segments = segments.astype(dtypes)
             else:
-                self.segments = pd.read_csv(segments)
+                self.segments = read_csv_with_dtype(segments,dtypes)
 
             assert_dataframe("segments", self.segments, not_empty=True)
             assert_columns_presence(

@@ -13,7 +13,13 @@ class MissingColumnsException(Exception):
         super().__init__(
             f"dataframe {name} misses the following required columns: {missing}"
         )
+        
+class IncorrectDtypeException(Exception):
+    def __init__(self, error: str):
 
+        super().__init__(
+            error
+        )
 
 def assert_dataframe(name: str, df: pd.DataFrame, not_empty: bool = False):
     assert isinstance(
@@ -29,6 +35,13 @@ def assert_columns_presence(name: str, df: pd.DataFrame, columns: Union[Set, Lis
 
     if len(missing):
         raise MissingColumnsException(name, missing)
+        
+def read_csv_with_dtype(file: str, dtypes: dict):
+    try:
+        df = pd.read_csv(file,dtype=dtypes)
+    except ValueError:
+        raise IncorrectDtypeException('Incorrect type found in {}, expected column types are:\n{}'.format(file,dtypes))
+    return df
 
 
 def is_boolean(x):
