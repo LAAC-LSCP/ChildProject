@@ -306,3 +306,12 @@ def cp_dur(annotations: pd.DataFrame, duration: int, **kwargs):
     else:
         value = np.nan
     return value
+
+@metricFunction({},{"lena_conv_turn_type"}) 
+def lena_CVC(annotations: pd.DataFrame, duration: int, **kwargs):
+    """number of child vocalizations according to LENA's extraction
+    
+    Required keyword arguments:
+    """
+    conv_types = {'TIMR', 'TIFR'}
+    return annotations[annotations["lena_conv_turn_type"].isin(conv_types)].shape[0]
