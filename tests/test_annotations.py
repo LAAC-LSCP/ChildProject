@@ -11,7 +11,7 @@ import pytest
 import shutil
 import subprocess
 import sys
-
+import time
 
 def standardize_dataframe(df, columns):
     df = df[list(columns)]
@@ -263,9 +263,11 @@ def test_merge(project):
     input_annotations = input_annotations[
         input_annotations["set"].isin(["vtc_rttm", "alice"])
     ]
+    print(input_annotations)
     am.import_annotations(input_annotations)
     am.read()
 
+    print(am.annotations)
     am.read()
     am.merge_sets(
         left_set="vtc_rttm",
@@ -273,9 +275,33 @@ def test_merge(project):
         left_columns=["speaker_type"],
         right_columns=["phonemes", "syllables", "words"],
         output_set="alice_vtc",
+        full_set_merge = False,
+        recording_filter = {'sound.wav'}
     )
     am.read()
 
+    anns = am.annotations[am.annotations['set'] == 'alice_vtc']
+    assert anns.shape[0] == 1
+    assert anns.iloc[0]['recording_filename'] == 'sound.wav'
+    
+    time.sleep(2) #sleeping for 2 seconds to have different 'imported_at' values so that can make sure both merge did fine
+    
+    am.merge_sets(
+        left_set="vtc_rttm",
+        right_set="alice",
+        left_columns=["speaker_type"],
+        right_columns=["phonemes", "syllables", "words"],
+        output_set="alice_vtc",
+        full_set_merge = False,
+        skip_existing = True
+    )
+    am.read()
+    
+    anns = am.annotations[am.annotations['set'] == 'alice_vtc']
+    assert anns.shape[0] == 2
+    assert set(anns['recording_filename'].unique()) == {'sound.wav','sound2.wav'}
+    assert anns.iloc[0]['imported_at'] != anns.iloc[1]['imported_at']
+    
     segments = am.get_segments(am.annotations[am.annotations["set"] == "alice_vtc"])
     vtc_segments = am.get_segments(am.annotations[am.annotations["set"] == "vtc_rttm"])
     assert segments.shape[0] == vtc_segments.shape[0]
@@ -296,13 +322,15 @@ def test_merge(project):
         adult_segments[["phonemes", "syllables", "words"]],
         alice[["phonemes", "syllables", "words"]],
     )
-    #assert False
+    
+    
 
 
 def test_clipping(project):
     am = AnnotationManager(project)
 
     input_annotations = pd.read_csv("examples/valid_raw_data/annotations/input.csv")
+    input_annotations = input_annotations[input_annotations["recording_filename"] == "sound.wav"]
     am.import_annotations(input_annotations[input_annotations["set"] == "vtc_rttm"])
     am.read()
 
