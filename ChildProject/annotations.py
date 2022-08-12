@@ -755,9 +755,9 @@ class AnnotationManager:
         annotations['time_seek'] = 0
         
         if skip_existing:
-            annotations = annotations[not os.path.lexists(annotations['annotation_filename'])]
-            left_annotations = left_annotations['annotation_filename'].isin(annotations['left_annotation_filename'].to_list())
-            right_annotations = right_annotations['annotation_filename'].isin(annotations['right_annotation_filename'].to_list())
+            annotations = annotations[~annotations['annotation_filename'].map(lambda x : os.path.lexists(os.path.join(self.project.path,"annotations",output_set, "converted", x)))]
+            left_annotations = left_annotations[left_annotations['annotation_filename'].isin(annotations['left_annotation_filename'].to_list())]
+            right_annotations = right_annotations[right_annotations['annotation_filename'].isin(annotations['right_annotation_filename'].to_list())]
         
         for key in columns:
             annotations[key] = columns[key]
@@ -846,7 +846,7 @@ class AnnotationManager:
         )
 
         annotations.drop(columns=['right_annotation_filename', 'left_annotation_filename'], inplace=True)
-        annotations["generated_at"] = datetime.datetime.now().strftime(
+        annotations["imported_at"] = datetime.datetime.now().strftime(
             "%Y-%m-%d %H:%M:%S"
         )
 
@@ -1014,7 +1014,8 @@ class AnnotationManager:
         annotations.fillna({"raw_filename": "NA"}, inplace=True)
 
         self.read()
-        self.annotations = pd.concat([self.annotations, annotations], sort=False)
+        # if annotations.csv can have duplicate entries with same converted filename and is normal, check this https://stackoverflow.com/a/45927402 and change the code
+        self.annotations = pd.concat([self.annotations, annotations], sort=False).drop_duplicates(subset=['set','recording_filename','annotation_filename'], keep='last')
         self.write()
 
     def get_segments(self, annotations: pd.DataFrame) -> pd.DataFrame:
