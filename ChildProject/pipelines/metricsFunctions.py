@@ -35,18 +35,21 @@ def metricFunction(args: set, columns: set, emptyValue = 0, name : str = None):
         def new_func(annotations: pd.DataFrame, duration: int, **kwargs):
             for arg in args:
                 if arg not in kwargs : raise ValueError('{} metric needs an argument <{}>'.format(function.__name__,arg))
-            metname = name
-            if not name : metname = function.__name__
-            metname_replaced = metname
+            metric_name = name
+            if not name : metric_name = function.__name__
+            metric_name_replaced = metric_name
+            #metric_name is the basename used to designate this metric (voc_speaker_ph), metric_name_replaced replaces the values of kwargs
+            #found in the name by their values, giving the metric name for that instance only (voc_chi_ph)
             for arg in kwargs:
-                metname_replaced = re.sub(arg , str(kwargs[arg]).lower(),metname_replaced)
+                metric_name_replaced = re.sub(arg , str(kwargs[arg]).lower(),metric_name_replaced)
             if annotations.shape[0]:
-                for column in columns:
-                    if column not in annotations.columns : raise ValueError(MISSING_COLUMNS.format(annotations['set'].iloc[0],column,metname))
+                missing_columns = columns - set(annotations.columns)
+                if missing_columns:
+                    raise ValueError(MISSING_COLUMNS.format(annotations['set'].iloc[0],missing_columns,metric_name))
                 res = function(annotations, duration, **kwargs)
             else: #no annotation for that unit
                 res = emptyValue if duration else None #duration != 0 => was annotated but not segments there
-            return metname_replaced, res
+            return metric_name_replaced, res
         return new_func
     return decorator
             
@@ -225,7 +228,7 @@ def avg_non_can_voc_dur_speaker(annotations: pd.DataFrame, duration: int, **kwar
     if pd.isnull(value) : value = 0
     return value
 
-@metricFunction({},{},np.nan)
+@metricFunction(set(),set(),np.nan)
 def lp_n(annotations: pd.DataFrame, duration: int, **kwargs):
     """linguistic proportion on the number of vocalizations for CHI (based on vcm_type or [cries,vfxs,utterances_count] if vcm_type does not exist)
     
@@ -253,7 +256,7 @@ def lp_n(annotations: pd.DataFrame, duration: int, **kwargs):
         raise ValueError("the given set does not have the neccessary columns for this metric, choose a set that contains either [vcm_type] or [cries,vfxs,utterances_count]")
     return value
 
-@metricFunction({},{"speaker_type","vcm_type"},np.nan)
+@metricFunction(set(),{"speaker_type","vcm_type"},np.nan)
 def cp_n(annotations: pd.DataFrame, duration: int, **kwargs):
     """canonical proportion on the number of vocalizations for CHI (based on vcm_type)
     
@@ -267,7 +270,7 @@ def cp_n(annotations: pd.DataFrame, duration: int, **kwargs):
         value = np.nan
     return value
     
-@metricFunction({},{},np.nan)
+@metricFunction(set(),set(),np.nan)
 def lp_dur(annotations: pd.DataFrame, duration: int, **kwargs):
     """linguistic proportion on the duration of vocalizations for CHI (based on vcm_type or [child_cry_vfxs_len,utterances_length] if vcm_type does not exist)
     
@@ -293,7 +296,7 @@ def lp_dur(annotations: pd.DataFrame, duration: int, **kwargs):
         raise ValueError("the {} set does not have the neccessary columns for this metric, choose a set that contains either [vcm_type] or [child_cry_vfx_len,utterances_length]")
     return value
 
-@metricFunction({},{"speaker_type","vcm_type","duration"},np.nan)
+@metricFunction(set(),{"speaker_type","vcm_type","duration"},np.nan)
 def cp_dur(annotations: pd.DataFrame, duration: int, **kwargs):
     """canonical proportion on the number of vocalizations for CHI (based on vcm_type)
     
@@ -307,7 +310,7 @@ def cp_dur(annotations: pd.DataFrame, duration: int, **kwargs):
         value = np.nan
     return value
 
-@metricFunction({},{"lena_conv_turn_type"}) 
+@metricFunction(set(),{"lena_conv_turn_type"}) 
 def lena_CVC(annotations: pd.DataFrame, duration: int, **kwargs):
     """number of child vocalizations according to LENA's extraction
     
