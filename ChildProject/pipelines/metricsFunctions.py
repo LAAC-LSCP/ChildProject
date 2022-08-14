@@ -318,3 +318,12 @@ def lena_CVC(annotations: pd.DataFrame, duration: int, **kwargs):
     """
     conv_types = {'TIMR', 'TIFR'}
     return annotations[annotations["lena_conv_turn_type"].isin(conv_types)].shape[0]
+    
+@metricFunction(set(),{"lena_block_type"}) 
+def lena_CTC(annotations: pd.DataFrame, duration: int, **kwargs):
+    """number of conversational turn counts according to LENA's extraction
+    
+    Required keyword arguments:
+    """
+    block_types = {'AICF', 'AICM', 'CIC', 'XIC'}
+    return annotations[annotations["lena_block_type"].isin(block_types)].shape[0]
