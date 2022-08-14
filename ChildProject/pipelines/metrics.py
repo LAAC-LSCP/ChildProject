@@ -152,21 +152,26 @@ class Metrics(ABC):
         self.segments = segments   
         self.recordings = Pipeline.recordings_from_list(recordings)
         
+        #If the extraction is done on segments
         if segments is not None:
+            #we enforce that incompatible arguments are not set
             assert by == 'segments' and period is None and recordings is None and from_time is None and to_time is None, "the <segments> option can not be combined with options [period,recordings,from_time,to_time], and <by> should be set to 'segments'"
             
             dtypes = {'recording_filename':'string','segment_onset':'Int64', 'segment_offset':'Int64'}
+            #use the DataFrame provided or import it from a csv file
             if isinstance(segments, pd.DataFrame):
                 self.segments = segments.astype(dtypes)
             else:
                 self.segments = read_csv_with_dtype(segments,dtypes)
 
+            #check that required columns are present and dataframe not empty
             assert_dataframe("segments", self.segments, not_empty=True)
             assert_columns_presence(
                 "segments",
                 self.segments,
                 {"recording_filename", "segment_onset", "segment_offset"},
             )
+        #not on segments
         else:
             
             #build a dataframe with all the periods we will want for each unit
@@ -179,7 +184,7 @@ class Metrics(ABC):
                 )
                 self.periods= pd.DataFrame(self.periods.to_tuples().to_list(),columns=['period_start','period_end'])
     
-        
+            #turn from_time and to to_time to datetime objects
             if from_time:
                 try:
                     self.from_time = datetime.datetime.strptime(from_time, "%H:%M:%S")
@@ -268,16 +273,20 @@ class Metrics(ABC):
         :return: relevant annotation DataFrame and index DataFrame
         :rtype: (pandas.DataFrame , pandas.DataFrame)
         """
+        #if extraction from segments, annotations are retrieved from get_within_ranges
         if self.segments is not None:
             matches = self.am.get_within_ranges(ranges= pd.DataFrame(
                     [[row['recording_filename'],row['segment_onset'], row['segment_offset']]],
                     columns=['recording_filename','range_onset', 'range_offset']),
                     sets= sets,
                     missing_data = 'warn')
+        #else prepare and use get_within_time_range
         else:
             annotations = self.am.annotations[self.am.annotations[self.by] == row[self.by]]
             annotations = annotations[annotations["set"].isin(sets)]
+            #restrict to time ranges
             if self.from_time and self.to_time:
+                #add the periods columns
                 if self.period:
                     st_hour = row["period_start"]
                     end_hour = row["period_end"]
@@ -287,6 +296,7 @@ class Metrics(ABC):
                     matches = self.am.get_within_time_range(
                     annotations, TimeInterval(self.from_time,self.to_time))
             elif self.period:
+                #add the periods columns
                 st_hour = row["period_start"]
                 end_hour = row["period_end"]
                 matches = self.am.get_within_time_range(
@@ -315,10 +325,12 @@ class Metrics(ABC):
              - 48 rows if 2 recordings in the corpus --period 1h --by recording_filename
         Then the extract() method should populate the dataframe with actual metrics
         """
+        #build the metrics dataframe from the segments argument
         if self.segments is not None:
             recordings = self.project.get_recordings_from_list(self.segments['recording_filename'].unique())
             self.by = 'recording_filename'
             self.metrics = self.segments.copy()
+        # else use the list of recordings of the dataset and the by option
         else:
             recordings = self.project.get_recordings_from_list(self.recordings)
             self.metrics = pd.DataFrame(recordings[self.by].unique(), columns=[self.by])

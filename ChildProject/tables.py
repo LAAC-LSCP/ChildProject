@@ -15,11 +15,7 @@ class MissingColumnsException(Exception):
         )
         
 class IncorrectDtypeException(Exception):
-    def __init__(self, error: str):
-
-        super().__init__(
-            error
-        )
+    #Exception when an Unexpected DType is found in a pandas DataFrame 
 
 def assert_dataframe(name: str, df: pd.DataFrame, not_empty: bool = False):
     assert isinstance(
