@@ -8,6 +8,8 @@ All notable changes to this project will be documented in this file.
 
 - Start times can include seconds (e.g. 12:34:59) while still accepting the old format (This change will allow other columns to accept multiple formats easily).
 - `child-project --version` command
+- `child-project metrics` added the `--segments` command to extract metrics from a dataFrame of segments
+- metrics <voc_speaker> and <lena_CVC>
 
 ### Changed
 
