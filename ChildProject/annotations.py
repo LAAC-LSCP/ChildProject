@@ -731,18 +731,23 @@ class AnnotationManager:
         :return: annotation indexes created by the merge, should be added to annotations.csv
         :rtype: pandas.DataFrame
         """
+        #get the left and right annotation dataframes
         left_annotations = input["left_annotations"]
         right_annotations = input["right_annotations"]
         
+        #start the new annotations from a copy of the left set
         annotations = left_annotations.copy()
+        #store the annotation filenames used to keep a reference to those existing files
         annotations['left_annotation_filename'] = annotations["annotation_filename"]
         annotations['right_annotation_filename'] = right_annotations['annotation_filename']
+        #populate the raw_filename column with the raw filenames of the sets used to merge, separated by a comma
         annotations['raw_filename'] = left_annotations['raw_filename'] + ',' + right_annotations['raw_filename']
-        
+        #package version is the version used by the merge, not the one used in the merged sets
         annotations["package_version"] = __version__
         
-        
-        annotations["format"] = ""      
+        #format of a merged set is undefined
+        annotations["format"] = ""
+        #compute the names of the new annotation filenames that will be created
         annotations["annotation_filename"] = annotations.apply(
             lambda annotation: "{}_{}_{}.csv".format(
                 os.path.splitext(annotation["recording_filename"])[0],
@@ -751,9 +756,12 @@ class AnnotationManager:
             ),
             axis=1,
         )
+        #store in 'merged_from' the names of the sets it was merged from
         annotations['merged_from'] = ','.join(set(left_annotations['set'].unique()) | set(right_annotations['set'].unique()))
+        #the timestamps will be recomputed from the start of the file, so time_seek is always 0 on a merged set
         annotations['time_seek'] = 0
         
+        #if skip existing, only keep the line where the resulting converted file does not already exist (even as a broken symlink)
         if skip_existing:
             annotations = annotations[~annotations['annotation_filename'].map(lambda x : os.path.lexists(os.path.join(self.project.path,"annotations",output_set, "converted", x)))]
             left_annotations = left_annotations[left_annotations['annotation_filename'].isin(annotations['left_annotation_filename'].to_list())]
@@ -764,6 +772,7 @@ class AnnotationManager:
 
         annotations["set"] = output_set
 
+        #check the presence of the converted files in the left_set
         left_annotation_files = [
             os.path.join(
                 self.project.path,
@@ -778,6 +787,7 @@ class AnnotationManager:
             f for f in left_annotation_files if not os.path.exists(f)
         ]
 
+        #check the presence of the converted files in the right_set
         right_annotation_files = [
             os.path.join(
                 self.project.path,
@@ -806,6 +816,7 @@ class AnnotationManager:
                 )
             )
 
+        #get the actual annotation segments
         left_segments = self.get_segments(left_annotations)
         right_segments = self.get_segments(right_annotations)
 
@@ -821,6 +832,7 @@ class AnnotationManager:
             right_segments.columns.union(rc, sort=False), axis=1, fill_value="NA"
         )
 
+        #merge left and right annotations segments
         output_segments = left_segments[list(lc)].merge(
             right_segments[list(rc)],
             how="outer",
@@ -845,6 +857,7 @@ class AnnotationManager:
             columns=["raw_filename_x", "raw_filename_y", "time_seek"], inplace=True
         )
 
+        #drop unused columns, get the currect datetime and store it in imported_at
         annotations.drop(columns=['right_annotation_filename', 'left_annotation_filename'], inplace=True)
         annotations["imported_at"] = datetime.datetime.now().strftime(
             "%Y-%m-%d %H:%M:%S"
@@ -854,6 +867,7 @@ class AnnotationManager:
 
         output_segments.fillna("NA", inplace=True)
 
+        #create the new converted files from the merged annotation segments
         for annotation in annotations.to_dict(orient="records"):
             interval = annotation["interval"]
             annotation_filename = annotation["annotation_filename"]
