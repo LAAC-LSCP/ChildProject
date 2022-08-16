@@ -125,10 +125,10 @@ and VTC annotations altogether. This can be done with ``child-project merge-anno
 
    child-project merge-annotations /path/to/dataset \
    --left-set vtc \
-   --right-set alice \
-   --left-columns speaker_id,ling_type,speaker_type,vcm_type,lex_type,mwu_type,addresseee,transcription \
+   --right-set alice/output \
+   --left-columns speaker_type \
    --right-columns phonemes,syllables,words \
-   --output-set alice_vtc
+   --output-set alice
 
 Intersect annotations
 ~~~~~~~~~~~~~~~~~~~~~
