@@ -227,7 +227,7 @@ class AliceConverter(AnnotationConverter):
             engine="python",
         )
 
-        n_recordings = len(df["file"].unique())
+        n_recordings = len(df["file"].str.split('_').apply(lambda x: x[:-2]).str.join('_').unique())
         if  n_recordings > 1 and not source_file:
             print(
                 f"""WARNING: {filename} contains annotations from {n_recordings} different audio files, """
