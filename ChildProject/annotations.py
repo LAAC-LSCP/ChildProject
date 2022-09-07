@@ -319,6 +319,8 @@ class AnnotationManager:
                     for dup in duplicates.to_dict(orient="records")
                 ]
             )
+        
+        warnings += self._check_for_outdated_merged_sets()
 
         return errors, warnings
 
@@ -395,6 +397,36 @@ class AnnotationManager:
         self.annotations.to_csv(
             os.path.join(self.project.path, "metadata/annotations.csv"), index=False
         )
+        
+    def _check_for_outdated_merged_sets(self, sets: set = None):
+        """Checks the annotations dataframe for sets that were used in merged sets and modified afterwards.
+        This method produces warnings and suggestions to update the considered merged sets.
+        
+        :param sets: names of the original sets (sets used to merge) to consider.
+        :type sets: set
+        :return: List of warnings to give regarding the presence of outdated merged sets
+        :rtype: List[str]
+        """
+        warnings = []
+        
+        #make a copy of annotation index, keep only the last modification date for each set (will not detect specific cases like partial merge)
+        df = self.annotations.copy().sort_values(['set','imported_at']).groupby(['set']).last()
+        
+        #build a dictionary capturing the last modification date for each set.
+        last_modif = {} 
+        for i, row in df.iterrows():
+            last_modif[i] = row['imported_at']
+        
+        #iterate through sets that were built from a merge and compare their last modification date to the one of their original set.
+        merged_sets = df.dropna(subset=['merged_from'])[['merged_from', 'imported_at']]      
+        for i, row in merged_sets.iterrows():
+            for j in row['merged_from'].split(','):
+                #if a list of sets was given and the set is not in that list, skip it
+                if (sets is not None and j in sets) or sets is None:
+                    if row['imported_at'] < last_modif[j]:
+                        warnings.append("set {} is outdated because the {} set it is merged from was modified. Consider updating or rerunning the creation of the {} set.".format(i,j,i))
+                        
+        return warnings
 
     def _import_annotation(
         self, import_function: Callable[[str], pd.DataFrame], params: dict, annotation: dict
@@ -571,6 +603,11 @@ class AnnotationManager:
         self.read()
         self.annotations = pd.concat([self.annotations, imported], sort=False)
         self.write()
+        
+        sets = set(input['set'].unique())
+        outdated_sets = self._check_for_outdated_merged_sets(sets= sets)
+        for warning in outdated_sets:
+            print("warning: {}".format(warning))
 
         return imported
 
@@ -633,6 +670,10 @@ class AnnotationManager:
 
         self.annotations = self.annotations[self.annotations["set"] != annotation_set]
         self.write()
+        
+        outdated_sets = self._check_for_outdated_merged_sets(sets= {annotation_set})
+        for warning in outdated_sets:
+            print("warning: {}".format(warning))
 
     def rename_set(
         self,
@@ -757,7 +798,7 @@ class AnnotationManager:
             axis=1,
         )
         #store in 'merged_from' the names of the sets it was merged from
-        annotations['merged_from'] = ','.join(set(left_annotations['set'].unique()) | set(right_annotations['set'].unique()))
+        annotations['merged_from'] = ','.join(np.concatenate([left_annotations['set'].unique() , right_annotations['set'].unique()]))
         #the timestamps will be recomputed from the start of the file, so time_seek is always 0 on a merged set
         annotations['time_seek'] = 0
         
