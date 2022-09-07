@@ -103,13 +103,14 @@ def validate(args):
 
     project = ChildProject(args.source)
     errors, warnings = project.validate(args.ignore_recordings, args.profile)
+    
+    am = AnnotationManager(project)
+
+    errors.extend(am.errors)
+    warnings.extend(am.warnings)
 
     if args.annotations:
-        am = AnnotationManager(project)
-
-        errors.extend(am.errors)
-        warnings.extend(am.warnings)
-
+        
         annotations = am.annotations
 
         if all(map(lambda x: os.path.exists(x) or os.path.islink(x), args.annotations)):
