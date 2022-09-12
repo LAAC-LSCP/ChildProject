@@ -110,10 +110,6 @@ Each --version command should output the version of the package
 
 .. clidoc::
 
-    git annex version
-
-.. clidoc::
-
     # optional software, for getting and sharing data
     datalad --version
 
