@@ -57,20 +57,8 @@ MacOS users
 
         pip install ChildProject
 
-
-Check the setup
-~~~~~~~~~~~~~~~
-
-You can now make sure the packages have been successfully installed:
-
-.. clidoc::
-
-   child-project --help
-
-.. clidoc::
-
-    # optional software, for getting and sharing data
-    datalad --version
+Windows users
+~~~~~~~~~~~~~
 
 .. warning::
 
@@ -80,6 +68,54 @@ You can now make sure the packages have been successfully installed:
 
     We expect the package to work on Windows, although we do not perform
     automated tests on this OS at the moment.
+
+    If you are on a Windows system, consider using a `Windows subsystem for linux (WSL) <https://docs.microsoft.com/en-us/windows/wsl/install>`_,
+    inside of which you can use all the Linux instructions while accessing your windows filesystem.
+
+If you which to continue using directly Windows, you will first need to `install git-annex <https://git-annex.branchable.com/install/Windows/>`_. 
+Follow the instructions by first `installing Git for Windows <http://git-scm.com/downloads>`_ and once Git is installed, downloading and running the `git-annex installer <https://downloads.kitenet.net/git-annex/windows/current/>`_.
+
+Now, install Miniconda to manage your environments by following `this guide <https://conda.io/projects/conda/en/latest/user-guide/install/windows.html>`_.
+
+Then, Open a GIT CMD prompt (search for "GIT CMD" in the start Menu)
+and run the following commands to create your environment:
+
+.. code:: bash
+
+    # download the conda environment creation info
+    curl https://raw.githubusercontent.com/LAAC-LSCP/ChildProject/master/env_macos.yml -o env.yml
+
+    # create the conda environment, keep the default parameters, this may take a long time
+    conda env create -f env.yml
+
+    # activate the environment (this should be done systematically to use our package)
+    conda activate childproject
+
+    #Your command prompt should be prefixed by '(childproject)' at this point
+
+
+Check the setup
+~~~~~~~~~~~~~~~
+
+You can now make sure the packages have been successfully installed:
+Each --version command should output the version of the package
+
+.. clidoc::
+
+   child-project --help
+
+.. clidoc::
+
+    child-project --version
+
+.. clidoc::
+
+    git annex version
+
+.. clidoc::
+
+    # optional software, for getting and sharing data
+    datalad --version
 
 .. note::
 
