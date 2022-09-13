@@ -11,7 +11,7 @@ The following instructions will let you install two python packages:
 .. note::
 
     The default installation procedure requires anaconda. If you are not sure you have conda installed, please do ``conda --version``.
-    If you don't, please refer to the instructions `here <https://docs.anaconda.com/anaconda/install/index.html>`_.
+    If you don't, please refer to the instructions `here <https://docs.anaconda.com/anaconda/install/index.html>`__.
 
 Linux users
 ~~~~~~~~~~~
@@ -69,29 +69,79 @@ Windows users
     We expect the package to work on Windows, although we do not perform
     automated tests on this OS at the moment.
 
-    If you are on a Windows system, consider using a `Windows subsystem for linux (WSL) <https://docs.microsoft.com/en-us/windows/wsl/install>`_,
+    If you are on a Windows system, consider using a `Windows subsystem for linux (WSL) <https://docs.microsoft.com/en-us/windows/wsl/install>`__,
     inside of which you can use all the Linux instructions while accessing your windows filesystem.
 
-If you which to continue using directly Windows, you will first need to `install git-annex <https://git-annex.branchable.com/install/Windows/>`_. 
-Follow the instructions by first `installing Git for Windows <http://git-scm.com/downloads>`_ and once Git is installed, downloading and running the `git-annex installer <https://downloads.kitenet.net/git-annex/windows/current/>`_.
+If you which to continue using directly Windows, you must do the following:
+ 1. Download and run the Git installer found in `this page <https://git-scm.com/download/win>`__, use the first link in the page. When running the installer, we advise you keep all the default choices.
+ 
+ .. figure:: images/git-install.png
+    :height: 300
+    :alt: git installer Wizard
 
-Now, install Miniconda to manage your environments by following `this guide <https://conda.io/projects/conda/en/latest/user-guide/install/windows.html>`_.
+    git installer
 
-Then, Open an Anaconda prompt (search for "Anaconda Prompt" in the start Menu)
-and run the following commands to create your environment:
+ 2. Download and run the git-annex installer found `here <https://downloads.kitenet.net/git-annex/windows/current/>`__, download the file 'git-annex-installer.exe' and then launch it, keep everything as default.
+ 
+ .. figure:: images/git-annex-install.png
+    :height: 300
+    :alt: git annex installer Wizard
 
-.. code:: bash
+    git annex installer
 
-    # download the conda environment creation info
-    curl https://raw.githubusercontent.com/LAAC-LSCP/ChildProject/master/env_macos.yml -o env.yml
+ 3. Download and run the `Miniconda installer <https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe>`__, launch the installer and keep all the default options.
+ 
+ .. figure:: images/miniconda-install.png
+    :height: 300
+    :alt: miniconda installer Wizard
 
-    # create the conda environment, keep the default parameters, this may take a long time
-    conda env create -f env.yml
+    miniconda installer
 
-    # activate the environment (this should be done systematically to use our package)
-    conda activate childproject
+ 4. Open an Anaconda prompt, after all the installations, you should now have a program called "Anaconda Prompt" in your start Menu, if you can't find it, use the search field. You will use this program whenever you use ChilProject so it is probably best to pin it to the start menu or create a shortcut on your desktop. Launch it, you should be presented with a terminal window, allowing you to enter and launch commands
+ 
+ .. figure:: images/anaconda-prompt.png
+    :alt: Anaconda prompt cmd
 
-    #Your command prompt should be prefixed by '(childproject)' at this point
+    Anaconda prompt
+
+ 5. Use the following command to download the environment description
+
+ .. code:: bash
+
+     # download the conda environment creation info
+     curl https://raw.githubusercontent.com/LAAC-LSCP/ChildProject/master/env_macos.yml -o env.yml
+
+ 
+ .. figure:: images/download-yml.png
+    :alt: download environment description file
+
+    download the conda environment description file
+
+ 6. Run this line to create the conda environment, keep the default parameters, this can take several minutes 
+
+ .. code:: bash
+
+     # create the conda environment, keep the default parameters, this may take a long time
+     conda env create -f env.yml
+ 
+ .. figure:: images/env-install.png
+    :alt: creation of conda environment
+
+    creation of the environment
+
+ 7. Activate the childproject environment in your Anaconda Prompt. This must be done everytime you use childproject
+
+ .. code:: bash
+
+     # activate the environment (this should be done systematically to use the package)
+     conda activate childproject
+ 
+ .. figure:: images/env-activate.png
+    :alt: activate the childproject environment
+
+    activate the newly created environment, to do every time we launch a new anaconda prompt
+
+Congratulations, You are now able to use all the childproject features inside your Anaconda Prompt.
 
 
 Check the setup
@@ -103,10 +153,6 @@ Each --version command should output the version of the package
 .. clidoc::
 
    child-project --help
-
-.. clidoc::
-
-    child-project --version
 
 .. clidoc::
 
