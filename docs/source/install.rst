@@ -77,7 +77,7 @@ Follow the instructions by first `installing Git for Windows <http://git-scm.com
 
 Now, install Miniconda to manage your environments by following `this guide <https://conda.io/projects/conda/en/latest/user-guide/install/windows.html>`_.
 
-Then, Open a GIT CMD prompt (search for "GIT CMD" in the start Menu)
+Then, Open an Anaconda prompt (search for "Anaconda Prompt" in the start Menu)
 and run the following commands to create your environment:
 
 .. code:: bash
