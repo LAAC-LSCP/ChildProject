@@ -514,6 +514,8 @@ class LenaMetrics(Metrics):
              ["wc_adu_ph",self.set,pd.NA],
              ["lp_n",self.set,pd.NA],
              ["lp_dur",self.set,pd.NA],
+             ["lena_CVC",self.set,pd.NA],
+             ["lena_CTC",self.set,pd.NA],
              ]), columns=["callable","set","speaker"])
 
         super().__init__(project, METRICS, by=by, recordings=recordings,
