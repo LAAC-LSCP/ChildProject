@@ -17,12 +17,15 @@ All notable changes to this project will be documented in this file.
 - `metrics` pipeline's options `--from --to` require a HH:MM:SS format now.
 - `merge-annotations` command fails when the output_set already exists or if the required sets don't exist
 
+
 ### Fixed
 
 - eafbuilder attributes a default time-aligneable ling-type to created tiers to avoid random attribution that can lead to wrong behaviour and crashes
 - 'imported_at' column in annotations.csv did not have a new correct format (in a set)
 - metrics avg_cry_... avg_can_... and avg_non_can_... were not calculated correctly
 - metrics lp_n lp_dur use lena columns in priority
+- metrics lena-CTC and lena-CVC are added correctly and added to the output of the lena pipeline
+- praat-parselmouth is now in the setup file so the dependency get installed automatically by conda
 
 ### Dropped
 
