@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- missing column merged_from in annotations.csv does not fail anymore
+
+## [0.0.6] 2022-09-13
+
 ### Added
 
 - Start times can include seconds (e.g. 12:34:59) while still accepting the old format (This change will allow other columns to accept multiple formats easily).

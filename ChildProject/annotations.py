@@ -418,13 +418,14 @@ class AnnotationManager:
             last_modif[i] = row['imported_at']
         
         #iterate through sets that were built from a merge and compare their last modification date to the one of their original set.
-        merged_sets = df.dropna(subset=['merged_from'])[['merged_from', 'imported_at']]      
-        for i, row in merged_sets.iterrows():
-            for j in row['merged_from'].split(','):
-                #if a list of sets was given and the set is not in that list, skip it
-                if (sets is not None and j in sets) or sets is None:
-                    if row['imported_at'] < last_modif[j]:
-                        warnings.append("set {} is outdated because the {} set it is merged from was modified. Consider updating or rerunning the creation of the {} set.".format(i,j,i))
+        if 'merged_from' in df.columns:
+            merged_sets = df.dropna(subset=['merged_from'])[['merged_from', 'imported_at']]      
+            for i, row in merged_sets.iterrows():
+                for j in row['merged_from'].split(','):
+                    #if a list of sets was given and the set is not in that list, skip it
+                    if (sets is not None and j in sets) or sets is None:
+                        if row['imported_at'] < last_modif[j]:
+                            warnings.append("set {} is outdated because the {} set it is merged from was modified. Consider updating or rerunning the creation of the {} set.".format(i,j,i))
                         
         return warnings
 
