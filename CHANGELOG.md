@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.0.7] 2022-09-14
+
 ### Fixed
 
 - missing column merged_from in annotations.csv does not fail anymore
