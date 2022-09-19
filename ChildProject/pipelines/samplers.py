@@ -1111,3 +1111,8 @@ class SamplerPipeline(Pipeline):
             default=None,
         )
 
+        parser.add_argument(
+            "--ignore-segments",
+            help="path to a CSV dataframe containing the list of segments to ignore. The columns should be: recording_filename, segment_onset and segment_offset.",
+            default=None,
+        )
