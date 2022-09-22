@@ -104,29 +104,30 @@ def segments_to_grid(
     :return: the output grid
     :rtype: numpy.array
     """
+    segments_c = segments.copy()
 
-    assert_dataframe("segments", segments)
-    assert_columns_presence("segments", segments, {"segment_onset", "segment_offset"})
+    assert_dataframe("segments", segments_c)
+    assert_columns_presence("segments", segments_c, {"segment_onset", "segment_offset"})
 
     categories = list(map(str, categories))
     units = int(np.ceil((range_offset - range_onset) / timescale))
 
     # align on the grid
-    segments.loc[:, "segment_onset"] = segments.loc[:, "segment_onset"] - range_onset
-    segments.loc[:, "segment_offset"] = segments.loc[:, "segment_offset"] - range_onset
+    segments_c.loc[:, "segment_onset"] = segments_c.loc[:, "segment_onset"] - range_onset
+    segments_c.loc[:, "segment_offset"] = segments_c.loc[:, "segment_offset"] - range_onset
 
-    segments.loc[:, "onset_index"] = (
-        segments.loc[:, "segment_onset"] // timescale
+    segments_c.loc[:, "onset_index"] = (
+        segments_c.loc[:, "segment_onset"] // timescale
     ).astype(int)
-    segments.loc[:, "offset_index"] = (
-        segments.loc[:, "segment_offset"] // timescale
+    segments_c.loc[:, "offset_index"] = (
+        segments_c.loc[:, "segment_offset"] // timescale
     ).astype(int)
 
     category_table = {categories[i]: i for i in range(len(categories))}
 
     data = np.zeros((units, len(categories) + int(overlap) + int(none)), dtype=int)
 
-    for segment in segments.to_dict(orient="records"):
+    for segment in segments_c.to_dict(orient="records"):
         category = str(segment[column])
         if category not in category_table:
             continue

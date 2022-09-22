@@ -549,6 +549,10 @@ class AnnotationManager:
         :return: dataframe of imported annotations, as in :ref:`format-annotations`.
         :rtype: pd.DataFrame
         """
+        input_processed= input.copy()
+        
+        input_processed["range_onset"] = input_processed["range_onset"].astype(int)
+        input_processed["range_offset"] = input_processed["range_offset"].astype(int)
 
         required_columns = {
             c.name
@@ -556,11 +560,11 @@ class AnnotationManager:
             if c.required and not c.generated
         }
 
-        assert_dataframe("input", input)
-        assert_columns_presence("input", input, required_columns)
+        assert_dataframe("input", input_processed)
+        assert_columns_presence("input", input_processed, required_columns)
 
-        missing_recordings = input[
-            ~input["recording_filename"].isin(
+        missing_recordings = input_processed[
+            ~input_processed["recording_filename"].isin(
                 self.project.recordings["recording_filename"]
             )
         ]
@@ -572,11 +576,8 @@ class AnnotationManager:
                     "\n".join(missing_recordings)
                 )
             )
-
-        input["range_onset"] = input["range_onset"].astype(int)
-        input["range_offset"] = input["range_offset"].astype(int)
-
-        builtin = input[input["format"].isin(converters.keys())]
+      
+        builtin = input_processed[input_processed["format"].isin(converters.keys())]
         if not builtin["format"].map(lambda f: converters[f].THREAD_SAFE).all():
             print(
                 "warning: some of the converters do not support multithread importation; running on 1 thread"
@@ -584,14 +585,14 @@ class AnnotationManager:
             threads = 1
 
         if threads == 1:
-            imported = input.apply(
+            imported = input_processed.apply(
                 partial(self._import_annotation, import_function, {"new_tiers": new_tiers}), axis=1
             ).to_dict(orient="records")
         else:
             with mp.Pool(processes=threads if threads > 0 else mp.cpu_count()) as pool:
                 imported = pool.map(
                     partial(self._import_annotation, import_function, {"new_tiers": new_tiers}),
-                    input.to_dict(orient="records"),
+                    input_processed.to_dict(orient="records"),
                 )
 
         imported = pd.DataFrame(imported)
@@ -605,7 +606,7 @@ class AnnotationManager:
         self.annotations = pd.concat([self.annotations, imported], sort=False)
         self.write()
         
-        sets = set(input['set'].unique())
+        sets = set(input_processed['set'].unique())
         outdated_sets = self._check_for_outdated_merged_sets(sets= sets)
         for warning in outdated_sets:
             print("warning: {}".format(warning))
@@ -1129,9 +1130,9 @@ class AnnotationManager:
             pd.concat(segments)
             if segments
             else pd.DataFrame(
-                columns=set(
+                columns=list(set(
                     [c.name for c in AnnotationManager.SEGMENTS_COLUMNS if c.required]
-                    + list(annotations.columns)
+                    + list(annotations.columns))
                 )
             )
         )
@@ -1410,7 +1411,7 @@ class AnnotationManager:
                 columns=["range_onset_ts", "range_offset_ts"]
             )
         else:
-            columns = set(annotations.columns) - {"range_onset_ts", "range_offset_ts"}
+            columns = list(set(annotations.columns) - {"range_onset_ts", "range_offset_ts"})
             return pd.DataFrame(columns=columns)
 
     def get_segments_timestamps(
@@ -1447,7 +1448,7 @@ class AnnotationManager:
         if not ignore_date:
             columns_to_merge.append("date_iso")
 
-        columns_to_drop = set(segments.columns) & set(columns_to_merge)
+        columns_to_drop = list(set(segments.columns) & set(columns_to_merge))
 
         if len(columns_to_drop):
             segments.drop(columns=columns_to_drop, inplace=True)

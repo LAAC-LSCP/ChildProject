@@ -662,7 +662,7 @@ class ChatConverter(AnnotationConverter):
 
         df["words"] = df["tokens"].apply(
             lambda l: len(
-                [t["word"] for t in l if re.search("[^\W\d_]", t["word"], re.UNICODE)]
+                [t["word"] for t in l if re.search(r'[^\W\d_]', t["word"], re.UNICODE)]
             )
         )
 

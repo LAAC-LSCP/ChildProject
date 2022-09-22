@@ -123,7 +123,7 @@ def test_cha():
 def test_its(its):
     converted = ItsConverter().convert(os.path.join("tests/data", its + ".its"))
     truth = pd.read_csv(
-        os.path.join("tests/truth/its", "{}_ITS_Segments.csv".format(its))
+        os.path.join("tests/truth/its", "{}_ITS_Segments.csv".format(its)), dtype={'recordingInfo':'object'}
     )  # .fillna('NA')
     check_its(converted, truth)
 
@@ -172,7 +172,8 @@ def test_import(project):
         pd.testing.assert_frame_equal(
             standardize_dataframe(segments, set(truth.columns.tolist())),
             standardize_dataframe(truth, set(truth.columns.tolist())),
-            check_less_precise=True,
+            check_exact=False,
+            rtol= 1e-3
         )
 
 
