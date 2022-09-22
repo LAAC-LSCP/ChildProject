@@ -22,19 +22,33 @@ Create a dataset
 
 The first step is to create a new dataset named vandam-data :
 To do this, you will need to use a terminal and navigate to the folder you want your dataset created in.
+Open your terminal or Anaconda prompt for Windows and activate your childproject environment with ``conda activate childproject`` 
+and use the ``cd`` command to navigate to your working directory.
 This command will not only create the necessary folders but also the necessary datalad configuration files.
 
-.. code:: bash
+.. code-block:: bash
+   :caption: linux/MacOS/Windows
 
    datalad create vandam-data
    cd vandam-data
 
 So far, the dataset contains nothing but hidden files:
 
-.. code:: bash
+.. code-block:: bash
+   :caption: linux/MacOS
 
    $ ls -A
    .datalad    .git        .gitattributes
+
+.. code-block:: bat
+   :caption: Windows
+
+   > dir /a
+   2011-01-01   04:32 PM     <DIR>            .
+   2011-01-01   04:32 PM     <DIR>            ..
+   2011-01-01   04:32 PM     <DIR>            .datalad
+   2011-01-01   04:32 PM     <DIR>            .git
+   2011-01-01   04:32 PM     <DIR>            .gitattributes
 
 Now, we would like to get the data from https://homebank.talkbank.org/access/Public/VanDam-Daylong.html, convert it to our
 standards, and then publish it.
@@ -44,7 +58,8 @@ Gather and sort the files
 
 The first step is to create the directories:
 
-.. code:: bash
+.. code-block:: bash
+   :caption: linux/MacOS
 
    mkdir metadata # Create the metadata subfolder
    mkdir -p recordings/raw # Create the subfolders for raw recordings
@@ -52,26 +67,50 @@ The first step is to create the directories:
    mkdir extra # Create the subfolder for extra data (that are neither metadata, recordings or annotations)
    touch extra/.gitignore # Make sure the directory is present even though it's empty
 
+.. code-block:: bat
+   :caption: Windows
+
+   mkdir metadata
+   mkdir recordings\raw
+   mkdir annotations
+   mkdir extra
+   type nul >> extra\.gitignore
+
 Then, download the original data-set from HomeBank. You need to identify what key files are necessary for
 the dataset. We will get the audio files, the annotation files and some metadata.
 
 The audio first:
 
-.. code:: bash
+.. code-block:: bash
+   :caption: linux/MacOS
 
    curl https://media.talkbank.org/homebank/Public/VanDam-Daylong/BN32/BN32_010007.mp3 -o recordings/raw/BN32_010007.mp3
 
+.. code-block:: bat
+   :caption: Windows
+
+   curl https://media.talkbank.org/homebank/Public/VanDam-Daylong/BN32/BN32_010007.mp3 -o recordings\raw\BN32_010007.mp3
+
 Now let’s get the annotations.
 
-.. code:: bash
+.. code-block:: bash
+   :caption: linux/MacOS
 
    curl https://homebank.talkbank.org/data/Public/VanDam-Daylong.zip -o VanDam-Daylong.zip
    unzip VanDam-Daylong.zip
    rm VanDam-Daylong.zip # Remove the zip archive
 
+.. code-block:: bat
+   :caption: Windows
+
+   curl https://homebank.talkbank.org/data/Public/VanDam-Daylong.zip -o VanDam-Daylong.zip
+   tar -xf VanDam-Daylong.zip
+   del VanDam-Daylong.zip
+
 Let’s explore the contents of VanDam-Daylong:
 
-.. code:: bash
+.. code-block:: bash
+   :caption: linux/MacOS
 
    $ find . -not -path '*/\.*' -type f -print
    ./recordings/raw/BN32_010007.mp3
@@ -79,35 +118,64 @@ Let’s explore the contents of VanDam-Daylong:
    ./VanDam-Daylong/BN32/BN32_010007.cha
    ./VanDam-Daylong/0metadata.cdc
 
+.. code-block:: bat
+   :caption: Windows
+
+   > where /r VanDam-Daylong *
+   C:\Users\Loann\LAAC\vandam-data\VanDam-Daylong\0metadata.cdc
+   C:\Users\Loann\LAAC\vandam-data\VanDam-Daylong\BN32\BN32_010007.cha
+   C:\Users\Loann\LAAC\vandam-data\VanDam-Daylong\BN32\0its\e20100728_143446_003489.its
+
 -  ``0metadata.cdc1`` looks like some metadata file, so we will move it
    to ``metadata/`` :
 
-.. code:: bash
+.. code-block:: bash
+   :caption: linux/MacOS
 
    mv VanDam-Daylong/0metadata.cdc metadata/
+
+.. code-block:: bat
+   :caption: Windows
+
+   move VanDam-Daylong\0metadata.cdc metadata\
 
 -  ``BN32_010007.cha`` contains some transcriptions. Let’s create a set
    of annotations ``cha`` and move it there :
 
-.. code:: bash
+.. code-block:: bash
+   :caption: linux/MacOS
 
    mkdir -p annotations/cha/raw
    mv VanDam-Daylong/BN32/BN32_010007.cha annotations/cha/raw
+
+.. code-block:: bat
+   :caption: Windows
+
+   mkdir annotations\cha\raw
+   move VanDam-Daylong\BN32\BN32_010007.cha annotations\cha\raw
 
 -  ``e20100728_143446_003489.its`` contains diarization and other
    information such as word counts. Let’s create another set of
    annotations for it. And for the sake of consistency, we’ll rename it
    ``BN32_010007.its``.
 
-.. code:: bash
+.. code-block:: bash
+   :caption: linux/MacOS
 
    mkdir -p annotations/its/raw
    mv VanDam-Daylong/BN32/0its/e20100728_143446_003489.its annotations/its/raw/BN32_010007.its
 
+.. code-block:: bat
+   :caption: Windows
+
+   mkdir annotations\its\raw
+   move VanDam-Daylong/BN32\0its\e20100728_143446_003489.its annotations\its\raw\BN32_010007.its
+
 Now we’ve got all the files. Let’s try to run the validation on the
 dataset:
 
-.. code:: bash
+.. code-block:: bash
+   :caption: linux/MacOS/Windows
 
    $ child-project validate .
 
@@ -171,12 +239,19 @@ We have prepared it for you. Download ``recordings.csv`` :download:`here <_stati
 and save it in the ``metadata`` subfolder of your dataset.
 You can check its content by issuing the following command:
 
-.. code:: bash
+.. code-block:: bash
+   :caption: linux/MacOS
 
    $ cat metadata/recordings.csv
    experiment,child_id,date_iso,start_time,recording_device_type,recording_filename
    vandam-daylong,1,2010-07-24,11:58,lena,BN32_010007.mp3
 
+.. code-block:: bat
+   :caption: Windows
+
+   > type metadata\recordings.csv
+   experiment,child_id,date_iso,start_time,recording_device_type,recording_filename
+   vandam-daylong,1,2010-07-24,11:58,lena,BN32_010007.mp3
 
 Now, let us proceed to the children metadata.
 The only fields that are required are:
@@ -203,16 +278,25 @@ We have prepared it for you. Download ``children.csv`` :download:`here <_static/
 and save it in the ``metadata`` subfolder of your dataset.
 You can check its content by issuing the following command:
 
-.. code:: bash
+.. code-block:: bash
+   :caption: linux/MacOS
 
    $ cat metadata/children.csv
+   experiment,child_id,child_dob,dob_criterion,dob_accuracy
+   vandam-daylong,1,2009-07-24,extrapolated,month
+
+.. code-block:: bat
+   :caption: Windows
+
+   > type metadata\children.csv
    experiment,child_id,child_dob,dob_criterion,dob_accuracy
    vandam-daylong,1,2009-07-24,extrapolated,month
 
 We can now make sure that they are no errors by running the validation
 command again:
 
-.. code:: bash
+.. code-block:: bash
+   :caption: linux/MacOS/Windows
 
    child-project validate .
 
@@ -255,7 +339,8 @@ save <http://docs.datalad.org/en/stable/generated/man/datalad-save.html>`__.
 ``git commit`` in one go. It decides, based on the rules in
 ``.gitattributes``, whether to store files with git or git-annex.
 
-::
+.. code-block:: bash
+   :caption: linux/MacOS/Windows
 
    datalad save . -m "first commit"
 
@@ -269,21 +354,35 @@ You can do some processing on the dataset. For instance, you can compute
 the duration of the recording, and update the metadata with this
 information. This is easily done with:
 
-.. code:: bash
+.. code-block:: bash
+   :caption: linux/MacOS/Windows
 
    child-project compute-durations .
 
+.. warning::
+
+   We are currently aware of a problem with the ``compute-duration`` command on Windows systems and are working on fixing it, it is likely this will fail for now.
+
 Now ``metadata/recordings.csv`` became:
 
-.. code:: bash
+.. code-block:: bash
+   :caption: linux/MacOS
 
    $ cat metadata/recordings.csv 
    experiment,child_id,date_iso,start_time,recording_device_type,recording_filename,duration
    vandam-daylong,1,2010-07-24,11:58,lena,BN32_010007.mp3,50464512
 
+.. code-block:: bat
+   :caption: Windows
+
+   > type metadata\recordings.csv
+   experiment,child_id,date_iso,start_time,recording_device_type,recording_filename,duration
+   vandam-daylong,1,2010-07-24,11:58,lena,BN32_010007.mp3,50464512
+
 You can also convert and index the its annotation:
 
-.. code:: bash
+.. code-block:: bash
+   :caption: linux/MacOS
 
    child-project import-annotations . --set its \
      --recording_filename BN32_010007.mp3 \
@@ -293,9 +392,21 @@ You can also convert and index the its annotation:
      --raw_filename BN32_010007.its \
      --format its
 
+.. code-block:: bat
+   :caption: Windows
+
+   child-project import-annotations . --set its ^
+   --recording_filename BN32_010007.mp3 ^
+   --time_seek 0 ^
+   --range_onset 0 ^
+   --range_offset 50464512 ^
+   --raw_filename BN32_010007.its ^
+   --format its
+
 And save the changes again:
 
-.. code:: bash
+.. code-block:: bash
+   :caption: linux/MacOS/Windows
 
    datalad save . -m "its"
 
