@@ -1557,7 +1557,7 @@ class AnnotationManager:
         if basename == "raw" or basename == "converted":
             annotation_set = os.path.dirname(annotation_set)
 
-        return annotation_set
+        return annotation_set.replace("\\","/")
 
     @staticmethod
     def clip_segments(segments: pd.DataFrame, start: int, stop: int) -> pd.DataFrame:

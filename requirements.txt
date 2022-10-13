@@ -23,6 +23,5 @@ PyYAML
 requests==2.25.0
 scipy
 sklearn
-sox
 sphinx
 sphinx_rtd_theme

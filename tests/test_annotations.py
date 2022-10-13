@@ -38,6 +38,7 @@ def test_csv():
     pd.testing.assert_frame_equal(
         standardize_dataframe(converted, converted.columns),
         standardize_dataframe(truth, converted.columns),
+        check_dtype = False,
     )
 
 
@@ -47,7 +48,8 @@ def test_vtc():
 
     pd.testing.assert_frame_equal(
         standardize_dataframe(converted, converted.columns),
-        standardize_dataframe(truth, converted.columns),
+        standardize_dataframe(truth, converted.columns),       
+        check_dtype = False,
     )
 
 
@@ -58,6 +60,7 @@ def test_vcm():
     pd.testing.assert_frame_equal(
         standardize_dataframe(converted, converted.columns),
         standardize_dataframe(truth, converted.columns),
+        check_dtype = False,
     )
 
 
@@ -196,7 +199,7 @@ def test_intersect(project):
     columns.remove("merged_from")
 
     pd.testing.assert_frame_equal(
-        standardize_dataframe(a, columns),
+        standardize_dataframe(a, columns).convert_dtypes(),
         standardize_dataframe(
             pd.read_csv("tests/truth/intersect_a.csv"), columns
         ).convert_dtypes(),
@@ -207,6 +210,7 @@ def test_intersect(project):
         standardize_dataframe(
             pd.read_csv("tests/truth/intersect_b.csv"), columns
         ).convert_dtypes(),
+        check_dtype=False,
     )
 
 
@@ -623,6 +627,8 @@ def check_its(segments, truth):
     ]
 
     pd.testing.assert_frame_equal(
-        standardize_dataframe(truth, columns), standardize_dataframe(segments, columns)
+        standardize_dataframe(truth, columns),
+        standardize_dataframe(segments, columns),
+        check_dtype = False,
     )
 
