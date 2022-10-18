@@ -9,6 +9,10 @@ All notable changes to this project will be documented in this file.
 - pandas version restricted to avoid errors of feature releases , (1.1.0 (assert_frame_equal check_less_precise) to 1.5.0 (last checked version))
 - merging annotations now sets the format to 'NA' instead of a blank value.
 
+### Fixed
+
+- replace exit() with raise ValueError() to comply with Exception propagation (metrics pipeline)
+
 ## [0.0.7] 2022-09-14
 
 ### Fixed
