@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - pandas version restricted to avoid errors of feature releases , (1.1.0 (assert_frame_equal check_less_precise) to 1.5.0 (last checked version))
+- merging annotations now sets the format to 'NA' instead of a blank value.
 
 ### Fixed
 

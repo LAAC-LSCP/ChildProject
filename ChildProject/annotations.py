@@ -789,7 +789,7 @@ class AnnotationManager:
         annotations["package_version"] = __version__
         
         #format of a merged set is undefined
-        annotations["format"] = ""
+        annotations["format"] = "NA"
         #compute the names of the new annotation filenames that will be created
         annotations["annotation_filename"] = annotations.apply(
             lambda annotation: "{}_{}_{}.csv".format(
