@@ -258,8 +258,8 @@ class ChildProject:
         ),
     ]
 
-    RAW_RECORDINGS = "recordings/raw"
-    CONVERTED_RECORDINGS = "recordings/converted"
+    RAW_RECORDINGS = os.path.normpath("recordings/raw")
+    CONVERTED_RECORDINGS = os.path.normpath("recordings/converted")
     STANDARD_SAMPLE_RATE = 16000
     STANDARD_PROFILE = 'standard' # profile that is expected to contain the standardized audios (16kHz). The existence and sampling rates of this profile are checked when <validating this profile> or <validating without profile and the raw recordings are not 16kHz>.
 
@@ -359,13 +359,13 @@ class ChildProject:
         """
         self.ct = IndexTable(
             "children",
-            os.path.join(self.path, "metadata/children.csv"),
+            os.path.join(self.path, "metadata","children.csv"),
             self.CHILDREN_COLUMNS,
             enforce_dtypes=self.enforce_dtypes,
         )
         self.rt = IndexTable(
             "recordings",
-            os.path.join(self.path, "metadata/recordings.csv"),
+            os.path.join(self.path, "metadata","recordings.csv"),
             self.RECORDINGS_COLUMNS,
             enforce_dtypes=self.enforce_dtypes,
         )
@@ -543,10 +543,10 @@ class ChildProject:
                 return None
 
             return os.path.join(
-                self.path, self.CONVERTED_RECORDINGS, profile, converted_filename,
+                self.path, self.CONVERTED_RECORDINGS, profile, os.path.normpath(converted_filename),
             )
         else:
-            return os.path.join(self.path, self.RAW_RECORDINGS, recording_filename)
+            return os.path.join(self.path, self.RAW_RECORDINGS, os.path.normpath(recording_filename))
 
     def get_converted_recording_filename(
         self, profile: str, recording_filename: str
@@ -639,7 +639,7 @@ class ChildProject:
                 recs = pd.Series(recordings)
                 missing_recs = recs[~recs.isin(self.recordings['recording_filename'])].tolist()
                 #self.recordings[~self.recordings['recording_filename'].isin(recordings)]['recording_filename'].tolist()
-                raise ValueError("recordings {} were not found in the dataset index. Check the names and make sure they exist in 'metadata/recordings.csv'".format(missing_recs))
+                raise ValueError("recordings {} were not found in the dataset index. Check the names and make sure they exist in '{}'".format(missing_recs,os.path.join('metadata','recordings.csv')))
                 
 
         return _recordings

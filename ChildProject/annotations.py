@@ -1359,7 +1359,7 @@ class AnnotationManager:
             annotations["range_onset"], unit="ms"
         )
         annotations["range_onset_ts"] = (
-            annotations["range_onset_time"].apply(get_ms_since_midight).astype(int)
+            annotations["range_onset_time"].apply(get_ms_since_midight).astype('int64')
         )
 
         annotations["range_offset_ts"] = (

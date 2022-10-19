@@ -203,6 +203,7 @@ def test_intersect(project):
         standardize_dataframe(
             pd.read_csv("tests/truth/intersect_a.csv"), columns
         ).convert_dtypes(),
+        check_dtype=False,
     )
 
     pd.testing.assert_frame_equal(
