@@ -54,6 +54,11 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 
+#imported annotations for unit testing
+examples/valid_raw_data/annotations/*/converted
+#imported annotation index for unit testing
+examples/valid_raw_data/metadata/annotations.csv
+
 # Translations
 *.mo
 *.pot
