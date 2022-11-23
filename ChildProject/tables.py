@@ -125,7 +125,7 @@ class IndexTable:
         return self.df
 
     def msg(self, text):
-        return "{}: {}".format(self.path, text)
+        return "{}: {}".format(os.path.normcase(self.path), text)
 
     def validate(self):
         errors, warnings = [], []

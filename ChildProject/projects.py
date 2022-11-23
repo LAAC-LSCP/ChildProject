@@ -506,7 +506,7 @@ class ChildProject:
         ]
 
         recordings_files = glob.glob(
-            os.path.join(self.path, self.RAW_RECORDINGS, "**/*.*"), recursive=True
+            os.path.join(os.path.normcase(self.path), self.RAW_RECORDINGS, "**/*.*"), recursive=True
         )
 
         for rf in recordings_files:
@@ -543,10 +543,10 @@ class ChildProject:
                 return None
 
             return os.path.join(
-                self.path, self.CONVERTED_RECORDINGS, profile, os.path.normpath(converted_filename),
+                os.path.normcase(self.path), self.CONVERTED_RECORDINGS, profile, os.path.normpath(converted_filename),
             )
         else:
-            return os.path.join(self.path, self.RAW_RECORDINGS, os.path.normpath(recording_filename))
+            return os.path.join(os.path.normcase(self.path), self.RAW_RECORDINGS, os.path.normpath(recording_filename))
 
     def get_converted_recording_filename(
         self, profile: str, recording_filename: str
@@ -660,7 +660,7 @@ class ChildProject:
             )
         )
         recordings["duration"].fillna(0, inplace=True)
-        recordings["duration"] = (recordings["duration"] * 1000).astype(int)
+        recordings["duration"] = (recordings["duration"] * 1000).astype(np.int64)
 
         return recordings
 
