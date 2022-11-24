@@ -12,6 +12,11 @@ All notable changes to this project will be documented in this file.
 
 - pandas version restricted to avoid errors of feature releases , (1.1.0 (assert_frame_equal check_less_precise) to 1.5.0 (last checked version))
 - no usage of sox command anymore, remove sox dependency
+- merging annotations now sets the format to 'NA' instead of a blank value.
+
+### Fixed
+
+- replace exit() with raise ValueError() to comply with Exception propagation (metrics pipeline)
 
 ## [0.0.7] 2022-09-14
 
@@ -131,7 +136,9 @@ All notable changes to this project will be documented in this file.
 
 - First proper release of the package.
 
-[unreleased]: https://github.com/LAAC-LSCP/ChildProject/compare/v0.0.5...HEAD
+[unreleased]: https://github.com/LAAC-LSCP/ChildProject/compare/v0.0.7...HEAD
+[0.0.7]: https://github.com/LAAC-LSCP/ChildProject/releases/tag/v0.0.7
+[0.0.6]: https://github.com/LAAC-LSCP/ChildProject/releases/tag/v0.0.6
 [0.0.5]: https://github.com/LAAC-LSCP/ChildProject/releases/tag/v0.0.5
 [0.0.4]: https://github.com/LAAC-LSCP/ChildProject/releases/tag/v0.0.4
 [0.0.3]: https://github.com/LAAC-LSCP/ChildProject/releases/tag/v0.0.3

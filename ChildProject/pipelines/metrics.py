@@ -105,7 +105,7 @@ class Metrics(ABC):
         }
         #get existing columns of the dataset for recordings
         correct_cols = set(self.project.recordings.columns)
-        if by != 'segments' and by not in correct_cols: exit("<{}> is not specified in this dataset, cannot extract by it, change your --by option".format(by))
+        if by != 'segments' and by not in correct_cols: raise ValueError("<{}> is not specified in this dataset, cannot extract by it, change your --by option".format(by))
         if rec_cols:
             #when user requests recording columns, build the list and verify they exist (warn otherwise)
             rec_cols=set(rec_cols.split(","))
