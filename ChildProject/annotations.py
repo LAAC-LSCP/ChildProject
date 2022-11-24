@@ -393,7 +393,7 @@ class AnnotationManager:
         )
         self.annotations[
             ["time_seek", "range_onset", "range_offset"]
-        ] = self.annotations[["time_seek", "range_onset", "range_offset"]].astype(int)
+        ] = self.annotations[["time_seek", "range_onset", "range_offset"]].astype(np.int64)
         self.annotations.to_csv(
             os.path.join(self.project.path, "metadata/annotations.csv"), index=False
         )
@@ -493,14 +493,14 @@ class AnnotationManager:
 
         df["raw_filename"] = annotation["raw_filename"]
 
-        df["segment_onset"] += int(annotation["time_seek"])
-        df["segment_offset"] += int(annotation["time_seek"])
-        df["segment_onset"] = df["segment_onset"].astype(int)
-        df["segment_offset"] = df["segment_offset"].astype(int)
+        df["segment_onset"] += np.int64(annotation["time_seek"])
+        df["segment_offset"] += np.int64(annotation["time_seek"])
+        df["segment_onset"] = df["segment_onset"].astype(np.int64)
+        df["segment_offset"] = df["segment_offset"].astype(np.int64)
 
-        annotation["time_seek"] = int(annotation["time_seek"])
-        annotation["range_onset"] = int(annotation["range_onset"])
-        annotation["range_offset"] = int(annotation["range_offset"])
+        annotation["time_seek"] = np.int64(annotation["time_seek"])
+        annotation["range_onset"] = np.int64(annotation["range_onset"])
+        annotation["range_offset"] = np.int64(annotation["range_offset"])
 
         df = AnnotationManager.clip_segments(
             df, annotation["range_onset"], annotation["range_offset"]
@@ -551,8 +551,8 @@ class AnnotationManager:
         """
         input_processed= input.copy()
         
-        input_processed["range_onset"] = input_processed["range_onset"].astype(int)
-        input_processed["range_offset"] = input_processed["range_offset"].astype(int)
+        input_processed["range_onset"] = input_processed["range_onset"].astype(np.int64)
+        input_processed["range_offset"] = input_processed["range_offset"].astype(np.int64)
 
         required_columns = {
             c.name
@@ -884,10 +884,10 @@ class AnnotationManager:
         )
 
         output_segments["segment_onset"] = (
-            output_segments["segment_onset"].fillna(0).astype(int)
+            output_segments["segment_onset"].fillna(0).astype(np.int64)
         )
         output_segments["segment_offset"] = (
-            output_segments["segment_offset"].fillna(0).astype(int)
+            output_segments["segment_offset"].fillna(0).astype(np.int64)
         )
         
         output_segments["raw_filename"] = (
@@ -1359,14 +1359,14 @@ class AnnotationManager:
             annotations["range_onset"], unit="ms"
         )
         annotations["range_onset_ts"] = (
-            annotations["range_onset_time"].apply(get_ms_since_midight).astype(int)
+            annotations["range_onset_time"].apply(get_ms_since_midight).astype('int64')
         )
 
         annotations["range_offset_ts"] = (
             annotations["range_onset_ts"]
             + annotations["range_offset"]
             - annotations["range_onset"]
-        ).astype(int)
+        ).astype(np.int64)
 
         matches = []
         for annotation in annotations.to_dict(orient="records"):
@@ -1557,7 +1557,7 @@ class AnnotationManager:
         if basename == "raw" or basename == "converted":
             annotation_set = os.path.dirname(annotation_set)
 
-        return annotation_set
+        return annotation_set.replace("\\","/")
 
     @staticmethod
     def clip_segments(segments: pd.DataFrame, start: int, stop: int) -> pd.DataFrame:

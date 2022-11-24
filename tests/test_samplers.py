@@ -62,6 +62,7 @@ def test_energy_detection(project):
         pd.DataFrame(
             [[1900, 2000], [1900, 2000]], columns=["segment_onset", "segment_offset"]
         ),
+        check_dtype=False,
     )
 
     # group by child_id
@@ -84,6 +85,7 @@ def test_energy_detection(project):
             [["sound.wav", 1900, 2000]],
             columns=["recording_filename", "segment_onset", "segment_offset"],
         ),
+        check_dtype=False,
     )
 
 

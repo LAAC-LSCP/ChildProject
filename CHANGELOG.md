@@ -4,9 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Windows automated tests (some functions were edited to be windows compatible). TO REMEMBER: type int in windows default to int32 instead of int64, can lead to big int turned into negative values
+
 ### Changed
 
 - pandas version restricted to avoid errors of feature releases , (1.1.0 (assert_frame_equal check_less_precise) to 1.5.0 (last checked version))
+- no usage of sox command anymore, remove sox dependency
 - merging annotations now sets the format to 'NA' instead of a blank value.
 
 ### Fixed
