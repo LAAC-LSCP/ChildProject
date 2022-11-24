@@ -266,11 +266,17 @@ class ChildProject:
     PROJECT_FOLDERS = ["recordings", "annotations", "metadata", "doc", "scripts"]
 
     def __init__(
-        self, path: str, enforce_dtypes: bool = False, ignore_discarded: bool = False
+        self, path: str, enforce_dtypes: bool = False, ignore_discarded: bool = False, primary_metadata_only: bool = False
     ):
+        """Constructor
+
+        :param path: path to the root of the dataset.
+        :type path: str
+        """
         self.path = path
         self.enforce_dtypes = enforce_dtypes
         self.ignore_discarded = ignore_discarded
+        self.primary_metadata_only = primary_metadata_only
 
         self.errors = []
         self.warnings = []
@@ -374,25 +380,26 @@ class ChildProject:
         self.recordings = self.rt.read()
 
         # accumulate additional metadata (optional)
-        self.ct.df = self.accumulate_metadata(
-            "children", self.children, self.CHILDREN_COLUMNS, "child_id", verbose
-        )
-        self.rt.df = self.accumulate_metadata(
-            "recordings",
-            self.recordings,
-            self.RECORDINGS_COLUMNS,
-            "recording_filename",
-            verbose,
-        )
+        if not self.primary_metadata_only:
+            self.ct.df = self.accumulate_metadata(
+                "children", self.children, self.CHILDREN_COLUMNS, "child_id", verbose
+            )
+            self.rt.df = self.accumulate_metadata(
+                "recordings",
+                self.recordings,
+                self.RECORDINGS_COLUMNS,
+                "recording_filename",
+                verbose,
+            )
 
-        if self.ignore_discarded and "discard" in self.ct.df:
-            self.ct.df = self.ct.df[self.ct.df["discard"].astype(str) == "1"]
+            if self.ignore_discarded and "discard" in self.ct.df:
+                self.ct.df = self.ct.df[self.ct.df["discard"].astype(str) == "1"]
 
-        if self.ignore_discarded and "discard" in self.rt.df:
-            self.rt.df = self.rt.df[self.rt.df["discard"].astype(str) == "1"]
+            if self.ignore_discarded and "discard" in self.rt.df:
+                self.rt.df = self.rt.df[self.rt.df["discard"].astype(str) == "1"]
 
-        self.children = self.ct.df
-        self.recordings = self.rt.df
+            self.children = self.ct.df
+            self.recordings = self.rt.df
 
     def validate(self, ignore_recordings: bool = False, profile: str = None) -> tuple:
         """Validate a dataset, returning all errors and warnings.
@@ -649,7 +656,7 @@ class ChildProject:
 
         :param profile: name of the profile of recordings to compute the duration from. If None, raw recordings are used. defaults to None
         :type profile: str, optional
-        :return: dataframe of the recordings, with an additional/updated duration columns.
+        :return: dataframe of the recordings, with an additional/updated duration columns. drops recordings for which the duration could not be retrieved.
         :rtype: pd.DataFrame
         """
         recordings = self.recordings[["recording_filename"]]
@@ -659,7 +666,7 @@ class ChildProject:
                 lambda f: get_audio_duration(self.get_recording_path(f, profile))
             )
         )
-        recordings["duration"].fillna(0, inplace=True)
+        recordings.dropna(inplace=True)
         recordings["duration"] = (recordings["duration"] * 1000).astype(int)
 
         return recordings

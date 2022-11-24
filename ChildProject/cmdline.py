@@ -485,29 +485,32 @@ def explain(args):
 )
 def compute_durations(args):
     """creates a 'duration' column into metadata/recordings. duration is in ms"""
-    project = ChildProject(args.source)
+    project = ChildProject(args.source, primary_metadata_only=True)
 
     perform_validation(project, require_success=True, ignore_recordings=True)
 
-    if "duration" in project.recordings.columns:
+    recordings = project.recordings.copy()
+    recordings.set_index("recording_filename", inplace=True)
+    columns = recordings.columns.copy()
+
+    if "duration" in columns:
         if not args.force:
             print("duration exists, aborting")
             return
+    else:
+        recordings["duration"] = 0
+        columns.append("duration")
 
-        project.recordings.drop(columns=["duration"], inplace=True)
-
-    durations = project.compute_recordings_duration(profile=args.profile).dropna()
-
-    recordings = project.recordings.merge(
-        durations[durations["recording_filename"] != "NA"],
-        how="left",
-        left_on="recording_filename",
-        right_on="recording_filename",
+    durations = project.compute_recordings_duration(profile=args.profile).set_index(
+        "recording_filename"
     )
+
+    recordings.update(durations)
+
     recordings["duration"].fillna(0, inplace=True)
     recordings["duration"] = recordings["duration"].astype(int)
-    recordings.to_csv(
-        os.path.join(project.path, "metadata/recordings.csv"), index=False
+    recordings[columns].to_csv(
+        os.path.join(project.path, "metadata/recordings.csv")
     )
     
 @subcommand(

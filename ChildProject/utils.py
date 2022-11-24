@@ -107,9 +107,9 @@ def get_audio_duration(filename):
     import sox
 
     if not os.path.exists(filename):
-        return 0
+        return None
 
-    duration = 0
+    duration = None
     try:
         duration = sox.file_info.duration(filename)
     except:
