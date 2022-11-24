@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-- Windows automated tests (some functions were edited to be windows compatible)
+- Windows automated tests (some functions were edited to be windows compatible). TO REMEMBER: type int in windows default to int32 instead of int64, can lead to big int turned into negative values
 
 ### Changed
 
