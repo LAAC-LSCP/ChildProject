@@ -104,15 +104,17 @@ def time_intervals_intersect(ti1 : TimeInterval, ti2 : TimeInterval):
     return r
 
 def get_audio_duration(filename):
-    from librosa import get_duration
+    from soundfile import info
 
     if not os.path.exists(filename):
+        print('Warning: could not find file {}, setting duration to 0'.format(filename))
         return 0
 
     duration = 0
     try:
-        duration = get_duration(filename=filename)
+        duration = info(filename).duration
     except:
+        print('Warning: could not read duration for {}, setting duration to 0'.format(filename))
         pass
 
     return duration

@@ -5,10 +5,13 @@ Created on Wed Jul 27 11:23:05 2022
 
 @author: lpeurey
 """
+import pytest
+
 from ChildProject.projects import ChildProject
-from ChildProject.utils import series_to_datetime, time_intervals_intersect, intersect_ranges, TimeInterval
+from ChildProject.utils import series_to_datetime, time_intervals_intersect, intersect_ranges, TimeInterval, get_audio_duration
 import pandas as pd
 import datetime
+import os
 
 def test_series_to_datetime():
     project = ChildProject("examples/valid_raw_data")
@@ -56,4 +59,21 @@ def test_time_intervals_intersect():
     
     for i in range(len(truth)):
         assert truth[i] == res[i]
-        
+
+AUDIOS = os.path.join('examples','valid_raw_data','recordings','raw')
+@pytest.mark.parametrize('file,result',
+    [(os.path.join(AUDIOS,'sound.wav'), 4),
+     (os.path.join(AUDIOS,'unindexed.mp3'), 0),
+     (os.path.join(AUDIOS,'non_existing.wav'), 0),
+    ]) 
+def test_get_audio_duration(file, result):
+    
+    assert result == get_audio_duration(file)
+    
+    
+    
+    
+    
+    
+    
+    
