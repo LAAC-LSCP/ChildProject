@@ -45,16 +45,19 @@ The LENA pipeline will extract a list of usual metrics that can be obtained from
 will extract the following metrics:
 
 .. csv-table::
-    :header: "metric | speaker", "FEM", "MAL", "OCH", "CHI"
-    :widths: 20, 20, 20, 20, 20
+    :header: "metric | speaker", "FEM", "MAL", "OCH", "CHI", "All speakers", "CHI + MAL + FEM"
+    :widths: 19, 19, 19, 19, 19, 19, 19
     :stub-columns: 1
 
-    voc_speaker_ph,voc_fem_ph,voc_mal_ph,voc_och_ph,voc_chi_ph
-    voc_dur_speaker_ph,voc_dur_fem_ph,voc_dur_mal_ph,voc_dur_och_ph,voc_dur_chi_ph
-    avg_voc_dur_speaker,avg_voc_dur_fem,avg_voc_dur_mal,avg_voc_dur_och,avg_voc_dur_chi
-    wc_speaker_ph,wc_fem_ph,wc_mal_ph,,
-    lp_n,,,,lp_n
-    lp_dur,,,,lp_dur
+    voc_speaker_ph,voc_fem_ph,voc_mal_ph,voc_och_ph,voc_chi_ph,,
+    voc_dur_speaker_ph,voc_dur_fem_ph,voc_dur_mal_ph,voc_dur_och_ph,voc_dur_chi_ph,,
+    avg_voc_dur_speaker,avg_voc_dur_fem,avg_voc_dur_mal,avg_voc_dur_och,avg_voc_dur_chi,,
+    wc_speaker_ph,wc_fem_ph,wc_mal_ph,,,,
+    lp_n,,,,lp_n,,
+    lp_dur,,,,lp_dur,,
+    wc_adu_ph,,,,,wc_adu_ph,
+    lena_CVC,,,,lena_CVC,,
+    lena_CTC,,,,,,lena_CTC
 
 .. clidoc::
 
@@ -121,7 +124,7 @@ is not mandatory. Using this pipeline with a set of vtc annotations and optional
 Custom metrics
 ~~~~~~~~~~~~~~
 
-.. _list_structure:
+.. _list-structure:
 
 The Custom metrics pipeline allows you to provide your own list of desired metrics to the pipeline to be extracted.
 The list must be in a csv file containing the following colums:

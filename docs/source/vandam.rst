@@ -37,13 +37,19 @@ So far, the dataset contains nothing but hidden files:
 .. code-block:: bash
    :caption: linux/MacOS
 
-   $ ls -A
+   ls -A
+
+output::
+
    .datalad    .git        .gitattributes
 
 .. code-block:: bat
    :caption: Windows
 
-   > dir /a
+   dir /a
+
+output::
+
    2011-01-01   04:32 PM     <DIR>            .
    2011-01-01   04:32 PM     <DIR>            ..
    2011-01-01   04:32 PM     <DIR>            .datalad
@@ -112,7 +118,10 @@ Let’s explore the contents of VanDam-Daylong:
 .. code-block:: bash
    :caption: linux/MacOS
 
-   $ find . -not -path '*/\.*' -type f -print
+   find . -not -path '*/\.*' -type f -print
+
+output::
+
    ./recordings/raw/BN32_010007.mp3
    ./VanDam-Daylong/BN32/0its/e20100728_143446_003489.its
    ./VanDam-Daylong/BN32/BN32_010007.cha
@@ -121,7 +130,10 @@ Let’s explore the contents of VanDam-Daylong:
 .. code-block:: bat
    :caption: Windows
 
-   > where /r VanDam-Daylong *
+   where /r VanDam-Daylong *
+
+output::
+
    C:\Users\Loann\LAAC\vandam-data\VanDam-Daylong\0metadata.cdc
    C:\Users\Loann\LAAC\vandam-data\VanDam-Daylong\BN32\BN32_010007.cha
    C:\Users\Loann\LAAC\vandam-data\VanDam-Daylong\BN32\0its\e20100728_143446_003489.its
@@ -177,7 +189,9 @@ dataset:
 .. code-block:: bash
    :caption: linux/MacOS/Windows
 
-   $ child-project validate .
+   child-project validate .
+
+output::
 
    Traceback (most recent call last):
      File "/Users/acristia/anaconda3/bin/child-project", line 8, in <module>
@@ -242,14 +256,15 @@ You can check its content by issuing the following command:
 .. code-block:: bash
    :caption: linux/MacOS
 
-   $ cat metadata/recordings.csv
-   experiment,child_id,date_iso,start_time,recording_device_type,recording_filename
-   vandam-daylong,1,2010-07-24,11:58,lena,BN32_010007.mp3
+   cat metadata/recordings.csv
 
 .. code-block:: bat
    :caption: Windows
 
-   > type metadata\recordings.csv
+   type metadata\recordings.csv
+
+output::
+
    experiment,child_id,date_iso,start_time,recording_device_type,recording_filename
    vandam-daylong,1,2010-07-24,11:58,lena,BN32_010007.mp3
 
@@ -281,14 +296,15 @@ You can check its content by issuing the following command:
 .. code-block:: bash
    :caption: linux/MacOS
 
-   $ cat metadata/children.csv
-   experiment,child_id,child_dob,dob_criterion,dob_accuracy
-   vandam-daylong,1,2009-07-24,extrapolated,month
+   cat metadata/children.csv
 
 .. code-block:: bat
    :caption: Windows
 
-   > type metadata\children.csv
+   type metadata\children.csv
+
+output::
+
    experiment,child_id,child_dob,dob_criterion,dob_accuracy
    vandam-daylong,1,2009-07-24,extrapolated,month
 
@@ -317,10 +333,31 @@ files such as metadata and scripts) ought to be versionned with git, and
 the larger files or binary files should be stored in the *annex*.
 
 The rules to decide what files should be stored which way can be set in
-the ``.gitattributes`` file. You should fill it will the following
-content:
+the ``.gitattributes`` file. You should fill it by running the following
+lines:
 
-::
+.. code-block:: bash
+   :caption: linux/MacOS/Windows
+
+   echo "* annex.backend=MD5E" >.gitattributes
+   echo "**/.git* annex.largefiles=nothing" >>.gitattributes
+   echo "scripts/* annex.largefiles=nothing" >>.gitattributes
+   echo "metadata/* annex.largefiles=nothing" >>.gitattributes
+   echo "recordings/converted/* annex.largefiles=((mimeencoding=binary))" >>.gitattributes
+
+Check the content by running:
+
+.. code-block:: bash
+   :caption: linux/MacOS
+
+   cat .gitattributes
+
+.. code-block:: bat
+   :caption: Windows
+
+   type .gitattributes
+
+output::
 
    * annex.backend=MD5E
    **/.git* annex.largefiles=nothing

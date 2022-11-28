@@ -105,7 +105,7 @@ get downloaded automatically. See the next section for help with
 downloading those files.
 
 Downloading annexed files
------------------------
+-------------------------
 
 by default, many files are just pointers when they don't need to be versioned. This 
 is most of the time the case when they are too large for us to keep every change made 

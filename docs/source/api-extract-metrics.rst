@@ -71,22 +71,28 @@ Define you own metrics
 ~~~~~~~~~~~~~~~~~~~~~~
 
 You can also create your own metrics by defining your python function calculating the output value.
-To do so, define a function taking as arguments:
- - annotations : pandas DataFrame, this is the actual segments of the converted set
- - duration : int, the represents the length that was annotated, use this value to calculate rates per hour for example
- - \*\*kwargs : keyword arguments, this allows the user to give whatever arguments he likes through the list of metrics
+To do so, define a function 
+taking as arguments:
+
+- annotations : pandas DataFrame, this is the actual segments of the converted set
+- duration : int, the represents the length that was annotated, use this value to calculate rates per hour for example
+- \*\*kwargs : keyword arguments, this allows the user to give whatever arguments he likes to the metric function (such as 'speaker' for example). The value used will have to be given in the wanted metrics_list dataframe
+
 and returning, in that order:
- - a default name for the metric to take, it will be used when no specific name was explicitly required by the user
- - the value of the metric, should be a number or np.nan (a distinction is made between 0 and np.nan as np.nan indicates that the value can not be calculated).
+
+- a default name for the metric to take, it will be used when no specific name was explicitly required by the user
+- the value of the metric, should be a number or np.nan (a distinction is made between 0 and np.nan as np.nan indicates that the value can not be calculated).
 
 The function should check the presence of the required columns in the annotations and of the required keyword arguments. 
 To make this easier, use the function :func:`ChildProject.pipelines.metricsFunctions.metricFunction` as a decorator 
-to perform those checks as well as giving a default name based on the function's name. The decorator should be called 
-along with the parameters :
- - args : a set of the names of the required keyword arguments
- - columns : a set of the names of the required columns in the annotations
- - emptyValue : the value to return when no annotations segments are found
- - name : the default name to use the designate this metric. If empty, uses the function name. Be aware that keyword 
+to perform those checks as well as giving a default name based on the function's name.
+The decorator should be called along with the parameters :
+
+- args : a set of the names of the required keyword arguments
+- columns : a set of the names of the required columns in the annotations
+- emptyValue : the value to return when no annotations segments are found
+- name : the default name to use the designate this metric. If empty, uses the function name. Be aware that keyword 
+
 arguments found in the name will be replaced by their value (e.g. voc_speaker_ph with ``speaker='CHI'`` will return voc_chi_ph).
 The only remaining task of the function is the calculation and return of the value.
 
@@ -107,7 +113,7 @@ absolute value).
     ...
 
 We defined our custom metric, now we will create our list of wanted metrics. It must be a pandas DataFrame compatible 
-with the :ref:`list_structure`. The callable function is used for both names of the default available metrics and 
+with the :ref:`metrics listing format<list-structure>`. The callable function is used for both names of the default available metrics and 
 callables functions that we defined ourselves.
 Here we only use the vtc set, we want to extract the number of vocalizations produced by the key child and the mother 
 in absolute values (using our newly defined function) but also in values per hour (using the default metric 
