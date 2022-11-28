@@ -24,4 +24,5 @@ requests==2.25.0
 scipy
 sklearn
 sphinx
-sphinx_rtd_theme
+sphinx_rtd_theme==1.1.1
+sphinx-tabs==3.0.0

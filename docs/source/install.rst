@@ -5,7 +5,7 @@ Installation
 
 The following instructions will let you install two python packages:
 
- - **ChildProject**, the package that is documented here.
+ - **ChildProject**, the package that is documented here
  - **DataLad**, a python software for the management and delivery of scientific data. Although ChildProject may work without it, a number of datasets of daylong recordings of children require it.
 
 .. note::

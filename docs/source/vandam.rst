@@ -26,35 +26,47 @@ Open your terminal or Anaconda prompt for Windows and activate your childproject
 and use the ``cd`` command to navigate to your working directory.
 This command will not only create the necessary folders but also the necessary datalad configuration files.
 
-.. code-block:: bash
-   :caption: linux/MacOS/Windows
+.. tabs::
 
-   datalad create vandam-data
-   cd vandam-data
+   .. code-tab:: bash linux/MacOS
+
+      datalad create vandam-data
+      cd vandam-data
+
+   .. code-tab:: bat Windows
+
+      datalad create vandam-data
+      cd vandam-data
+
 
 So far, the dataset contains nothing but hidden files:
 
-.. code-block:: bash
-   :caption: linux/MacOS
+.. tabs::
 
-   ls -A
+   .. group-tab:: linux/MacOS
 
-output::
+      .. code-block:: bash
 
-   .datalad    .git        .gitattributes
+         ls -A
 
-.. code-block:: bat
-   :caption: Windows
+      output::
 
-   dir /a
+         .datalad    .git        .gitattributes
 
-output::
 
-   2011-01-01   04:32 PM     <DIR>            .
-   2011-01-01   04:32 PM     <DIR>            ..
-   2011-01-01   04:32 PM     <DIR>            .datalad
-   2011-01-01   04:32 PM     <DIR>            .git
-   2011-01-01   04:32 PM     <DIR>            .gitattributes
+   .. group-tab:: Windows
+
+      .. code-block:: bat
+
+         dir /a
+
+      output::
+
+         2011-01-01   04:32 PM     <DIR>            .
+         2011-01-01   04:32 PM     <DIR>            ..
+         2011-01-01   04:32 PM     <DIR>            .datalad
+         2011-01-01   04:32 PM     <DIR>            .git
+         2011-01-01   04:32 PM     <DIR>            .gitattributes
 
 Now, we would like to get the data from https://homebank.talkbank.org/access/Public/VanDam-Daylong.html, convert it to our
 standards, and then publish it.
@@ -64,149 +76,179 @@ Gather and sort the files
 
 The first step is to create the directories:
 
-.. code-block:: bash
-   :caption: linux/MacOS
+.. tabs::
 
-   mkdir metadata # Create the metadata subfolder
-   mkdir -p recordings/raw # Create the subfolders for raw recordings
-   mkdir annotations # Create the subfolder for annotations
-   mkdir extra # Create the subfolder for extra data (that are neither metadata, recordings or annotations)
-   touch extra/.gitignore # Make sure the directory is present even though it's empty
+   .. code-tab:: bash linux/MacOS
 
-.. code-block:: bat
-   :caption: Windows
+      mkdir metadata # Create the metadata subfolder
+      mkdir -p recordings/raw # Create the subfolders for raw recordings
+      mkdir annotations # Create the subfolder for annotations
+      mkdir extra # Create the subfolder for extra data (that are neither metadata, recordings or annotations)
+      touch extra/.gitignore # Make sure the directory is present even though it's empty
 
-   mkdir metadata
-   mkdir recordings\raw
-   mkdir annotations
-   mkdir extra
-   type nul >> extra\.gitignore
+   .. code-tab:: bat Windows
+
+      mkdir metadata
+      mkdir recordings\raw
+      mkdir annotations
+      mkdir extra
+      type nul >> extra\.gitignore
 
 Then, download the original data-set from HomeBank. You need to identify what key files are necessary for
 the dataset. We will get the audio files, the annotation files and some metadata.
 
 The audio first:
 
-.. code-block:: bash
-   :caption: linux/MacOS
+.. tabs::
 
-   curl https://media.talkbank.org/homebank/Public/VanDam-Daylong/BN32/BN32_010007.mp3 -o recordings/raw/BN32_010007.mp3
+   .. code-tab:: bash linux/MacOS
 
-.. code-block:: bat
-   :caption: Windows
+      curl https://media.talkbank.org/homebank/Public/VanDam-Daylong/BN32/BN32_010007.mp3 -o recordings/raw/BN32_010007.mp3
 
-   curl https://media.talkbank.org/homebank/Public/VanDam-Daylong/BN32/BN32_010007.mp3 -o recordings\raw\BN32_010007.mp3
+   .. code-tab:: bat Windows
+
+      curl https://media.talkbank.org/homebank/Public/VanDam-Daylong/BN32/BN32_010007.mp3 -o recordings\raw\BN32_010007.mp3
 
 Now let’s get the annotations.
 
-.. code-block:: bash
-   :caption: linux/MacOS
+.. tabs::
 
-   curl https://homebank.talkbank.org/data/Public/VanDam-Daylong.zip -o VanDam-Daylong.zip
-   unzip VanDam-Daylong.zip
-   rm VanDam-Daylong.zip # Remove the zip archive
+   .. code-tab:: bash linux/MacOS
 
-.. code-block:: bat
-   :caption: Windows
+      curl https://homebank.talkbank.org/data/Public/VanDam-Daylong.zip -o VanDam-Daylong.zip
+      unzip VanDam-Daylong.zip
+      rm VanDam-Daylong.zip # Remove the zip archive
 
-   curl https://homebank.talkbank.org/data/Public/VanDam-Daylong.zip -o VanDam-Daylong.zip
-   tar -xf VanDam-Daylong.zip
-   del VanDam-Daylong.zip
+   .. code-tab:: bat Windows
+
+      curl https://homebank.talkbank.org/data/Public/VanDam-Daylong.zip -o VanDam-Daylong.zip
+      tar -xf VanDam-Daylong.zip
+      del VanDam-Daylong.zip
 
 Let’s explore the contents of VanDam-Daylong:
 
-.. code-block:: bash
-   :caption: linux/MacOS
+.. tabs::
 
-   find . -not -path '*/\.*' -type f -print
+   .. group-tab:: linux/MacOS
 
-output::
+      .. code-block:: bash
 
-   ./recordings/raw/BN32_010007.mp3
-   ./VanDam-Daylong/BN32/0its/e20100728_143446_003489.its
-   ./VanDam-Daylong/BN32/BN32_010007.cha
-   ./VanDam-Daylong/0metadata.cdc
+         find . -not -path '*/\.*' -type f -print
 
-.. code-block:: bat
-   :caption: Windows
+      output::
 
-   where /r VanDam-Daylong *
+         ./recordings/raw/BN32_010007.mp3
+         ./VanDam-Daylong/BN32/0its/e20100728_143446_003489.its
+         ./VanDam-Daylong/BN32/BN32_010007.cha
+         ./VanDam-Daylong/0metadata.cdc
 
-output::
+   .. group-tab:: Windows
 
-   C:\Users\Loann\LAAC\vandam-data\VanDam-Daylong\0metadata.cdc
-   C:\Users\Loann\LAAC\vandam-data\VanDam-Daylong\BN32\BN32_010007.cha
-   C:\Users\Loann\LAAC\vandam-data\VanDam-Daylong\BN32\0its\e20100728_143446_003489.its
+      .. code-block:: bat
+
+         where /r VanDam-Daylong *
+
+      output::
+
+         C:\Users\Loann\LAAC\vandam-data\VanDam-Daylong\0metadata.cdc
+         C:\Users\Loann\LAAC\vandam-data\VanDam-Daylong\BN32\BN32_010007.cha
+         C:\Users\Loann\LAAC\vandam-data\VanDam-Daylong\BN32\0its\e20100728_143446_003489.its
 
 -  ``0metadata.cdc1`` looks like some metadata file, so we will move it
    to ``metadata/`` :
 
-.. code-block:: bash
-   :caption: linux/MacOS
+.. tabs::
 
-   mv VanDam-Daylong/0metadata.cdc metadata/
+   .. code-tab:: bash linux/MacOS
 
-.. code-block:: bat
-   :caption: Windows
+      mv VanDam-Daylong/0metadata.cdc metadata/
 
-   move VanDam-Daylong\0metadata.cdc metadata\
+   .. code-tab:: bat Windows
+
+      move VanDam-Daylong\0metadata.cdc metadata\
 
 -  ``BN32_010007.cha`` contains some transcriptions. Let’s create a set
    of annotations ``cha`` and move it there :
 
-.. code-block:: bash
-   :caption: linux/MacOS
+.. tabs::
 
-   mkdir -p annotations/cha/raw
-   mv VanDam-Daylong/BN32/BN32_010007.cha annotations/cha/raw
+   .. code-tab:: bash linux/MacOS
 
-.. code-block:: bat
-   :caption: Windows
+      mkdir -p annotations/cha/raw
+      mv VanDam-Daylong/BN32/BN32_010007.cha annotations/cha/raw
 
-   mkdir annotations\cha\raw
-   move VanDam-Daylong\BN32\BN32_010007.cha annotations\cha\raw
+   .. code-tab:: bat Windows
+
+      mkdir annotations\cha\raw
+      move VanDam-Daylong\BN32\BN32_010007.cha annotations\cha\raw
 
 -  ``e20100728_143446_003489.its`` contains diarization and other
    information such as word counts. Let’s create another set of
    annotations for it. And for the sake of consistency, we’ll rename it
    ``BN32_010007.its``.
 
-.. code-block:: bash
-   :caption: linux/MacOS
+.. tabs::
 
-   mkdir -p annotations/its/raw
-   mv VanDam-Daylong/BN32/0its/e20100728_143446_003489.its annotations/its/raw/BN32_010007.its
+   .. code-tab:: bash linux/MacOS
 
-.. code-block:: bat
-   :caption: Windows
+      mkdir -p annotations/its/raw
+      mv VanDam-Daylong/BN32/0its/e20100728_143446_003489.its annotations/its/raw/BN32_010007.its
 
-   mkdir annotations\its\raw
-   move VanDam-Daylong/BN32\0its\e20100728_143446_003489.its annotations\its\raw\BN32_010007.its
+   .. code-tab:: bat Windows
+
+      mkdir annotations\its\raw
+      move VanDam-Daylong/BN32\0its\e20100728_143446_003489.its annotations\its\raw\BN32_010007.its
 
 Now we’ve got all the files. Let’s try to run the validation on the
 dataset:
 
-.. code-block:: bash
-   :caption: linux/MacOS/Windows
+.. tabs::
 
-   child-project validate .
+   .. group-tab:: linux/MacOS
 
-output::
+      .. code-block:: bash
 
-   Traceback (most recent call last):
-     File "/Users/acristia/anaconda3/bin/child-project", line 8, in <module>
-       sys.exit(main())
-     File "/Users/acristia/anaconda3/lib/python3.7/site-packages/ChildProject/cmdline.py", line 241, in main
-       args.func(args)
-     File "/Users/acristia/anaconda3/lib/python3.7/site-packages/ChildProject/cmdline.py", line 39, in validate
-       errors, warnings = project.validate(args.ignore_files)
-     File "/Users/acristia/anaconda3/lib/python3.7/site-packages/ChildProject/projects.py", line 102, in validate
-       self.read()
-     File "/Users/acristia/anaconda3/lib/python3.7/site-packages/ChildProject/projects.py", line 86, in read
-       self.children = self.ct.read(lookup_extensions = ['.csv', '.xls', '.xlsx'])
-     File "/Users/acristia/anaconda3/lib/python3.7/site-packages/ChildProject/tables.py", line 65, in read
-       raise Exception("could not find table '{}'".format(self.path))
-   Exception: could not find table './metadata/children'
+         child-project validate .
+
+      output::
+
+         Traceback (most recent call last):
+            File "/Users/acristia/anaconda3/bin/child-project", line 8, in <module>
+               sys.exit(main())
+            File "/Users/acristia/anaconda3/lib/python3.7/site-packages/ChildProject/cmdline.py", line 241, in main
+               args.func(args)
+            File "/Users/acristia/anaconda3/lib/python3.7/site-packages/ChildProject/cmdline.py", line 39, in validate
+               errors, warnings = project.validate(args.ignore_files)
+            File "/Users/acristia/anaconda3/lib/python3.7/site-packages/ChildProject/projects.py", line 102, in validate
+               self.read()
+            File "/Users/acristia/anaconda3/lib/python3.7/site-packages/ChildProject/projects.py", line 86, in read
+               self.children = self.ct.read(lookup_extensions = ['.csv', '.xls', '.xlsx'])
+            File "/Users/acristia/anaconda3/lib/python3.7/site-packages/ChildProject/tables.py", line 65, in read
+               raise Exception("could not find table '{}'".format(self.path))
+            Exception: could not find table './metadata/children'
+
+   .. group-tab:: Windows
+
+      .. code-block:: bat
+
+         child-project validate .
+
+      output::
+
+         Traceback (most recent call last):
+            File "C:\Users\acristia\anaconda3\bin\child-project", line 8, in <module>
+               sys.exit(main())
+            File "C:\Users\acristia\anaconda3\lib\python3.7\site-packages\ChildProject\cmdline.py", line 241, in main
+               args.func(args)
+            File "C:\Users\acristia\anaconda3\lib\python3.7\site-packages\ChildProject\cmdline.py", line 39, in validate
+               errors, warnings = project.validate(args.ignore_files)
+            File "C:\Users\acristia\anaconda3\lib\python3.7\site-packages\ChildProject\projects.py", line 102, in validate
+               self.read()
+            File "C:\Users\acristia\anaconda3\lib\python3.7\site-packages\ChildProject\projects.py", line 86, in read
+               self.children = self.ct.read(lookup_extensions = ['.csv', '.xls', '.xlsx'])
+            File "C:\Users\acristia\anaconda3\lib\python3.7\site-packages\ChildProject\tables.py", line 65, in read
+               raise Exception("could not find table '{}'".format(self.path))
+            Exception: could not find table '.\metadata\children'
 
 This is expected. The validation should fail, because the metadata is missing. We need to store
 the metadata about the children and the recordings in a way that meets
@@ -253,20 +295,29 @@ We have prepared it for you. Download ``recordings.csv`` :download:`here <_stati
 and save it in the ``metadata`` subfolder of your dataset.
 You can check its content by issuing the following command:
 
-.. code-block:: bash
-   :caption: linux/MacOS
+.. tabs::
 
-   cat metadata/recordings.csv
+   .. group-tab:: linux/MacOS
 
-.. code-block:: bat
-   :caption: Windows
+      .. code-block:: bash
 
-   type metadata\recordings.csv
+         cat metadata/recordings.csv
 
-output::
+      output::
 
-   experiment,child_id,date_iso,start_time,recording_device_type,recording_filename
-   vandam-daylong,1,2010-07-24,11:58,lena,BN32_010007.mp3
+         experiment,child_id,date_iso,start_time,recording_device_type,recording_filename
+         vandam-daylong,1,2010-07-24,11:58,lena,BN32_010007.mp3
+
+   .. group-tab:: Windows
+
+      .. code-block:: bat
+
+         type metadata\recordings.csv
+
+      output::
+
+         experiment,child_id,date_iso,start_time,recording_device_type,recording_filename
+         vandam-daylong,1,2010-07-24,11:58,lena,BN32_010007.mp3
 
 Now, let us proceed to the children metadata.
 The only fields that are required are:
@@ -293,28 +344,42 @@ We have prepared it for you. Download ``children.csv`` :download:`here <_static/
 and save it in the ``metadata`` subfolder of your dataset.
 You can check its content by issuing the following command:
 
-.. code-block:: bash
-   :caption: linux/MacOS
+.. tabs::
 
-   cat metadata/children.csv
+   .. group-tab:: linux/MacOS
 
-.. code-block:: bat
-   :caption: Windows
+      .. code-block:: bash
 
-   type metadata\children.csv
+         cat metadata/children.csv
 
-output::
+      output::
 
-   experiment,child_id,child_dob,dob_criterion,dob_accuracy
-   vandam-daylong,1,2009-07-24,extrapolated,month
+         experiment,child_id,child_dob,dob_criterion,dob_accuracy
+         vandam-daylong,1,2009-07-24,extrapolated,month
+
+   .. group-tab:: Windows
+
+      .. code-block:: bat
+
+         type metadata\children.csv
+
+      output::
+
+         experiment,child_id,child_dob,dob_criterion,dob_accuracy
+         vandam-daylong,1,2009-07-24,extrapolated,month
 
 We can now make sure that they are no errors by running the validation
 command again:
 
-.. code-block:: bash
-   :caption: linux/MacOS/Windows
+.. tabs::
 
-   child-project validate .
+   .. code-tab:: bash linux/MacOS
+
+      child-project validate .
+
+   .. code-tab:: bat Windows
+
+      child-project validate .
 
 No error occurs.
 
@@ -336,34 +401,55 @@ The rules to decide what files should be stored which way can be set in
 the ``.gitattributes`` file. You should fill it by running the following
 lines:
 
-.. code-block:: bash
-   :caption: linux/MacOS/Windows
+.. tabs::
 
-   echo "* annex.backend=MD5E" >.gitattributes
-   echo "**/.git* annex.largefiles=nothing" >>.gitattributes
-   echo "scripts/* annex.largefiles=nothing" >>.gitattributes
-   echo "metadata/* annex.largefiles=nothing" >>.gitattributes
-   echo "recordings/converted/* annex.largefiles=((mimeencoding=binary))" >>.gitattributes
+   .. code-tab:: bash linux/MacOS
+
+      echo "* annex.backend=MD5E" >.gitattributes
+      echo "**/.git* annex.largefiles=nothing" >>.gitattributes
+      echo "scripts/* annex.largefiles=nothing" >>.gitattributes
+      echo "metadata/* annex.largefiles=nothing" >>.gitattributes
+      echo "recordings/converted/* annex.largefiles=((mimeencoding=binary))" >>.gitattributes
+
+   .. code-tab:: bat Windows
+
+      echo "* annex.backend=MD5E" >.gitattributes
+      echo "**/.git* annex.largefiles=nothing" >>.gitattributes
+      echo "scripts/* annex.largefiles=nothing" >>.gitattributes
+      echo "metadata/* annex.largefiles=nothing" >>.gitattributes
+      echo "recordings/converted/* annex.largefiles=((mimeencoding=binary))" >>.gitattributes
 
 Check the content by running:
 
-.. code-block:: bash
-   :caption: linux/MacOS
+.. tabs::
 
-   cat .gitattributes
+   .. group-tab:: linux/MacOS
 
-.. code-block:: bat
-   :caption: Windows
+      .. code-block:: bash
 
-   type .gitattributes
+         cat .gitattributes
 
-output::
+      output::
 
-   * annex.backend=MD5E
-   **/.git* annex.largefiles=nothing
-   scripts/* annex.largefiles=nothing
-   metadata/* annex.largefiles=nothing
-   recordings/converted/* annex.largefiles=((mimeencoding=binary))
+         * annex.backend=MD5E
+         **/.git* annex.largefiles=nothing
+         scripts/* annex.largefiles=nothing
+         metadata/* annex.largefiles=nothing
+         recordings/converted/* annex.largefiles=((mimeencoding=binary))
+
+   .. group-tab:: Windows
+
+      .. code-block:: bat
+
+         type .gitattributes
+
+      output::
+
+         * annex.backend=MD5E
+         **/.git* annex.largefiles=nothing
+         scripts/* annex.largefiles=nothing
+         metadata/* annex.largefiles=nothing
+         recordings/converted/* annex.largefiles=((mimeencoding=binary))
 
 These rules will version all the files under ``scripts/`` and
 ``metadata/``, as well as the text files inside of
@@ -376,10 +462,14 @@ save <http://docs.datalad.org/en/stable/generated/man/datalad-save.html>`__.
 ``git commit`` in one go. It decides, based on the rules in
 ``.gitattributes``, whether to store files with git or git-annex.
 
-.. code-block:: bash
-   :caption: linux/MacOS/Windows
+.. tabs::
+   .. code-tab:: bash linux/MacOS
 
-   datalad save . -m "first commit"
+      datalad save . -m "first commit"
+
+   .. code-tab:: bat Windows
+
+      datalad save . -m "first commit"
 
 However, so far, your changes remain local, and your dataset still needs
 to be published into a *sibling* to be shared with others.
@@ -391,61 +481,82 @@ You can do some processing on the dataset. For instance, you can compute
 the duration of the recording, and update the metadata with this
 information. This is easily done with:
 
-.. code-block:: bash
-   :caption: linux/MacOS/Windows
+.. tabs::
 
-   child-project compute-durations .
+   .. code-tab:: bash linux/MacOS
+
+      child-project compute-durations .
+
+   .. code-tab:: bat Windows
+
+      child-project compute-durations .
+
 
 .. warning::
 
-   We are currently aware of a problem with the ``compute-duration`` command on Windows systems and are working on fixing it, it is likely this will fail for now.
+   We are currently aware of a problem with the ``compute-duration`` command on Windows systems, it is likely this will fail for now.
+
 
 Now ``metadata/recordings.csv`` became:
 
-.. code-block:: bash
-   :caption: linux/MacOS
+.. tabs::
 
-   $ cat metadata/recordings.csv 
-   experiment,child_id,date_iso,start_time,recording_device_type,recording_filename,duration
-   vandam-daylong,1,2010-07-24,11:58,lena,BN32_010007.mp3,50464512
+   .. group-tab:: linux/MacOS
 
-.. code-block:: bat
-   :caption: Windows
+      .. code-block:: bash
 
-   > type metadata\recordings.csv
-   experiment,child_id,date_iso,start_time,recording_device_type,recording_filename,duration
-   vandam-daylong,1,2010-07-24,11:58,lena,BN32_010007.mp3,50464512
+         cat metadata/recordings.csv
+
+      output::
+
+         experiment,child_id,date_iso,start_time,recording_device_type,recording_filename,duration
+         vandam-daylong,1,2010-07-24,11:58,lena,BN32_010007.mp3,50464512
+
+   .. group-tab:: Windows
+
+      .. code-block:: bat
+
+         type metadata\recordings.csv
+
+      output::
+
+         experiment,child_id,date_iso,start_time,recording_device_type,recording_filename,duration
+         vandam-daylong,1,2010-07-24,11:58,lena,BN32_010007.mp3,50464512
 
 You can also convert and index the its annotation:
 
-.. code-block:: bash
-   :caption: linux/MacOS
+.. tabs::
+   .. code-tab:: bash linux/MacOS
 
-   child-project import-annotations . --set its \
-     --recording_filename BN32_010007.mp3 \
-     --time_seek 0 \
-     --range_onset 0 \
-     --range_offset 50464512 \
-     --raw_filename BN32_010007.its \
-     --format its
+      child-project import-annotations . --set its \
+         --recording_filename BN32_010007.mp3 \
+         --time_seek 0 \
+         --range_onset 0 \
+         --range_offset 50464512 \
+         --raw_filename BN32_010007.its \
+         --format its
 
-.. code-block:: bat
-   :caption: Windows
+   .. code-tab:: bat Windows
 
-   child-project import-annotations . --set its ^
-   --recording_filename BN32_010007.mp3 ^
-   --time_seek 0 ^
-   --range_onset 0 ^
-   --range_offset 50464512 ^
-   --raw_filename BN32_010007.its ^
-   --format its
+      child-project import-annotations . --set its ^
+         --recording_filename BN32_010007.mp3 ^
+         --time_seek 0 ^
+         --range_onset 0 ^
+         --range_offset 50464512 ^
+         --raw_filename BN32_010007.its ^
+         --format its
 
 And save the changes again:
 
-.. code-block:: bash
-   :caption: linux/MacOS/Windows
+.. tabs::
+   .. code-tab:: bash linux/MacOS
 
-   datalad save . -m "its"
+      datalad save . -m "its"
+
+   .. code-tab:: bat Windows
+
+      datalad save . -m "its"
+
 
 Publish the dataset
 -------------------
@@ -583,7 +694,7 @@ create-sibling-github <http://docs.datalad.org/en/stable/generated/man/datalad-c
 
 For instance:
 
-::
+.. code:: bash
 
    datalad create-sibling-github -s origin --access-protocol ssh vandam-daylong-demo
 
@@ -601,7 +712,7 @@ one <https://github.com/LAAC-LSCP/vandam-daylong-demo>`__.
 
 Users can now install your dataset from GitHub:
 
-::
+.. code:: bash
 
    datalad install https://github.com/LAAC-LSCP/vandam-daylong-demo.git
 
@@ -727,14 +838,14 @@ This extension supports the following modes:
 
 The first step is to install the extension:
 
-::
+.. code:: bash
 
    pip install datalad-osf --upgrade
 
 We decide to use the ``export`` mode - but you can decide which best
 suits your needs from the table above. We can now create the sibling:
 
-::
+.. code:: bash
 
    datalad create-sibling-osf --title "VanDam Demo" \
      --mode export \
@@ -752,12 +863,12 @@ And finally we can push the data. This is done in two steps:
 1. publishing the .git files so people can clone the dataset directly
    from OSF
 
-::
+.. code:: bash
 
    datalad push --to osf
 
 2. exporting a human-readable snapshot of the files to OSF
 
-::
+.. code:: bash
 
    git-annex export HEAD --to osf-storage
