@@ -52,10 +52,9 @@ will extract the following metrics:
     voc_speaker_ph,voc_fem_ph,voc_mal_ph,voc_och_ph,voc_chi_ph,,
     voc_dur_speaker_ph,voc_dur_fem_ph,voc_dur_mal_ph,voc_dur_och_ph,voc_dur_chi_ph,,
     avg_voc_dur_speaker,avg_voc_dur_fem,avg_voc_dur_mal,avg_voc_dur_och,avg_voc_dur_chi,,
-    wc_speaker_ph,wc_fem_ph,wc_mal_ph,,,,
+    wc_speaker_ph,wc_fem_ph,wc_mal_ph,,,wc_adu_ph,
     lp_n,,,,lp_n,,
     lp_dur,,,,lp_dur,,
-    wc_adu_ph,,,,,wc_adu_ph,
     lena_CVC,,,,lena_CVC,,
     lena_CTC,,,,,,lena_CTC
 
