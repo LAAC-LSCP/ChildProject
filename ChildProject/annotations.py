@@ -160,7 +160,7 @@ class AnnotationManager:
             choices=["T", "C", "A", "O", "P", "U", "NA"],
         ),
         IndexColumn(
-            name="transcription", description="orthographic transcription of the speach"
+            name="transcription", description="orthographic transcription of the speech"
         ),
         IndexColumn(
             name="phonemes", description="amount of phonemes", regex=r"(\d+(\.\d+)?)"
