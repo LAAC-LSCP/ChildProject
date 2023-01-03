@@ -493,6 +493,15 @@ class ChildProject:
                     )
                 )
 
+        # consistency between dates of birth and recording dates
+        if "date_iso" in self.recordings.columns and "child_dob" in self.children.columns:
+            ages = self.compute_ages()
+
+            self.errors += [
+                f"Age at recording is negative on line {index} ({age:.1f} months). Check date_iso for that recording and child_dob for the corresponding child."
+                for index, age in ages[ages<0].iteritems()
+            ]
+
         # detect un-indexed recordings and throw warnings
         files = [
             self.recordings[c.name].tolist()
