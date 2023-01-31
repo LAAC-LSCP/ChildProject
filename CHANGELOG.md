@@ -19,6 +19,7 @@ All notable changes to this project will be documented in this file.
 
 - replace exit() with raise ValueError() to comply with Exception propagation (metrics pipeline)
 - fixed ignore-errors in zooniverse upload_chunks
+- fixed calculate_shift to correctly reshape to single channel
 
 ## [0.0.7] 2022-09-14
 
