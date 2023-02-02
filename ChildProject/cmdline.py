@@ -159,8 +159,7 @@ def validate(args):
             "--annotations",
             help="path to input annotations dataframe (csv) [only for bulk importation]",
             default="",
-        ),
-        arg("--threads", help="amount of threads to run on", type=int, default=0),
+        ),       
     ]
     + [
         arg(
@@ -172,7 +171,11 @@ def validate(args):
         )
         for col in AnnotationManager.INDEX_COLUMNS
         if not col.generated
-    ]
+    ] +
+    [
+     arg("--threads", help="amount of threads to run on", type=int, default=0),
+     arg("--overwrite-existing","--ov", help="overwrites existing annotation file if should generate the same output file (useful when reimporting", action='store_true'),
+     ]
 )
 def import_annotations(args):
     """convert and import a set of annotations"""
