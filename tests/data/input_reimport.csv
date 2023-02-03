@@ -1,0 +1,11 @@
+set,recording_filename,time_seek,raw_filename,range_onset,range_offset,format,filter,note
+textgrid,sound.wav,0,example.TextGrid,0,10000,TextGrid,,should fail without ow
+eaf_basic,sound.wav,0,example.eaf,0,300000,eaf,,should fail without ow
+eaf_solis,sound.wav,0,example_solis.eaf,0,40000000,eaf,,should fail without ow
+vtc_rttm,sound.wav,0,example.rttm,1980000,1990000,vtc_rttm,namibie_aiku_20160714_1,should fail without ow
+alice,sound.wav,0,example_alice.txt,1980000,1990000,alice,namibie_aiku_20160714_1,should fail without ow
+metrics,sound.wav,0,example_metrics.rttm,0,100000000,vtc_rttm,tsimane2017_C01_20170706,should fail without ow
+old_its,sound.wav,0,example_lena_old.its,0,100000000,its,,should fail without ow
+new_its,sound.wav,0,example_lena_new.its,0,100000000,its,,should fail without ow
+vtc_rttm,sound2.wav,0,example.rttm,1980000,1990000,vtc_rttm,namibie_aiku_20160714_1,should fail without ow
+alice,sound2.wav,0,example_alice.txt,1990000,2000000,alice,namibie_aiku_20160714_1,should always work

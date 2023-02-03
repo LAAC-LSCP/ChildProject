@@ -1,0 +1,4 @@
+set,recording_filename,time_seek,raw_filename,range_onset,range_offset,format,filter
+textgrid,sound.wav,0,example.TextGrid,0,10000,TextGrid,
+textgrid,sound.wav,0,example.TextGrid,9900,300000,eaf,
+textgrid,sound.wav,0,example.TextGrid,300001,40000000,eaf,
