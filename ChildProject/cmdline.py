@@ -174,7 +174,7 @@ def validate(args):
     ] +
     [
      arg("--threads", help="amount of threads to run on", type=int, default=0),
-     arg("--overwrite-existing","--ov", help="overwrites existing annotation file if should generate the same output file (useful when reimporting", action='store_true'),
+     arg("--overwrite-existing","--ow", help="overwrites existing annotation file if should generate the same output file (useful when reimporting", action='store_true'),
      ]
 )
 def import_annotations(args):

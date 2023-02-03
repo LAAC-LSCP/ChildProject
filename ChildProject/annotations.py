@@ -463,8 +463,7 @@ class AnnotationManager:
             if overwrite_existing:
                 print(f"Warning: annotation file {output_filename} will be overwritten")
             else:
-                annotation["error"] = f"annotation file {output_filename} already exists, to reimport and\
-                reimport it, use the overwrite_existing flag"
+                annotation["error"] = f"annotation file {output_filename} already exists, to reimport it, use the overwrite_existing flag"
                 print(f"Error: {annotation['error']}")
                 annotation["imported_at"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 return annotation
@@ -472,12 +471,13 @@ class AnnotationManager:
         #find if there are annotation indexes in the same set that overlap the new annotation
         #as it is not possible to annotate multiple times the same audio stretch in the same set
         ovl_annots = self.annotations[(self.annotations['set'] == annotation['set']) &
+                            (self.annotations['annotation_filename'] != annotation_filename) & #this condition avoid matching a line that should be overwritten (so has the same annotation_filename), it is dependent on the previous block!!!
                             (self.annotations['recording_filename'] == annotation['recording_filename']) &
                             (self.annotations['range_onset'] < annotation['range_offset']) &
                             (self.annotations['range_offset'] > annotation['range_onset']) 
                             ]
         if ovl_annots.shape[0] > 0:
-            annotation["error"] = f"importation for set <{annotation['set']}> recording <{annotation['recording_filename']}> from {annotation['range_onset']} to {annotation['range_offset']} cannot continue because it overlaps with these existing annotation indexes: \n{ovl_annots}"
+            annotation["error"] = f"importation for set <{annotation['set']}> recording <{annotation['recording_filename']}> from {annotation['range_onset']} to {annotation['range_offset']} cannot continue because it overlaps with these existing annotation lines: \n{ovl_annots}"
             print(f"Error: {annotation['error']}")
             annotation["imported_at"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             return annotation
@@ -626,12 +626,18 @@ class AnnotationManager:
 
         if threads == 1:
             imported = input_processed.apply(
-                partial(self._import_annotation, import_function, {"new_tiers": new_tiers}, overwrite_existing), axis=1
+                partial(self._import_annotation, import_function,
+                                                {"new_tiers": new_tiers},
+                                                overwrite_existing=overwrite_existing
+                        ), axis=1
             ).to_dict(orient="records")
         else:
             with mp.Pool(processes=threads if threads > 0 else mp.cpu_count()) as pool:
                 imported = pool.map(
-                    partial(self._import_annotation, import_function, {"new_tiers": new_tiers}, overwrite_existing),
+                    partial(self._import_annotation, import_function,
+                                                    {"new_tiers": new_tiers},
+                                                    overwrite_existing=overwrite_existing
+                    ),
                     input_processed.to_dict(orient="records"),
                 )
 
@@ -641,14 +647,16 @@ class AnnotationManager:
             axis=1,
             inplace=True,
         )
-        errors = imported[imported["error"].isnull()]
-        imported = imported[~imported["error"].isnull()]
-        
-        #when errors occur, separate them in a different csv in extra
-        if errors.shape[0] > 0:
-            output = os.path.join(self.project.path, "extra","errors_import_{}.csv".format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")))
-            errors.to_csv(output, index=False)
-            print(f"Errors summary exported to {output}")
+        if 'error' in imported.columns:
+            errors = imported[~imported["error"].isnull()]
+            imported = imported[imported["error"].isnull()] 
+            #when errors occur, separate them in a different csv in extra
+            if errors.shape[0] > 0:
+                output = os.path.join(self.project.path, "extra","errors_import_{}.csv".format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")))
+                errors.to_csv(output, index=False)
+                print(f"Errors summary exported to {output}")
+        else:
+            errors = None
 
         self.read()
         self.annotations = pd.concat([self.annotations, imported], sort=False)
@@ -662,7 +670,7 @@ class AnnotationManager:
         for warning in outdated_sets:
             print("warning: {}".format(warning))
 
-        return imported
+        return (imported, errors)
 
     def get_subsets(self, annotation_set: str, recursive: bool = False) -> List[str]:
         """Retrieve the list of subsets belonging to a given set of annotations.
