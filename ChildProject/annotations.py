@@ -463,7 +463,8 @@ class AnnotationManager:
             if overwrite_existing:
                 print(f"Warning: annotation file {output_filename} will be overwritten")
             else:
-                annotation["error"] = f"annotation file {output_filename} already exists, to reimport it, use the overwrite_existing flag"
+                error_filename = output_filename.replace('\\','/')
+                annotation["error"] = f"annotation file {error_filename} already exists, to reimport it, use the overwrite_existing flag"
                 print(f"Error: {annotation['error']}")
                 annotation["imported_at"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 return annotation
