@@ -1,0 +1,9 @@
+set,recording_filename,time_seek,range_onset,range_offset,raw_filename,format,filter,annotation_filename,imported_at,package_version,error,merged_from
+textgrid,sound.wav,0,0,300000,example.TextGrid,TextGrid,,sound_0_10000.csv,2023-02-07 12:15:18,0.0.7,,
+textgrid,sound.wav,0,200000,400000,example.eaf,eaf,,sound_0_300000.csv,2023-02-07 12:15:18,0.0.7,,
+textgrid,sound.wav,0,0,40000000,example_solis.eaf,eaf,,sound_0_40000000.csv,2023-02-07 12:15:18,0.0.7,,
+vtc_rttm,sound.wav,0,1980000,1990000,example.rttm,vtc_rttm,namibie_aiku_20160714_1,sound_1980000_1990000.csv,2023-02-07 12:15:18,0.0.7,,
+alice,sound.wav,0,1980000,1990000,example_alice.txt,alice,namibie_aiku_20160714_1,sound_1980000_1990000.csv,2023-02-07 12:15:18,0.0.7,,
+alice,sound.wav,0,0,10000,example_metrics.rttm,vtc_rttm,tsimane2017_C01_20170706,sound_0_100000000.csv,2023-02-07 12:15:18,0.0.7,,
+vtc_rttm,sound.wav,0,1980000,1990000,example.rttm,vtc_rttm,namibie_aiku_20160714_1,sound_1980000_1990000.csv,2023-02-07 12:15:18,0.0.7,,
+ranges,sound.wav,0,200000,100000,example.eaf,eaf,,sound_0_300000.csv,2023-02-07 12:15:18,0.0.7,,

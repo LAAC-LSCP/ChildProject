@@ -319,6 +319,23 @@ class AnnotationManager:
                     for dup in duplicates.to_dict(orient="records")
                 ]
             )
+                
+        #check the index for overlaps, produces errors as the same set should not have overlaps in annotations
+        ovl_ranges = find_lines_involved_in_overlap(self.annotations, recording_label='recording_filename', set_label='set')
+        if ovl_ranges[ovl_ranges == True].shape[0] > 0:
+            ovl_ranges = self.annotations[ovl_ranges][['set','annotation_filename']].values.tolist()
+            errors.extend(
+                [
+                    f"overlaps in the annotation index for the following [set, annotation_filename] list: {ovl_ranges}"
+                ]
+            )
+            
+        ranges_invalid = self.annotations[(self.annotations['range_offset'] <= self.annotations['range_onset']) | (self.annotations['range_onset'] < 0)]
+        if ranges_invalid.shape[0] > 0:
+            errors.extend(
+                [f"annotation index does not verify range_offset > range_onset >= 0 for set <{line['set']}>, annotation filename <{line['annotation_filename']}>"
+                  for line in ranges_invalid.to_dict(orient="records")]        
+            )
         
         warnings += self._check_for_outdated_merged_sets()
 
