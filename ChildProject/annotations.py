@@ -589,6 +589,9 @@ class AnnotationManager:
         
         input_processed["range_onset"] = input_processed["range_onset"].astype(np.int64)
         input_processed["range_offset"] = input_processed["range_offset"].astype(np.int64)
+        
+        assert (input_processed["range_offset"] > input_processed["range_onset"]).all(), "range_offset must be greater than range_onset"
+        assert (input_processed["range_onset"] >= 0).all(), "range_onset must be greater or equal to 0"
 
         required_columns = {
             c.name

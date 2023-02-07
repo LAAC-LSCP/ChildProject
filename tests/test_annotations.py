@@ -133,7 +133,22 @@ def test_its(its):
         os.path.join("tests/truth/its", "{}_ITS_Segments.csv".format(its)), dtype={'recordingInfo':'object'}
     )  # .fillna('NA')
     check_its(converted, truth)
+    
+@pytest.mark.parametrize("nline,column,value,exception,error", 
+                         [(0,'range_onset',-10,AssertionError,"range_onset must be greater or equal to 0"),
+                         (3,'range_offset',1970000,AssertionError,"range_offset must be greater than range_onset"),
+                         ])
+def test_rejected_imports(project, nline, column, value, exception, error):
+    am = AnnotationManager(project)
 
+    input_annotations = pd.read_csv("examples/valid_raw_data/annotations/input.csv")
+    
+    input_annotations.iloc[nline, input_annotations.columns.get_loc(column)] = value
+    
+    print(input_annotations[['range_onset','range_offset']])
+    
+    with pytest.raises(exception, match=error):
+        am.import_annotations(input_annotations)
 
 def test_import(project):
     am = AnnotationManager(project)
