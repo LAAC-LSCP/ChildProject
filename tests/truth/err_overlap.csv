@@ -1,4 +1,3 @@
 set,recording_filename,time_seek,raw_filename,range_onset,range_offset,format,filter,error,annotation_filename
-textgrid,sound.wav,0,example.TextGrid,0,5000,TextGrid,,"importation for set <textgrid> recording <sound.wav> from 0 to 5000 cannot continue because it overlaps with these existing annotation lines: 
-[('textgrid', 'sound.wav', 0, 10000)]",
+textgrid,sound.wav,0,example.TextGrid,0,5000,TextGrid,,"importation for set <textgrid> recording <sound.wav> from 0 to 5000 cannot continue because it overlaps with these existing annotation lines: [('textgrid', 'sound.wav', 0, 10000)]",
 eaf_basic,sound.wav,0,example.eaf,0,300000,eaf,,"annotation file annotations/eaf_basic/converted/sound_0_300000.csv already exists, to reimport it, use the overwrite_existing flag",
