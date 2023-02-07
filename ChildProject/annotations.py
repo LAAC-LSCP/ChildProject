@@ -479,7 +479,7 @@ class AnnotationManager:
                             ]
         if ovl_annots.shape[0] > 0:
             array_tup = list(ovl_annots[['set','recording_filename','range_onset', 'range_offset']].itertuples(index=False, name=None))
-            annotation["error"] = f"importation for set <{annotation['set']}> recording <{annotation['recording_filename']}> from {annotation['range_onset']} to {annotation['range_offset']} cannot continue because it overlaps with these existing annotation lines: \n{array_tup}"
+            annotation["error"] = f"importation for set <{annotation['set']}> recording <{annotation['recording_filename']}> from {annotation['range_onset']} to {annotation['range_offset']} cannot continue because it overlaps with these existing annotation lines: {array_tup}"
             print(f"Error: {annotation['error']}")
             annotation["imported_at"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             return annotation
