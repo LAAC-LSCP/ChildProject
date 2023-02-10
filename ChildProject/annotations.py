@@ -411,6 +411,7 @@ class AnnotationManager:
         self.annotations[
             ["time_seek", "range_onset", "range_offset"]
         ] = self.annotations[["time_seek", "range_onset", "range_offset"]].astype(np.int64)
+        self.annotations = self.annotations.sort_values(['imported_at','set', 'annotation_filename'])
         self.annotations.to_csv(
             os.path.join(self.project.path, "metadata/annotations.csv"), index=False
         )
