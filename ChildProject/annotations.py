@@ -321,7 +321,7 @@ class AnnotationManager:
             )
                 
         #check the index for overlaps, produces errors as the same set should not have overlaps in annotations
-        ovl_ranges = find_lines_involved_in_overlap(self.annotations, recording_label='recording_filename', set_label='set')
+        ovl_ranges = find_lines_involved_in_overlap(self.annotations, labels=['recording_filename', 'set'])
         if ovl_ranges[ovl_ranges == True].shape[0] > 0:
             ovl_ranges = self.annotations[ovl_ranges][['set','annotation_filename']].values.tolist()
             errors.extend(
@@ -642,7 +642,7 @@ class AnnotationManager:
             threads = 1
             
         #if the input to import has overlaps in it, raise an error immediately, nothing will be imported
-        ovl_ranges = find_lines_involved_in_overlap(input_processed, recording_label='recording_filename', set_label='set')
+        ovl_ranges = find_lines_involved_in_overlap(input_processed, labels=['recording_filename','set'])
         if ovl_ranges[ovl_ranges == True].shape[0] > 0:
             ovl_ranges = ovl_ranges[ovl_ranges].index.values.tolist()
             raise ValueError(f"the ranges given to import have overlaps on indexes : {ovl_ranges}")
