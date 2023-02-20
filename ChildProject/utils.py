@@ -177,7 +177,7 @@ def calculate_shift(file1, file2, start1, start2, interval, correlation_output =
 
     return res,len(ref)
 
-def find_lines_involved_in_overlap(df: pd.DataFrame, onset_label: str = 'range_onset', offset_label:str = 'range_offset', labels: list[str] = []):
+def find_lines_involved_in_overlap(df: pd.DataFrame, onset_label: str = 'range_onset', offset_label:str = 'range_offset', labels = []):
     """
     takes a dataframe as input. The dataframe is supposed to have a column for the onset
     og a timeline and one for the offset. The function returns a boolean series where
