@@ -17,18 +17,22 @@ def standardize_dataframe(df, columns):
     df = df[list(columns)]
     return df.sort_index(axis=1).sort_values(list(columns)).reset_index(drop=True)
 
+DATA = os.path.join('tests', 'data')
+TRUTH = os.path.join('tests', 'truth')
+
 
 @pytest.fixture(scope="function")
 def project(request):
     if not os.path.exists("output/annotations"):
         shutil.copytree(src="examples/valid_raw_data", dst="output/annotations")
+      
+    if os.path.isfile("output/annotations/metadata/annotations.csv"):
+        os.remove("output/annotations/metadata/annotations.csv")
+    for raw_annotation in glob.glob("output/annotations/annotations/*/converted"):
+        shutil.rmtree(raw_annotation)
 
     project = ChildProject("output/annotations")
     yield project
-
-    os.remove("output/annotations/metadata/annotations.csv")
-    for raw_annotation in glob.glob("output/annotations/annotations/*.*/converted"):
-        shutil.rmtree(raw_annotation)
 
 
 def test_csv():
@@ -129,7 +133,22 @@ def test_its(its):
         os.path.join("tests/truth/its", "{}_ITS_Segments.csv".format(its)), dtype={'recordingInfo':'object'}
     )  # .fillna('NA')
     check_its(converted, truth)
+    
+@pytest.mark.parametrize("nline,column,value,exception,error", 
+                         [(0,'range_onset',-10,AssertionError,"range_onset must be greater or equal to 0"),
+                         (3,'range_offset',1970000,AssertionError,"range_offset must be greater than range_onset"),
+                         ])
+def test_rejected_imports(project, nline, column, value, exception, error):
+    am = AnnotationManager(project)
 
+    input_annotations = pd.read_csv("examples/valid_raw_data/annotations/input.csv")
+    
+    input_annotations.iloc[nline, input_annotations.columns.get_loc(column)] = value
+    
+    print(input_annotations[['range_onset','range_offset']])
+    
+    with pytest.raises(exception, match=error):
+        am.import_annotations(input_annotations)
 
 def test_import(project):
     am = AnnotationManager(project)
@@ -178,6 +197,77 @@ def test_import(project):
             check_exact=False,
             rtol= 1e-3
         )
+ 
+# test how the importation handles already existing files and overlaps in importation
+@pytest.mark.parametrize("input_file,ow,rimported,rerrors,exception", 
+                         [("input_invalid.csv", False,None,None,ValueError),
+                         ("input_reimport.csv", False,"imp_reimport_no_ow.csv","err_reimport_no_ow.csv",None),
+                         ("input_reimport.csv", True,"imp_reimport_ow.csv",None,None),
+                         ("input_importoverlaps.csv", False,"imp_overlap.csv","err_overlap.csv",None),
+                         ])
+def test_multiple_imports(project, input_file, ow, rimported, rerrors, exception):
+    am = AnnotationManager(project)
+    
+    input_file = os.path.join(DATA,input_file)
+    
+    input_annotations = pd.read_csv("examples/valid_raw_data/annotations/input.csv")
+    
+    am.import_annotations(input_annotations)
+    am.read()
+    
+    assert (
+        am.annotations.shape[0] == input_annotations.shape[0]
+    ), "first importation did not complete successfully"
+    
+    second_input = pd.read_csv(input_file)
+    
+    if exception is not None:
+        with pytest.raises(exception):
+            am.import_annotations(second_input, overwrite_existing=ow)
+    else:
+        imported, errors = am.import_annotations(second_input, overwrite_existing=ow)
+        
+        if rimported is not None:
+            rimported = os.path.join(TRUTH, rimported)
+            #imported.to_csv(rimported, index=False)
+            rimported = pd.read_csv(rimported)
+            pd.testing.assert_frame_equal(rimported.reset_index(drop=True),
+                                          imported.drop(['imported_at','package_version'],axis=1).reset_index(drop=True),
+                                          check_like=True,
+                                          check_dtype=False)
+        
+        if rerrors is not None:
+            rerrors = os.path.join(TRUTH, rerrors)
+            #errors.to_csv(rerrors, index=False)
+            rerrors = pd.read_csv(rerrors)
+            pd.testing.assert_frame_equal(rerrors.reset_index(drop=True),
+                                          errors.drop(['imported_at','package_version'],axis=1).reset_index(drop=True),
+                                          check_like=True,
+                                          check_dtype=False)
+            
+        #raise Exception()
+            
+        am.read()
+        assert all(
+            [
+                os.path.exists(
+                    os.path.join(
+                        project.path,
+                        "annotations",
+                        a["set"],
+                        "converted",
+                        a["annotation_filename"],
+                    )
+                )
+                for a in am.annotations.to_dict(orient="records")
+            ]
+        ), "some annotations are missing"
+        
+        errors, warnings = am.validate()
+        assert len(errors) == 0 and len(warnings) == 0, "malformed annotations detected"
+        
+        errors, warnings = am.read()
+        assert len(errors) == 0 and len(warnings) == 0, "malformed annotation indexes detected"
 
 
 def test_intersect(project):

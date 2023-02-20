@@ -13,7 +13,7 @@ from . import __version__
 from .projects import ChildProject
 from .converters import *
 from .tables import IndexTable, IndexColumn, assert_dataframe, assert_columns_presence
-from .utils import Segment, intersect_ranges, path_is_parent, TimeInterval, series_to_datetime
+from .utils import Segment, intersect_ranges, path_is_parent, TimeInterval, series_to_datetime, find_lines_involved_in_overlap
 
 
 class AnnotationManager:
@@ -319,6 +319,23 @@ class AnnotationManager:
                     for dup in duplicates.to_dict(orient="records")
                 ]
             )
+                
+        #check the index for overlaps, produces errors as the same set should not have overlaps in annotations
+        ovl_ranges = find_lines_involved_in_overlap(self.annotations, labels=['recording_filename', 'set'])
+        if ovl_ranges[ovl_ranges == True].shape[0] > 0:
+            ovl_ranges = self.annotations[ovl_ranges][['set','annotation_filename']].values.tolist()
+            errors.extend(
+                [
+                    f"overlaps in the annotation index for the following [set, annotation_filename] list: {ovl_ranges}"
+                ]
+            )
+            
+        ranges_invalid = self.annotations[(self.annotations['range_offset'] <= self.annotations['range_onset']) | (self.annotations['range_onset'] < 0)]
+        if ranges_invalid.shape[0] > 0:
+            errors.extend(
+                [f"annotation index does not verify range_offset > range_onset >= 0 for set <{line['set']}>, annotation filename <{line['annotation_filename']}>"
+                  for line in ranges_invalid.to_dict(orient="records")]        
+            )
         
         warnings += self._check_for_outdated_merged_sets()
 
@@ -394,6 +411,7 @@ class AnnotationManager:
         self.annotations[
             ["time_seek", "range_onset", "range_offset"]
         ] = self.annotations[["time_seek", "range_onset", "range_offset"]].astype(np.int64)
+        self.annotations = self.annotations.sort_values(['imported_at','set', 'annotation_filename'])
         self.annotations.to_csv(
             os.path.join(self.project.path, "metadata/annotations.csv"), index=False
         )
@@ -428,9 +446,12 @@ class AnnotationManager:
                             warnings.append("set {} is outdated because the {} set it is merged from was modified. Consider updating or rerunning the creation of the {} set.".format(i,j,i))
                         
         return warnings
-
+        
     def _import_annotation(
-        self, import_function: Callable[[str], pd.DataFrame], params: dict, annotation: dict
+        self, import_function: Callable[[str], pd.DataFrame],
+        params: dict,
+        annotation: dict,
+        overwrite_existing: bool = False,
     ):
         """import and convert ``annotation``. This function should not be called outside of this class.
 
@@ -440,6 +461,8 @@ class AnnotationManager:
         :type params: dict
         :param annotation: input annotation dictionary (attributes defined according to :ref:`ChildProject.annotations.AnnotationManager.SEGMENTS_COLUMNS`)
         :type annotation: dict
+        :param overwrite_existing: choose if lines with the same set and annotation_filename should be overwritten
+        :type overwrite_existing: bool
         :return: output annotation dictionary (attributes defined according to :ref:`ChildProject.annotations.AnnotationManager.SEGMENTS_COLUMNS`)
         :rtype: dict
         """
@@ -451,7 +474,34 @@ class AnnotationManager:
         output_filename = os.path.join(
             "annotations", annotation["set"], "converted", annotation_filename
         )
-
+        
+        #check if the annotation file already exists in dataset (same filename and same set)
+        if self.annotations[(self.annotations['set'] == annotation['set']) &
+                            (self.annotations['annotation_filename'] == annotation_filename)].shape[0] > 0:
+            if overwrite_existing:
+                print(f"Warning: annotation file {output_filename} will be overwritten")
+            else:
+                error_filename = output_filename.replace('\\','/')
+                annotation["error"] = f"annotation file {error_filename} already exists, to reimport it, use the overwrite_existing flag"
+                print(f"Error: {annotation['error']}")
+                annotation["imported_at"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                return annotation
+        
+        #find if there are annotation indexes in the same set that overlap the new annotation
+        #as it is not possible to annotate multiple times the same audio stretch in the same set
+        ovl_annots = self.annotations[(self.annotations['set'] == annotation['set']) &
+                            (self.annotations['annotation_filename'] != annotation_filename) & #this condition avoid matching a line that should be overwritten (so has the same annotation_filename), it is dependent on the previous block!!!
+                            (self.annotations['recording_filename'] == annotation['recording_filename']) &
+                            (self.annotations['range_onset'] < annotation['range_offset']) &
+                            (self.annotations['range_offset'] > annotation['range_onset']) 
+                            ]
+        if ovl_annots.shape[0] > 0:
+            array_tup = list(ovl_annots[['set','recording_filename','range_onset', 'range_offset']].itertuples(index=False, name=None))
+            annotation["error"] = f"importation for set <{annotation['set']}> recording <{annotation['recording_filename']}> from {annotation['range_onset']} to {annotation['range_offset']} cannot continue because it overlaps with these existing annotation lines: {array_tup}"
+            print(f"Error: {annotation['error']}")
+            annotation["imported_at"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            return annotation
+            
         path = os.path.join(
             self.project.path,
             "annotations",
@@ -486,6 +536,7 @@ class AnnotationManager:
             print(traceback.format_exc(), file=sys.stderr)
 
         if df is None or not isinstance(df, pd.DataFrame):
+            annotation["imported_at"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             return annotation
 
         if not df.shape[1]:
@@ -535,6 +586,7 @@ class AnnotationManager:
         threads: int = -1,
         import_function: Callable[[str], pd.DataFrame] = None,
         new_tiers: list = None,
+        overwrite_existing: bool = False,
     ) -> pd.DataFrame:
         """Import and convert annotations.
 
@@ -546,6 +598,8 @@ class AnnotationManager:
         :type import_function: Callable[[str], pd.DataFrame], optional
         :param new_tiers: List of EAF tiers names. If specified, the corresponding EAF tiers will be imported.
         :type new_tiers: list[str], optional
+        :param overwrite_existing: choose if lines with the same set and annotation_filename should be overwritten
+        :type overwrite_existing: bool, optional
         :return: dataframe of imported annotations, as in :ref:`format-annotations`.
         :rtype: pd.DataFrame
         """
@@ -553,6 +607,9 @@ class AnnotationManager:
         
         input_processed["range_onset"] = input_processed["range_onset"].astype(np.int64)
         input_processed["range_offset"] = input_processed["range_offset"].astype(np.int64)
+        
+        assert (input_processed["range_offset"] > input_processed["range_onset"]).all(), "range_offset must be greater than range_onset"
+        assert (input_processed["range_onset"] >= 0).all(), "range_onset must be greater or equal to 0"
 
         required_columns = {
             c.name
@@ -583,15 +640,27 @@ class AnnotationManager:
                 "warning: some of the converters do not support multithread importation; running on 1 thread"
             )
             threads = 1
+            
+        #if the input to import has overlaps in it, raise an error immediately, nothing will be imported
+        ovl_ranges = find_lines_involved_in_overlap(input_processed, labels=['recording_filename','set'])
+        if ovl_ranges[ovl_ranges == True].shape[0] > 0:
+            ovl_ranges = ovl_ranges[ovl_ranges].index.values.tolist()
+            raise ValueError(f"the ranges given to import have overlaps on indexes : {ovl_ranges}")
 
         if threads == 1:
             imported = input_processed.apply(
-                partial(self._import_annotation, import_function, {"new_tiers": new_tiers}), axis=1
+                partial(self._import_annotation, import_function,
+                                                {"new_tiers": new_tiers},
+                                                overwrite_existing=overwrite_existing
+                        ), axis=1
             ).to_dict(orient="records")
         else:
             with mp.Pool(processes=threads if threads > 0 else mp.cpu_count()) as pool:
                 imported = pool.map(
-                    partial(self._import_annotation, import_function, {"new_tiers": new_tiers}),
+                    partial(self._import_annotation, import_function,
+                                                    {"new_tiers": new_tiers},
+                                                    overwrite_existing=overwrite_existing
+                    ),
                     input_processed.to_dict(orient="records"),
                 )
 
@@ -601,9 +670,22 @@ class AnnotationManager:
             axis=1,
             inplace=True,
         )
+        if 'error' in imported.columns:
+            errors = imported[~imported["error"].isnull()]
+            imported = imported[imported["error"].isnull()] 
+            #when errors occur, separate them in a different csv in extra
+            if errors.shape[0] > 0:
+                output = os.path.join(self.project.path, "extra","errors_import_{}.csv".format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")))
+                errors.to_csv(output, index=False)
+                print(f"Errors summary exported to {output}")
+        else:
+            errors = None
 
         self.read()
         self.annotations = pd.concat([self.annotations, imported], sort=False)
+        #at this point, 2 lines with same set and annotation_filename can happen if specified overwrite,
+        # dropping duplicates remove the first importation and keeps the more recent one
+        self.annotations = self.annotations.sort_values('imported_at').drop_duplicates(subset=["set","annotation_filename"], keep='last')
         self.write()
         
         sets = set(input_processed['set'].unique())
@@ -611,7 +693,7 @@ class AnnotationManager:
         for warning in outdated_sets:
             print("warning: {}".format(warning))
 
-        return imported
+        return (imported, errors)
 
     def get_subsets(self, annotation_set: str, recursive: bool = False) -> List[str]:
         """Retrieve the list of subsets belonging to a given set of annotations.

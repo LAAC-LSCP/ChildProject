@@ -194,6 +194,37 @@ def calculate_shift(file1, file2, start1, start2, interval):
 
     return res,len(ref)
 
+def find_lines_involved_in_overlap(df: pd.DataFrame, onset_label: str = 'range_onset', offset_label:str = 'range_offset', labels = []):
+    """
+    takes a dataframe as input. The dataframe is supposed to have a column for the onset
+    og a timeline and one for the offset. The function returns a boolean series where
+    all indexes having 'True' are lines involved in overlaps and 'False' when not
+    e.g. to select all lines involved in overlaps, use:
+        ```
+        ovl_segments = df[find_lines_involved_in_overlap(df, 'segment_onset', 'segment_offset')]
+        ```
+        and to select line that never overlap, use:
+        ```
+        ovl_segments = df[~find_lines_involved_in_overlap(df, 'segment_onset', 'segment_offset')]
+        ```
+        
+    :param df: pandas DataFrame where we want to find overlaps, having some time segments described by 2 columns (onset and offset)
+    :type df: pd.DataFrame
+    :param onset_label: column label for the onset of time segments
+    :type onset_label: str
+    :param offset_label: columns label for the offset of time segments
+    :type offset_label: str
+    :param labels: list of column labels that are required to match to be involved in overlap.
+    :type labels: list[str]
+    :return: pandas Series of boolean values where 'True' are indexes where overlaps exist
+    :rtype: pd.Series
+    """
+    conditions = f"(df['{onset_label}'] < row['{offset_label}']) & (df['{offset_label}'] > row['{onset_label}']) & (df.index != row.name)"
+    for l in labels:
+        conditions = "(df['{}'] == row['{}']) & ".format(l,l) + conditions
+    #overlap is defined by having s2.offset > s1.onset and s2.onset < s1.offset and s2.index != s1.index (same seg)
+    return df.apply(lambda row: True if df[eval(conditions)].shape[0] else False,axis=1) 
+
 def series_to_datetime(time_series, time_index_list, time_column_name:str, date_series = None, date_index_list = None, date_column_name = None):
     """
     returns a series of datetimes from a series of str. Using pd.to_datetime on all the formats \

@@ -8,7 +8,7 @@ Created on Wed Jul 27 11:23:05 2022
 import pytest
 
 from ChildProject.projects import ChildProject
-from ChildProject.utils import series_to_datetime, time_intervals_intersect, intersect_ranges, TimeInterval, get_audio_duration, calculate_shift
+from ChildProject.utils import series_to_datetime, time_intervals_intersect, intersect_ranges, TimeInterval, get_audio_duration, calculate_shift, find_lines_involved_in_overlap
 import pandas as pd
 import datetime
 import os
@@ -81,6 +81,21 @@ AUDIOS_INVALID = os.path.join('examples','invalid_raw_data','recordings','raw')
 def test_calculate_shift(f1,f2, result):
     
     assert result == calculate_shift(f1,f2,0,0,4)
+    
+INP_CSV = os.path.join('examples','valid_raw_data','annotations','input.csv')
+@pytest.mark.parametrize('file,result,labels',
+    [(INP_CSV, [], ['set', 'recording_filename']),
+     (INP_CSV, [0,1,2,3,4,5,6,7,8,9], []),
+     (INP_CSV, [3,4,8,9], ['set']),
+    ])
+def test_find_lines_involved_in_overlaps(file, result, labels):
+    
+    df = pd.read_csv(file)
+    truth = df.iloc[result]
+    
+    df_no_ov = df[find_lines_involved_in_overlap(df, 'range_onset', 'range_offset', labels)]
+    
+    pd.testing.assert_frame_equal(df_no_ov, truth, check_like = True)
     
     
     

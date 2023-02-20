@@ -159,8 +159,7 @@ def validate(args):
             "--annotations",
             help="path to input annotations dataframe (csv) [only for bulk importation]",
             default="",
-        ),
-        arg("--threads", help="amount of threads to run on", type=int, default=0),
+        ),       
     ]
     + [
         arg(
@@ -172,7 +171,11 @@ def validate(args):
         )
         for col in AnnotationManager.INDEX_COLUMNS
         if not col.generated
-    ]
+    ] +
+    [
+     arg("--threads", help="amount of threads to run on", type=int, default=0),
+     arg("--overwrite-existing","--ow", help="overwrites existing annotation file if should generate the same output file (useful when reimporting", action='store_true'),
+     ]
 )
 def import_annotations(args):
     """convert and import a set of annotations"""
@@ -195,20 +198,25 @@ def import_annotations(args):
         )
 
     am = AnnotationManager(project)
-    imported = am.import_annotations(annotations, args.threads)
-
-    errors, warnings = am.validate(annotations=imported, threads=args.threads)
-
-    if len(am.errors) > 0:
-        print(
-            "importation completed with {} errors and {} warnings".format(
-                len(am.errors) + len(errors), len(warnings)
-            ),
-            file=sys.stderr,
-        )
-        print("\n".join(am.errors), file=sys.stderr)
-        print("\n".join(errors), file=sys.stderr)
-        print("\n".join(warnings))
+    imported, errors_imp = am.import_annotations(annotations, args.threads, overwrite_existing=args.overwrite_existing)
+    
+    if errors_imp is not None and errors_imp.shape[0] > 0:
+        print("the importation failed for {} entry/ies".format(errors_imp.shape[0]))
+        print(errors_imp)
+    
+    if imported is not None and imported.shape[0] > 0:
+        errors, warnings = am.validate(imported, threads=args.threads)
+    
+        if len(am.errors) > 0:
+            print(
+                "in the resulting annotations {} errors and {} warnings were found".format(
+                    len(am.errors) + len(errors), len(warnings)
+                ),
+                file=sys.stderr,
+            )
+            print("\n".join(am.errors), file=sys.stderr)
+            print("\n".join(errors), file=sys.stderr)
+            print("\n".join(warnings))
 
 
 @subcommand(
