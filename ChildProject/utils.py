@@ -128,11 +128,46 @@ def read_wav(filename, start_s, length_s):
 
     return y, sr, channels
 
-#computes a list of similarity scores, each value being for 1 frame of audio
-#returns the most differing value
-def calculate_shift(file1, file2, start1, start2, interval, correlation_output = None):
+#take 2 audio files, a starting point for each and a length to compare in seconds
+#return a divergence score representing the average difference in audio signal
+def calculate_shift(file1, file2, start1, start2, interval):
+    """
+    take 2 audio files, a starting point for each and a length to compare in seconds
+    return a divergence score representing the average difference in audio signal
+    
+    :param file1: path to the first wav file to compare
+    :type file1: str
+    :param file2: path to the second wav file to compare
+    :type file2: str
+    :param start1: starting point for the comparison in seconds for the first audio
+    :type start1: int
+    :param start2: starting point for the comparison in seconds for the second audio
+    :type start2: int
+    :param interval: length to compare between the 2 audios on in seconds
+    :type interval: int
+    :return: tuple of divergence score and number of values used
+    :rtype: (float, int)
+    """
     ref, ref_rate, ref_chan = read_wav(file1, start1, interval)
     test, test_rate, test_chan = read_wav(file2, start2, interval)
+    
+    if ref_chan != test_chan: #if different number of channels, shrink if possible
+        print('WARNING : different number of channels, attempting to compress channels to carry on with analysis')
+        if ref_chan == 1 and test_chan > 1 :
+            test = np.mean(test,axis=0)
+            test_chan = 1
+            print('{} was shrunk to mono channel for the analysis, it has a higher level of information than {}'.format(file2,file1))
+        elif ref_chan > 1 and test_chan == 1:
+            ref = np.mean(ref,axis=0)
+            ref_chan = 1
+            print('{} was shrunk to mono channel for the analysis, it has a higher level of information than {}'.format(file1,file2))
+        else:
+            raise Exception('audios do not match, {} has {} channel(s) while {} has {}'.format(file1,ref_chan,file2,test_chan))
+      
+    #in case of multiple channels, reshape to be 1D array (they should have the same number of channels at this point)
+    if ref_chan > 1:
+        ref = np.reshape(ref,ref_chan * ref.shape[1])
+        test = np.reshape(test,test_chan * test.shape[1])
 
     #when sampling rate is different, look for a downsampled rate that can be used
     if ref_rate != test_rate:
@@ -146,28 +181,10 @@ def calculate_shift(file1, file2, start1, start2, interval, correlation_output =
             test = test[::int(test_rate/new_rate)]
             test_rate = new_rate
         
-    if ref_chan != test_chan: #if different number of channels, shrink if possible
-        print('WARNING : different number of channels, attempting to compress channels to carry on with analysis')
-        if ref_chan == 1 and test_chan > 1 :
-            test = np.mean(test,axis=0)
-            test_chan = 1
-            print('{} was shrunk to mono channel for the analysis, it has a higher level of information than {}'.format(file2,file1))
-        elif ref_chan > 1 and test_chan == 1:
-            ref = np.mean(ref,axis=0)
-            ref_chan = 1
-            print('{} was shrunk to mono channel for the analysis, it has a higher level of information than {}'.format(file1,file2))
-        else:
-            raise Exception('audios do not match, {} has {} channel(s) while {} has {}'.format(file1,ref_chan,file2,test_chan))
-        
-    #in case of multiple channels, reshape to be 1D array (they should have the same number of channels at this point)
-    if ref_chan > 1:
-        np.reshape(ref,ref_chan * ref.shape[1])
-        np.reshape(test,test_chan * test.shape[1])
-
     sampling_rate = ref_rate
 
-    #downsample to save computation time
-    downsampled_rate = 400
+    #downsample to save computation time only if sampling_rate is higher than 400
+    downsampled_rate = 400 if sampling_rate > 400 else sampling_rate
     ref = ref[::int(sampling_rate/downsampled_rate)]
     test = test[::int(sampling_rate/downsampled_rate)]
     

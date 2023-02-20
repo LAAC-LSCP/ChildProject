@@ -283,7 +283,7 @@ class AnnotationManager:
 
         self.project.read()
 
-        index_path = os.path.join(self.project.path, "metadata/annotations.csv")
+        index_path = os.path.join(self.project.path, "metadata","annotations.csv")
         if not os.path.exists(index_path):
             open(index_path, "w+").write(",".join([c.name for c in self.INDEX_COLUMNS]))
 

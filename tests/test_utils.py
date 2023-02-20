@@ -8,7 +8,7 @@ Created on Wed Jul 27 11:23:05 2022
 import pytest
 
 from ChildProject.projects import ChildProject
-from ChildProject.utils import series_to_datetime, time_intervals_intersect, intersect_ranges, TimeInterval, get_audio_duration, find_lines_involved_in_overlap
+from ChildProject.utils import series_to_datetime, time_intervals_intersect, intersect_ranges, TimeInterval, get_audio_duration, calculate_shift, find_lines_involved_in_overlap
 import pandas as pd
 import datetime
 import os
@@ -69,6 +69,18 @@ AUDIOS = os.path.join('examples','valid_raw_data','recordings','raw')
 def test_get_audio_duration(file, result):
     
     assert result == get_audio_duration(file)
+
+AUDIOS_VALID = os.path.join('examples','valid_raw_data','recordings','raw')
+AUDIOS_INVALID = os.path.join('examples','invalid_raw_data','recordings','raw')
+@pytest.mark.parametrize('f1,f2,result',
+    [(os.path.join(AUDIOS_VALID,'sound.wav'),os.path.join(AUDIOS_VALID,'sound2.wav'),(169.9779200946652, 1639 )),
+     (os.path.join(AUDIOS_VALID,'sound.wav'),os.path.join(AUDIOS_INVALID,'test_1_20160918.wav'),(5.9604644775390625e-05, 1024 )),
+     (os.path.join(AUDIOS_VALID,'sound2.wav'),os.path.join(AUDIOS_INVALID,'test_1_20160918.wav'),(163.95631432533264, 512)
+),
+    ])
+def test_calculate_shift(f1,f2, result):
+    
+    assert result == calculate_shift(f1,f2,0,0,4)
     
 INP_CSV = os.path.join('examples','valid_raw_data','annotations','input.csv')
 @pytest.mark.parametrize('file,result,labels',
