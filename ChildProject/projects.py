@@ -386,9 +386,11 @@ class ChildProject:
         )
 
         if self.ignore_discarded and "discard" in self.ct.df:
+            self.ct.df['discard'] = self.ct.df["discard"].apply(np.nan_to_num).astype(int, errors='ignore')
             self.ct.df = self.ct.df[self.ct.df["discard"].astype(str) != "1"]
 
         if self.ignore_discarded and "discard" in self.rt.df:
+            self.rt.df['discard'] = self.rt.df["discard"].apply(np.nan_to_num).astype(int, errors='ignore')
             self.rt.df = self.rt.df[self.rt.df["discard"].astype(str) != "1"]
 
         self.children = self.ct.df
