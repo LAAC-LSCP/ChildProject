@@ -513,10 +513,13 @@ def compute_durations(args):
         right_on="recording_filename",
     )
     recordings["duration"].fillna(0, inplace=True)
-    recordings["duration"] = recordings["duration"].astype(int)
-    recordings.to_csv(
-        os.path.join(project.path, "metadata/recordings.csv"), index=False
-    )
+    recordings["duration"] = recordings["duration"].astype("Int64")
+    
+    project.recordings = recordings.copy()
+    project.write_recordings()
+#    recordings.to_csv(
+#        os.path.join(project.path, "metadata/recordings.csv"), index=False
+#    )
     
 @subcommand(
     [
