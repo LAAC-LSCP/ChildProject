@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- ignore_discarded is now the default behaviour of childproject projects, robustness was added to the discard column
+
+### Fixed
+
+- discard column in recordings.csv and children.csv now works properly
+
 ## [0.1.0] 2023-02-20
 
 ### Added
