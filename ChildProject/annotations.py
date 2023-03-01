@@ -685,7 +685,7 @@ class AnnotationManager:
         self.annotations = pd.concat([self.annotations, imported], sort=False)
         #at this point, 2 lines with same set and annotation_filename can happen if specified overwrite,
         # dropping duplicates remove the first importation and keeps the more recent one
-        self.annotations = self.annotations.sort_values('imported_at').drop_duplicates(subset=["set","annotation_filename"], keep='last')
+        self.annotations = self.annotations.sort_values('imported_at').drop_duplicates(subset=["set","recording_filename","range_onset","range_offset"], keep='last')
         self.write()
         
         sets = set(input_processed['set'].unique())
