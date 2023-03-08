@@ -1,6 +1,6 @@
 from ChildProject.projects import ChildProject
 import pandas as pd
-
+import pytest
 
 def test_enforce_dtypes():
     project = ChildProject("examples/valid_raw_data", enforce_dtypes=True)
@@ -14,6 +14,17 @@ def test_enforce_dtypes():
 
     assert project.recordings["child_id"].dtype.kind == "i"
     assert project.children["child_id"].dtype.kind == "i"
+    
+@pytest.mark.parametrize("idis,rshape,cshape", 
+                         [(True,2,1),
+                         (False,3,2),
+                         ])
+def test_ignore_discarded(idis,rshape,cshape):
+    project = ChildProject("examples/valid_raw_data", ignore_discarded=idis)
+    project.read()
+    
+    assert project.recordings.shape[0] == rshape
+    assert project.children.shape[0] == cshape
 
 
 def test_compute_ages():

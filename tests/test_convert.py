@@ -1,4 +1,4 @@
-from ChildProject.projects import ChildProject
+from ChildProject.projects import ChildProject, CONVERTED_RECORDINGS
 from ChildProject.pipelines.processors import AudioProcessingPipeline
 import numpy as np
 import os
@@ -34,7 +34,7 @@ def test_basic(project):
         8000, project.compute_recordings_duration()["duration"].sum()
     ), "audio duration equals expected value"
     assert os.path.exists(
-        os.path.join(project.path, ChildProject.CONVERTED_RECORDINGS, "test")
+        os.path.join(project.path, CONVERTED_RECORDINGS, "test")
     ), "missing processed recordings folder"
     assert (
         recordings.shape[0] == converted_recordings.shape[0]
@@ -45,7 +45,7 @@ def test_basic(project):
     assert all(
         [
             os.path.exists(
-                os.path.join(project.path, ChildProject.CONVERTED_RECORDINGS, "test", f)
+                os.path.join(project.path, CONVERTED_RECORDINGS, "test", f)
             )
             for f in converted_recordings["converted_filename"].tolist()
         ]
