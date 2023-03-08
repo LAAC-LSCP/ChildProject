@@ -8,7 +8,7 @@ def test_valid_project():
     errors, warnings = project.validate()
 
     assert len(errors) == 0, "valid input validation failed (expected to pass)"
-    assert len(warnings) == 4, "expected 3 warning, got {}".format(len(warnings))
+    assert len(warnings) == 4, "expected 3 warnings, got {}".format(len(warnings))
 
 
 def test_invalid_project():

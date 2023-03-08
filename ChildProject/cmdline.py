@@ -517,9 +517,6 @@ def compute_durations(args):
     
     project.recordings = recordings.copy()
     project.write_recordings()
-#    recordings.to_csv(
-#        os.path.join(project.path, "metadata/recordings.csv"), index=False
-#    )
     
 @subcommand(
     [
