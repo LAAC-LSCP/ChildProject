@@ -360,8 +360,13 @@ class ChildProject:
 
         return df
 
-    def read(self, verbose=False):
-        """Read the metadata
+    def read(self, verbose=False, accumulate=True):
+        """Read the metadata from the project and stores it in recordings and children attributes
+        
+        :param verbose: read with additional output
+        :type verbose: bool
+        :param accumulate: add metadata from subfolders (usually confidential metadata)
+        :type accumulate: bool
         """
         self.ct = IndexTable(
             "children",
@@ -380,16 +385,17 @@ class ChildProject:
         self.recordings = self.rt.read()
 
         # accumulate additional metadata (optional)
-        self.ct.df = self.accumulate_metadata(
-            "children", self.children, self.CHILDREN_COLUMNS, "child_id", verbose
-        )
-        self.rt.df = self.accumulate_metadata(
-            "recordings",
-            self.recordings,
-            self.RECORDINGS_COLUMNS,
-            "recording_filename",
-            verbose,
-        )
+        if accumulate:
+            self.ct.df = self.accumulate_metadata(
+                "children", self.children, self.CHILDREN_COLUMNS, "child_id", verbose
+            )
+            self.rt.df = self.accumulate_metadata(
+                "recordings",
+                self.recordings,
+                self.RECORDINGS_COLUMNS,
+                "recording_filename",
+                verbose,
+            )
 
         if self.ignore_discarded and "discard" in self.ct.df:
             self.ct.df['discard'] = self.ct.df["discard"].apply(np.nan_to_num).astype(int, errors='ignore')
@@ -405,6 +411,7 @@ class ChildProject:
     def write_recordings(self, keep_discarded: bool = True, keep_original_columns: bool = True):
         """
         Write self.recordings to the recordings csv file of the dataset.
+        !! if `read()` was done with `accumulate` , you may write confidential information in recordings.csv !!
         
         :param keep_discarded: if True, the lines in the csv that are discarded by the dataset are kept when writing. defaults to True (when False, discarded lines disappear from the dataset)
         :type keep_discarded: bool, optional
@@ -440,11 +447,15 @@ class ChildProject:
         recs_to_write.sort_index().to_csv(os.path.join(self.path, METADATA_FOLDER, RECORDINGS_CSV),columns = columns,index=False)
         return recs_to_write
 
-    def validate(self, ignore_recordings: bool = False, profile: str = None) -> tuple:
+    def validate(self, ignore_recordings: bool = False, profile: str = None, accumulate: bool = True) -> tuple:
         """Validate a dataset, returning all errors and warnings.
 
         :param ignore_recordings: if True, no errors will be returned for missing recordings.
         :type ignore_recordings: bool, optional
+        :param profile: profile of recordings to use
+        :type profile: str, optional
+        :param accumulate: use accumulated metadata (usually confidential metadata if present)
+        :type accumualte: bool, optional
         :return: A tuple containing the list of errors, and the list of warnings.
         :rtype: a tuple of two lists
         """
@@ -458,7 +469,7 @@ class ChildProject:
                 self.errors.append("missing directory {}.".format(rd))
 
         # check tables
-        self.read(verbose=True)
+        self.read(verbose=True, accumulate=accumulate)
 
         errors, warnings = self.ct.validate()
         self.errors += errors
