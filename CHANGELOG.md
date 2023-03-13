@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- validation of the annotation index checks for annotation period outside of audio duration
+
 ### Changed
 
 - ignore_discarded is now the default behaviour of childproject projects, robustness was added to the discard column

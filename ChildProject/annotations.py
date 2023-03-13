@@ -330,12 +330,22 @@ class AnnotationManager:
                 ]
             )
             
+        #check the index for bad range_onset range_offset
         ranges_invalid = self.annotations[(self.annotations['range_offset'] <= self.annotations['range_onset']) | (self.annotations['range_onset'] < 0)]
         if ranges_invalid.shape[0] > 0:
             errors.extend(
                 [f"annotation index does not verify range_offset > range_onset >= 0 for set <{line['set']}>, annotation filename <{line['annotation_filename']}>"
                   for line in ranges_invalid.to_dict(orient="records")]        
             )
+            
+        if self.project.recordings is not None and 'duration' in self.project.recordings.columns:
+            df = self.annotations.merge(self.project.recordings, how='left', on='recording_filename')
+            ranges_invalid = df[(df['range_offset'] > df['duration'])]
+            if ranges_invalid.shape[0] > 0:
+                errors.extend(
+                    [f"annotation index has an offset higher than recorded duration of the audio <{line['set']}>, annotation filename <{line['annotation_filename']}>"
+                      for line in ranges_invalid.to_dict(orient="records")]        
+                )
         
         warnings += self._check_for_outdated_merged_sets()
 
