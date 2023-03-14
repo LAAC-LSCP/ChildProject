@@ -790,7 +790,13 @@ class AnnotationManager:
             raise Exception("'{}' does not exists, aborting".format(current_path))
 
         if os.path.exists(new_path):
-            raise Exception("'{}' already exists, aborting".format(new_path))
+            if os.path.exists(os.path.join(new_path, 'raw')):
+                raise Exception("raw folder '{}' already exists, aborting".format(os.path.join(new_path, 'raw')))
+            if os.path.exists(os.path.join(new_path, 'converted')):
+                raise Exception("converted folder '{}' already exists, aborting".format(os.path.join(new_path, 'converted')))
+                
+        if (self.annotations[self.annotations["set"] == new_set].shape[0] > 0): 
+            raise Exception("'{}' set already exists in the index".format(new_set))
 
         if (
             self.annotations[self.annotations["set"] == annotation_set].shape[0] == 0
@@ -831,6 +837,19 @@ class AnnotationManager:
         self.annotations.loc[
             (self.annotations["set"] == annotation_set), "set"
         ] = new_set
+                
+        #find the merged from lines that should be updated and update them
+        if 'merged_from' in self.annotations.columns:
+            merged_from = self.annotations['merged_from'].astype(str).str.split(',')
+            matches = [False if not isinstance(s, list) else annotation_set in s for s in merged_from.values.tolist()]
+            
+            def update_mf(old_list, old, new):
+                res = set(old_list)
+                res.discard(old)
+                res.add(new)
+                return ','.join(res)
+            
+            self.annotations.loc[matches, 'merged_from'] = merged_from[matches].apply(partial(update_mf, old=annotation_set,new=new_set))
         self.write()
 
     def merge_annotations(
