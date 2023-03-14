@@ -12,6 +12,8 @@ All notable changes to this project will be documented in this file.
 
 - discard column in recordings.csv and children.csv now works properly
 - metrics pipeline now checks the converted name for unicity even if a specific name was given
+- rename set also renames the merged_from column
+- rename set accepts subsets location without failing
 
 ## [0.1.0] 2023-02-20
 

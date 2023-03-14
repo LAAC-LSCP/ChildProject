@@ -1,0 +1,11 @@
+set,merged_from
+textgrid,
+eaf_basic,"eaf_solis,vtc_rttm"
+eaf_solis,vtc_rttm
+vtc_rttm,textgrid
+alice/output,"textgrid,vtc_rttm"
+metrics,"alice/output,vtc_rttm,textgrid"
+old_its,
+new_its,
+vtc_rttm,
+alice/output,

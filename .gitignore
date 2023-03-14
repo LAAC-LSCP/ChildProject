@@ -1,4 +1,4 @@
-output
+/output
 .DS_Store
 
 # Byte-compiled / optimized / DLL files
@@ -137,7 +137,7 @@ dmypy.json
 .pyre/
 
 # scripts output
-output/
+/output/
 
 docs/FORMATTING.md
 docs/PROJECTS.md
