@@ -16,11 +16,14 @@ New metrics can be added by defining new functions for the Metrics class to use 
 
 #error message in case of missing columns in annotations
 MISSING_COLUMNS = 'The given set <{}> does not have the required column <{}> for computing the {} metric'
+
+RESERVED = {'set','name','callable'} #arguments reserved usage. use other keyword labels.
     
-def metricFunction(args: set, columns: set, emptyValue = 0, name : str = None):
+def metricFunction(args: set, columns: set, emptyValue = 0, default_name : str = None):
     """Decorator for all metrics functions to make them ready to be called by the pipeline.
     
-    :param args: set of required keyword arguments for that function, raise ValueError if were not given
+    :param args: set of required keyword arguments for that function, raise ValueError if were not given \
+    you cannot use keywords [name, callale, set] as they are reserved
     :type args: set
     :param columns: set of required columns in the dataframe given, missing columns raise ValueError
     :type columns: set
@@ -31,12 +34,22 @@ def metricFunction(args: set, columns: set, emptyValue = 0, name : str = None):
     :rtype: Callable
     """
     def decorator(function):
+        for a in args:
+            if a in RESERVED: raise ValueError('Error when defining {} with required argument {}, you cannot use reserved keywords {}, change your required argument name'.format(function.__name__,a,RESERVED))
         @functools.wraps(function)
         def new_func(annotations: pd.DataFrame, duration: int, **kwargs):
             for arg in args:
                 if arg not in kwargs : raise ValueError('{} metric needs an argument <{}>'.format(function.__name__,arg))
-            metric_name = name
-            if not name : metric_name = function.__name__
+            #if a name is explicitly given, use it
+            if 'name' in kwargs and not pd.isnull(kwargs['name']) and kwargs['name']:
+                metric_name = kwargs['name']
+            #else if a default name for the function exists, use the function name
+            elif default_name:
+                metric_name = default_name
+            #else, no name was found, use the name of the function
+            else:
+                metric_name = function.__name__
+            
             metric_name_replaced = metric_name
             #metric_name is the basename used to designate this metric (voc_speaker_ph), metric_name_replaced replaces the values of kwargs
             #found in the name by their values, giving the metric name for that instance only (voc_chi_ph)
