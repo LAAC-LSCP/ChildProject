@@ -648,6 +648,7 @@ class ZooniversePipeline(Pipeline):
     def reset_orphan_subjects(
         self,
         chunks: str,
+        **kwargs
     ):
         """Look for orphan subjects and considers them to be not uploaded, This is to be done either if the oprhan
         subjects were deleted from zooniverse or if they are not usable anymore. The next upload will try to push 
