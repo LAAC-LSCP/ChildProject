@@ -631,10 +631,14 @@ class ZooniversePipeline(Pipeline):
                     print("subject upload halting here.")
                     break
 
+            chunk["index"] = chunk_index
             chunk["subject_set"] = str(subject_set.display_name)
             subjects_metadata.append(chunk)
 
         if len(subjects_metadata):
+            tmp = pd.DataFrame(subjects_metadata)
+            print(tmp.columns)
+            print(tmp)
             self.chunks.update(pd.DataFrame(subjects_metadata).set_index("index"))
 
             self.chunks.to_csv(self.chunks_file)

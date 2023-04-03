@@ -36,6 +36,11 @@ class Subject:
         
     def save(self):
         pass
+    
+    def find(num):
+        s = Subject()
+        s.id = num
+        return s
         
 class SubjectSet:
     add_number = 0
@@ -51,7 +56,6 @@ class SubjectSet:
     # so here we make it fail on a precise list of occurences
     # as well as a precise subject_set despite retries
     def add(self, subjects):
-        print(f"SS:{subjects.id}  - add:{SubjectSet.add_number}")
         SubjectSet.add_number += 1
         if subjects.id == 35 : raise PanoptesAPIException('Planned exception for test purposes')
         
