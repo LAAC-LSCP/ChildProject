@@ -353,6 +353,7 @@ class ZooniversePipeline(Pipeline):
         amount: int = 1000,
         ignore_errors: bool = False,
         record_orphan: bool = False,
+        test_endpoint: bool = False,
         **kwargs
     ):
         """Uploads ``amount`` audio chunks from the CSV dataframe `chunks` to a zooniverse project.
@@ -367,12 +368,14 @@ class ZooniversePipeline(Pipeline):
         :type zooniverse_login: str, optional
         :param zooniverse_pwd: zooniverse password. If not specified, the program attempts to get it from the environment variable ``ZOONIVERSE_PWD`` instead, defaults to ''
         :type zooniverse_pwd: str, optional
-        :param amount: amount of chunks to upload, defaults to 0
+        :param amount: amount of chunks to upload, defaults to 1000
         :type amount: int, optional
         :param ignore_errors: carry on with the upload even if a clip fails, the csv will be updated accordingly
         :type ignore_errors: bool, optional
-        :param record_orphan: when true, chunks that are correctly uploaded but not linked to a subject set (orphan) have their line updated with the subject id, project id and Uploaded flag at True, but subject_set empty. link_orphan_subjects can be used to reattempt it. If false, the chunk is considered not uploaded.
+        :param record_orphan: when true, chunks that are correctly uploaded but not linked to a subject set (orphan) have their line updated with the subject id, project id and Uploaded flag at True, but subject_set empty. link_orphan_subjects can be used to reattempt it. If false, the chunk is considered not uploaded.   
         :type record_orphan: bool, optional
+        :param test_endpoint: run this command for tests, operations with zooniverse arefaked and considered succesfull
+        :type test_endpoint: bool, optional
         """
 
         self.chunks_file = chunks
@@ -393,15 +396,19 @@ class ZooniversePipeline(Pipeline):
             {"recording_filename", "onset", "offset", "uploaded", "mp3"},
         )
         
-        from panoptes_client import Panoptes, Project, Subject, SubjectSet
-        from panoptes_client import PanoptesAPIException
+        if test_endpoint:
+            from ChildProject.pipelines.fake_panoptes import Panoptes, Project, Subject, SubjectSet, PanoptesAPIException, reset_tests
+            reset_tests()            
+        else:
+            from panoptes_client import Panoptes, Project, Subject, SubjectSet
+            from panoptes_client import PanoptesAPIException
+
 
         Panoptes.connect(username=self.zooniverse_login, password=self.zooniverse_pwd)
         zooniverse_project = Project(project_id)
 
         subjects_metadata = []
-        uploaded = 0
-
+    
         subject_set = None
 
         for ss in zooniverse_project.links.subject_sets:
@@ -456,7 +463,7 @@ class ZooniversePipeline(Pipeline):
                     break
                 
             try: 
-                retry_func(subject_set.add, PanoptesAPIException, 3, subjects=subject)                
+                retry_func(subject_set.add, PanoptesAPIException, 3, subjects=subject)              
             except PanoptesAPIException as e:
                 print(
                     "failed to add subject {} to subject_set {}. an exception has occured:\n{}".format(
@@ -492,7 +499,7 @@ class ZooniversePipeline(Pipeline):
         
         if record_orphan and len(orphan_chunks): 
             self.chunks.update(pd.DataFrame(orphan_chunks).set_index("index"))
-            print("WARNING: {} chunks were uploaded but not linked to the subject set {}. To attempt to relink them, try link_orphan_subjects").format(orphan_chunks, subject_set.display_name)
+            print("WARNING: {} chunks were uploaded but not linked to the subject set {}. To attempt to relink them, try link_orphan_subjects".format(orphan_chunks, subject_set.display_name))
 
         self.chunks.to_csv(self.chunks_file)
         
@@ -503,7 +510,8 @@ class ZooniversePipeline(Pipeline):
         set_name: str,
         zooniverse_login="",
         zooniverse_pwd="",
-        ignore_errors: bool = False,
+        ignore_errors: bool = False,       
+        test_endpoint: bool = False,
         **kwargs
     ):
         """Attempts to link subjects that have been uploaded but not linked to a subject set in zooniverse
@@ -524,6 +532,8 @@ class ZooniversePipeline(Pipeline):
         :type amount: int, optional
         :param ignore_errors: carry on with the upload even if a clip fails, the csv will be updated accordingly
         :type ignore_errors: bool, optional
+        :param test_endpoint: run this command for tests, operations with zooniverse arefaked and considered succesfull
+        :type test_endpoint: bool, optional
         """
         
         self.chunks_file = chunks
@@ -544,8 +554,12 @@ class ZooniversePipeline(Pipeline):
             {"recording_filename", "onset", "offset", "uploaded", "mp3", "zooniverse_id", "project_id", "subject_set"},
         )
         
-        from panoptes_client import Panoptes, Project, Subject, SubjectSet
-        from panoptes_client import PanoptesAPIException
+        if test_endpoint:
+            from ChildProject.pipelines.fake_panoptes import Panoptes, Project, Subject, SubjectSet, PanoptesAPIException, reset_tests
+            reset_tests() 
+        else:
+            from panoptes_client import Panoptes, Project, Subject, SubjectSet
+            from panoptes_client import PanoptesAPIException
 
         Panoptes.connect(username=self.zooniverse_login, password=self.zooniverse_pwd)
         zooniverse_project = Project(project_id)
@@ -625,7 +639,7 @@ class ZooniversePipeline(Pipeline):
 
             self.chunks.to_csv(self.chunks_file)
             
-        print("linked {}/{} subjects").format(len(subjects_metadata),len(chunks_to_link))
+        print("linked {}/{} subjects".format(len(subjects_metadata),len(chunks_to_link)))
         
     def reset_orphan_subjects(
         self,
@@ -679,6 +693,7 @@ class ZooniversePipeline(Pipeline):
         zooniverse_login: str = "",
         zooniverse_pwd: str = "",
         chunks: List[str] = [],
+        test_endpoint: bool = False,
         **kwargs
     ):
 
@@ -699,7 +714,12 @@ class ZooniversePipeline(Pipeline):
         """
         self.get_credentials(zooniverse_login, zooniverse_pwd)
 
-        from panoptes_client import Panoptes, Project, Classification
+        # if used in tests, use the fake functions
+        if test_endpoint:
+            from ChildProject.pipelines.fake_panoptes import Panoptes, Project, Classification
+        else:
+            from panoptes_client import Panoptes, Project, Classification
+            
         Panoptes.connect(username=self.zooniverse_login, password=self.zooniverse_pwd)
         project = Project(project_id)
 

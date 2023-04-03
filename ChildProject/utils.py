@@ -25,8 +25,8 @@ class Segment:
 
     def __repr__(self):
         return "Segment([{}, {}])".format(self.start, self.stop)
-    
-def retry_func(func : callable , excep: Exception, tries : int = 3, **kwargs):
+                
+def retry_func( func : callable , excep: Exception, tries : int = 3, **kwargs):
     for i in range(tries):
         try:
             func(**kwargs)
