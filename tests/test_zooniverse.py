@@ -102,14 +102,47 @@ def test_uploading(location_fail, amount, ignore_errors, record_orphan, result):
     #shutil.copy(new_path, os.path.join('tests','truth','zoochunks',result))
     
     pd.testing.assert_frame_equal(truth, pd.read_csv(new_path), check_like=True)
-        
+   
+#might benefit from a test using invalid csv or/and a test with a csv having no orphan chunk     
+BASE_ORPHAN_CHUNKS = os.path.join('tests', 'data', 'chunks_test_orphan.csv')   
+@pytest.mark.parametrize("ignore_errors,result", 
+                         [(False,'link_orphan_stop.csv'),
+                         (True,'link_orphan_continue.csv'),
+                         ])
+def test_link_orphan(ignore_errors, result):
+    new_path = os.path.join('output', 'zooniverse', 'chunks_test_orphan.csv')
+    os.makedirs("output/zooniverse", exist_ok=True)
     
+    shutil.copy(BASE_ORPHAN_CHUNKS,new_path)
     
-def test_link_orphan():
-    pass
+    zooniverse = ZooniversePipeline()
     
-def test_reset_orphan():
-    pass
+    zooniverse.link_orphan_subjects(new_path,
+                                    404,
+                                    'test_subject_set',
+                                    'test_username',
+                                    'test_password',
+                                    ignore_errors,
+                                    test_endpoint=True,
+                                    )
+   # shutil.copy(new_path, os.path.join('tests','truth','zoochunks',result))
+    pd.testing.assert_frame_equal(pd.read_csv(os.path.join('tests','truth','zoochunks',result)), pd.read_csv(new_path))
+    
+@pytest.mark.parametrize("result", 
+                         [('reset_orphan.csv'),
+                         ])
+def test_reset_orphan(result):
+    new_path = os.path.join('output', 'zooniverse', 'chunks_test_reset_orphan.csv')
+    os.makedirs("output/zooniverse", exist_ok=True)
+    
+    shutil.copy(BASE_ORPHAN_CHUNKS,new_path)
+    
+    zooniverse = ZooniversePipeline()
+    
+    zooniverse.reset_orphan_subjects(new_path)
+    
+    #shutil.copy(new_path, os.path.join('tests','truth','zoochunks',result))
+    pd.testing.assert_frame_equal(pd.read_csv(os.path.join('tests','truth','zoochunks',result)), pd.read_csv(new_path))
     
 def test_classification():
     pass
