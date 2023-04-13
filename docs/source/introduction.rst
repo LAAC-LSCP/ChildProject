@@ -91,7 +91,7 @@ If you are using this project for your research, please cite our `introductory p
       url={https://link.springer.com/article/10.1007/s10579-022-09579-3},
       DOI={10.1007/s10579-022-09579-3},
       publisher={Springer},
-      journal={Language Resources and Evaluation}
+      journal={Language Resources and Evaluation},
       author={Gautheron, Lucas and Rochat, Nicolas and Cristia, Alejandrina},
       year={2022},
       month={Feb}

@@ -1,9 +1,19 @@
 from collections import defaultdict
 import pandas as pd
 import re
+from enum import Enum
 
 converters = {}
 
+class Formats(Enum):
+    CSV = 'csv'
+    VTC = 'vtc_rttm'
+    VCM = 'vcm_rttm'
+    ALICE = 'alice'
+    ITS = 'its'
+    TEXTGRID = 'TextGrid'
+    EAF = 'eaf'
+    CHA = 'cha'
 
 class AnnotationConverter:
     SPEAKER_ID_TO_TYPE = defaultdict(
@@ -68,7 +78,7 @@ class AnnotationConverter:
 
 
 class CsvConverter(AnnotationConverter):
-    FORMAT = "csv"
+    FORMAT = Formats.CSV.value
 
     @staticmethod
     def convert(filename: str, filter: str="", **kwargs) -> pd.DataFrame:
@@ -76,7 +86,7 @@ class CsvConverter(AnnotationConverter):
 
 
 class VtcConverter(AnnotationConverter):
-    FORMAT = "vtc_rttm"
+    FORMAT = Formats.VTC.value
 
     SPEAKER_TYPE_TRANSLATION = defaultdict(
         lambda: "NA", {"CHI": "OCH", "KCHI": "CHI", "FEM": "FEM", "MAL": "MAL"}
@@ -139,7 +149,7 @@ class VtcConverter(AnnotationConverter):
 
 
 class VcmConverter(AnnotationConverter):
-    FORMAT = "vcm_rttm"
+    FORMAT = Formats.VCM.value
 
     SPEAKER_TYPE_TRANSLATION = defaultdict(
         lambda: "NA",
@@ -206,7 +216,7 @@ class VcmConverter(AnnotationConverter):
 
 
 class AliceConverter(AnnotationConverter):
-    FORMAT = "alice"
+    FORMAT = Formats.ALICE.value
 
     @staticmethod
     def convert(filename: str, source_file: str = "", **kwargs) -> pd.DataFrame:
@@ -217,7 +227,7 @@ class AliceConverter(AnnotationConverter):
             engine="python",
         )
 
-        n_recordings = len(df["file"].unique())
+        n_recordings = len(df["file"].str.split('_').apply(lambda x: x[:-2]).str.join('_').unique())
         if  n_recordings > 1 and not source_file:
             print(
                 f"""WARNING: {filename} contains annotations from {n_recordings} different audio files, """
@@ -242,7 +252,7 @@ class AliceConverter(AnnotationConverter):
 
 
 class ItsConverter(AnnotationConverter):
-    FORMAT = "its"
+    FORMAT = Formats.ITS.value
 
     SPEAKER_TYPE_TRANSLATION = defaultdict(
         lambda: "NA", {"CHN": "CHI", "CXN": "OCH", "FAN": "FEM", "MAN": "MAL"}
@@ -413,7 +423,7 @@ class ItsConverter(AnnotationConverter):
 
 
 class TextGridConverter(AnnotationConverter):
-    FORMAT = "TextGrid"
+    FORMAT = Formats.TEXTGRID.value
 
     @staticmethod
     def convert(filename: str, filter=None, **kwargs) -> pd.DataFrame:
@@ -455,7 +465,7 @@ class TextGridConverter(AnnotationConverter):
 
 
 class EafConverter(AnnotationConverter):
-    FORMAT = "eaf"
+    FORMAT = Formats.EAF.value
 
     @staticmethod
     def convert(filename: str, filter=None, **kwargs) -> pd.DataFrame:
@@ -548,7 +558,7 @@ class EafConverter(AnnotationConverter):
 
 
 class ChatConverter(AnnotationConverter):
-    FORMAT = "cha"
+    FORMAT = Formats.CHA.value
     THREAD_SAFE = False
 
     SPEAKER_ROLE_TO_TYPE = defaultdict(
@@ -625,6 +635,8 @@ class ChatConverter(AnnotationConverter):
 
         df = pd.DataFrame(reader.utterances())
 
+        #no segments in the file
+        if not df.shape[0]: return pd.DataFrame()
         ### extract tiers
         df["transcription"] = df.apply(
             lambda r: r["tiers"][r["participant"]], axis=1
@@ -638,7 +650,7 @@ class ChatConverter(AnnotationConverter):
             lambda d: {k.replace("%", ""): d[k] for k in d.keys() if k[0] == "%"}
         )
         df = pd.concat(
-            [df.drop(["tiers"], axis=1), df["tiers"].apply(pd.Series)], axis=1
+            [df.drop(["tiers"], axis=1), df["tiers"].apply(lambda x: pd.Series(x) if x else pd.Series(dtype='object'))], axis=1
         )
 
         df["segment_onset"] = df["time_marks"].apply(lambda tm: tm[0] if tm else "NA")
@@ -650,7 +662,7 @@ class ChatConverter(AnnotationConverter):
 
         df["words"] = df["tokens"].apply(
             lambda l: len(
-                [t["word"] for t in l if re.search("[^\W\d_]", t["word"], re.UNICODE)]
+                [t["word"] for t in l if re.search(r'[^\W\d_]', t["word"], re.UNICODE)]
             )
         )
 
@@ -671,7 +683,9 @@ class ChatConverter(AnnotationConverter):
                 )
             )
 
+        initial_size = df.shape[0]
         df = df[(df["segment_onset"] != "NA") & (df["segment_offset"] != "NA")]
+        if df.shape[0] < initial_size : print("WARNING : Some annotations in file '{}' don't have timestamps, the importation will discard those lines".format(filename))
         df.drop(columns=["participant", "tokens", "time_marks"], inplace=True)
         df.fillna("NA", inplace=True)
 

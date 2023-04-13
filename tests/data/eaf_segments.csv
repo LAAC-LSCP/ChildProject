@@ -1,0 +1,6 @@
+segment_onset,segment_offset,speaker_type,raw_filename
+0,2570,NA,file.rttm
+2769,3989,NA,file.rttm
+0,1453,CHI,file.rttm
+1123,2570,OCH,file.rttm
+2769,3989,FEM,file.rttm

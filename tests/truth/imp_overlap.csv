@@ -1,0 +1,4 @@
+set,recording_filename,time_seek,raw_filename,range_onset,range_offset,format,filter,error,annotation_filename
+eaf_solis,sound.wav,0,example_solis.eaf,40000000,80000000,eaf,,,sound_40000000_80000000.csv
+textgrid,sound2.wav,0,example.TextGrid,0,10000,TextGrid,,,sound2_0_10000.csv
+textgrid2,sound.wav,0,example.TextGrid,0,10000,TextGrid,,,sound_0_10000.csv

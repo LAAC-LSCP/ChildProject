@@ -1,0 +1,7 @@
+callable,set,name,speaker
+voc_speaker_ph,custom_its,voc_chi_ph_its,CHI
+voc_speaker_ph,custom_its,voc_fem_ph_its,FEM
+voc_speaker_ph,custom_its,voc_mal_ph_its,MAL
+voc_dur_speaker_ph,custom_its,,CHI
+voc_dur_speaker_ph,custom_its,,FEM
+voc_dur_speaker_ph,custom_its,,MAL

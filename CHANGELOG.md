@@ -4,12 +4,94 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.1.0] 2023-02-20
+
+### Added
+
+- Windows automated tests (some functions were edited to be windows compatible). TO REMEMBER: type int in windows default to int32 instead of int64, can lead to big int turned into negative values
+- Check calculated ages during corpus validation
+
+### Changed
+
+- pandas version restricted to avoid errors of feature releases , (1.1.0 (assert_frame_equal check_less_precise) to 1.5.0 (last checked version))
+- no usage of sox command anymore, remove sox dependency
+- merging annotations now sets the format to 'NA' instead of a blank value.
+
+### Fixed
+
+- replace exit() with raise ValueError() to comply with Exception propagation (metrics pipeline)
+- fixed ignore-errors in zooniverse upload_chunks
+- fixed calculate_shift to correctly reshape to single channel
+
+## [0.0.7] 2022-09-14
+
+### Fixed
+
+- missing column merged_from in annotations.csv does not fail anymore
+
+## [0.0.6] 2022-09-13
+
+### Added
+
+- Start times can include seconds (e.g. 12:34:59) while still accepting the old format (This change will allow other columns to accept multiple formats easily).
+- `child-project --version` command
+- `merge_sets` in `AnnotationManager` method now accepts arguments [full_set_merge,skip_existing,recording_filter] to carry out partial merges
+- `child-project metrics` added the `--segments` command to extract metrics from a dataFrame of segments
+- metrics <voc_speaker> <lena_CTC> and <lena_CVC>
+
+### Changed
+
+- `metrics` pipeline's options `--from --to` require a HH:MM:SS format now.
+- `merge-annotations` command fails when the output_set already exists or if the required sets don't exist
+
+
+### Fixed
+
+- eafbuilder attributes a default time-aligneable ling-type to created tiers to avoid random attribution that can lead to wrong behaviour and crashes
+- 'imported_at' column in annotations.csv did not have a new correct format (in a set)
+- metrics avg_cry_... avg_can_... and avg_non_can_... were not calculated correctly
+- metrics lp_n lp_dur use lena columns in priority
+- metrics lena-CTC and lena-CVC are added correctly and added to the output of the lena pipeline
+- praat-parselmouth is now in the setup file so the dependency get installed automatically by conda
+
+### Dropped
+
+- `child-project process --split` --split option dropped as there is no further need of reducing long audios (>15hs)
+
+## [0.0.5] - 2022-07-25
+
+### Added
+
+ - `--spectrogram` option in the `zooniverse extract-chunks` pipeline to generate an image of a spectrogram that will help citizen-scientists with the classification on zooniverse.
+ - `child-project compare-recordings` command added to allow users to prin a divergence score. This will help identify audio files that are just duplicates of others (and possibily have different codecs/sampling rate/number of channels)
+ - `--import-speech-from` command added to the eaf builder to integrate previous annotations to the eaf file (e.g. VTC segments) to facilitate annotation process
+
+### Changed
+
+- `metrics` pipeline, reworked to be more flexible. Performance hit with it.
+    - Old pipelines still exist
+    - new usage of `--period` option on every pipeline and for eveery metric.
+    - Usage of a csv file to specify the list of metrics wanted
+    - Ease of adding new metrics to the supported list
+    - Outputs a yml parameter file that can be reused to compute the same metrics and keep a trace of what was run.
+- changes to standard annotation value (addressee, vcm_type etc)
+
+### Fixed
+
+- importation of empty file now correctly generates an empty converted file
+- `--period` option correctly works with other units than `recording_filename`
+
+### Dropped
+
+- Support for python 3.6
+
 ## [0.0.4] - 2022-02-02
 
 ### Added 
 
  - Conversation sampler
  - `get_within_ranges` function to retrieve all annotations that match the desired portions of the recordings
+ - `--import-speech-from` option for the EAF annotation builder to pre-fill annotations based on any previously imported set of annotations
  - `compute_ages` function to compute the age of the subject child for each recording
  - `lena_speaker` for the LENA its converter
  - `lena_speaker` aggregated metrics for the LenaMetrics pipeline
@@ -59,7 +141,10 @@ All notable changes to this project will be documented in this file.
 
 - First proper release of the package.
 
-[unreleased]: https://github.com/LAAC-LSCP/ChildProject/compare/v0.0.4...HEAD
+[unreleased]: https://github.com/LAAC-LSCP/ChildProject/compare/v0.0.7...HEAD
+[0.0.7]: https://github.com/LAAC-LSCP/ChildProject/releases/tag/v0.0.7
+[0.0.6]: https://github.com/LAAC-LSCP/ChildProject/releases/tag/v0.0.6
+[0.0.5]: https://github.com/LAAC-LSCP/ChildProject/releases/tag/v0.0.5
 [0.0.4]: https://github.com/LAAC-LSCP/ChildProject/releases/tag/v0.0.4
 [0.0.3]: https://github.com/LAAC-LSCP/ChildProject/releases/tag/v0.0.3
 [0.0.2]: https://github.com/LAAC-LSCP/ChildProject/releases/tag/v0.0.2

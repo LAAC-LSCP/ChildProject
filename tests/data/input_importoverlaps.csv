@@ -1,0 +1,6 @@
+set,recording_filename,time_seek,raw_filename,range_onset,range_offset,format,filter,note
+textgrid,sound.wav,0,example.TextGrid,0,5000,TextGrid,,overlaps
+eaf_basic,sound.wav,0,example.eaf,0,300000,eaf,,same namefile
+eaf_solis,sound.wav,0,example_solis.eaf,40000000,80000000,eaf,,shoud succeed +1 line
+textgrid,sound2.wav,0,example.TextGrid,0,10000,TextGrid,,shoud succeed +1 line bc diff rec
+textgrid2,sound.wav,0,example.TextGrid,0,10000,TextGrid,,shoud succeed +1 line bc diff set

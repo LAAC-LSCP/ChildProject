@@ -13,7 +13,10 @@ class MissingColumnsException(Exception):
         super().__init__(
             f"dataframe {name} misses the following required columns: {missing}"
         )
-
+        
+class IncorrectDtypeException(Exception):
+    """Exception when an Unexpected DType is found in a pandas DataFrame
+    """
 
 def assert_dataframe(name: str, df: pd.DataFrame, not_empty: bool = False):
     assert isinstance(
@@ -29,6 +32,13 @@ def assert_columns_presence(name: str, df: pd.DataFrame, columns: Union[Set, Lis
 
     if len(missing):
         raise MissingColumnsException(name, missing)
+        
+def read_csv_with_dtype(file: str, dtypes: dict):
+    try:
+        df = pd.read_csv(file,dtype=dtypes)
+    except ValueError:
+        raise IncorrectDtypeException('Incorrect type found in {}, expected column types are:\n{}'.format(file,dtypes))
+    return df
 
 
 def is_boolean(x):
@@ -115,7 +125,7 @@ class IndexTable:
         return self.df
 
     def msg(self, text):
-        return "{}: {}".format(self.path, text)
+        return "{}: {}".format(os.path.normcase(self.path), text)
 
     def validate(self):
         errors, warnings = [], []
@@ -150,7 +160,7 @@ class IndexTable:
         if len(unknown_columns) > 0:
             warnings.append(
                 self.msg(
-                    "unknown column{} '{}' in {}, exepected columns are: {}".format(
+                    "unknown column{} '{}' in {}, expected columns are: {}".format(
                         "s" if len(unknown_columns) > 1 else "",
                         ",".join(unknown_columns),
                         self.name,
@@ -199,15 +209,21 @@ class IndexTable:
                         warnings.append(self.msg(message))
 
                 elif column_attr.datetime:
-                    try:
-                        dt = datetime.datetime.strptime(
-                            row[column_name], column_attr.datetime
-                        )
-                    except:
-                        message = "'{}' is not a proper date/time for column '{}' (expected {}) on line {}".format(
+                    passed = False
+                    for frmt in column_attr.datetime:
+                        try:
+                            dt = datetime.datetime.strptime(
+                                row[column_name], frmt
+                            )
+                            passed = True
+                            break
+                        except:
+                            pass
+                    if not passed:
+                        message = "'{}' is not a proper date/time for column '{}' (expected: {}) on line {}".format(
                             row[column_name],
                             column_name,
-                            column_attr.datetime,
+                            ' / '.join(column_attr.datetime),
                             line_number,
                         )
                         if column_attr.required and str(row[column_name]) != "NA":

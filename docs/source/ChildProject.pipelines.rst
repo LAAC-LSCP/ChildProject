@@ -28,6 +28,14 @@ ChildProject.pipelines.metrics module
    :undoc-members:
    :show-inheritance:
 
+ChildProject.pipelines.metricsFunctions module
+----------------------------------------------
+
+.. automodule:: ChildProject.pipelines.metricsFunctions
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 ChildProject.pipelines.pipeline module
 --------------------------------------
 

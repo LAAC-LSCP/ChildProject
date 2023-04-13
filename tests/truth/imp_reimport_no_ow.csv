@@ -1,0 +1,2 @@
+set,recording_filename,time_seek,raw_filename,range_onset,range_offset,format,filter,error,annotation_filename
+alice,sound2.wav,0,example_alice.txt,1990000,2000000,alice,namibie_aiku_20160714_1,,sound2_1990000_2000000.csv

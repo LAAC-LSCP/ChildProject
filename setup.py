@@ -1,13 +1,17 @@
 from setuptools import setup, find_packages
 import ChildProject
+import os
+
+DIRECTORY = os.path.dirname(__file__)
+README = open(os.path.join(DIRECTORY, "README.md")).read()
 
 requires = {
-    "core": ["pandas>=0.25.0", "jinja2", "numpy>=1.16.5", "sox", "datalad"],
+    "core": ["pandas>=1.1.0,<=1.5.0", "jinja2", "numpy>=1.16.5", "datalad"],
     "annotations": ["lxml", "pympi-ling", "pylangacq", "python-dateutil>=2.8.1"],
-    "metrics": ['pyannote.metrics; python_version >= "3.7.0"', "nltk", "sklearn"],
+    "metrics": ['pyannote.metrics; python_version >= "3.7.0"', "nltk", "scikit-learn", "GitPython"],
     "audio": ["librosa", "pydub", "pysoundfile"],
     "samplers": ["PyYAML"],
-    "zooniverse": ["panoptes-client"],
+    "zooniverse": ["panoptes-client", "praat-parselmouth"],
     "eaf-builder": ["importlib-resources"],
     "constraints": [
         "click==7.1.1",
@@ -22,6 +26,8 @@ setup(
     name="ChildProject",
     version=ChildProject.__version__,
     description="LAAC@LSCP",
+    long_description=README,
+    long_description_content_type="text/markdown",
     url="https://github.com/LAAC-LSCP/ChildProject",
     author="Lucas Gautheron",
     author_email="lucas.gautheron@gmail.com",
@@ -36,6 +42,7 @@ setup(
         "Topic :: Scientific/Engineering",
     ],
     packages=find_packages(),
+    python_requires=">=3.7",
     install_requires=requires["core"]
     + requires["annotations"]
     + requires["audio"]

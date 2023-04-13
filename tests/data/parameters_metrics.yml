@@ -1,0 +1,36 @@
+destination : "met_yaml.csv"
+by : "child_id"
+path : output/metrics
+destination : output/metrics/extra/specs_metrics.csv
+child_cols : child_dob,experiment
+rec_cols : date_iso
+from_time : "8:15:00"
+to_time : "16:45:00"
+period : 2h
+metrics_list :
+ -
+  callable : voc_speaker_ph
+  set : specs_its
+  speaker : FEM
+ -
+  name : voc_och_ph_its
+  callable : voc_speaker_ph
+  set : specs_its
+  speaker : OCH
+ -
+  callable : voc_speaker_ph
+  set : specs_its
+  speaker : CHI
+ -
+  name : voc_dur_chi_ph_its
+  callable : voc_dur_speaker_ph
+  set : specs_its
+  speaker : CHI
+ -
+  callable : wc_speaker_ph
+  set : specs_its
+  speaker : MAL
+ -
+  callable : wc_speaker_ph
+  set : specs_its
+  speaker : FEM

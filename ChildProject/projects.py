@@ -58,7 +58,7 @@ class ChildProject:
             name="child_dob",
             description="child's date of birth",
             required=True,
-            datetime="%Y-%m-%d",
+            datetime={"%Y-%m-%d"},
         ),
         IndexColumn(
             name="location_id",
@@ -156,13 +156,13 @@ class ChildProject:
             name="date_iso",
             description="date in which recording was started in ISO (eg 2020-09-17)",
             required=True,
-            datetime="%Y-%m-%d",
+            datetime={"%Y-%m-%d"},
         ),
         IndexColumn(
             name="start_time",
-            description="local time in which recording was started in format 24-hour (H)H:MM; if minutes are unknown, use 00. Set as ‘NA’ if unknown.",
+            description="local time in which recording was started in format 24-hour (H)H:MM:SS or (H)H:MM; if minutes or seconds are unknown, use 00. ‘NA’ if unknown, this will raise a Warning when validating as some analysis that rely on times will not consider this recordings.",
             required=True,
-            datetime="%H:%M",
+            datetime={"%H:%M","%H:%M:%S"},
         ),
         IndexColumn(
             name="recording_device_type",
@@ -220,8 +220,8 @@ class ChildProject:
         ),
         IndexColumn(
             name="start_time_accuracy",
-            description="Accuracy of start_time for this recording. If not specified, assumes minute-accuray.",
-            choices=["minute", "hour", "reliable"],
+            description="Accuracy of start_time for this recording. If not specified, assumes second-accuray.",
+            choices=["second", "minute", "hour", "reliable"],
         ),
         IndexColumn(
             name="noisy_setting",
@@ -258,8 +258,10 @@ class ChildProject:
         ),
     ]
 
-    RAW_RECORDINGS = "recordings/raw"
-    CONVERTED_RECORDINGS = "recordings/converted"
+    RAW_RECORDINGS = os.path.normpath("recordings/raw")
+    CONVERTED_RECORDINGS = os.path.normpath("recordings/converted")
+    STANDARD_SAMPLE_RATE = 16000
+    STANDARD_PROFILE = 'standard' # profile that is expected to contain the standardized audios (16kHz). The existence and sampling rates of this profile are checked when <validating this profile> or <validating without profile and the raw recordings are not 16kHz>.
 
     PROJECT_FOLDERS = ["recordings", "annotations", "metadata", "doc", "scripts"]
 
@@ -343,7 +345,7 @@ class ChildProject:
 
             df["line"] = df.index
             df = (
-                df[(set(df.columns) - set(dataframe.columns)) | {merge_column}]
+                df[list((set(df.columns) - set(dataframe.columns)) | {merge_column})]
                 .merge(
                     dataframe, how="left", left_on=merge_column, right_on=merge_column
                 )
@@ -357,13 +359,13 @@ class ChildProject:
         """
         self.ct = IndexTable(
             "children",
-            os.path.join(self.path, "metadata/children.csv"),
+            os.path.join(self.path, "metadata","children.csv"),
             self.CHILDREN_COLUMNS,
             enforce_dtypes=self.enforce_dtypes,
         )
         self.rt = IndexTable(
             "recordings",
-            os.path.join(self.path, "metadata/recordings.csv"),
+            os.path.join(self.path, "metadata","recordings.csv"),
             self.RECORDINGS_COLUMNS,
             enforce_dtypes=self.enforce_dtypes,
         )
@@ -423,7 +425,9 @@ class ChildProject:
         if ignore_recordings:
             return self.errors, self.warnings
 
+        from pydub.utils import mediainfo #mediainfo to get audio files info
         for index, row in self.recordings.iterrows():
+            
             # make sure that recordings exist
             for column_name in self.recordings.columns:
                 column_attr = next(
@@ -452,6 +456,24 @@ class ChildProject:
                         continue
 
                     if os.path.exists(path):
+                        if not profile:
+                            info = mediainfo(path)
+                            if int(info['sample_rate']) != self.STANDARD_SAMPLE_RATE:
+                                try:
+                                    std_path = self.get_recording_path(raw_filename, self.STANDARD_PROFILE)
+                                    if os.path.exists(std_path):
+                                        std_info = mediainfo(std_path)
+                                        if 'sample_rate' in std_info and int(std_info['sample_rate']) != self.STANDARD_SAMPLE_RATE:
+                                            self.warnings.append(f"converted version of recording '{raw_filename}' at '{std_path}' has unexpected sampling rate {std_info['sample_rate']}Hz when {self.STANDARD_SAMPLE_RATE}Hz is expected for profile {self.STANDARD_PROFILE}")
+                                    else:
+                                        self.warnings.append(f"recording '{raw_filename}' at '{path}' has a non standard sampling rate {info['sample_rate']}Hz and no converted version found in the standard profile at {std_path}. The file content may not be downloaded. you can create the missing standard converted audios with 'child-project process {self.path} {self.STANDARD_PROFILE} basic --format=wav --sampling={self.STANDARD_SAMPLE_RATE} --codec=pcm_s16le --skip-existing'")
+                                except:
+                                    profile_metadata = os.path.join(self.path,self.CONVERTED_RECORDINGS,self.STANDARD_PROFILE,"recordings.csv",)
+                                    self.warnings.append(f"recording '{raw_filename}' at '{path}' has a non standard sampling rate of {info['sample_rate']}Hz and no standard conversion in profile {self.STANDARD_PROFILE} was found. Does the standard profile exist? Does {profile_metadata} exist? you can create the standard profile with 'child-project process {self.path} {self.STANDARD_PROFILE} basic --format=wav --sampling={self.STANDARD_SAMPLE_RATE} --codec=pcm_s16le --skip-existing'")
+                        elif profile == self.STANDARD_PROFILE:
+                            info = mediainfo(path)
+                            if 'sample_rate' in info and int(info['sample_rate']) != self.STANDARD_SAMPLE_RATE:
+                                self.warnings.append(f"recording '{raw_filename}' at '{path}' has unexpected sampling rate {info['sample_rate']}Hz when {self.STANDARD_SAMPLE_RATE}Hz is expected for profile {self.STANDARD_PROFILE}")
                         continue
 
                     message = f"cannot find recording '{raw_filename}' at '{path}'"
@@ -471,6 +493,18 @@ class ChildProject:
                     )
                 )
 
+        # consistency between dates of birth and recording dates
+        if "date_iso" in self.recordings.columns and "child_dob" in self.children.columns:
+            ages = self.compute_ages(
+                recordings=self.recordings,
+                children=self.children.drop_duplicates(["child_id"], keep="first")
+            )
+
+            self.errors += [
+                f"Age at recording is negative in recordings on line {index} ({age:.1f} months). Check date_iso for that recording and child_dob for the corresponding child."
+                for index, age in ages[ages<0].iteritems()
+            ]
+
         # detect un-indexed recordings and throw warnings
         files = [
             self.recordings[c.name].tolist()
@@ -484,7 +518,7 @@ class ChildProject:
         ]
 
         recordings_files = glob.glob(
-            os.path.join(self.path, self.RAW_RECORDINGS, "**/*.*"), recursive=True
+            os.path.join(os.path.normcase(self.path), self.RAW_RECORDINGS, "**/*.*"), recursive=True
         )
 
         for rf in recordings_files:
@@ -521,10 +555,10 @@ class ChildProject:
                 return None
 
             return os.path.join(
-                self.path, self.CONVERTED_RECORDINGS, profile, converted_filename,
+                os.path.normcase(self.path), self.CONVERTED_RECORDINGS, profile, os.path.normpath(converted_filename),
             )
         else:
-            return os.path.join(self.path, self.RAW_RECORDINGS, recording_filename)
+            return os.path.join(os.path.normcase(self.path), self.RAW_RECORDINGS, os.path.normpath(recording_filename))
 
     def get_converted_recording_filename(
         self, profile: str, recording_filename: str
@@ -612,6 +646,13 @@ class ChildProject:
             _recordings = _recordings[
                 _recordings["recording_filename"].isin(recordings)
             ]
+            
+            if _recordings.shape[0] < len(recordings):
+                recs = pd.Series(recordings)
+                missing_recs = recs[~recs.isin(self.recordings['recording_filename'])].tolist()
+                #self.recordings[~self.recordings['recording_filename'].isin(recordings)]['recording_filename'].tolist()
+                raise ValueError("recordings {} were not found in the dataset index. Check the names and make sure they exist in '{}'".format(missing_recs,os.path.join('metadata','recordings.csv')))
+                
 
         return _recordings
 
@@ -631,7 +672,7 @@ class ChildProject:
             )
         )
         recordings["duration"].fillna(0, inplace=True)
-        recordings["duration"] = (recordings["duration"] * 1000).astype(int)
+        recordings["duration"] = (recordings["duration"] * 1000).astype(np.int64)
 
         return recordings
 
