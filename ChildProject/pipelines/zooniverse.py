@@ -401,7 +401,7 @@ class ZooniversePipeline(Pipeline):
             reset_tests()            
         else:
             from panoptes_client import Panoptes, Project, Subject, SubjectSet
-            from panoptes_client import PanoptesAPIException
+            from panoptes_client.panoptes import PanoptesAPIException
 
 
         Panoptes.connect(username=self.zooniverse_login, password=self.zooniverse_pwd)
@@ -559,7 +559,7 @@ class ZooniversePipeline(Pipeline):
             reset_tests() 
         else:
             from panoptes_client import Panoptes, Project, Subject, SubjectSet
-            from panoptes_client import PanoptesAPIException
+            from panoptes_client.panoptes import PanoptesAPIException
 
         Panoptes.connect(username=self.zooniverse_login, password=self.zooniverse_pwd)
         zooniverse_project = Project(project_id)
