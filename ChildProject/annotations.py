@@ -1157,11 +1157,13 @@ class AnnotationManager:
         self.annotations = pd.concat([self.annotations, annotations], sort=False).drop_duplicates(subset=['set','recording_filename','annotation_filename'], keep='last')
         self.write()
 
-    def get_segments(self, annotations: pd.DataFrame) -> pd.DataFrame:
+    def get_segments(self, annotations: pd.DataFrame, clip:bool = True) -> pd.DataFrame:
         """get all segments associated to the annotations referenced in ``annotations``.
 
         :param annotations: dataframe of annotations, according to :ref:`format-annotations`
         :type annotations: pd.DataFrame
+        :param clip_segments: wether to clip segments to be contained in the range, if false, segments could extend outside of range
+        :type annotations: bool
         :return: dataframe of all the segments merged (as specified in :ref:`format-annotations-segments`), merged with ``annotations``. 
         :rtype: pd.DataFrame
         """
@@ -1196,10 +1198,15 @@ class AnnotationManager:
 
             for annotation in _annotations.to_dict(orient="records"):
                 segs = df.copy()
-                segs = AnnotationManager.clip_segments(
-                    segs, annotation["range_onset"], annotation["range_offset"]
-                )
-
+                if clip:
+                    segs = AnnotationManager.clip_segments(
+                            segs, annotation["range_onset"], annotation["range_offset"]
+                        )
+                else:
+                    segs = AnnotationManager.discard_segments(
+                            segs, annotation["range_onset"], annotation["range_offset"]
+                        )
+                    
                 if not len(segs):
                     continue
 
@@ -1662,10 +1669,36 @@ class AnnotationManager:
 
         start = int(start)
         stop = int(stop)
-
+        
         segments["segment_onset"].clip(lower=start, upper=stop, inplace=True)
         segments["segment_offset"].clip(lower=start, upper=stop, inplace=True)
-
+        
         segments = segments[segments["segment_offset"] > segments["segment_onset"]]
+        
+        return segments
+    
+    @staticmethod
+    def discard_segments(segments: pd.DataFrame, start: int, stop: int) -> pd.DataFrame:
+        """remove all segments that are not at least partially in the range
+        [``start``,``stop``].
 
+        :param segments: Dataframe of the segments to clip
+        :type segments: pd.DataFrame
+        :param start: range start (in milliseconds)
+        :type start: int
+        :param stop: range end (in milliseconds)
+        :type stop: int
+        :return: Dataframe of the clipped segments
+        :rtype: pd.DataFrame
+        """
+        assert_dataframe("segments", segments)
+        assert_columns_presence(
+            "segments", segments, {"segment_onset", "segment_offset"}
+        )
+        
+        start = int(start)
+        stop = int(stop)
+        
+        segments = segments[(segments["segment_onset"] < stop) & (segments['segment_offset'] > start)]
+        
         return segments

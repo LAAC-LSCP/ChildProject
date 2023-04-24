@@ -101,23 +101,27 @@ class Sampler(ABC):
 
         try:
             segments = am.get_segments(annotations)
+            
             if not self.ignore_segments.empty:
                 ignore_segs = self.ignore_segments[self.ignore_segments["recording_filename"] == recording_filename] if recording_filename else self.ignore_segments
                 ignore_segs = ignore_segs.rename(columns={"segment_onset": "range_onset","segment_offset":"range_offset"}, errors="raise")
-                ignore_segs = am.get_within_ranges(ignore_segs)
-                ignore_segs = ignore_segs[ignore_segs["set"] == self.annotation_set]
-                ignore_segs = am.get_segments(ignore_segs)
+                ignore_segs = am.get_within_ranges(ignore_segs, sets=[self.annotation_set])
+                ignore_segs = am.get_segments(ignore_segs, clip=False)
                 
-                segments = pd.concat([segments,ignore_segs]).drop_duplicates(subset=['segment_offset'],keep=False)
-                segments = pd.concat([segments,ignore_segs]).drop_duplicates(subset=['segment_onset'],keep=False)
+                suffix = '__left'
+                segments = segments.merge(ignore_segs, indicator=True, how='outer', on=['speaker_type','segment_onset','segment_offset'], suffixes=("", suffix)).query('_merge == "left_only"')
+                to_drop = ['_merge']
+                for x in segments.columns:
+                    if x.endswith(suffix): to_drop.append(x)
+                segments = segments.drop(to_drop, axis=1)
                 
-        except Exception as e:
+        except Exception as e: #will have to check this part, not sure why we should catch the exception
+            raise e
             return None
         
-
         if len(self.target_speaker_type) and len(segments):
             segments = segments[segments["speaker_type"].isin(self.target_speaker_type)]
-
+            
         return segments
 
     def remove_excluded(self):
@@ -162,6 +166,51 @@ class Sampler(ABC):
             )
 
         self.segments = pd.concat(segments)
+        
+    def restructure_overlaps(self):
+        """takes the sampled segments and look for overlaps in them
+        When an overlap is detected, all the segments involved in it are
+        merged into one segment and then recut into as equal segments as possible
+        using existing timestamps (to avoid cutting vocalizations)
+        """
+        self.segments = self.segments.sort_values(['segment_onset', 'segment_offset'])
+        
+        for i in self.segments.index:
+            #print('new seg')
+            #print(pd.DataFrame(row).transpose())
+            
+            #select all segments that overlap with the current vocalization (including the vocalization in question)
+            ovl_index = self.segments.index[(self.segments['segment_onset'] < self.segments.loc[i,'segment_offset']) &
+                                            (self.segments['segment_offset'] > self.segments.loc[i,'segment_onset'])]
+            
+            shape = ovl_index.shape[0] - 1
+            
+            if shape < 1: continue #no overlap, skip the segment
+            
+            timestamps = sorted(self.segments.loc[ovl_index,'segment_onset'].to_list() +
+                                self.segments.loc[ovl_index,'segment_offset'].to_list())
+            
+            start = timestamps.pop(0)
+            end = timestamps.pop(-1)
+            
+            selection = []
+            for k in range(shape):
+                ideal_ts = start + ( (k+1) * (end - start) / (shape + 1))
+                
+                best_index = min(range(len(timestamps[:k+1-shape])), key=lambda x: abs(timestamps[:k+1-shape][x]-ideal_ts)) \
+                            if (shape - k) > 1 else min(range(len(timestamps)), key=lambda x: abs(timestamps[x]-ideal_ts))
+                                
+                selection.append(timestamps.pop(best_index))
+            
+            k = 0
+            self.segments.loc[ovl_index[0], 'segment_onset'] = int(start)
+            while k < shape:
+                self.segments.loc[ovl_index[k], 'segment_offset'] = int(selection[k])
+                self.segments.loc[ovl_index[k+1], 'segment_onset'] = int(selection[k])
+                k+=1
+            self.segments.loc[ovl_index[-1], 'segment_offset'] = int(end)
+            
+        return self.segments
 
     def assert_valid(self):
         require_columns = ["recording_filename", "segment_onset", "segment_offset"]
@@ -730,7 +779,7 @@ class HighVolubilitySampler(Sampler):
                 )
             )
             return pd.DataFrame(
-                columns=["segment_onset", "segment_offset", "recording_filename"]
+                columns=["segment_onset", "segment_offset", "recording_filename", self.metric]
             )
 
         # NOTE: The timestamps were simply rounded to 5 minutes in the original
