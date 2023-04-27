@@ -11,8 +11,11 @@ import subprocess
 import sys
 import array
 import traceback
+import signal
 from typing import List
 from yaml import dump
+
+from functools import partial
 
 import matplotlib.pyplot as plt
 from matplotlib.ticker import ScalarFormatter
@@ -263,6 +266,7 @@ class ZooniversePipeline(Pipeline):
 
         self.destination = destination
         self.project = ChildProject.projects.ChildProject(path)
+        self.project.read()
 
         self.chunks_length = int(chunks_length)
         self.chunks_min_amount = int(chunks_min_amount)
@@ -313,8 +317,10 @@ class ZooniversePipeline(Pipeline):
                     "uploaded": False,
                     "project_id": "",
                     "subject_set": "",
+                    "subject_set_id": pd.NA,
                     "zooniverse_id": 0,
                     "keyword": keyword,
+                    "dataset": self.project.experiment
                 }
                 for c in self.chunks
             ]
@@ -407,7 +413,7 @@ class ZooniversePipeline(Pipeline):
         Panoptes.connect(username=self.zooniverse_login, password=self.zooniverse_pwd)
         zooniverse_project = Project(project_id)
 
-        subjects_metadata = []
+        self.subjects_metadata = []
     
         subject_set = None
 
@@ -428,7 +434,14 @@ class ZooniversePipeline(Pipeline):
             print("nothing left to upload.")
             return
         
-        orphan_chunks = []
+        self.orphan_chunks = []
+    
+        #handling sigterm and sigint to write to a csv file before exiting to keep track of what was done
+        #this is hard to test on a controlled environment, for now, manual testing is required
+        original_sigint_handler = signal.getsignal(signal.SIGINT)
+        original_sigterm_handler = signal.getsignal(signal.SIGTERM)
+        signal.signal(signal.SIGINT, partial(self.exit_upload, rec_orphan=record_orphan))
+        signal.signal(signal.SIGTERM, partial(self.exit_upload, rec_orphan=record_orphan))
 
         for chunk_index in chunks_to_upload:
             chunk = chunks_to_upload[chunk_index]
@@ -440,12 +453,15 @@ class ZooniversePipeline(Pipeline):
             )
 
             try:
+                #we take the mp3 file as the is the format supported by zooniverse
                 subject = Subject()
                 subject.links.project = zooniverse_project
                 subject.add_location(
                     os.path.join(os.path.dirname(self.chunks_file), "chunks", chunk["mp3"])
                 )
                 subject.metadata["date_extracted"] = chunk["date_extracted"]
+                subject.metadata["dataset"] = chunk["dataset"] if 'dataset' in chunk.keys() else pd.NA
+                subject.metadata["filename"] = chunk["mp3"]
 
                 subject.save()
             except Exception as e:
@@ -476,8 +492,9 @@ class ZooniversePipeline(Pipeline):
                 chunk["zooniverse_id"] = str(subject.id)
                 chunk["project_id"] = str(project_id)
                 chunk["subject_set"] = ""
+                chunk['subject_set_id'] = pd.NA
                 chunk["uploaded"] = True
-                orphan_chunks.append(chunk)
+                self.orphan_chunks.append(chunk)
                 
                 if ignore_errors:
                     continue
@@ -489,19 +506,37 @@ class ZooniversePipeline(Pipeline):
             chunk["zooniverse_id"] = str(subject.id)
             chunk["project_id"] = str(project_id)
             chunk["subject_set"] = str(subject_set.display_name)
+            chunk["subject_set_id"] = str(subject_set.id)
             chunk["uploaded"] = True
-            subjects_metadata.append(chunk)
+            self.subjects_metadata.append(chunk)
 
-        if len(subjects_metadata) + len(orphan_chunks) == 0:
+        if len(self.subjects_metadata) + len(self.orphan_chunks) == 0:
             return
 
-        if len(subjects_metadata) : self.chunks.update(pd.DataFrame(subjects_metadata).set_index("index"))
+        if len(self.subjects_metadata) : self.chunks.update(pd.DataFrame(self.subjects_metadata).set_index("index"))
         
-        if record_orphan and len(orphan_chunks): 
-            self.chunks.update(pd.DataFrame(orphan_chunks).set_index("index"))
-            print("WARNING: {} chunks were uploaded but not linked to the subject set {}. To attempt to relink them, try link_orphan_subjects".format(orphan_chunks, subject_set.display_name))
+        if record_orphan and len(self.orphan_chunks): 
+            self.chunks.update(pd.DataFrame(self.orphan_chunks).set_index("index"))
+            print("WARNING: {} chunks were uploaded but not linked to the subject set {}. To attempt to relink them, try link_orphan_subjects".format(self.orphan_chunks, subject_set.display_name))
 
         self.chunks.to_csv(self.chunks_file)
+        
+        signal.signal(signal.SIGINT, original_sigint_handler)
+        signal.signal(signal.SIGTERM, original_sigterm_handler)
+        
+    def exit_upload(self, rec_orphan, sub_set):
+        if len(self.subjects_metadata) + len(self.orphan_chunks) != 0:
+            if len(self.subjects_metadata) : self.chunks.update(pd.DataFrame(self.subjects_metadata).set_index("index"))
+            
+            if rec_orphan and len(self.orphan_chunks): 
+                self.chunks.update(pd.DataFrame(self.orphan_chunks).set_index("index"))
+                print("WARNING: {} chunks were uploaded but not linked to the subject set {}. To attempt to relink them, try link_orphan_subjects".format(self.orphan_chunks, sub_set.display_name))
+                
+            self.chunks.to_csv(self.chunks_file)
+            
+        print("Signal interruption {}, exited gracefully".format())
+        sys.exit(0)
+        
         
     def link_orphan_subjects(
         self,
@@ -633,6 +668,7 @@ class ZooniversePipeline(Pipeline):
 
             chunk["index"] = chunk_index
             chunk["subject_set"] = str(subject_set.display_name)
+            chunk["subject_set_id"] = str(subject_set.id)
             subjects_metadata.append(chunk)
 
         if len(subjects_metadata):

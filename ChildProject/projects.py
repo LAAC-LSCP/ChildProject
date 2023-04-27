@@ -275,6 +275,7 @@ class ChildProject:
         self, path: str, enforce_dtypes: bool = False, ignore_discarded: bool = True
     ):
         self.path = path
+        self.experiment = None
         self.enforce_dtypes = enforce_dtypes
         self.ignore_discarded = ignore_discarded
 
@@ -383,6 +384,11 @@ class ChildProject:
 
         self.children = self.ct.read()
         self.recordings = self.rt.read()
+        
+        exp = self.children.iloc[0]['experiment']
+        if len(set(self.children['experiment'].unique()).union(set(self.recordings['experiment'].unique()))) > 1:
+            raise ValueError("must use a unique experiment name acrosse the dataset")
+        self.experiment = exp
 
         # accumulate additional metadata (optional)
         if accumulate:
