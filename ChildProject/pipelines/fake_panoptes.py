@@ -43,8 +43,11 @@ class Subject:
         return s
         
 class SubjectSet:
+    ss_n = 0
     add_number = 0
     def __init__(self):
+        self.id = SubjectSet.ss_n
+        SubjectSet.ss_n += 1
         self.links = Links()
         self.links.add_attr('project','')
         self.display_name = ''
