@@ -7,6 +7,10 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - ignore_discarded is now the default behaviour of childproject projects, robustness was added to the discard column
+- projects now check for unicity of the experiment column in children and recording csv, read() fails when not unique
+- zooniverse uploads : uploads extra metadata to zooniverse (name of the audio clip, dataset it belongs to)
+- zooniverse uploads : the subject_set id is stored in the chunk csv file, as the subject_set name (display name) is susceptible to change
+- zooniverse uploads : the upload now handles SIGINT and SIGTERM signals to save progression of the upload to the csv before exiting (useful when a job needs to be interrupted
 
 ### Fixed
 
