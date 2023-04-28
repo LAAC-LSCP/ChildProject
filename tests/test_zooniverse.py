@@ -72,6 +72,7 @@ BASE_CHUNKS = os.path.join('tests', 'data', 'chunks_test.csv')
                          (False,None,True,True,'stale_obj_continue_orphan.csv'),
                          (False,30,True,False,'no_errors.csv'),
                          (True,30,True,True,'loc_invalid_continue.csv'),
+                         (True,30,True,True,'max_subjects_continue.csv'),
                          ])
 def test_uploading(location_fail, amount, ignore_errors, record_orphan, result):
     new_path = os.path.join('output', 'zooniverse', 'chunks_test.csv')
@@ -95,7 +96,7 @@ def test_uploading(location_fail, amount, ignore_errors, record_orphan, result):
                              amount,
                              ignore_errors,
                              record_orphan,
-                             test_endpoint=True,
+                             test_endpoint=True if result != 'max_subjects_continue.csv' else 2,
                              )
     
     truth = pd.read_csv(os.path.join('tests','truth','zoochunks',result))

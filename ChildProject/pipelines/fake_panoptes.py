@@ -12,6 +12,8 @@ import os
 
 LOCATION_FAIL = 'rec01_52_53.mp3' # precise chunk that would fail because of bad format
 
+TEST_MAX_SUBJECT = 5 # when testing the max subjects uploaded error, how many succeed before it occurs
+
 class PanoptesAPIException(Exception):
     pass
 
@@ -22,7 +24,7 @@ class Links:
         
 class Subject:
     sub_number = 0
-    
+    max_subjects = 10000
     def __init__(self):
         self.id = Subject.sub_number
         Subject.sub_number += 1
@@ -35,6 +37,8 @@ class Subject:
         self.location = path
         
     def save(self):
+        if Subject.sub_number >= Subject.max_subjects: #fails at ID 5+
+            raise PanoptesAPIException('User has uploaded {} subjects of {} maximum'.format(Subject.sub_number,Subject.max_subjects))
         pass
     
     def find(num):
@@ -97,7 +101,6 @@ class Classification:
     
 def reset_tests():
     Subject.sub_number = 0
-    SubjectSet.ss_number = 0
     SubjectSet.add_number = 0
         
   
