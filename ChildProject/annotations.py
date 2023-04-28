@@ -1407,8 +1407,12 @@ class AnnotationManager:
 
         return pd.concat(stack) if len(stack) else pd.DataFrame()
 
-    def get_within_time_range(
-        self, annotations: pd.DataFrame, interval : TimeInterval, errors="raise"
+    def get_within_time_range(self,
+        annotations: pd.DataFrame,
+        interval : TimeInterval = None,
+        errors="raise",
+        start_time: str = None,
+        end_time: str = None,
     ):
         """Clip all input annotations within a given HH:MM:SS clock-time range.
         Those that do not intersect the input time range at all are filtered out.
@@ -1419,6 +1423,10 @@ class AnnotationManager:
         :type interval: TimeInterval
         :param errors: how to deal with invalid start_time values for the recordings. Takes the same values as ``pandas.to_datetime``.
         :type errors: str
+        :param start_time: start_time to use in a HH:MM format, only used if interval is None, replaces the first value of interval
+        :type start_time: str
+        :param end_time: end_time to use in a HH:MM format, only used if interval is None, replaces the second value of interval
+        :type end_time: str
         :return: a DataFrame of annotations; \
         For each row, ``range_onset`` and ``range_offset`` are clipped within the desired clock-time range. \
         The clock-time corresponding to the onset and offset of each annotation \
@@ -1426,6 +1434,23 @@ class AnnotationManager:
         If the input annotation exceeds 24 hours, one row per matching interval is returned. \
         :rtype: pd.DataFrame
         """
+        assert interval is not None or (start_time and end_time), "you must pass an interval or a start_time and end_time"
+        
+        if interval is None:
+            try:
+                start_dt = datetime.datetime.strptime(start_time, "%H:%M")
+            except:
+                raise ValueError(
+                    f"invalid value for start_time ('{start_time}'); should have HH:MM format instead"
+                )
+    
+            try:
+                end_dt = datetime.datetime.strptime(end_time, "%H:%M")
+            except:
+                raise ValueError(
+                    f"invalid value for end_time ('{end_time}'); should have HH:MM format instead"
+                )
+            interval = TimeInterval(start_dt,end_dt)
 
         assert_dataframe("annotations", annotations)
         assert_columns_presence(
