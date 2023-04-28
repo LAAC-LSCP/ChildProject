@@ -384,11 +384,6 @@ class ChildProject:
 
         self.children = self.ct.read()
         self.recordings = self.rt.read()
-        
-        exp = self.children.iloc[0]['experiment']
-        if len(set(self.children['experiment'].unique()).union(set(self.recordings['experiment'].unique()))) > 1:
-            raise ValueError("must use a unique experiment name acrosse the dataset")
-        self.experiment = exp
 
         # accumulate additional metadata (optional)
         if accumulate:
@@ -413,6 +408,12 @@ class ChildProject:
 
         self.children = self.ct.df
         self.recordings = self.rt.df
+        
+        exp = self.children.iloc[0]['experiment']
+        exp_values = set(self.children['experiment'].unique()).union(set(self.recordings['experiment'].unique()))
+        if len(exp_values) > 1:
+            raise ValueError(f"Column <experiment> must be unique across the dataset, in both children.csv and recordings.csv , {len(exp_values)} different values were found: {exp_values}")
+        self.experiment = exp
         
     def write_recordings(self, keep_discarded: bool = True, keep_original_columns: bool = True):
         """

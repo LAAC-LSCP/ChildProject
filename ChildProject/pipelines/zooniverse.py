@@ -12,6 +12,8 @@ import sys
 import array
 import traceback
 import signal
+import re
+
 from typing import List
 from yaml import dump
 
@@ -376,7 +378,7 @@ class ZooniversePipeline(Pipeline):
         :type zooniverse_pwd: str, optional
         :param amount: amount of chunks to upload, defaults to 1000
         :type amount: int, optional
-        :param ignore_errors: carry on with the upload even if a clip fails, the csv will be updated accordingly
+        :param ignore_errors: carry on with the upload even if a clip fails, the csv will be updated accordingly, single clip errors are ignored but errors that will repeat (e.g. maximum number of subjects uploaded) will still exit
         :type ignore_errors: bool, optional
         :param record_orphan: when true, chunks that are correctly uploaded but not linked to a subject set (orphan) have their line updated with the subject id, project id and Uploaded flag at True, but subject_set empty. link_orphan_subjects can be used to reattempt it. If false, the chunk is considered not uploaded.   
         :type record_orphan: bool, optional
@@ -403,8 +405,9 @@ class ZooniversePipeline(Pipeline):
         )
         
         if test_endpoint:
-            from ChildProject.pipelines.fake_panoptes import Panoptes, Project, Subject, SubjectSet, PanoptesAPIException, reset_tests
-            reset_tests()            
+            from ChildProject.pipelines.fake_panoptes import Panoptes, Project, Subject, SubjectSet, PanoptesAPIException, reset_tests, TEST_MAX_SUBJECT
+            reset_tests()
+            if test_endpoint == 2: Subject.max_subjects = TEST_MAX_SUBJECT
         else:
             from panoptes_client import Panoptes, Project, Subject, SubjectSet
             from panoptes_client.panoptes import PanoptesAPIException
@@ -442,6 +445,8 @@ class ZooniversePipeline(Pipeline):
         original_sigterm_handler = signal.getsignal(signal.SIGTERM)
         signal.signal(signal.SIGINT, partial(self.exit_upload, rec_orphan=record_orphan))
         signal.signal(signal.SIGTERM, partial(self.exit_upload, rec_orphan=record_orphan))
+        
+        max_subjects_error = re.compile('User has uploaded \d+ subjects of \d+ maximum')
 
         for chunk_index in chunks_to_upload:
             chunk = chunks_to_upload[chunk_index]
@@ -472,7 +477,7 @@ class ZooniversePipeline(Pipeline):
                 )
                 print(traceback.format_exc())
 
-                if ignore_errors:
+                if ignore_errors and not re.fullmatch(max_subjects_error, str(e)):
                     continue
                 else:
                     print("subject upload halting here.")
@@ -660,7 +665,7 @@ class ZooniversePipeline(Pipeline):
                 )
                 print(traceback.format_exc())
                 
-                if ignore_errors:
+                if ignore_errors and str(e):
                     continue
                 else:
                     print("subject upload halting here.")
