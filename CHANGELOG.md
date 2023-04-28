@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - ignore_discarded is now the default behaviour of childproject projects, robustness was added to the discard column
+- allow once again get_within_time_range to take str arguments as times
 
 ### Fixed
 
