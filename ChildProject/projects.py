@@ -737,7 +737,7 @@ class ChildProject:
         self,
         recordings: pd.DataFrame = None,
         children: pd.DataFrame = None,
-        age_format: str = 'months',        
+        age_format: str = 'months',
     ) -> pd.Series:
         """Compute the age of the subject child for each recording (in months, as a float)
         and return it as a pandas Series object.
@@ -758,6 +758,8 @@ class ChildProject:
         :type recordings: pd.DataFrame, optional
         :param children: custom children DataFrame (see :ref:`format-metadata`), otherwise use all project children data, defaults to None
         :type children: pd.DataFrame, optional
+        :param age_format: format to use for the output date default is months, choose between ['months','days','weeks', 'years']
+        :type age_format: str, optional
         """
 
         def date_is_valid(date: str, fmt: str):
