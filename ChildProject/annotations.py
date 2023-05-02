@@ -1410,7 +1410,6 @@ class AnnotationManager:
     def get_within_time_range(self,
         annotations: pd.DataFrame,
         interval : TimeInterval = None,
-        errors="raise",
         start_time: str = None,
         end_time: str = None,
     ):
@@ -1421,8 +1420,6 @@ class AnnotationManager:
         :type annotations: pd.DataFrame
         :param interval: Interval of hours to consider, contains the start hour and end hour
         :type interval: TimeInterval
-        :param errors: how to deal with invalid start_time values for the recordings. Takes the same values as ``pandas.to_datetime``.
-        :type errors: str
         :param start_time: start_time to use in a HH:MM format, only used if interval is None, replaces the first value of interval
         :type start_time: str
         :param end_time: end_time to use in a HH:MM format, only used if interval is None, replaces the second value of interval
