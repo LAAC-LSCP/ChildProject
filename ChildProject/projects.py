@@ -734,7 +734,10 @@ class ChildProject:
         return recordings
 
     def compute_ages(
-        self, recordings: pd.DataFrame = None, children: pd.DataFrame = None
+        self,
+        recordings: pd.DataFrame = None,
+        children: pd.DataFrame = None,
+        age_format: str = 'months',
     ) -> pd.Series:
         """Compute the age of the subject child for each recording (in months, as a float)
         and return it as a pandas Series object.
@@ -755,6 +758,8 @@ class ChildProject:
         :type recordings: pd.DataFrame, optional
         :param children: custom children DataFrame (see :ref:`format-metadata`), otherwise use all project children data, defaults to None
         :type children: pd.DataFrame, optional
+        :param age_format: format to use for the output date default is months, choose between ['months','days','weeks', 'years']
+        :type age_format: str, optional
         """
 
         def date_is_valid(date: str, fmt: str):
@@ -763,6 +768,21 @@ class ChildProject:
             except:
                 return False
             return True
+        
+        def date_fmt(dt,fmt='months'):
+            if dt:
+                if fmt == 'months':
+                    return dt.days / (365.25 / 12)
+                elif fmt == 'days':
+                    return dt.days
+                elif fmt == 'weeks':
+                    return dt.days / 7
+                elif fmt == 'years':
+                    return dt.days / 365.25
+                else:
+                    raise ValueError('unknown format for age : {}'.format(fmt))
+            else:
+                return None
 
         if recordings is None:
             recordings = self.recordings.copy()
@@ -799,7 +819,7 @@ class ChildProject:
                 else None,
                 axis=1,
             )
-            .apply(lambda dt: dt.days / (365.25 / 12) if dt else None)
+            .apply(partial(date_fmt,fmt=age_format))
         )
 
         return age
