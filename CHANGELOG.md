@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 
 - ignore_discarded is now the default behaviour of childproject projects, robustness was added to the discard column
 - allow once again get_within_time_range to take str arguments as times
+- add arguments to choose the format of compute_ages project method
 
 ### Fixed
 
