@@ -46,11 +46,14 @@ def test_compute_ages():
     project.read()
 
     project.recordings["age"] = project.compute_ages()
+    project.recordings["age_days"] = project.compute_ages(age_format='days')
+    project.recordings["age_weeks"] = project.compute_ages(age_format='weeks')
+    project.recordings["age_years"] = project.compute_ages(age_format='years')
 
     truth = pd.read_csv("tests/truth/ages.csv").set_index("line")
 
     pd.testing.assert_frame_equal(
-        project.recordings[["child_id", "age"]], truth[["child_id", "age"]]
+        project.recordings[["child_id", "age","age_days","age_weeks","age_years"]], truth[["child_id", "age","age_days","age_weeks","age_years"]]
     )
 
 @pytest.mark.parametrize("error,chi_lines,rec_lines", 

@@ -11,6 +11,8 @@ All notable changes to this project will be documented in this file.
 - zooniverse uploads : uploads extra metadata to zooniverse (name of the audio clip, dataset it belongs to)
 - zooniverse uploads : the subject_set id is stored in the chunk csv file, as the subject_set name (display name) is susceptible to change
 - zooniverse uploads : the upload now handles SIGINT and SIGTERM signals to save progression of the upload to the csv before exiting (useful when a job needs to be interrupted
+- allow once again get_within_time_range to take str arguments as times
+- add arguments to choose the format of compute_ages project method
 
 ### Fixed
 

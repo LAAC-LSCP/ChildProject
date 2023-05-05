@@ -276,7 +276,7 @@ For instance, annotations of audio between 9am and 12am may be retrieved from th
 
 .. code-block:: python
 
-    >>> morning = am.get_within_time_range(am.annotations, '09:00', '12:00')
+    >>> morning = am.get_within_time_range(am.annotations, start_time='09:00', end_time='12:00')
     >>> morning
             set recording_filename  time_seek  range_onset  range_offset             raw_filename  ...          imported_at  error package_version          start_time  range_onset_time range_offset_time
     0          its    BN32_010007.mp3          0    7320000.0    18120000.0          BN32_010007.its  ...  2021-03-06 22:55:06    NaN           0.0.1 1900-01-01 06:58:00             09:00             12:00
