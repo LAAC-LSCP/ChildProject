@@ -7,6 +7,10 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - ignore_discarded is now the default behaviour of childproject projects, robustness was added to the discard column
+- projects now check for unicity of the experiment column in children and recording csv, read() fails when not unique
+- zooniverse uploads : uploads extra metadata to zooniverse (name of the audio clip, dataset it belongs to)
+- zooniverse uploads : the subject_set id is stored in the chunk csv file, as the subject_set name (display name) is susceptible to change
+- zooniverse uploads : the upload now handles SIGINT and SIGTERM signals to save progression of the upload to the csv before exiting (useful when a job needs to be interrupted
 - allow once again get_within_time_range to take str arguments as times
 - add arguments to choose the format of compute_ages project method
 
@@ -26,7 +30,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
-- pandas version restricted to avoid errors of feature releases , (1.1.0 (assert_frame_equal check_less_precise) to 1.5.0 (last checked version))
+- pandas version restricted to avoid errors of future releases , (1.1.0 (assert_frame_equal check_less_precise) to 1.5.0 (last checked version))
 - no usage of sox command anymore, remove sox dependency
 - merging annotations now sets the format to 'NA' instead of a blank value.
 
