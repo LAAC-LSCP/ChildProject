@@ -9,6 +9,7 @@ Panoptes dummy classes in order to pass tests when using panoptes
 without uploading actual chunks to zooniverse nor giving the credentials
 """
 import os
+import time
 
 LOCATION_FAIL = 'rec01_52_53.mp3' # precise chunk that would fail because of bad format
 
@@ -33,13 +34,12 @@ class Subject:
         self.metadata = {}
     
     def add_location(self, path):
-        if LOCATION_FAIL == os.path.basename(path) : raise PanoptesAPIException
+        if LOCATION_FAIL == os.path.basename(path) : raise PanoptesAPIException('Planned exception for test purposes on an invalid Location')
         self.location = path
         
     def save(self):
         if Subject.sub_number >= Subject.max_subjects: #fails at ID 5+
             raise PanoptesAPIException('User has uploaded {} subjects of {} maximum'.format(Subject.sub_number,Subject.max_subjects))
-        pass
     
     def find(num):
         s = Subject()

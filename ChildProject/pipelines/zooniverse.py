@@ -443,8 +443,8 @@ class ZooniversePipeline(Pipeline):
         #this is hard to test on a controlled environment, for now, manual testing is required
         original_sigint_handler = signal.getsignal(signal.SIGINT)
         original_sigterm_handler = signal.getsignal(signal.SIGTERM)
-        signal.signal(signal.SIGINT, partial(self.exit_upload, rec_orphan=record_orphan))
-        signal.signal(signal.SIGTERM, partial(self.exit_upload, rec_orphan=record_orphan))
+        signal.signal(signal.SIGINT, partial(self.exit_upload, rec_orphan=record_orphan, sub_set=set_name))
+        signal.signal(signal.SIGTERM, partial(self.exit_upload, rec_orphan=record_orphan, sub_set=set_name))
         
         max_subjects_error = re.compile('User has uploaded \d+ subjects of \d+ maximum')
 
@@ -522,24 +522,25 @@ class ZooniversePipeline(Pipeline):
         
         if record_orphan and len(self.orphan_chunks): 
             self.chunks.update(pd.DataFrame(self.orphan_chunks).set_index("index"))
-            print("WARNING: {} chunks were uploaded but not linked to the subject set {}. To attempt to relink them, try link_orphan_subjects".format(self.orphan_chunks, subject_set.display_name))
+
+            print("WARNING: {} chunks were uploaded but not linked to the subject set {}. To attempt to relink them, try link_orphan_subjects".format(len(self.orphan_chunks), subject_set.display_name))
 
         self.chunks.to_csv(self.chunks_file)
         
         signal.signal(signal.SIGINT, original_sigint_handler)
         signal.signal(signal.SIGTERM, original_sigterm_handler)
         
-    def exit_upload(self, rec_orphan, sub_set):
+    def exit_upload(self, *args, rec_orphan, sub_set):
         if len(self.subjects_metadata) + len(self.orphan_chunks) != 0:
             if len(self.subjects_metadata) : self.chunks.update(pd.DataFrame(self.subjects_metadata).set_index("index"))
             
             if rec_orphan and len(self.orphan_chunks): 
                 self.chunks.update(pd.DataFrame(self.orphan_chunks).set_index("index"))
-                print("WARNING: {} chunks were uploaded but not linked to the subject set {}. To attempt to relink them, try link_orphan_subjects".format(self.orphan_chunks, sub_set.display_name))
+                print("WARNING: {} chunks were uploaded but not linked to the subject set {}. To attempt to relink them, try link_orphan_subjects".format(len(self.orphan_chunks), sub_set))
                 
             self.chunks.to_csv(self.chunks_file)
             
-        print("Signal interruption {}, exited gracefully".format())
+        print("Signal interruption {}, exited gracefully".format(args[0]))
         sys.exit(0)
         
         
