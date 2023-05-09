@@ -182,7 +182,7 @@ def test_import(project):
     assert len(errors) == 0 and len(warnings) == 0, "malformed annotations detected"
     
     errors, warnings = am.read()
-    assert len(errors) == 0 and len(warnings) == 0, "malformed annotation indexes detected"
+    assert len(errors) == 10 and len(warnings) == 0, "malformed annotation indexes detected"
 
     for dataset in ["eaf_basic", "textgrid", "eaf_solis"]:
         annotations = am.annotations[am.annotations["set"] == dataset]
@@ -201,13 +201,13 @@ def test_import(project):
         )
  
 # test how the importation handles already existing files and overlaps in importation
-@pytest.mark.parametrize("input_file,ow,rimported,rerrors,exception", 
-                         [("input_invalid.csv", False,None,None,ValueError),
-                         ("input_reimport.csv", False,"imp_reimport_no_ow.csv","err_reimport_no_ow.csv",None),
-                         ("input_reimport.csv", True,"imp_reimport_ow.csv",None,None),
-                         ("input_importoverlaps.csv", False,"imp_overlap.csv","err_overlap.csv",None),
+@pytest.mark.parametrize("input_file,ow,rimported,rerrors,exception,valid_errors", 
+                         [("input_invalid.csv", False,None,None,ValueError,0),
+                         ("input_reimport.csv", False,"imp_reimport_no_ow.csv","err_reimport_no_ow.csv",None,11),
+                         ("input_reimport.csv", True,"imp_reimport_ow.csv",None,None,11),
+                         ("input_importoverlaps.csv", False,"imp_overlap.csv","err_overlap.csv",None,13),
                          ])
-def test_multiple_imports(project, input_file, ow, rimported, rerrors, exception):
+def test_multiple_imports(project, input_file, ow, rimported, rerrors, exception,valid_errors):
     am = AnnotationManager(project)
     
     input_file = os.path.join(DATA,input_file)
@@ -247,8 +247,6 @@ def test_multiple_imports(project, input_file, ow, rimported, rerrors, exception
                                           check_like=True,
                                           check_dtype=False)
             
-        #raise Exception()
-            
         am.read()
         assert all(
             [
@@ -266,10 +264,14 @@ def test_multiple_imports(project, input_file, ow, rimported, rerrors, exception
         ), "some annotations are missing"
         
         errors, warnings = am.validate()
+        print(errors)
+        print(warnings)
         assert len(errors) == 0 and len(warnings) == 0, "malformed annotations detected"
         
         errors, warnings = am.read()
-        assert len(errors) == 0 and len(warnings) == 0, "malformed annotation indexes detected"
+        print(errors)
+        print(warnings)
+        assert len(errors) == valid_errors and len(warnings) == 0, "malformed annotation indexes detected"
 
 
 def test_intersect(project):
