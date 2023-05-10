@@ -56,6 +56,7 @@ coverage.xml
 
 #imported annotations for unit testing
 examples/valid_raw_data/annotations/*/converted
+examples/valid_raw_data/annotations/*/*/converted
 #imported annotation index for unit testing
 examples/valid_raw_data/metadata/annotations.csv
 
