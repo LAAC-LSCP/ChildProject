@@ -338,6 +338,7 @@ class AnnotationManager:
                   for line in ranges_invalid.to_dict(orient="records")]        
             )
             
+        #if duration is in recordings.csv, check index for annotation segments overflowing recording duration
         if self.project.recordings is not None and 'duration' in self.project.recordings.columns:
             df = self.annotations.merge(self.project.recordings, how='left', on='recording_filename')
             ranges_invalid = df[(df['range_offset'] > df['duration'])]
@@ -613,7 +614,7 @@ class AnnotationManager:
         :return: dataframe of imported annotations, as in :ref:`format-annotations`.
         :rtype: pd.DataFrame
         """
-        input_processed= input.copy()
+        input_processed= input.copy().reset_index()
         
         required_columns = {
             c.name
@@ -630,8 +631,8 @@ class AnnotationManager:
         assert (input_processed["range_offset"] > input_processed["range_onset"]).all(), "range_offset must be greater than range_onset"
         assert (input_processed["range_onset"] >= 0).all(), "range_onset must be greater or equal to 0"
         print()
-        if "duration" in self.project.recordings:
-            assert (input_processed.reset_index()["range_offset"] < input_processed.merge(self.project.recordings,
+        if "duration" in self.project.recordings.columns:
+            assert (input_processed["range_offset"] <= input_processed.merge(self.project.recordings,
                                                                             how='left',
                                                                             on='recording_filename',
                                                                             validate='m:1'
