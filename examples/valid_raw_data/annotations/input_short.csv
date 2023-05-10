@@ -1,0 +1,11 @@
+set,recording_filename,time_seek,raw_filename,range_onset,range_offset,format,filter
+textgrid,sound.wav,0,example.TextGrid,0,1000,TextGrid,
+eaf_basic,sound.wav,0,example.eaf,0,3000,eaf,
+eaf_solis,sound.wav,0,example_solis.eaf,0,4000,eaf,
+vtc_rttm,sound.wav,0,example.rttm,1980,1990,vtc_rttm,namibie_aiku_20160714_1
+alice/output,sound.wav,0,example_alice.txt,1980,1990,alice,namibie_aiku_20160714_1
+metrics,sound.wav,0,example_metrics.rttm,0,1000,vtc_rttm,tsimane2017_C01_20170706
+old_its,sound.wav,0,example_lena_old.its,0,1000,its,
+new_its,sound.wav,0,example_lena_new.its,0,1000,its,
+vtc_rttm,sound2.wav,0,example.rttm,1980,1990,vtc_rttm,namibie_aiku_20160714_1
+alice/output,sound2.wav,0,example_alice.txt,1980,1990,alice,namibie_aiku_20160714_1

@@ -22,8 +22,6 @@ def test_extraction():
 
     project = ChildProject("examples/valid_raw_data")
     project.read()
-    
-    project.recordings['duration'] = 4000 #force duration 4s (it is the actual length) to allow for segmenting (otherwise fails)
 
     sampler = PeriodicSampler(project, 500, 500, 250)
     segments = sampler.sample()
