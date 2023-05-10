@@ -108,6 +108,7 @@ def test_conversation_sampler(project):
     segments = pd.DataFrame(segments)
 
     am = AnnotationManager(project)
+    project.recordings['duration'] = 3600 * 1000 * 1000 #forcefully extend the audio duration to accept import here
     am.import_annotations(
         pd.DataFrame(
             [
@@ -186,6 +187,7 @@ def test_exclusion(project):
         [["sound.wav", 250, 750], ["sound.wav", 2000, 4000]],
         columns=["recording_filename", "segment_onset", "segment_offset"],
     )
+    project.recordings['duration'] = 4000 #forcefully put all durations as 4s to limit working time
 
     sampler = PeriodicSampler(
         project=project, length=1000, period=1000, exclude=excluded
