@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - ignore_discarded is now the default behaviour of childproject projects, robustness was added to the discard column
+- annotation index validation and annotation importation now checks for the range_offset being greater than duration and oiutputs an error when it is the case
 
 ### Fixed
 
