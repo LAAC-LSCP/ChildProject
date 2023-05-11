@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.1.1] 2023-05-11
+
 ### Added
 
 - validation of the annotation index checks for annotation period outside of audio duration
