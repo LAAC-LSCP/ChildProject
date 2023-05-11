@@ -330,12 +330,23 @@ class AnnotationManager:
                 ]
             )
             
+        #check the index for bad range_onset range_offset
         ranges_invalid = self.annotations[(self.annotations['range_offset'] <= self.annotations['range_onset']) | (self.annotations['range_onset'] < 0)]
         if ranges_invalid.shape[0] > 0:
             errors.extend(
                 [f"annotation index does not verify range_offset > range_onset >= 0 for set <{line['set']}>, annotation filename <{line['annotation_filename']}>"
                   for line in ranges_invalid.to_dict(orient="records")]        
             )
+            
+        #if duration is in recordings.csv, check index for annotation segments overflowing recording duration
+        if self.project.recordings is not None and 'duration' in self.project.recordings.columns:
+            df = self.annotations.merge(self.project.recordings, how='left', on='recording_filename')
+            ranges_invalid = df[(df['range_offset'] > df['duration'])]
+            if ranges_invalid.shape[0] > 0:
+                errors.extend(
+                    [f"annotation index has an offset higher than recorded duration of the audio <{line['set']}>, annotation filename <{line['annotation_filename']}>"
+                      for line in ranges_invalid.to_dict(orient="records")]        
+                )
         
         warnings += self._check_for_outdated_merged_sets()
 
@@ -603,14 +614,8 @@ class AnnotationManager:
         :return: dataframe of imported annotations, as in :ref:`format-annotations`.
         :rtype: pd.DataFrame
         """
-        input_processed= input.copy()
+        input_processed= input.copy().reset_index()
         
-        input_processed["range_onset"] = input_processed["range_onset"].astype(np.int64)
-        input_processed["range_offset"] = input_processed["range_offset"].astype(np.int64)
-        
-        assert (input_processed["range_offset"] > input_processed["range_onset"]).all(), "range_offset must be greater than range_onset"
-        assert (input_processed["range_onset"] >= 0).all(), "range_onset must be greater or equal to 0"
-
         required_columns = {
             c.name
             for c in AnnotationManager.INDEX_COLUMNS
@@ -619,6 +624,19 @@ class AnnotationManager:
 
         assert_dataframe("input", input_processed)
         assert_columns_presence("input", input_processed, required_columns)
+        
+        input_processed["range_onset"] = input_processed["range_onset"].astype(np.int64)
+        input_processed["range_offset"] = input_processed["range_offset"].astype(np.int64)
+        
+        assert (input_processed["range_offset"] > input_processed["range_onset"]).all(), "range_offset must be greater than range_onset"
+        assert (input_processed["range_onset"] >= 0).all(), "range_onset must be greater or equal to 0"
+        if "duration" in self.project.recordings.columns:
+            assert (input_processed["range_offset"] <= input_processed.merge(self.project.recordings,
+                                                                            how='left',
+                                                                            on='recording_filename',
+                                                                            validate='m:1'
+                                                                            ).reset_index()["duration"]
+            ).all(), "range_offset must be smaller than the duration of the recording"
 
         missing_recordings = input_processed[
             ~input_processed["recording_filename"].isin(

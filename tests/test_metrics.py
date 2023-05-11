@@ -25,7 +25,13 @@ def project(request):
     project.read()
 
     yield project
-
+    
+@pytest.fixture(scope="function")
+def am(request, project):
+    am= AnnotationManager(project)
+    project.recordings['duration'] = [100000000, 2000000] #force longer durations to allow for imports
+    yield am    
+    
 #decorating functions with reserved kwargs should fail
 @pytest.mark.parametrize("error", [ValueError, ])
 def test_decorator(error):
@@ -77,8 +83,7 @@ def test_failures(project):
                           (ValueError, 'speaker', 'FEM'),
                           (None,None,None),
                           ])
-def test_metrics(project, error, col_change, new_value):
-    am = AnnotationManager(project)
+def test_metrics(project, am, error, col_change, new_value):
     
     data = pd.read_csv("tests/data/lena_its.csv")
 
@@ -114,10 +119,9 @@ def test_metrics(project, error, col_change, new_value):
         pd.testing.assert_frame_equal(mm.metrics, truth, check_like=True)
 
 
-def test_aclew(project):
+def test_aclew(project, am):
     data = pd.read_csv("tests/data/aclew.csv")
 
-    am = AnnotationManager(project)
     am.import_annotations(
         pd.DataFrame(
             [
@@ -143,10 +147,9 @@ def test_aclew(project):
 
     pd.testing.assert_frame_equal(aclew.metrics, truth, check_like=True)
 
-def test_lena(project):
+def test_lena(project, am):
     data = pd.read_csv("tests/data/lena_its.csv")
 
-    am = AnnotationManager(project)
     am.import_annotations(
         pd.DataFrame(
             [
@@ -171,8 +174,7 @@ def test_lena(project):
 
     pd.testing.assert_frame_equal(lena.metrics, truth, check_like=True)
 
-def test_custom(project):
-    am = AnnotationManager(project)
+def test_custom(project, am):
     
     data = pd.read_csv("tests/data/lena_its.csv")
 
@@ -202,10 +204,9 @@ def test_custom(project):
 
     pd.testing.assert_frame_equal(cmm.metrics, truth, check_like=True)
     
-def test_metrics_segments(project):
+def test_metrics_segments(project, am):
     data = pd.read_csv("tests/data/aclew.csv")
 
-    am = AnnotationManager(project)
     am.import_annotations(
         pd.DataFrame(
             [
@@ -239,10 +240,9 @@ def test_metrics_segments(project):
 
     pd.testing.assert_frame_equal(metrics.metrics, truth, check_like=True)
 
-def test_specs(project):
+def test_specs(project, am):
     data = pd.read_csv("tests/data/lena_its.csv")
     
-    am = AnnotationManager(project)
     am.import_annotations(
         pd.DataFrame(
             [

@@ -1,0 +1,3 @@
+set,recording_filename,time_seek,raw_filename,range_onset,range_offset,format,filter,note
+textgrid,sound.wav,0,example.TextGrid,0,5000,TextGrid,,overlaps
+eaf_basic,sound.wav,0,example.eaf,0,100000001,eaf,,same namefile

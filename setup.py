@@ -9,7 +9,7 @@ requires = {
     "core": ["pandas>=1.1.0,<=1.5.0", "jinja2", "numpy>=1.16.5", "datalad"],
     "annotations": ["lxml", "pympi-ling", "pylangacq", "python-dateutil>=2.8.1"],
     "metrics": ['pyannote.metrics; python_version >= "3.7.0"', "nltk", "scikit-learn", "GitPython"],
-    "audio": ["librosa", "pydub", "pysoundfile"],
+    "audio": ["librosa", "pydub", "soundfile"],
     "samplers": ["PyYAML"],
     "zooniverse": ["panoptes-client", "praat-parselmouth"],
     "eaf-builder": ["importlib-resources"],
