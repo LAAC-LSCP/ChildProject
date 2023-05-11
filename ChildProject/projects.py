@@ -275,6 +275,7 @@ class ChildProject:
         self, path: str, enforce_dtypes: bool = False, ignore_discarded: bool = True
     ):
         self.path = path
+        self.experiment = None
         self.enforce_dtypes = enforce_dtypes
         self.ignore_discarded = ignore_discarded
 
@@ -407,6 +408,12 @@ class ChildProject:
 
         self.children = self.ct.df
         self.recordings = self.rt.df
+        
+        exp = self.children.iloc[0]['experiment']
+        exp_values = set(self.children['experiment'].unique()).union(set(self.recordings['experiment'].unique()))
+        if len(exp_values) > 1:
+            raise ValueError(f"Column <experiment> must be unique across the dataset, in both children.csv and recordings.csv , {len(exp_values)} different values were found: {exp_values}")
+        self.experiment = exp
         
     def write_recordings(self, keep_discarded: bool = True, keep_original_columns: bool = True):
         """
@@ -734,7 +741,10 @@ class ChildProject:
         return recordings
 
     def compute_ages(
-        self, recordings: pd.DataFrame = None, children: pd.DataFrame = None
+        self,
+        recordings: pd.DataFrame = None,
+        children: pd.DataFrame = None,
+        age_format: str = 'months',
     ) -> pd.Series:
         """Compute the age of the subject child for each recording (in months, as a float)
         and return it as a pandas Series object.
@@ -755,6 +765,8 @@ class ChildProject:
         :type recordings: pd.DataFrame, optional
         :param children: custom children DataFrame (see :ref:`format-metadata`), otherwise use all project children data, defaults to None
         :type children: pd.DataFrame, optional
+        :param age_format: format to use for the output date default is months, choose between ['months','days','weeks', 'years']
+        :type age_format: str, optional
         """
 
         def date_is_valid(date: str, fmt: str):
@@ -763,6 +775,21 @@ class ChildProject:
             except:
                 return False
             return True
+        
+        def date_fmt(dt,fmt='months'):
+            if dt:
+                if fmt == 'months':
+                    return dt.days / (365.25 / 12)
+                elif fmt == 'days':
+                    return dt.days
+                elif fmt == 'weeks':
+                    return dt.days / 7
+                elif fmt == 'years':
+                    return dt.days / 365.25
+                else:
+                    raise ValueError('unknown format for age : {}'.format(fmt))
+            else:
+                return None
 
         if recordings is None:
             recordings = self.recordings.copy()
@@ -799,7 +826,7 @@ class ChildProject:
                 else None,
                 axis=1,
             )
-            .apply(lambda dt: dt.days / (365.25 / 12) if dt else None)
+            .apply(partial(date_fmt,fmt=age_format))
         )
 
         return age

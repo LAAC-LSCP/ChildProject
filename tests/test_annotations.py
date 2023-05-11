@@ -463,6 +463,13 @@ def test_within_time_range(project,am):
         standardize_dataframe(matches, truth.columns),
         standardize_dataframe(truth, truth.columns),
     )
+    
+    matches = am.get_within_time_range(annotations, start_time="09:00", end_time="20:00")
+    
+    pd.testing.assert_frame_equal(
+        standardize_dataframe(matches, truth.columns),
+        standardize_dataframe(truth, truth.columns),
+    )
 
     exception_caught = False
     try:

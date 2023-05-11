@@ -11,8 +11,13 @@ import subprocess
 import sys
 import array
 import traceback
+import signal
+import re
+
 from typing import List
 from yaml import dump
+
+from functools import partial
 
 import matplotlib.pyplot as plt
 from matplotlib.ticker import ScalarFormatter
@@ -27,6 +32,7 @@ from parselmouth import SpectralAnalysisWindowShape
 import ChildProject
 from ChildProject.pipelines.pipeline import Pipeline
 from ChildProject.tables import assert_dataframe, assert_columns_presence
+from ChildProject.utils import retry_func
 
 from typing import Tuple
 
@@ -262,6 +268,7 @@ class ZooniversePipeline(Pipeline):
 
         self.destination = destination
         self.project = ChildProject.projects.ChildProject(path)
+        self.project.read()
 
         self.chunks_length = int(chunks_length)
         self.chunks_min_amount = int(chunks_min_amount)
@@ -312,8 +319,10 @@ class ZooniversePipeline(Pipeline):
                     "uploaded": False,
                     "project_id": "",
                     "subject_set": "",
+                    "subject_set_id": pd.NA,
                     "zooniverse_id": 0,
                     "keyword": keyword,
+                    "dataset": self.project.experiment
                 }
                 for c in self.chunks
             ]
@@ -351,6 +360,8 @@ class ZooniversePipeline(Pipeline):
         zooniverse_pwd="",
         amount: int = 1000,
         ignore_errors: bool = False,
+        record_orphan: bool = False,
+        test_endpoint: bool = False,
         **kwargs
     ):
         """Uploads ``amount`` audio chunks from the CSV dataframe `chunks` to a zooniverse project.
@@ -365,8 +376,14 @@ class ZooniversePipeline(Pipeline):
         :type zooniverse_login: str, optional
         :param zooniverse_pwd: zooniverse password. If not specified, the program attempts to get it from the environment variable ``ZOONIVERSE_PWD`` instead, defaults to ''
         :type zooniverse_pwd: str, optional
-        :param amount: amount of chunks to upload, defaults to 0
+        :param amount: amount of chunks to upload, defaults to 1000
         :type amount: int, optional
+        :param ignore_errors: carry on with the upload even if a clip fails, the csv will be updated accordingly, single clip errors are ignored but errors that will repeat (e.g. maximum number of subjects uploaded) will still exit
+        :type ignore_errors: bool, optional
+        :param record_orphan: when true, chunks that are correctly uploaded but not linked to a subject set (orphan) have their line updated with the subject id, project id and Uploaded flag at True, but subject_set empty. link_orphan_subjects can be used to reattempt it. If false, the chunk is considered not uploaded.   
+        :type record_orphan: bool, optional
+        :param test_endpoint: run this command for tests, operations with zooniverse arefaked and considered succesfull
+        :type test_endpoint: bool, optional
         """
 
         self.chunks_file = chunks
@@ -387,13 +404,208 @@ class ZooniversePipeline(Pipeline):
             {"recording_filename", "onset", "offset", "uploaded", "mp3"},
         )
         
-        from panoptes_client import Panoptes, Project, Subject, SubjectSet
+        if test_endpoint:
+            from ChildProject.pipelines.fake_panoptes import Panoptes, Project, Subject, SubjectSet, PanoptesAPIException, reset_tests, TEST_MAX_SUBJECT
+            reset_tests()
+            if test_endpoint == 2: Subject.max_subjects = TEST_MAX_SUBJECT
+        else:
+            from panoptes_client import Panoptes, Project, Subject, SubjectSet
+            from panoptes_client.panoptes import PanoptesAPIException
+
+
+        Panoptes.connect(username=self.zooniverse_login, password=self.zooniverse_pwd)
+        zooniverse_project = Project(project_id)
+
+        self.subjects_metadata = []
+    
+        subject_set = None
+
+        for ss in zooniverse_project.links.subject_sets:
+            if ss.display_name == set_name:
+                subject_set = ss
+
+        if subject_set is None:
+            subject_set = SubjectSet()
+            subject_set.links.project = zooniverse_project
+            subject_set.display_name = set_name
+            subject_set.save()
+
+        chunks_to_upload = self.chunks[self.chunks["uploaded"] == False].head(amount)
+        chunks_to_upload = chunks_to_upload.to_dict(orient="index")
+
+        if len(chunks_to_upload) == 0:
+            print("nothing left to upload.")
+            return
+        
+        self.orphan_chunks = []
+    
+        #handling sigterm and sigint to write to a csv file before exiting to keep track of what was done
+        #this is hard to test on a controlled environment, for now, manual testing is required
+        original_sigint_handler = signal.getsignal(signal.SIGINT)
+        original_sigterm_handler = signal.getsignal(signal.SIGTERM)
+        signal.signal(signal.SIGINT, partial(self.exit_upload, rec_orphan=record_orphan, sub_set=set_name))
+        signal.signal(signal.SIGTERM, partial(self.exit_upload, rec_orphan=record_orphan, sub_set=set_name))
+        
+        max_subjects_error = re.compile('User has uploaded \d+ subjects of \d+ maximum')
+
+        for chunk_index in chunks_to_upload:
+            chunk = chunks_to_upload[chunk_index]
+
+            print(
+                "uploading chunk {} ({},{})".format(
+                    chunk["recording_filename"], chunk["onset"], chunk["offset"]
+                )
+            )
+
+            try:
+                #we take the mp3 file as the is the format supported by zooniverse
+                subject = Subject()
+                subject.links.project = zooniverse_project
+                subject.add_location(
+                    os.path.join(os.path.dirname(self.chunks_file), "chunks", chunk["mp3"])
+                )
+                subject.metadata["date_extracted"] = chunk["date_extracted"]
+                subject.metadata["dataset"] = chunk["dataset"] if 'dataset' in chunk.keys() else pd.NA
+                subject.metadata["filename"] = chunk["mp3"]
+
+                subject.save()
+            except Exception as e:
+                print(
+                    "failed to save chunk {}. an exception has occured:\n{}".format(
+                        chunk_index, str(e)
+                    )
+                )
+                print(traceback.format_exc())
+
+                if ignore_errors and not re.fullmatch(max_subjects_error, str(e)):
+                    continue
+                else:
+                    print("subject upload halting here.")
+                    break
+                
+            try: 
+                retry_func(subject_set.add, PanoptesAPIException, 3, subjects=subject)              
+            except PanoptesAPIException as e:
+                print(
+                    "failed to add subject {} to subject_set {}. an exception has occured:\n{}".format(
+                        chunk_index, subject_set.display_name, str(e)
+                    )
+                )
+                print(traceback.format_exc())
+                
+                chunk["index"] = chunk_index
+                chunk["zooniverse_id"] = str(subject.id)
+                chunk["project_id"] = str(project_id)
+                chunk["subject_set"] = ""
+                chunk['subject_set_id'] = pd.NA
+                chunk["uploaded"] = True
+                self.orphan_chunks.append(chunk)
+                
+                if ignore_errors:
+                    continue
+                else:
+                    print("subject upload halting here.")
+                    break
+
+            chunk["index"] = chunk_index
+            chunk["zooniverse_id"] = str(subject.id)
+            chunk["project_id"] = str(project_id)
+            chunk["subject_set"] = str(subject_set.display_name)
+            chunk["subject_set_id"] = str(subject_set.id)
+            chunk["uploaded"] = True
+            self.subjects_metadata.append(chunk)
+
+        if len(self.subjects_metadata) + len(self.orphan_chunks) == 0:
+            return
+
+        if len(self.subjects_metadata) : self.chunks.update(pd.DataFrame(self.subjects_metadata).set_index("index"))
+        
+        if record_orphan and len(self.orphan_chunks): 
+            self.chunks.update(pd.DataFrame(self.orphan_chunks).set_index("index"))
+
+            print("WARNING: {} chunks were uploaded but not linked to the subject set {}. To attempt to relink them, try link_orphan_subjects".format(len(self.orphan_chunks), subject_set.display_name))
+
+        self.chunks.to_csv(self.chunks_file)
+        
+        signal.signal(signal.SIGINT, original_sigint_handler)
+        signal.signal(signal.SIGTERM, original_sigterm_handler)
+        
+    def exit_upload(self, *args, rec_orphan, sub_set):
+        if len(self.subjects_metadata) + len(self.orphan_chunks) != 0:
+            if len(self.subjects_metadata) : self.chunks.update(pd.DataFrame(self.subjects_metadata).set_index("index"))
+            
+            if rec_orphan and len(self.orphan_chunks): 
+                self.chunks.update(pd.DataFrame(self.orphan_chunks).set_index("index"))
+                print("WARNING: {} chunks were uploaded but not linked to the subject set {}. To attempt to relink them, try link_orphan_subjects".format(len(self.orphan_chunks), sub_set))
+                
+            self.chunks.to_csv(self.chunks_file)
+            
+        print("Signal interruption {}, exited gracefully".format(args[0]))
+        sys.exit(0)
+        
+        
+    def link_orphan_subjects(
+        self,
+        chunks: str,
+        project_id: int,
+        set_name: str,
+        zooniverse_login="",
+        zooniverse_pwd="",
+        ignore_errors: bool = False,       
+        test_endpoint: bool = False,
+        **kwargs
+    ):
+        """Attempts to link subjects that have been uploaded but not linked to a subject set in zooniverse
+        from the CSV dataframe `chunks` to a zooniverse project (Attempts are made on chunks that have a zooniverse_id,
+        a project_id and uploaded at True but no subject_set )
+
+        :param chunks: path to the chunk CSV dataframe
+        :type chunks: [type]
+        :param project_id: zooniverse project id
+        :type project_id: int
+        :param set_name: name of the subject set
+        :type set_name: str
+        :param zooniverse_login: zooniverse login. If not specified, the program attempts to get it from the environment variable ``ZOONIVERSE_LOGIN`` instead, defaults to ''
+        :type zooniverse_login: str, optional
+        :param zooniverse_pwd: zooniverse password. If not specified, the program attempts to get it from the environment variable ``ZOONIVERSE_PWD`` instead, defaults to ''
+        :type zooniverse_pwd: str, optional
+        :param amount: amount of chunks to upload, defaults to 0
+        :type amount: int, optional
+        :param ignore_errors: carry on with the upload even if a clip fails, the csv will be updated accordingly
+        :type ignore_errors: bool, optional
+        :param test_endpoint: run this command for tests, operations with zooniverse arefaked and considered succesfull
+        :type test_endpoint: bool, optional
+        """
+        
+        self.chunks_file = chunks
+        self.get_credentials(zooniverse_login, zooniverse_pwd)
+
+        metadata_location = os.path.join(self.chunks_file)
+        try:
+            self.chunks = pd.read_csv(metadata_location, index_col="index")
+        except:
+            raise Exception(
+                "cannot read chunk metadata from {}.".format(metadata_location)
+            )
+
+        assert_dataframe("chunks", self.chunks)
+        assert_columns_presence(
+            "chunks",
+            self.chunks,
+            {"recording_filename", "onset", "offset", "uploaded", "mp3", "zooniverse_id", "project_id", "subject_set"},
+        )
+        
+        if test_endpoint:
+            from ChildProject.pipelines.fake_panoptes import Panoptes, Project, Subject, SubjectSet, PanoptesAPIException, reset_tests
+            reset_tests() 
+        else:
+            from panoptes_client import Panoptes, Project, Subject, SubjectSet
+            from panoptes_client.panoptes import PanoptesAPIException
 
         Panoptes.connect(username=self.zooniverse_login, password=self.zooniverse_pwd)
         zooniverse_project = Project(project_id)
 
         subjects_metadata = []
-        uploaded = 0
 
         subject_set = None
 
@@ -407,37 +619,33 @@ class ZooniversePipeline(Pipeline):
             subject_set.display_name = set_name
             subject_set.save()
 
-        subjects = []
+        # select chunks that are uploaded, have an id and project but no set
+        chunks_to_link = self.chunks[(self.chunks["uploaded"] == True) &
+                                      (~self.chunks['zooniverse_id'].isnull()) &
+                                      (~self.chunks['project_id'].isnull()) &
+                                      (self.chunks['subject_set'].isnull())]
+        chunks_to_link = chunks_to_link.to_dict(orient="index")
 
-        chunks_to_upload = self.chunks[self.chunks["uploaded"] == False].head(amount)
-        chunks_to_upload = chunks_to_upload.to_dict(orient="index")
-
-        if len(chunks_to_upload) == 0:
-            print("nothing left to upload.")
+        if len(chunks_to_link) == 0:
+            print("no orphan chunks to link.")
             return
 
-        for chunk_index in chunks_to_upload:
-            chunk = chunks_to_upload[chunk_index]
+        for chunk_index in chunks_to_link:
+            chunk = chunks_to_link[chunk_index]
 
             print(
-                "uploading chunk {} ({},{})".format(
+                "linking chunk {} ({},{})".format(
                     chunk["recording_filename"], chunk["onset"], chunk["offset"]
                 )
             )
 
-            subject = Subject()
-            subject.links.project = zooniverse_project
-            subject.add_location(
-                os.path.join(os.path.dirname(self.chunks_file), "chunks", chunk["mp3"])
-            )
-            subject.metadata["date_extracted"] = chunk["date_extracted"]
-
             try:
-                subject.save()
+                subject = Subject.find(chunk['zooniverse_id'])
+                
             except Exception as e:
                 print(
-                    "failed to save chunk {}. an exception has occured:\n{}".format(
-                        chunk_index, str(e)
+                    "Could not find subject {}. an exception has occured:\n{}".format(
+                        chunk['zooniverse_id'], str(e)
                     )
                 )
                 print(traceback.format_exc())
@@ -445,26 +653,85 @@ class ZooniversePipeline(Pipeline):
                 if ignore_errors:
                     continue
                 else:
+                    print("subject linking halting here.")
+                    break
+                
+            try: 
+                retry_func(subject_set.add, PanoptesAPIException, 3, subjects=subject)                
+            except PanoptesAPIException as e:
+                print(
+                    "failed to add subject {} to subject_set {}. an exception has occured:\n{}".format(
+                        chunk_index, subject_set.display_name, str(e)
+                    )
+                )
+                print(traceback.format_exc())
+                
+                if ignore_errors and str(e):
+                    continue
+                else:
                     print("subject upload halting here.")
                     break
 
-            subjects.append(subject)
-
             chunk["index"] = chunk_index
-            chunk["zooniverse_id"] = str(subject.id)
-            chunk["project_id"] = str(project_id)
             chunk["subject_set"] = str(subject_set.display_name)
-            chunk["uploaded"] = True
+            chunk["subject_set_id"] = str(subject_set.id)
             subjects_metadata.append(chunk)
 
-        if len(subjects) == 0:
-            return
+        if len(subjects_metadata):
+            tmp = pd.DataFrame(subjects_metadata)
+            print(tmp.columns)
+            print(tmp)
+            self.chunks.update(pd.DataFrame(subjects_metadata).set_index("index"))
 
-        subject_set.add(subjects)
+            self.chunks.to_csv(self.chunks_file)
+            
+        print("linked {}/{} subjects".format(len(subjects_metadata),len(chunks_to_link)))
+        
+    def reset_orphan_subjects(
+        self,
+        chunks: str,
+        **kwargs
+    ):
+        """Look for orphan subjects and considers them to be not uploaded, This is to be done either if the oprhan
+        subjects were deleted from zooniverse or if they are not usable anymore. The next upload will try to push 
+        them to zooniverse as new subjects.
 
-        self.chunks.update(pd.DataFrame(subjects_metadata).set_index("index"))
+        :param chunks: path to the chunk CSV dataframe
+        :type chunks: [type]
+        """
+        
+        self.chunks_file = chunks
 
-        self.chunks.to_csv(self.chunks_file)
+        metadata_location = os.path.join(self.chunks_file)
+        try:
+            self.chunks = pd.read_csv(metadata_location, index_col="index")
+        except:
+            raise Exception(
+                "cannot read chunk metadata from {}.".format(metadata_location)
+            )
+
+        assert_dataframe("chunks", self.chunks)
+        assert_columns_presence(
+            "chunks",
+            self.chunks,
+            {"recording_filename", "onset", "offset", "uploaded", "mp3", "zooniverse_id", "project_id", "subject_set"},
+        )
+
+        # select chunks that are uploaded, have an id and project but no set
+        selection = ((self.chunks["uploaded"] == True) &
+                      (~self.chunks['zooniverse_id'].isnull()) &
+                      (~self.chunks['project_id'].isnull()) &
+                      (self.chunks['subject_set'].isnull()))
+
+        self.chunks.loc[selection , ['uploaded','zooniverse_id','project_id']] = (False, "", "") 
+
+        nb_reset = selection[selection == True]
+        if nb_reset.shape[0]:
+            self.chunks.to_csv(self.chunks_file)
+            
+            print("reset {} orphan subjects".format(nb_reset))
+        else:
+            print("no orphan subject to reset".format(nb_reset))
 
     def retrieve_classifications(
         self,
@@ -473,6 +740,7 @@ class ZooniversePipeline(Pipeline):
         zooniverse_login: str = "",
         zooniverse_pwd: str = "",
         chunks: List[str] = [],
+        test_endpoint: bool = False,
         **kwargs
     ):
 
@@ -493,7 +761,12 @@ class ZooniversePipeline(Pipeline):
         """
         self.get_credentials(zooniverse_login, zooniverse_pwd)
 
-        from panoptes_client import Panoptes, Project, Classification
+        # if used in tests, use the fake functions
+        if test_endpoint:
+            from ChildProject.pipelines.fake_panoptes import Panoptes, Project, Classification
+        else:
+            from panoptes_client import Panoptes, Project, Classification
+            
         Panoptes.connect(username=self.zooniverse_login, password=self.zooniverse_pwd)
         project = Project(project_id)
 
@@ -560,6 +833,10 @@ class ZooniversePipeline(Pipeline):
             return self.extract_chunks(**kwargs)
         elif action == "upload-chunks":
             return self.upload_chunks(**kwargs)
+        elif action == "link-orphan-subjects":
+            return self.link_orphan_subjects(**kwargs)
+        elif action == "reset-orphan-subjects":
+            return self.reset_orphan_subjects(**kwargs)
         elif action == "retrieve-classifications":
             return self.retrieve_classifications(**kwargs)
 
@@ -567,6 +844,7 @@ class ZooniversePipeline(Pipeline):
     def setup_parser(parser):
         subparsers = parser.add_subparsers(help="action", dest="action")
 
+        """extract chunks parser"""
         parser_extraction = subparsers.add_parser(
             "extract-chunks",
             help="extract chunks to <destination>, and exports the metadata inside of this directory",
@@ -605,7 +883,9 @@ class ZooniversePipeline(Pipeline):
         parser_extraction.add_argument(
             "--threads", help="how many threads to run on", default=0, type=int
         )
-
+        
+        
+        """upload subjects parser"""
         parser_upload = subparsers.add_parser(
             "upload-chunks", help="upload chunks and updates chunk state"
         )
@@ -640,7 +920,53 @@ class ZooniversePipeline(Pipeline):
             help="keep uploading even when a subject fails to upload for some reason",
             action="store_true",
         )
-
+        parser_upload.add_argument(
+            "--record-orphan",
+            help="list correctly create subjects as uploaded even if linking to a subject set failed",
+            action="store_true",
+        )
+        
+        
+        """linking orphan subjects parser"""
+        parser_link_subjects = subparsers.add_parser(
+            "link-orphan-subjects", help="upload chunks and updates chunk state"
+        )
+        parser_link_subjects.add_argument(
+            "--chunks", help="path to the chunk CSV dataframe", required=True
+        )
+        parser_link_subjects.add_argument(
+            "--project-id", help="zooniverse project id", required=True, type=int
+        )
+        parser_link_subjects.add_argument(
+            "--set-name", help="subject set display name", required=True
+        )
+        parser_link_subjects.add_argument(
+            "--zooniverse-login",
+            help="zooniverse login. If not specified, the program attempts to get it from the environment variable ZOONIVERSE_LOGIN instead",
+            default="",
+        )
+        parser_link_subjects.add_argument(
+            "--zooniverse-pwd",
+            help="zooniverse password. If not specified, the program attempts to get it from the environment variable ZOONIVERSE_PWD instead",
+            default="",
+        )
+        parser_link_subjects.add_argument(
+            "--ignore-errors",
+            help="keep uploading even when a subject fails to upload for some reason",
+            action="store_true",
+        )
+        
+        
+        """reset orphan subjects parser"""
+        parser_reset_orphan = subparsers.add_parser(
+            "reset-orphan-subjects", help="upload chunks and updates chunk state"
+        )
+        parser_reset_orphan.add_argument(
+            "--chunks", help="path to the chunk CSV dataframe", required=True
+        )
+        
+        
+        """retrieve classifications parser"""
         parser_retrieve = subparsers.add_parser(
             "retrieve-classifications",
             help="retrieve classifications and save them as <destination>",
