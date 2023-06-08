@@ -1,3 +1,3 @@
-experiment,child_id,date_iso,start_time,recording_device_type,recording_filename,notes,noisy_setting
-test,1,2020-09-18,9:00,USB,test_1_20200918.mp3,none,2
-test,1,2016-09-18,9:00,usb,test_1_20160918.wav,none,0
+experiment,child_id,date_iso,start_time,recording_device_type,recording_filename,notes,noisy_setting,duration
+test,1,2020-09-18,9:00,USB,test_1_20200918.mp3,none,2,1990000
+test,1,2016-09-18,9:00,usb,test_1_20160918.wav,none,0,1990000

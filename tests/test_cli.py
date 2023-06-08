@@ -29,7 +29,7 @@ def test_import_annotations():
             "import-annotations",
             "examples/valid_raw_data",
             "--annotations",
-            "examples/valid_raw_data/annotations/input.csv",
+            "examples/valid_raw_data/annotations/input_short.csv",
         ]
     )
     assert exit_code == 0

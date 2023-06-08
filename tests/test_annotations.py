@@ -23,8 +23,10 @@ TRUTH = os.path.join('tests', 'truth')
 
 @pytest.fixture(scope="function")
 def project(request):
-    if not os.path.exists("output/annotations"):
-        shutil.copytree(src="examples/valid_raw_data", dst="output/annotations")
+    if os.path.exists("output/annotations"):
+#        shutil.copytree(src="examples/valid_raw_data", dst="output/annotations")
+        shutil.rmtree("output/annotations")
+    shutil.copytree(src="examples/valid_raw_data", dst="output/annotations")
       
     if os.path.isfile("output/annotations/metadata/annotations.csv"):
         os.remove("output/annotations/metadata/annotations.csv")
@@ -32,8 +34,14 @@ def project(request):
         shutil.rmtree(raw_annotation)
 
     project = ChildProject("output/annotations")
+    
     yield project
-
+    
+@pytest.fixture(scope="function")
+def am(request, project):
+    am= AnnotationManager(project)
+    project.recordings['duration'] = [100000000, 2000000] #force longer durations to allow for imports
+    yield am
 
 def test_csv():
     converted = CsvConverter().convert("tests/data/csv.csv").fillna("NA")
@@ -150,8 +158,7 @@ def test_rejected_imports(project, nline, column, value, exception, error):
     with pytest.raises(exception, match=error):
         am.import_annotations(input_annotations)
 
-def test_import(project):
-    am = AnnotationManager(project)
+def test_import(project, am):
 
     input_annotations = pd.read_csv("examples/valid_raw_data/annotations/input.csv")
     am.import_annotations(input_annotations)
@@ -204,9 +211,9 @@ def test_import(project):
                          ("input_reimport.csv", False,"imp_reimport_no_ow.csv","err_reimport_no_ow.csv",None),
                          ("input_reimport.csv", True,"imp_reimport_ow.csv",None,None),
                          ("input_importoverlaps.csv", False,"imp_overlap.csv","err_overlap.csv",None),
+                         ("input_import_duration_overflow.csv", False,None,None,AssertionError),
                          ])
-def test_multiple_imports(project, input_file, ow, rimported, rerrors, exception):
-    am = AnnotationManager(project)
+def test_multiple_imports(project, am, input_file, ow, rimported, rerrors, exception):
     
     input_file = os.path.join(DATA,input_file)
     
@@ -245,8 +252,6 @@ def test_multiple_imports(project, input_file, ow, rimported, rerrors, exception
                                           check_like=True,
                                           check_dtype=False)
             
-        #raise Exception()
-            
         am.read()
         assert all(
             [
@@ -264,14 +269,17 @@ def test_multiple_imports(project, input_file, ow, rimported, rerrors, exception
         ), "some annotations are missing"
         
         errors, warnings = am.validate()
+        print(errors)
+        print(warnings)
         assert len(errors) == 0 and len(warnings) == 0, "malformed annotations detected"
         
         errors, warnings = am.read()
+        print(errors)
+        print(warnings)
         assert len(errors) == 0 and len(warnings) == 0, "malformed annotation indexes detected"
 
 
-def test_intersect(project):
-    am = AnnotationManager(project)
+def test_intersect(project, am):
 
     input_annotations = pd.read_csv("examples/valid_raw_data/annotations/intersect.csv")
     am.import_annotations(input_annotations)
@@ -305,8 +313,7 @@ def test_intersect(project):
     )
 
 
-def test_within_ranges(project):
-    am = AnnotationManager(project)
+def test_within_ranges(project, am):
 
     annotations = [
         {
@@ -352,12 +359,11 @@ def test_within_ranges(project):
     ), "get_within_ranges should raise an exception when annotations do not fully cover the required ranges"
 
 
-def test_merge(project):
-    am = AnnotationManager(project)
+def test_merge(project, am):
 
     input_annotations = pd.read_csv("examples/valid_raw_data/annotations/input.csv")
     input_annotations = input_annotations[
-        input_annotations["set"].isin(["vtc_rttm", "alice"])
+        input_annotations["set"].isin(["vtc_rttm", "alice/output"])
     ]
     print(input_annotations)
     am.import_annotations(input_annotations)
@@ -367,7 +373,7 @@ def test_merge(project):
     am.read()
     am.merge_sets(
         left_set="vtc_rttm",
-        right_set="alice",
+        right_set="alice/output",
         left_columns=["speaker_type"],
         right_columns=["phonemes", "syllables", "words"],
         output_set="alice_vtc",
@@ -384,7 +390,7 @@ def test_merge(project):
     
     am.merge_sets(
         left_set="vtc_rttm",
-        right_set="alice",
+        right_set="alice/output",
         left_columns=["speaker_type"],
         right_columns=["phonemes", "syllables", "words"],
         output_set="alice_vtc",
@@ -409,7 +415,7 @@ def test_merge(project):
         .reset_index(drop=True)
     )
     alice = (
-        am.get_segments(am.annotations[am.annotations["set"] == "alice"])
+        am.get_segments(am.annotations[am.annotations["set"] == "alice/output"])
         .sort_values(["segment_onset", "segment_offset"])
         .reset_index(drop=True)
     )
@@ -422,8 +428,7 @@ def test_merge(project):
     
 
 
-def test_clipping(project):
-    am = AnnotationManager(project)
+def test_clipping(project,am):
 
     input_annotations = pd.read_csv("examples/valid_raw_data/annotations/input.csv")
     input_annotations = input_annotations[input_annotations["recording_filename"] == "sound.wav"]
@@ -444,9 +449,9 @@ def test_clipping(project):
     )
 
 
-def test_within_time_range(project):
+def test_within_time_range(project,am):
     from ChildProject.utils import TimeInterval
-    am = AnnotationManager(project)
+    
     am.project.recordings = pd.read_csv("tests/data/time_range_recordings.csv")
 
     annotations = pd.read_csv("tests/data/time_range_annotations.csv")
@@ -454,6 +459,13 @@ def test_within_time_range(project):
 
     truth = pd.read_csv("tests/truth/time_range.csv")
 
+    pd.testing.assert_frame_equal(
+        standardize_dataframe(matches, truth.columns),
+        standardize_dataframe(truth, truth.columns),
+    )
+    
+    matches = am.get_within_time_range(annotations, start_time="09:00", end_time="20:00")
+    
     pd.testing.assert_frame_equal(
         standardize_dataframe(matches, truth.columns),
         standardize_dataframe(truth, truth.columns),
@@ -468,8 +480,7 @@ def test_within_time_range(project):
     assert exception_caught, "no exception was thrown despite invalid times"
 
 
-def test_segments_timestamps(project):
-    am = AnnotationManager(project)
+def test_segments_timestamps(project,am):
 
     segments = pd.DataFrame(
         [
@@ -499,23 +510,67 @@ def test_segments_timestamps(project):
         standardize_dataframe(truth, truth.columns),
     )
 
-
-def test_rename(project):
-    am = AnnotationManager(project)
+#old set, new set, error to expect, mf = add a merged from column to index, index= add a fictional index line
+@pytest.mark.parametrize("old,new,error,mf,index", 
+                         [("textgrid", 'vtc_rttm',Exception,False,False),
+                          ("invented", 'renamed',Exception,False,False),
+                          ("textgrid", 'renamed',None,False,False),
+                          ("textgrid", 'alice',None,False,False), #in subdomain of alice/output
+                          ("textgrid", 'invented',Exception,False,True),
+                          ("textgrid", 'renamed',None,True,False),
+                         ])
+def test_rename(project,am,old, new, error, mf, index):
 
     input_annotations = pd.read_csv("examples/valid_raw_data/annotations/input.csv")
-    am.import_annotations(input_annotations[input_annotations["set"] == "textgrid"])
+    if mf:
+        am.import_annotations(input_annotations)
+    else:
+        am.import_annotations(input_annotations[input_annotations['set'] == old])
     am.read()
+    
+    if mf:
+        mdf = pd.read_csv("examples/valid_raw_data/annotations/merged_from.csv")
+        am.annotations['merged_from'] = mdf['merged_from']
+        am.write()
+        
+        wanted_list = am.annotations.sort_values(['set','recording_filename','range_onset','range_offset'])['merged_from'].astype(str).str.split(',').values.tolist()
+        i=0
+        while i < len(wanted_list):
+            j=0
+            while j < len(wanted_list[i]):
+                if wanted_list[i][j] == old: wanted_list[i][j] = new
+                j+=1
+            i+=1
+    if index:
+        add = pd.read_csv("examples/valid_raw_data/annotations/input.csv").head(1)
+        add['set'] = new
+        am.annotations = pd.concat([am.annotations, add])
+        am.write()
+    
     tg_count = am.annotations[am.annotations["set"] == "textgrid"].shape[0]
 
-    am.rename_set("textgrid", "renamed")
-    am.read()
-
-    errors, warnings = am.validate()
-    assert len(errors) == 0 and len(warnings) == 0, "malformed annotations detected"
-
-    assert am.annotations[am.annotations["set"] == "textgrid"].shape[0] == 0
-    assert am.annotations[am.annotations["set"] == "renamed"].shape[0] == tg_count
+    if error:
+        print(am.annotations[am.annotations["set"] == new].shape[0])
+        with pytest.raises(error):
+            am.rename_set(old, new)
+    else:
+        am.rename_set(old, new)
+        am.read()
+    
+        errors, warnings = am.validate()
+        assert len(errors) == 0 and len(warnings) == 0, "malformed annotations detected"
+    
+        assert am.annotations[am.annotations["set"] == old].shape[0] == 0
+        assert am.annotations[am.annotations["set"] == new].shape[0] == tg_count
+        
+        if mf:
+            result = am.annotations.sort_values(['set','recording_filename','range_onset','range_offset'])['merged_from'].astype(str).str.split(',').values.tolist()
+            i = 0
+            print(wanted_list)
+            print(result)
+            while i < len(wanted_list):
+                assert sorted(wanted_list[i]) == sorted(result[i])
+                i+= 1
 
 
 def custom_function(filename):
@@ -561,8 +616,7 @@ def custom_function(filename):
     return df
 
 
-def test_custom_importation(project):
-    am = AnnotationManager(project)
+def test_custom_importation(project, am):
     input = pd.DataFrame(
         [
             {
@@ -584,8 +638,7 @@ def test_custom_importation(project):
     assert len(errors) == 0
 
 
-def test_set_from_path(project):
-    am = AnnotationManager(project)
+def test_set_from_path(project,am):
 
     assert am.set_from_path(os.path.join(project.path, "annotations/set")) == "set"
     assert am.set_from_path(os.path.join(project.path, "annotations/set/")) == "set"

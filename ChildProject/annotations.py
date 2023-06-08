@@ -330,12 +330,23 @@ class AnnotationManager:
                 ]
             )
             
+        #check the index for bad range_onset range_offset
         ranges_invalid = self.annotations[(self.annotations['range_offset'] <= self.annotations['range_onset']) | (self.annotations['range_onset'] < 0)]
         if ranges_invalid.shape[0] > 0:
             errors.extend(
                 [f"annotation index does not verify range_offset > range_onset >= 0 for set <{line['set']}>, annotation filename <{line['annotation_filename']}>"
                   for line in ranges_invalid.to_dict(orient="records")]        
             )
+            
+        #if duration is in recordings.csv, check index for annotation segments overflowing recording duration
+        if self.project.recordings is not None and 'duration' in self.project.recordings.columns:
+            df = self.annotations.merge(self.project.recordings, how='left', on='recording_filename')
+            ranges_invalid = df[(df['range_offset'] > df['duration'])]
+            if ranges_invalid.shape[0] > 0:
+                errors.extend(
+                    [f"annotation index has an offset higher than recorded duration of the audio <{line['set']}>, annotation filename <{line['annotation_filename']}>"
+                      for line in ranges_invalid.to_dict(orient="records")]        
+                )
         
         warnings += self._check_for_outdated_merged_sets()
 
@@ -603,14 +614,8 @@ class AnnotationManager:
         :return: dataframe of imported annotations, as in :ref:`format-annotations`.
         :rtype: pd.DataFrame
         """
-        input_processed= input.copy()
+        input_processed= input.copy().reset_index()
         
-        input_processed["range_onset"] = input_processed["range_onset"].astype(np.int64)
-        input_processed["range_offset"] = input_processed["range_offset"].astype(np.int64)
-        
-        assert (input_processed["range_offset"] > input_processed["range_onset"]).all(), "range_offset must be greater than range_onset"
-        assert (input_processed["range_onset"] >= 0).all(), "range_onset must be greater or equal to 0"
-
         required_columns = {
             c.name
             for c in AnnotationManager.INDEX_COLUMNS
@@ -619,6 +624,19 @@ class AnnotationManager:
 
         assert_dataframe("input", input_processed)
         assert_columns_presence("input", input_processed, required_columns)
+        
+        input_processed["range_onset"] = input_processed["range_onset"].astype(np.int64)
+        input_processed["range_offset"] = input_processed["range_offset"].astype(np.int64)
+        
+        assert (input_processed["range_offset"] > input_processed["range_onset"]).all(), "range_offset must be greater than range_onset"
+        assert (input_processed["range_onset"] >= 0).all(), "range_onset must be greater or equal to 0"
+        if "duration" in self.project.recordings.columns:
+            assert (input_processed["range_offset"] <= input_processed.merge(self.project.recordings,
+                                                                            how='left',
+                                                                            on='recording_filename',
+                                                                            validate='m:1'
+                                                                            ).reset_index()["duration"]
+            ).all(), "range_offset must be smaller than the duration of the recording"
 
         missing_recordings = input_processed[
             ~input_processed["recording_filename"].isin(
@@ -790,7 +808,13 @@ class AnnotationManager:
             raise Exception("'{}' does not exists, aborting".format(current_path))
 
         if os.path.exists(new_path):
-            raise Exception("'{}' already exists, aborting".format(new_path))
+            if os.path.exists(os.path.join(new_path, 'raw')):
+                raise Exception("raw folder '{}' already exists, aborting".format(os.path.join(new_path, 'raw')))
+            if os.path.exists(os.path.join(new_path, 'converted')):
+                raise Exception("converted folder '{}' already exists, aborting".format(os.path.join(new_path, 'converted')))
+                
+        if (self.annotations[self.annotations["set"] == new_set].shape[0] > 0): 
+            raise Exception("'{}' set already exists in the index".format(new_set))
 
         if (
             self.annotations[self.annotations["set"] == annotation_set].shape[0] == 0
@@ -831,6 +855,19 @@ class AnnotationManager:
         self.annotations.loc[
             (self.annotations["set"] == annotation_set), "set"
         ] = new_set
+                
+        #find the merged from lines that should be updated and update them
+        if 'merged_from' in self.annotations.columns:
+            merged_from = self.annotations['merged_from'].astype(str).str.split(',')
+            matches = [False if not isinstance(s, list) else annotation_set in s for s in merged_from.values.tolist()]
+            
+            def update_mf(old_list, old, new):
+                res = set(old_list)
+                res.discard(old)
+                res.add(new)
+                return ','.join(res)
+            
+            self.annotations.loc[matches, 'merged_from'] = merged_from[matches].apply(partial(update_mf, old=annotation_set,new=new_set))
         self.write()
 
     def merge_annotations(
@@ -1395,8 +1432,11 @@ class AnnotationManager:
 
         return pd.concat(stack) if len(stack) else pd.DataFrame()
 
-    def get_within_time_range(
-        self, annotations: pd.DataFrame, interval : TimeInterval, errors="raise"
+    def get_within_time_range(self,
+        annotations: pd.DataFrame,
+        interval : TimeInterval = None,
+        start_time: str = None,
+        end_time: str = None,
     ):
         """Clip all input annotations within a given HH:MM:SS clock-time range.
         Those that do not intersect the input time range at all are filtered out.
@@ -1405,8 +1445,10 @@ class AnnotationManager:
         :type annotations: pd.DataFrame
         :param interval: Interval of hours to consider, contains the start hour and end hour
         :type interval: TimeInterval
-        :param errors: how to deal with invalid start_time values for the recordings. Takes the same values as ``pandas.to_datetime``.
-        :type errors: str
+        :param start_time: start_time to use in a HH:MM format, only used if interval is None, replaces the first value of interval
+        :type start_time: str
+        :param end_time: end_time to use in a HH:MM format, only used if interval is None, replaces the second value of interval
+        :type end_time: str
         :return: a DataFrame of annotations; \
         For each row, ``range_onset`` and ``range_offset`` are clipped within the desired clock-time range. \
         The clock-time corresponding to the onset and offset of each annotation \
@@ -1414,6 +1456,23 @@ class AnnotationManager:
         If the input annotation exceeds 24 hours, one row per matching interval is returned. \
         :rtype: pd.DataFrame
         """
+        assert interval is not None or (start_time and end_time), "you must pass an interval or a start_time and end_time"
+        
+        if interval is None:
+            try:
+                start_dt = datetime.datetime.strptime(start_time, "%H:%M")
+            except:
+                raise ValueError(
+                    f"invalid value for start_time ('{start_time}'); should have HH:MM format instead"
+                )
+    
+            try:
+                end_dt = datetime.datetime.strptime(end_time, "%H:%M")
+            except:
+                raise ValueError(
+                    f"invalid value for end_time ('{end_time}'); should have HH:MM format instead"
+                )
+            interval = TimeInterval(start_dt,end_dt)
 
         assert_dataframe("annotations", annotations)
         assert_columns_presence(

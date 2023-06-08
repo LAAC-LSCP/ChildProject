@@ -108,6 +108,7 @@ def test_conversation_sampler(project):
     segments = pd.DataFrame(segments)
 
     am = AnnotationManager(project)
+    project.recordings['duration'] = 3600 * 1000 * 1000 #forcefully extend the audio duration to accept import here
     am.import_annotations(
         pd.DataFrame(
             [

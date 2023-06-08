@@ -495,7 +495,8 @@ def compute_durations(args):
     """creates a 'duration' column into metadata/recordings. duration is in ms"""
     project = ChildProject(args.source)
 
-    perform_validation(project, require_success=True, ignore_recordings=True)
+    #accumulate to false b/c we don't want to write confidential info into recordings.csv
+    perform_validation(project, require_success=True, ignore_recordings=True, accumulate=False)
 
     if "duration" in project.recordings.columns:
         if not args.force:
@@ -513,10 +514,10 @@ def compute_durations(args):
         right_on="recording_filename",
     )
     recordings["duration"].fillna(0, inplace=True)
-    recordings["duration"] = recordings["duration"].astype(int)
-    recordings.to_csv(
-        os.path.join(project.path, "metadata/recordings.csv"), index=False
-    )
+    recordings["duration"] = recordings["duration"].astype("Int64")
+    
+    project.recordings = recordings.copy()
+    project.write_recordings()
     
 @subcommand(
     [

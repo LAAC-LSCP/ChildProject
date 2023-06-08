@@ -1,4 +1,4 @@
-output
+/output
 .DS_Store
 
 # Byte-compiled / optimized / DLL files
@@ -56,6 +56,7 @@ coverage.xml
 
 #imported annotations for unit testing
 examples/valid_raw_data/annotations/*/converted
+examples/valid_raw_data/annotations/*/*/converted
 #imported annotation index for unit testing
 examples/valid_raw_data/metadata/annotations.csv
 
@@ -137,7 +138,7 @@ dmypy.json
 .pyre/
 
 # scripts output
-output/
+/output/
 
 docs/FORMATTING.md
 docs/PROJECTS.md

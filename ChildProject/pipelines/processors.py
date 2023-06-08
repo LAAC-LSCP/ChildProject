@@ -37,7 +37,7 @@ class AudioProcessor(ABC):
         if self.input_profile:
             input_path = os.path.join(
                 self.project.path,
-                ChildProject.projects.ChildProject.CONVERTED_RECORDINGS,
+                ChildProject.projects.CONVERTED_RECORDINGS,
                 self.input_profile,
             )
 
@@ -54,7 +54,7 @@ class AudioProcessor(ABC):
     def output_directory(self):
         return os.path.join(
             self.project.path,
-            ChildProject.projects.ChildProject.CONVERTED_RECORDINGS,
+            ChildProject.projects.CONVERTED_RECORDINGS,
             self.name,
         )
 

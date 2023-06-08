@@ -9,6 +9,8 @@ from ChildProject.projects import ChildProject
 from ChildProject.annotations import AnnotationManager
 from ChildProject.pipelines.metrics import Metrics, LenaMetrics, AclewMetrics, CustomMetrics, MetricsSpecificationPipeline
 
+from ChildProject.pipelines.metricsFunctions import metricFunction, RESERVED
+
 
 def fake_vocs(data, filename):
     return data
@@ -23,7 +25,23 @@ def project(request):
     project.read()
 
     yield project
-
+    
+@pytest.fixture(scope="function")
+def am(request, project):
+    am= AnnotationManager(project)
+    project.recordings['duration'] = [100000000, 2000000] #force longer durations to allow for imports
+    yield am    
+    
+#decorating functions with reserved kwargs should fail
+@pytest.mark.parametrize("error", [ValueError, ])
+def test_decorator(error):
+    for reserved in RESERVED:
+        
+        with pytest.raises(error):
+            
+            @metricFunction({reserved},{})
+            def fake_function(annotations, duration, **kwargs):
+                return 0
 
 def test_failures(project):
     exception_caught = False
@@ -58,12 +76,52 @@ def test_failures(project):
     assert (
         exception_caught == True
     ), "Metrics failed to throw an exception despite having the segments argument and by having a value different than 'recording_filename'"
+           
+@pytest.mark.parametrize("error,col_change,new_value",
+                         [(ValueError, 'name', 'voc_mal_ph_its'),
+                          (ValueError, 'name', 'voc_fem_ph_its'),
+                          (ValueError, 'speaker', 'FEM'),
+                          (None,None,None),
+                          ])
+def test_metrics(project, am, error, col_change, new_value):
+    
+    data = pd.read_csv("tests/data/lena_its.csv")
+
+    am.import_annotations(
+        pd.DataFrame(
+            [
+                {
+                    "set": "custom_its",
+                    "raw_filename": "file.its",
+                    "time_seek": 0,
+                    "recording_filename": "sound.wav",
+                    "range_onset": 0,
+                    "range_offset": 100000000,
+                    "format": "its",
+                }
+            ]
+        ),
+        import_function=partial(fake_vocs, data),
+    )
+        
+    parameters=pd.read_csv("tests/data/list_metrics.csv")
+    
+    if error:
+        with pytest.raises(error):
+            parameters.iloc[0,parameters.columns.get_loc(col_change)] = new_value
+            mm = Metrics(project, parameters)
+    else:       
+        mm = Metrics(project, parameters)
+        mm.extract()
+    
+        truth = pd.read_csv("tests/truth/custom_metrics.csv")
+    
+        pd.testing.assert_frame_equal(mm.metrics, truth, check_like=True)
 
 
-def test_aclew(project):
+def test_aclew(project, am):
     data = pd.read_csv("tests/data/aclew.csv")
 
-    am = AnnotationManager(project)
     am.import_annotations(
         pd.DataFrame(
             [
@@ -89,10 +147,9 @@ def test_aclew(project):
 
     pd.testing.assert_frame_equal(aclew.metrics, truth, check_like=True)
 
-def test_lena(project):
+def test_lena(project, am):
     data = pd.read_csv("tests/data/lena_its.csv")
 
-    am = AnnotationManager(project)
     am.import_annotations(
         pd.DataFrame(
             [
@@ -117,8 +174,7 @@ def test_lena(project):
 
     pd.testing.assert_frame_equal(lena.metrics, truth, check_like=True)
 
-def test_custom(project):
-    am = AnnotationManager(project)
+def test_custom(project, am):
     
     data = pd.read_csv("tests/data/lena_its.csv")
 
@@ -140,6 +196,7 @@ def test_custom(project):
     )
         
     parameters="tests/data/list_metrics.csv"
+    
     cmm = CustomMetrics(project, parameters)
     cmm.extract()
 
@@ -147,10 +204,9 @@ def test_custom(project):
 
     pd.testing.assert_frame_equal(cmm.metrics, truth, check_like=True)
     
-def test_metrics_segments(project):
+def test_metrics_segments(project, am):
     data = pd.read_csv("tests/data/aclew.csv")
 
-    am = AnnotationManager(project)
     am.import_annotations(
         pd.DataFrame(
             [
@@ -184,10 +240,9 @@ def test_metrics_segments(project):
 
     pd.testing.assert_frame_equal(metrics.metrics, truth, check_like=True)
 
-def test_specs(project):
+def test_specs(project, am):
     data = pd.read_csv("tests/data/lena_its.csv")
     
-    am = AnnotationManager(project)
     am.import_annotations(
         pd.DataFrame(
             [

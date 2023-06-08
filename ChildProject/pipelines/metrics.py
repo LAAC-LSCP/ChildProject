@@ -230,12 +230,9 @@ class Metrics(ABC):
                 else : duration_set = 0
                 row[1]["duration_{}".format(line["set"])] = duration_set
                 prev_set = curr_set            
-
-            if 'name' in line and not pd.isnull(line["name"]) and line["name"]: #the 'name' column exists and its value is not NaN or ''  => use the name given by the user
-                row[1][line["name"]] = line["callable"](annotations, duration_set, **line.drop(['callable', 'set','name'],errors='ignore').dropna().to_dict())[1]
-            else : # use the default name of the metric function
-                name, value = line["callable"](annotations, duration_set, **line.drop(['callable', 'set','name'],errors='ignore').dropna().to_dict())
-                row[1][name] = value
+                
+            name, value = line["callable"](annotations, duration_set, **line.drop(['callable', 'set'],errors='ignore').dropna().to_dict())
+            row[1][name] = value
         
         return row[1]
                 
@@ -360,10 +357,7 @@ class Metrics(ABC):
         duration_set = 0
         names = set()
         for i, line in self.metrics_list.iterrows():
-            if 'name' in line and not pd.isnull(line["name"]) and line["name"]: 
-                name = line["name"]
-            else : # use the default name of the metric function
-                name, value = line["callable"](df, duration_set, **line.drop(['callable', 'set','name'],errors='ignore').dropna().to_dict())
+            name, value = line["callable"](df, duration_set, **line.drop(['callable', 'set'],errors='ignore').dropna().to_dict())
                 
             if name in names:
                 raise ValueError('the metric name <{}> is used multiple times, make sure it is unique'.format(name))
