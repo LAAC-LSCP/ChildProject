@@ -103,8 +103,6 @@ def create_eaf(
     )
 
     eaf.to_file(destination)
-    for i in eaf.get_tier_names():
-        print(i, ":", eaf.get_annotation_data_for_tier(i))
 
     return eaf
 
