@@ -90,7 +90,8 @@ def peak_hour_metric(function):
         """
     @functools.wraps(function)
     def new_func(annotations: pd.DataFrame, duration: int, **kwargs):
-        period_time = 3600000  # time to consider for periods, here 1h
+        # time to consider for periods, here 1h by default, else put it in kwargs
+        period_time = 3600000 if 'period_time' not in kwargs else kwargs['period_time']
         periods = duration // period_time  # number of hours to consider
 
         # what hour it belongs to (we made the choice of using onset to choose the hour)
@@ -112,7 +113,9 @@ def peak_hour_metric(function):
         else:
             return np.nan
 
+    # wraps will give the same name and doc, so we need to slightly edit them for the peak function
     new_func.__doc__ = "Computing the peak for 1h for the following metric:\n" + function.__doc__
+    new_func.__name__ = "peak_" + function.__name__
     return new_func
 
 
@@ -454,9 +457,10 @@ lena_CTC = metricFunction(set(), {"lena_conv_turn_type"})(lena_CTC)
 
 def simple_CTC(annotations: pd.DataFrame,
         duration: int,
-        interlocutors_1=tuple('CHI'),
+        interlocutors_1=('CHI',),
         interlocutors_2=('FEM', 'MAL', 'OCH'),
         max_interval=1000,
+        min_delay=0,
         **kwargs):
     """number of conversational turn counts based on vocalizations occurring
     in a given interval of one another
@@ -465,6 +469,7 @@ def simple_CTC(annotations: pd.DataFrame,
         - interlocutors_1 : first group of interlocutors, default = ['CHI']
         - interlocutors_2 : second group of interlocutors, default = ['FEM','MAL','OCH']
         - max_interval : maximum interval in ms for it to be considered a turn, default = 1000
+        - min_delay : minimum delay between somebody starting speaking
     """
     # build the interactants groups, every label in interlocutors_1 can interact with interlocutors_2 and vice versa
     speakers = set(interlocutors_1 + interlocutors_2)
@@ -475,18 +480,23 @@ def simple_CTC(annotations: pd.DataFrame,
         else:
             interactants[k] = set(interlocutors_1)
 
+
     annotations = annotations[annotations["speaker_type"].isin(speakers)]
     # store the duration between vocalizations
     annotations["iti"] = annotations["segment_onset"] - annotations["segment_offset"].shift(1)
     # store the previous speaker
     annotations["prev_speaker_type"] = annotations["speaker_type"].shift(1)
 
+    annotations["delay"] = annotations["segment_onset"] - annotations["segment_onset"].shift(1)
+
     # not using absolute value for 'iti' is a choice and should be evaluated (we allow speakers to 'interrupt'
     # themselves
     annotations["is_CT"] = (
-            (annotations["prev_speaker_type"].isin(interactants[annotations['speaker_type']]))
+            (annotations.apply(lambda row: row["prev_speaker_type"] in interactants[row['speaker_type']], axis=1))
             &
             (annotations['iti'] < max_interval)
+            &
+            (annotations['delay'] >= min_delay)
     )
 
     return annotations['is_CT'].sum()
