@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- zooniverse chunks upload was failing if the dataset column was missing in the csv
+
 ## [0.1.1] 2023-05-11
 
 ### Added
