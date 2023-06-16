@@ -116,6 +116,7 @@ def peak_hour_metric(function):
     # wraps will give the same name and doc, so we need to slightly edit them for the peak function
     new_func.__doc__ = "Computing the peak for 1h for the following metric:\n" + function.__doc__
     new_func.__name__ = "peak_" + function.__name__
+    new_func.__qualname__ = "peak_" + function.__qualname__
     return new_func
 
 
