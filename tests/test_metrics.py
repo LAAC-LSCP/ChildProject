@@ -277,3 +277,45 @@ def test_specs(project, am):
     
     pd.testing.assert_frame_equal(output, truth, check_like=True)
 
+def test_metrics_peaks(project, am):
+    data = pd.read_csv("tests/data/aclew.csv")
+
+    am.import_annotations(
+        pd.DataFrame(
+            [
+                {
+                    "set": set,
+                    "raw_filename": "file.rttm",
+                    "time_seek": 0,
+                    "recording_filename": "sound.wav",
+                    "range_onset": 0,
+                    "range_offset": 4000,
+                    "format": "rttm",
+                }
+                for set in ["peak_vtc", "peak_alice", "peak_vcm"]
+            ]
+        ),
+        import_function=partial(fake_vocs, data),
+    )
+    lm = pd.DataFrame(np.array(
+            [["voc_speaker", "peak_vtc", 'FEM', pd.NA],
+             ["voc_speaker", "peak_vtc", 'CHI', pd.NA],
+             ["peak_voc_speaker", "peak_vtc", 'FEM', 1000],
+             ["peak_voc_speaker", "peak_vtc", 'CHI', 1000],
+             ["voc_speaker_ph", "peak_vtc", 'FEM', pd.NA],
+             ["voc_speaker_ph", "peak_vtc", 'CHI', pd.NA],
+             ["peak_voc_speaker_ph", "peak_vtc", 'FEM', 1000],
+             ["peak_voc_speaker_ph", "peak_vtc", 'CHI', 1000],
+             ["wc_adu_ph", "peak_alice", pd.NA, pd.NA],
+             ["peak_wc_adu_ph", "peak_alice", pd.NA, 1000],
+             ["simple_CTC", "peak_vtc", pd.NA, pd.NA],
+             ["peak_simple_CTC", "peak_vtc", pd.NA, 1000],
+             ]), columns=["callable", "set", "speaker", "period_time"])
+    metrics = Metrics(project, metrics_list=lm, threads=4)
+    metrics.extract()
+
+    truth = pd.read_csv("tests/truth/peak_metrics.csv")
+
+    #metrics.metrics.to_csv("tests/truth/peak_metrics.csv",index=False)
+
+    pd.testing.assert_frame_equal(metrics.metrics, truth, check_like=True)
