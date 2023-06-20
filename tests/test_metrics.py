@@ -311,7 +311,7 @@ def test_metrics_peaks(project, am):
              ["simple_CTC", "peak_vtc", pd.NA, pd.NA],
              ["peak_simple_CTC", "peak_vtc", pd.NA, 1000],
              ]), columns=["callable", "set", "speaker", "period_time"])
-    metrics = Metrics(project, metrics_list=lm, threads=4)
+    metrics = Metrics(project, metrics_list=lm)
     metrics.extract()
 
     truth = pd.read_csv("tests/truth/peak_metrics.csv")
