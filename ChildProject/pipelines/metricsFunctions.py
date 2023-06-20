@@ -19,6 +19,8 @@ New metrics can be added by defining new functions for the Metrics class to use 
        not be used). This will need to be given with the list of metrics when called
  - Wrap you function with the 'metricFunction' decorator to make it callable by the pipeline, read metricFunction help 
    for more info
+   
+!! Metrics functions should still behave and return the correct result when receiving an empty dataframe
 """
 
 # error message in case of missing columns in annotations
@@ -84,40 +86,47 @@ def metricFunction(args: set, columns: set, empty_value=0, default_name: str = N
 
     return decorator
 
+def peak_hour_metric(empty_value = 0):
+    """
+    empty_value : should repeat the empty value of the metric function wrapper (as this will be used for empty periods)
+    """
+    def decorator(function):
+        """Decorator a metric function to select the maximum value observed over 1h periods.
+            """
+        @functools.wraps(function)
+        def new_func(annotations: pd.DataFrame, duration: int, **kwargs):
+            # time to consider for periods, here 1h by default, else put it in kwargs
+            period_time = 3600000 if 'period_time' not in kwargs else kwargs['period_time']
+            periods = duration // period_time  # number of hours to consider
 
-def peak_hour_metric(function):
-    """Decorator a metric function to select the maximum value observed over 1h periods.
-        """
-    @functools.wraps(function)
-    def new_func(annotations: pd.DataFrame, duration: int, **kwargs):
-        # time to consider for periods, here 1h by default, else put it in kwargs
-        period_time = 3600000 if 'period_time' not in kwargs else kwargs['period_time']
-        periods = duration // period_time  # number of hours to consider
+            # what hour it belongs to (we made the choice of using onset to choose the hour)
+            annotations['hour_number_metric'] = annotations['segment_onset'] // period_time
 
-        # what hour it belongs to (we made the choice of using onset to choose the hour)
-        annotations['hour_number_metric'] = annotations['segment_onset'] // period_time
+            result_array = np.array([])
+            for i in range(periods):
+                # select the annotations for this hour
+                period_annotations = annotations[annotations['hour_number_metric'] == i]
 
-        result_array = np.array([])
-        for i in range(periods):
-            # select the annotations for this hour
-            period_annotations = annotations[annotations['hour_number_metric'] == i]
+                if period_annotations.shape[0]:
+                    # compute metric for the period
+                    metric = function(period_annotations, period_time, **kwargs)
+                else:
+                    metric = empty_value
 
-            # compute metric for the period
-            metric = function(period_annotations, period_time, **kwargs)
+                result_array = np.append(result_array, metric)  # store the result
 
-            result_array = np.append(result_array, metric)  # store the result
+            # if we have results, return the max, else return NaN
+            if len(result_array):
+                return np.nanmax(result_array)
+            else:
+                return np.nan
 
-        # if we have results, return the max, else return NaN
-        if len(result_array):
-            return np.nanmax(result_array)
-        else:
-            return np.nan
-
-    # wraps will give the same name and doc, so we need to slightly edit them for the peak function
-    new_func.__doc__ = "Computing the peak for 1h for the following metric:\n" + function.__doc__
-    new_func.__name__ = "peak_" + function.__name__
-    new_func.__qualname__ = "peak_" + function.__qualname__
-    return new_func
+        # wraps will give the same name and doc, so we need to slightly edit them for the peak function
+        new_func.__doc__ = "Computing the peak for 1h for the following metric:\n" + function.__doc__
+        new_func.__name__ = "peak_" + function.__name__
+        new_func.__qualname__ = "peak_" + function.__qualname__
+        return new_func
+    return decorator
 
 
 def voc_speaker(annotations: pd.DataFrame, duration: int, **kwargs):
@@ -130,7 +139,7 @@ def voc_speaker(annotations: pd.DataFrame, duration: int, **kwargs):
 
 
 # Decorate for the peak metric and then the classic metric to avoid conflicts of decoration
-peak_voc_speaker = metricFunction({"speaker"}, {"speaker_type"})(peak_hour_metric(voc_speaker))
+peak_voc_speaker = metricFunction({"speaker"}, {"speaker_type"})(peak_hour_metric()(voc_speaker))
 voc_speaker = metricFunction({"speaker"}, {"speaker_type"})(voc_speaker)
 
 def voc_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):
@@ -142,8 +151,9 @@ def voc_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):
     return annotations[annotations["speaker_type"] == kwargs["speaker"]].shape[0] * (3600000 / duration)
 
 
-peak_voc_speaker_ph = metricFunction({"speaker"}, {"speaker_type"})(peak_hour_metric(voc_speaker_ph))
+peak_voc_speaker_ph = metricFunction({"speaker"}, {"speaker_type"})(peak_hour_metric()(voc_speaker_ph))
 voc_speaker_ph = metricFunction({"speaker"}, {"speaker_type"})(voc_speaker_ph)
+
 
 @metricFunction({"speaker"}, {"speaker_type", "duration"})
 def voc_dur_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):
@@ -174,8 +184,9 @@ def wc_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):
     return annotations[annotations["speaker_type"] == kwargs["speaker"]]["words"].sum() * (3600000 / duration)
 
 
-peak_wc_speaker_ph = metricFunction({"speaker"}, {"speaker_type", "words"})(peak_hour_metric(wc_speaker_ph))
+peak_wc_speaker_ph = metricFunction({"speaker"}, {"speaker_type", "words"})(peak_hour_metric()(wc_speaker_ph))
 wc_speaker_ph = metricFunction({"speaker"}, {"speaker_type", "words"})(wc_speaker_ph)
+
 
 @metricFunction({"speaker"}, {"speaker_type", "syllables"})
 def sc_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):
@@ -205,7 +216,7 @@ def wc_adu_ph(annotations: pd.DataFrame, duration: int, **kwargs):
     return annotations["words"].sum() * (3600000 / duration)
 
 
-peak_wc_adu_ph = metricFunction(set(), {"words"})(peak_hour_metric(wc_adu_ph))
+peak_wc_adu_ph = metricFunction(set(), {"words"})(peak_hour_metric()(wc_adu_ph))
 wc_adu_ph = metricFunction(set(), {"words"})(wc_adu_ph)
 
 
@@ -430,7 +441,6 @@ def cp_dur(annotations: pd.DataFrame, duration: int, **kwargs):
     return value
 
 
-
 def lena_CVC(annotations: pd.DataFrame, duration: int, **kwargs):
     """number of child vocalizations according to LENA's extraction
     
@@ -439,7 +449,7 @@ def lena_CVC(annotations: pd.DataFrame, duration: int, **kwargs):
     return annotations["utterances_count"].sum()
 
 
-peak_lena_CVC = metricFunction(set(), {"utterances_count"})(peak_hour_metric(lena_CVC))
+peak_lena_CVC = metricFunction(set(), {"utterances_count"})(peak_hour_metric()(lena_CVC))
 lena_CVC = metricFunction(set(), {"utterances_count"})(lena_CVC)
 
 
@@ -452,7 +462,7 @@ def lena_CTC(annotations: pd.DataFrame, duration: int, **kwargs):
     return annotations[annotations["lena_conv_turn_type"].isin(conv_types)].shape[0]
 
 
-peak_lena_CTC = metricFunction(set(), {"lena_conv_turn_type"})(peak_hour_metric(lena_CTC))
+peak_lena_CTC = metricFunction(set(), {"lena_conv_turn_type"})(peak_hour_metric()(lena_CTC))
 lena_CTC = metricFunction(set(), {"lena_conv_turn_type"})(lena_CTC)
 
 
@@ -481,27 +491,30 @@ def simple_CTC(annotations: pd.DataFrame,
         else:
             interactants[k] = set(interlocutors_1)
 
+    annotations = annotations[annotations["speaker_type"].isin(speakers)].copy()
 
-    annotations = annotations[annotations["speaker_type"].isin(speakers)]
-    # store the duration between vocalizations
-    annotations["iti"] = annotations["segment_onset"] - annotations["segment_offset"].shift(1)
-    # store the previous speaker
-    annotations["prev_speaker_type"] = annotations["speaker_type"].shift(1)
+    if annotations.shape[0]:
+        # store the duration between vocalizations
+        annotations["iti"] = annotations["segment_onset"] - annotations["segment_offset"].shift(1)
+        # store the previous speaker
+        annotations["prev_speaker_type"] = annotations["speaker_type"].shift(1)
 
-    annotations["delay"] = annotations["segment_onset"] - annotations["segment_onset"].shift(1)
+        annotations["delay"] = annotations["segment_onset"] - annotations["segment_onset"].shift(1)
 
-    # not using absolute value for 'iti' is a choice and should be evaluated (we allow speakers to 'interrupt'
-    # themselves
-    annotations["is_CT"] = (
-            (annotations.apply(lambda row: row["prev_speaker_type"] in interactants[row['speaker_type']], axis=1))
-            &
-            (annotations['iti'] < max_interval)
-            &
-            (annotations['delay'] >= min_delay)
-    )
+        # not using absolute value for 'iti' is a choice and should be evaluated (we allow speakers to 'interrupt'
+        # themselves
+        annotations["is_CT"] = (
+                (annotations.apply(lambda row: row["prev_speaker_type"] in interactants[row['speaker_type']], axis=1))
+                &
+                (annotations['iti'] < max_interval)
+                &
+                (annotations['delay'] >= min_delay)
+        )
 
-    return annotations['is_CT'].sum()
+        return annotations['is_CT'].sum()
+    else:
+        return 0
 
 
-peak_simple_CTC = metricFunction(set(), {"speaker_type"})(peak_hour_metric(simple_CTC))
+peak_simple_CTC = metricFunction(set(), {"speaker_type"})(peak_hour_metric()(simple_CTC))
 simple_CTC = metricFunction(set(), {"speaker_type"})(simple_CTC)

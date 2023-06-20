@@ -227,11 +227,11 @@ class Metrics(ABC):
                     duration_set = (
                             index["range_offset"] - index["range_onset"]
                         ).sum()
-                else : duration_set = 0
+                else: duration_set = 0
                 row[1]["duration_{}".format(line["set"])] = duration_set
                 prev_set = curr_set            
-                
-            name, value = line["callable"](annotations, duration_set, **line.drop(['callable', 'set'],errors='ignore').dropna().to_dict())
+
+            name, value = line["callable"](annotations, duration_set, **line.drop(['callable', 'set']).dropna().to_dict())
             row[1][name] = value
         
         return row[1]
