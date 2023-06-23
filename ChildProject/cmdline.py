@@ -11,19 +11,14 @@ import os
 import pandas as pd
 import sys
 import random
-
-#######################################################################
-
-# Ajouter cela à setup,py dans la section requires et à requirements 
-
 import logging
-import colorlog
 
+# add this to setup,py in the requires section and in requirements.txt
+import colorlog
 
 # Create a ColorFormatter with desired color settings
 color_formatter = colorlog.ColoredFormatter(
-    '%(asctime)s : %(log_color)s%(levelname)s%(reset)s : %(message)s',
-    datefmt='%m/%d/%Y %H:%M:%S',
+    '%(log_color)s%(levelname)-8s%(reset)s %(message)s %(purple)s[%(name)s]%(reset)s',
     log_colors={
         'DEBUG': 'cyan',
         'INFO': 'green',
@@ -36,19 +31,14 @@ color_formatter = colorlog.ColoredFormatter(
 # Create a StreamHandler and set the formatter
 stream_handler = logging.StreamHandler()
 stream_handler.setFormatter(color_formatter)
+#stream_handler.formatter._fmt = '%(log_color)s%(levelname)-8s%(reset)s  <%(name)s>: %(message)s'
 
-# Create a FileHandler and set the formatter
-#file_handler = logging.FileHandler('output.log', encoding='utf-8')
-#file_handler.setFormatter(color_formatter)
-
-# Create a logger and add the handlers
-logger = logging.getLogger()
+# Create a logger and add the handlers for CLI calls
+logger = logging.getLogger(__name__)
 logger.addHandler(stream_handler)
-#logger.addHandler(file_handler)
 logger.setLevel(logging.INFO)
 
-#######################################################################
-
+# Setting up the parse of arguments
 parser = argparse.ArgumentParser()
 subparsers = parser.add_subparsers()
 parser.add_argument('--version', action='version', version="{} {}".format(__name__, __version__), help='displays the current version of the package')
@@ -86,13 +76,13 @@ def perform_validation(project: ChildProject, require_success: bool = True, **ar
 
     if len(errors) > 0:
         if require_success:
-            logging.error(
+            logger.error(
                 "dataset validation failed, %d error(s) occurred. Cannot continue. Please run the validation procedure to list and correct all errors.",
                 len(errors),
             )
             sys.exit(1)
         else:
-            logging.warning(
+            logger.warning(
                 "dataset validation failed, %d error(s) occurred. Proceeding despite errors; expect failures.",
                 len(errors),
             )
@@ -134,6 +124,7 @@ def perform_validation(project: ChildProject, require_success: bool = True, **ar
 )
 def validate(args):
     """validate the consistency of the dataset returning detailed errors and warnings"""
+    logger.critical(__name__)
 
     project = ChildProject(args.source)
     errors, warnings = project.validate(args.ignore_recordings, args.profile)
@@ -174,15 +165,17 @@ def validate(args):
         warnings.extend(annotations_warnings)
 
     for error in errors:
-        logging.error('error: %s',error)
+        pass
+        #logger.error('error: %s',error)
 
     for warning in warnings:
-        logging.warning('error: %s',warning )
+        pass
+        #logger.warning('error: %s',warning )
     if len(errors) > 0:
-        logging.warning('validation failed, %s error(s) occured', len(errors))
+        logger.warning('validation failed, %s error(s) occured', len(errors))
         sys.exit(1)
 
-    logging.info('validation successfully completed with %d warning(s).', len(warnings))
+    logger.info('validation successfully completed with %d warning(s).', len(warnings))
 
 
 @subcommand(
@@ -234,6 +227,7 @@ def import_annotations(args):
     imported, errors_imp = am.import_annotations(annotations, args.threads, overwrite_existing=args.overwrite_existing)
     
     if errors_imp is not None and errors_imp.shape[0] > 0:
+        logger.error()
         print("the importation failed for {} entry/ies".format(errors_imp.shape[0]))
         print(errors_imp)
     

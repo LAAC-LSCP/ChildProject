@@ -8,6 +8,7 @@ from shutil import move, rmtree
 import sys
 import traceback
 from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
+import logging
 
 from . import __version__
 from .projects import ChildProject
@@ -15,42 +16,11 @@ from .converters import *
 from .tables import IndexTable, IndexColumn, assert_dataframe, assert_columns_presence
 from .utils import Segment, intersect_ranges, path_is_parent, TimeInterval, series_to_datetime, find_lines_involved_in_overlap
 
-#######################################################################
 
-# Ajouter cela à setup,py dans la section requires et à requirements 
-
-import logging
-import colorlog
-
-
-# Create a ColorFormatter with desired color settings
-color_formatter = colorlog.ColoredFormatter(
-    '%(asctime)s : %(log_color)s%(levelname)s%(reset)s : %(message)s',
-    datefmt='%m/%d/%Y %H:%M:%S',
-    log_colors={
-        'DEBUG': 'cyan',
-        'INFO': 'green',
-        'WARNING': 'yellow',
-        'ERROR': 'red',
-        'CRITICAL': 'bold_red',
-    }
-)
-
-# Create a StreamHandler and set the formatter
-stream_handler = logging.StreamHandler()
-stream_handler.setFormatter(color_formatter)
-
-# Create a FileHandler and set the formatter
-#file_handler = logging.FileHandler('output.log', encoding='utf-8')
-#file_handler.setFormatter(color_formatter)
-
-# Create a logger and add the handlers
-logger = logging.getLogger()
-logger.addHandler(stream_handler)
-#logger.addHandler(file_handler)
-logger.setLevel(logging.WARNING)
-
-#######################################################################
+# Create a logger for the module (file)
+logger_annotations = logging.getLogger(__name__)
+# messages are propagated to the higher level logger (ChildProject), used in cmdline.py
+logger_annotations.propagate = True
 
 class AnnotationManager:
     INDEX_COLUMNS = [
@@ -388,10 +358,10 @@ class AnnotationManager:
 
         return errors, warnings
 
-    def _annotation(self, annotation: dict) -> Tuple[List[str], List[str]]:
-        logging.info("Validating %s from %s...", annotation["annotation_filename"], annotation["set"])
+    def validate_annotation(self, annotation: dict) -> Tuple[List[str], List[str]]:
+        logger_annotations.info("Validating %s from %s...", annotation["annotation_filename"], annotation["set"])
         
-    
+        logger_annotations.critical(__name__)
 
         segments = IndexTable(
             "segments",
@@ -524,12 +494,12 @@ class AnnotationManager:
         if self.annotations[(self.annotations['set'] == annotation['set']) &
                             (self.annotations['annotation_filename'] == annotation_filename)].shape[0] > 0:
             if overwrite_existing:
-                logging.warning("Annotation file %s will be overwritten", output_filename)
+                logger_annotations.warning("Annotation file %s will be overwritten", output_filename)
                
             else:
                 error_filename = output_filename.replace('\\','/')
                 annotation["error"] = f"annotation file {error_filename} already exists, to reimport it, use the overwrite_existing flag"
-                logging.error("Error: %s", annotation['error'])
+                logger_annotations.error("Error: %s", annotation['error'])
                 annotation["imported_at"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 return annotation
         
@@ -544,7 +514,7 @@ class AnnotationManager:
         if ovl_annots.shape[0] > 0:
             array_tup = list(ovl_annots[['set','recording_filename','range_onset', 'range_offset']].itertuples(index=False, name=None))
             annotation["error"] = f"importation for set <{annotation['set']}> recording <{annotation['recording_filename']}> from {annotation['range_onset']} to {annotation['range_offset']} cannot continue because it overlaps with these existing annotation lines: {array_tup}"
-            logging.error("Error: %s", annotation['error'])
+            logger_annotations.error("Error: %s", annotation['error'])
             #(f"Error: {annotation['error']}")
             annotation["imported_at"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             return annotation
@@ -577,7 +547,7 @@ class AnnotationManager:
                 )
         except:
             annotation["error"] = traceback.format_exc()
-            logging.error("An error occurred while processing '%s'", path, exc_info=True)
+            logger_annotations.error("An error occurred while processing '%s'", path, exc_info=True)
 
         if df is None or not isinstance(df, pd.DataFrame):
             annotation["imported_at"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -687,7 +657,7 @@ class AnnotationManager:
       
         builtin = input_processed[input_processed["format"].isin(converters.keys())]
         if not builtin["format"].map(lambda f: converters[f].THREAD_SAFE).all():
-            logging.warning("warning: some of the converters do not support multithread importation; running on 1 thread")
+            logger_annotations.warning("warning: some of the converters do not support multithread importation; running on 1 thread")
             threads = 1
             
         #if the input to import has overlaps in it, raise an error immediately, nothing will be imported
@@ -727,7 +697,7 @@ class AnnotationManager:
             if errors.shape[0] > 0:
                 output = os.path.join(self.project.path, "extra","errors_import_{}.csv".format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")))
                 errors.to_csv(output, index=False)
-                logging.info("Errors summary exported to %s", output)              
+                logger_annotations.info("Errors summary exported to %s", output)              
         else:
             errors = None
 
@@ -741,7 +711,7 @@ class AnnotationManager:
         sets = set(input_processed['set'].unique())
         outdated_sets = self._check_for_outdated_merged_sets(sets= sets)
         for warning in outdated_sets:
-            logging.warning("warning: %s", warning)          
+            logger_annotations.warning("warning: %s", warning)          
 
         return (imported, errors)
 
@@ -798,7 +768,7 @@ class AnnotationManager:
         try:
             rmtree(path)
         except:
-            logging.info("could not delete '%s', as it does not exist (yet?)", path)
+            logger_annotations.info("could not delete '%s', as it does not exist (yet?)", path)
             pass
 
         self.annotations = self.annotations[self.annotations["set"] != annotation_set]
@@ -806,7 +776,7 @@ class AnnotationManager:
       
         outdated_sets = self._check_for_outdated_merged_sets(sets= {annotation_set})
         for warning in outdated_sets:
-            logging.warning("warning: %s", warning)
+            logger_annotations.warning("warning: %s", warning)
 
     def rename_set(
         self,
@@ -1450,7 +1420,7 @@ class AnnotationManager:
                 )
 
                 if missing_data == "warn":
-                    logging.warning("warning: %s", error_message)
+                    logger_annotations.warning("warning: %s", error_message)
                 else:
                     raise Exception(error_message)
 
