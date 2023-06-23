@@ -48,7 +48,7 @@ stream_handler.setFormatter(color_formatter)
 logger = logging.getLogger()
 logger.addHandler(stream_handler)
 #logger.addHandler(file_handler)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.WARNING)
 
 #######################################################################
 
@@ -388,7 +388,7 @@ class AnnotationManager:
 
         return errors, warnings
 
-    def validate_annotation(self, annotation: dict) -> Tuple[List[str], List[str]]:
+    def _annotation(self, annotation: dict) -> Tuple[List[str], List[str]]:
         logging.info("Validating %s from %s...", annotation["annotation_filename"], annotation["set"])
         
     

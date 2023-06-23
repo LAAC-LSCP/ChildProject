@@ -12,6 +12,43 @@ import pandas as pd
 import sys
 import random
 
+#######################################################################
+
+# Ajouter cela à setup,py dans la section requires et à requirements 
+
+import logging
+import colorlog
+
+
+# Create a ColorFormatter with desired color settings
+color_formatter = colorlog.ColoredFormatter(
+    '%(asctime)s : %(log_color)s%(levelname)s%(reset)s : %(message)s',
+    datefmt='%m/%d/%Y %H:%M:%S',
+    log_colors={
+        'DEBUG': 'cyan',
+        'INFO': 'green',
+        'WARNING': 'yellow',
+        'ERROR': 'red',
+        'CRITICAL': 'bold_red',
+    }
+)
+
+# Create a StreamHandler and set the formatter
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(color_formatter)
+
+# Create a FileHandler and set the formatter
+#file_handler = logging.FileHandler('output.log', encoding='utf-8')
+#file_handler.setFormatter(color_formatter)
+
+# Create a logger and add the handlers
+logger = logging.getLogger()
+logger.addHandler(stream_handler)
+#logger.addHandler(file_handler)
+logger.setLevel(logging.INFO)
+
+#######################################################################
+
 parser = argparse.ArgumentParser()
 subparsers = parser.add_subparsers()
 parser.add_argument('--version', action='version', version="{} {}".format(__name__, __version__), help='displays the current version of the package')
@@ -49,18 +86,15 @@ def perform_validation(project: ChildProject, require_success: bool = True, **ar
 
     if len(errors) > 0:
         if require_success:
-            print(
-                "[\033[31merror\033[0m]: dataset validation failed, {} error(s) occured.\nCannot continue. Please run the validation procedure to list and correct all errors.".format(
-                    len(errors)
-                ),
-                file=sys.stderr,
+            logging.error(
+                "dataset validation failed, %d error(s) occurred. Cannot continue. Please run the validation procedure to list and correct all errors.",
+                len(errors),
             )
             sys.exit(1)
         else:
-            print(
-                "[\033[33mwarning\033[0m]: dataset validation failed, {} error(s) occured.\nProceeding despite errors; expect failures.".format(
-                    len(errors)
-                )
+            logging.warning(
+                "dataset validation failed, %d error(s) occurred. Proceeding despite errors; expect failures.",
+                len(errors),
             )
 
 
@@ -140,16 +174,15 @@ def validate(args):
         warnings.extend(annotations_warnings)
 
     for error in errors:
-        print("error: {}".format(error))
+        logging.error('error: %s',error)
 
     for warning in warnings:
-        print("warning: {}".format(warning))
-
+        logging.warning('error: %s',warning )
     if len(errors) > 0:
-        print("validation failed, {} error(s) occured".format(len(errors)))
+        logging.warning('validation failed, %s error(s) occured', len(errors))
         sys.exit(1)
 
-    print("validation successfully completed with {} warning(s).".format(len(warnings)))
+    logging.info('validation successfully completed with %d warning(s).', len(warnings))
 
 
 @subcommand(
