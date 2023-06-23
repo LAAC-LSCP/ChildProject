@@ -124,7 +124,6 @@ def perform_validation(project: ChildProject, require_success: bool = True, **ar
 )
 def validate(args):
     """validate the consistency of the dataset returning detailed errors and warnings"""
-    logger.critical(__name__)
 
     project = ChildProject(args.source)
     errors, warnings = project.validate(args.ignore_recordings, args.profile)

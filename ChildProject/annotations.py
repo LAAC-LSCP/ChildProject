@@ -361,7 +361,7 @@ class AnnotationManager:
     def validate_annotation(self, annotation: dict) -> Tuple[List[str], List[str]]:
         logger_annotations.info("Validating %s from %s...", annotation["annotation_filename"], annotation["set"])
         
-        logger_annotations.critical(__name__)
+
 
         segments = IndexTable(
             "segments",
