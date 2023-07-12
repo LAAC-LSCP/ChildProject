@@ -165,11 +165,11 @@ def validate(args):
 
     for error in errors:
         pass
-        logger.error('error: %s',error)
+        logger.error('%s',error)
 
     for warning in warnings:
         pass
-        logger.warning('error: %s',warning )
+        logger.warning('%s',warning )
     if len(errors) > 0:
         logger.warning('validation failed, %s error(s) occured', len(errors))
         sys.exit(1)
@@ -226,8 +226,8 @@ def import_annotations(args):
     imported, errors_imp = am.import_annotations(annotations, args.threads, overwrite_existing=args.overwrite_existing)
     
     if errors_imp is not None and errors_imp.shape[0] > 0:
-        logger.error('the importation failed for %d entry/ies',errors_imp.shape[0])
-        logger.debug(errors_imp) # Is it the right level ?
+        logger.error('The importation failed for %d entry/ies',errors_imp.shape[0])
+        logger.debug(errors_imp) 
     
     if imported is not None and imported.shape[0] > 0:
         errors, warnings = am.validate(imported, threads=args.threads)
