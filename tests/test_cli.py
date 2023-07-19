@@ -12,10 +12,6 @@ def test_validate():
     stdout, stderr, exit_code = cli(
         ["child-project", "validate", "examples/valid_raw_data"]
     )
-    print(stdout)
-    print("EEEEEEEEEE")
-    print(stderr)
-    print(exit_code)
     assert exit_code == 0
 
 
@@ -23,10 +19,6 @@ def test_overview():
     stdout, stderr, exit_code = cli(
         ["child-project", "overview", "examples/valid_raw_data"]
     )
-    print(stdout)
-    print("EEEEEEEEEE")
-    print(stderr)
-    print(exit_code)
     assert exit_code == 0
 
 
@@ -40,10 +32,6 @@ def test_import_annotations():
             "examples/valid_raw_data/annotations/input_short.csv",
         ]
     )
-    print(stdout)
-    print("EEEEEEEEEE")
-    print(stderr)
-    print(exit_code)
     assert exit_code == 0
 
 def test_compute_durations():
@@ -54,10 +42,6 @@ def test_compute_durations():
             "examples/valid_raw_data"
         ]
     )
-    print(stdout)
-    print("EEEEEEEEEE")
-    print(stderr)
-    print(exit_code)
     assert exit_code == 0
 
 def test_explain():
@@ -69,10 +53,6 @@ def test_explain():
             "notes"
         ]
     )
-    print(stdout)
-    print("EEEEEEEEEE")
-    print(stderr)
-    print(exit_code)
     assert exit_code == 0
 
     stdout, stderr, exit_code = cli(
@@ -83,10 +63,6 @@ def test_explain():
             "non-existent-variable"
         ]
     )
-    print(stdout)
-    print("EEEEEEEEEE")
-    print(stderr)
-    print(exit_code)
     assert exit_code == 0
     
 def test_compare_recordings():
@@ -101,8 +77,4 @@ def test_compare_recordings():
             "10"
         ]
     )
-    print(stdout)
-    print("EEEEEEEEEE")
-    print(stderr)
-    print(exit_code)
     assert exit_code == 0
