@@ -81,6 +81,9 @@ instance/
 # Sphinx documentation
 docs/_build/
 
+# PyCharm
+/.idea/
+
 # PyBuilder
 target/
 
