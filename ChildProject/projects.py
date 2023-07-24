@@ -538,13 +538,15 @@ class ChildProject:
                             info = mediainfo(path)
                             if 'sample_rate' in info and int(info['sample_rate']) != STANDARD_SAMPLE_RATE:
                                 self.warnings.append(f"recording '{raw_filename}' at '{path}' has unexpected sampling rate {info['sample_rate']}Hz when {STANDARD_SAMPLE_RATE}Hz is expected for profile {STANDARD_PROFILE}")
-                        continue
-
-                    message = f"cannot find recording '{raw_filename}' at '{path}'"
-                    if column_attr.required:
-                        self.errors.append(message)
-                    else:
-                        self.warnings.append(message)
+                    
+                    elif os.path.islink(path):
+                        message = self.warnings.append(f"the data content of recording '{raw_filename}' at path '{path}' is absent. See 'broken symlinks'") #The path is valid but there's no content. See broken symlinks (try 'Datalad get $filename')
+                    else:    
+                        message = f"cannot find recording '{raw_filename}' at '{path}'"
+                        if column_attr.required:
+                            self.errors.append(message)
+                        else:
+                            self.warnings.append(message)
 
             # child id refers to an existing child in the children table
             if (
