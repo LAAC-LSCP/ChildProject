@@ -8,6 +8,7 @@ from shutil import move, rmtree
 import sys
 import traceback
 from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
+import typer
 
 from . import __version__
 from .projects import ChildProject
@@ -15,6 +16,8 @@ from .converters import *
 from .tables import IndexTable, IndexColumn, assert_dataframe, assert_columns_presence
 from .utils import Segment, intersect_ranges, path_is_parent, TimeInterval, series_to_datetime, find_lines_involved_in_overlap
 
+# Initialize Typer
+app = typer.Typer()
 
 class AnnotationManager:
     INDEX_COLUMNS = [
@@ -351,22 +354,25 @@ class AnnotationManager:
         warnings += self._check_for_outdated_merged_sets()
 
         return errors, warnings
-
-    def validate_annotation(self, annotation: dict) -> Tuple[List[str], List[str]]:
-        print(
-            "validating {} from {}...".format(
-                annotation["annotation_filename"], annotation["set"]
-            )
-        )
+    
+# TYPER PART
+    @app.command()
+    def validate_annotation(
+        annotation_filename: str,
+        set_name: str,
+    ):
+        """
+        Validate an annotation.
+        """
+        print(f"validating {annotation_filename} from {set_name}...")
 
         segments = IndexTable(
             "segments",
             path=os.path.join(
-                self.project.path,
                 "annotations",
-                annotation["set"],
+                set_name,
                 "converted",
-                str(annotation["annotation_filename"]),
+                annotation_filename,
             ),
             columns=self.SEGMENTS_COLUMNS,
         )
@@ -374,12 +380,25 @@ class AnnotationManager:
         try:
             segments.read()
         except Exception as e:
-            error_message = "error while trying to read {} from {}:\n\t{}".format(
-                annotation["annotation_filename"], annotation["set"], str(e)
-            )
-            return [error_message], []
+            error_message = f"error while trying to read {annotation_filename} from {set_name}:\n\t{str(e)}"
+            typer.echo(error_message)
+            raise typer.Exit(1)
 
-        return segments.validate()
+        errors, warnings = segments.validate()
+
+        if errors:
+            for error in errors:
+                typer.echo(f"error: {error}")
+
+        if warnings:
+            for warning in warnings:
+                typer.echo(f"warning: {warning}")
+
+        if errors:
+            typer.echo(f"validation failed for {annotation_filename} from {set_name}")
+            raise typer.Exit(1)
+
+        typer.echo(f"validation successfully completed for {annotation_filename} from {set_name}")
 
     def validate(
         self, annotations: pd.DataFrame = None, threads: int = 0
@@ -1728,3 +1747,4 @@ class AnnotationManager:
         segments = segments[segments["segment_offset"] > segments["segment_onset"]]
 
         return segments
+

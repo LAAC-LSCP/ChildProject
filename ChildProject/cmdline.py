@@ -7,14 +7,19 @@ from ChildProject import __version__
 from ChildProject import __name__
 
 import argparse
+import typer
 import os
 import pandas as pd
 import sys
 import random
 
+#Argparse setup
 parser = argparse.ArgumentParser()
 subparsers = parser.add_subparsers()
 parser.add_argument('--version', action='version', version="{} {}".format(__name__, __version__), help='displays the current version of the package')
+
+# Initialize Typer
+app = typer.Typer()
 
 def arg(*name_or_flags, **kwargs):
     return (list(name_or_flags), kwargs)
@@ -63,46 +68,20 @@ def perform_validation(project: ChildProject, require_success: bool = True, **ar
                 )
             )
 
-
-@subcommand(
-    [
-        arg("source", help="project path"),
-        arg(
-            "--ignore-recordings",
-            help="ignore missing audio files",
-            dest="ignore_recordings",
-            required=False,
-            default=False,
-            action="store_true",
-        ),
-        arg(
-            "--profile",
-            help="which recording profile to validate",
-            dest="profile",
-            required=False,
-            default=None,
-        ),
-        arg(
-            "--annotations",
-            help="path to or name of each annotation set(s) to check (e.g. 'vtc' or '/path/to/dataset/annotations/vtc')",
-            dest="annotations",
-            required=False,
-            default=[],
-            nargs="+",
-        ),
-        arg(
-            "--threads",
-            help="amount of threads to run on (only applies to --annotations)",
-            type=int,
-            default=0,
-        ),
-    ]
-)
-def validate(args):
+#Typer version
+@app.command()
+def validate(
+    source: str,
+    annotations: str = typer.Option("", help="path to annotations"),
+    ignore_recordings: str = typer.Option("", help="ignore recordings"),
+    profile: str = typer.Option("", help="profile"),
+    threads: int = typer.Option(0, help="amount of threads to run on"),
+    overwrite_existing: bool = typer.Option(False, "--overwrite-existing", "--ow", help="overwrites existing annotation file if should generate the same output file (useful when reimporting"),
+):
     """validate the consistency of the dataset returning detailed errors and warnings"""
 
-    project = ChildProject(args.source)
-    errors, warnings = project.validate(args.ignore_recordings, args.profile)
+    project = ChildProject(source)
+    errors, warnings = project.validate(ignore_recordings, profile)
     
     am = AnnotationManager(project)
 
@@ -140,43 +119,17 @@ def validate(args):
         warnings.extend(annotations_warnings)
 
     for error in errors:
-        print("error: {}".format(error))
+        typer.echo(f"error: {error}")
 
     for warning in warnings:
-        print("warning: {}".format(warning))
+        typer.echo(f"warning: {warning}")
 
     if len(errors) > 0:
-        print("validation failed, {} error(s) occured".format(len(errors)))
-        sys.exit(1)
+        typer.echo(f"validation failed, {len(errors)} error(s) occurred")
+        raise typer.Exit(1)
 
-    print("validation successfully completed with {} warning(s).".format(len(warnings)))
+    typer.echo(f"validation successfully completed with {len(warnings)} warning(s).")
 
-
-@subcommand(
-    [
-        arg("source", help="project path"),
-        arg(
-            "--annotations",
-            help="path to input annotations dataframe (csv) [only for bulk importation]",
-            default="",
-        ),       
-    ]
-    + [
-        arg(
-            "--{}".format(col.name),
-            help=col.description,
-            type=str,
-            default=None,
-            choices=col.choices if col.choices else None,
-        )
-        for col in AnnotationManager.INDEX_COLUMNS
-        if not col.generated
-    ] +
-    [
-     arg("--threads", help="amount of threads to run on", type=int, default=0),
-     arg("--overwrite-existing","--ow", help="overwrites existing annotation file if should generate the same output file (useful when reimporting", action='store_true'),
-     ]
-)
 def import_annotations(args):
     """convert and import a set of annotations"""
 
@@ -572,13 +525,16 @@ def compare_recordings(args):
     print('RESULTS :\ndivergence score = {} over a sample of {} values\nREFERENCE :\ndivergence score < 0.1 => the 2 files seem very similar\ndivergence score > 1   => sizable difference'.format(avg,size))
 
 def main():
-    register_pipeline("process", AudioProcessingPipeline)
-    register_pipeline("sampler", SamplerPipeline)
-    register_pipeline("zooniverse", ZooniversePipeline)
-    register_pipeline("eaf-builder", EafBuilderPipeline)
-    register_pipeline("anonymize", AnonymizationPipeline)
-    register_pipeline("metrics", MetricsPipeline)
-    register_pipeline("metrics-specification", MetricsSpecificationPipeline)
+    app()
+    #register_pipeline("process", AudioProcessingPipeline)
+    #register_pipeline("sampler", SamplerPipeline)
+    #register_pipeline("zooniverse", ZooniversePipeline)
+    #register_pipeline("eaf-builder", EafBuilderPipeline)
+    #register_pipeline("anonymize", AnonymizationPipeline)
+    #register_pipeline("metrics", MetricsPipeline)
+    #register_pipeline("metrics-specification", MetricsSpecificationPipeline)
 
-    args = parser.parse_args()
-    args.func(args)
+    #args = parser.parse_args()
+    #args.func(args)
+
+#typer.run(app)
