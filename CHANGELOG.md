@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
 - zooniverse chunks upload was failing if the dataset column was missing in the csv
+- eaf_builder with speaker_id NA no longer fails (#438)
 
 ## [0.1.1] 2023-05-11
 
