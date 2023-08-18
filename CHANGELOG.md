@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- validating a dataset now results in warnings for broken symlinks and no errors anymore (#425)
+
 ### Fixed
 
 - zooniverse chunks upload was failing if the dataset column was missing in the csv
