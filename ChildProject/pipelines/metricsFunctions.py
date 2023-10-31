@@ -49,7 +49,8 @@ def metricFunction(args: set, columns: set, empty_value=0, default_name: str = N
         for a in args:
             if a in RESERVED:
                 raise ValueError(
-                    'Error when defining {} with required argument {}, you cannot use reserved keywords {}, change your required argument name'.format(
+                    'Error when defining {} with required argument {}, you cannot use reserved keywords {},\
+                     change your required argument name'.format(
                         function.__name__, a, RESERVED))
 
         @functools.wraps(function)
@@ -86,12 +87,14 @@ def metricFunction(args: set, columns: set, empty_value=0, default_name: str = N
 
     return decorator
 
-def peak_hour_metric(empty_value = 0):
+
+def peak_hour_metric(empty_value=0):
     """
     empty_value : should repeat the empty value of the metric function wrapper (as this will be used for empty periods)
     """
     def decorator(function):
-        """Decorator a metric function to select the maximum value observed over 1h periods.
+        """Decorator a metric function to select the maximum value observed over 1h periods. function is prefixed with
+           'peak_'
             """
         @functools.wraps(function)
         def new_func(annotations: pd.DataFrame, duration: int, **kwargs):
@@ -129,6 +132,25 @@ def peak_hour_metric(empty_value = 0):
     return decorator
 
 
+def per_hour_metric():
+    """
+    """
+    def decorator(function):
+        """Decorator creating a metric function controlling the original value by time. function is suffixed with '_ph'
+            """
+        @functools.wraps(function)
+        def new_func(annotations: pd.DataFrame, duration: int, **kwargs):
+            # time to consider for periods, here 1h by default, else put it in kwargs
+            return function(annotations, duration, **kwargs) * (3600000 / duration)
+
+        # wraps will give the same name and doc, so we need to slightly edit them for the peak function
+        new_func.__doc__ = function.__doc__ + "This value is a 'per hour' value."
+        new_func.__name__ = function.__name__ + '_ph'
+        new_func.__qualname__ = function.__qualname__ + '_ph'
+        return new_func
+    return decorator
+
+
 def voc_speaker(annotations: pd.DataFrame, duration: int, **kwargs):
     """number of vocalizations for a given speaker type
     
@@ -138,31 +160,25 @@ def voc_speaker(annotations: pd.DataFrame, duration: int, **kwargs):
     return annotations[annotations["speaker_type"] == kwargs["speaker"]].shape[0]
 
 
-# Decorate for the peak metric and then the classic metric to avoid conflicts of decoration
+# Decorate for the peak metric, per hour metric, and then the classic metric to avoid conflicts of decoration
 peak_voc_speaker = metricFunction({"speaker"}, {"speaker_type"})(peak_hour_metric()(voc_speaker))
+voc_speaker_ph = metricFunction({"speaker"}, {"speaker_type"})(per_hour_metric()(voc_speaker))
 voc_speaker = metricFunction({"speaker"}, {"speaker_type"})(voc_speaker)
 
-def voc_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):
-    """number of vocalizations per hour for a given speaker type
-    
-    Required keyword arguments:
-        - speaker : speaker_type to use
-    """
-    return annotations[annotations["speaker_type"] == kwargs["speaker"]].shape[0] * (3600000 / duration)
 
-
-peak_voc_speaker_ph = metricFunction({"speaker"}, {"speaker_type"})(peak_hour_metric()(voc_speaker_ph))
-voc_speaker_ph = metricFunction({"speaker"}, {"speaker_type"})(voc_speaker_ph)
-
-
-@metricFunction({"speaker"}, {"speaker_type", "duration"})
-def voc_dur_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):
+def voc_dur_speaker(annotations: pd.DataFrame, duration: int, **kwargs):
     """total duration of vocalizations by a given speaker type in milliseconds per hour
     
     Required keyword arguments:
         - speaker : speaker_type to use
     """
-    return annotations[annotations["speaker_type"] == kwargs["speaker"]]["duration"].sum() * (3600000 / duration)
+    return annotations[annotations["speaker_type"] == kwargs["speaker"]]["duration"].sum()
+
+
+# Decorate for the peak metric, per hour metric, and then the classic metric to avoid conflicts of decoration
+peak_voc_dur_speaker = metricFunction({"speaker"}, {"speaker_type", "duration"})(peak_hour_metric()(voc_dur_speaker))
+voc_dur_speaker_ph = metricFunction({"speaker"}, {"speaker_type", "duration"})(per_hour_metric()(voc_dur_speaker))
+voc_dur_speaker = metricFunction({"speaker"}, {"speaker_type", "duration"})(voc_dur_speaker)
 
 
 @metricFunction({"speaker"}, {"speaker_type", "duration"}, np.nan)
@@ -175,89 +191,117 @@ def avg_voc_dur_speaker(annotations: pd.DataFrame, duration: int, **kwargs):
     return annotations[annotations["speaker_type"] == kwargs["speaker"]]["duration"].mean()
 
 
-def wc_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):
-    """number of words per hour for a given speaker type
+def wc_speaker(annotations: pd.DataFrame, duration: int, **kwargs):
+    """number of words for a given speaker type
     
     Required keyword arguments:
         - speaker : speaker_type to use
     """
-    return annotations[annotations["speaker_type"] == kwargs["speaker"]]["words"].sum() * (3600000 / duration)
+    return annotations[annotations["speaker_type"] == kwargs["speaker"]]["words"].sum()
 
 
-peak_wc_speaker_ph = metricFunction({"speaker"}, {"speaker_type", "words"})(peak_hour_metric()(wc_speaker_ph))
-wc_speaker_ph = metricFunction({"speaker"}, {"speaker_type", "words"})(wc_speaker_ph)
+peak_wc_speaker = metricFunction({"speaker"}, {"speaker_type", "words"})(peak_hour_metric()(wc_speaker))
+wc_speaker_ph = metricFunction({"speaker"}, {"speaker_type", "words"})(per_hour_metric()(wc_speaker))
+wc_speaker = metricFunction({"speaker"}, {"speaker_type", "words"})(wc_speaker)
 
 
-@metricFunction({"speaker"}, {"speaker_type", "syllables"})
-def sc_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):
-    """number of syllables per hour for a given speaker type
+def sc_speaker(annotations: pd.DataFrame, duration: int, **kwargs):
+    """number of syllables for a given speaker type
     
     Required keyword arguments:
         - speaker : speaker_type to use
     """
-    return annotations[annotations["speaker_type"] == kwargs["speaker"]]["syllables"].sum() * (3600000 / duration)
+    return annotations[annotations["speaker_type"] == kwargs["speaker"]]["syllables"].sum()
 
 
-@metricFunction({"speaker"}, {"speaker_type", "phonemes"})
-def pc_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):
-    """number of phonemes per hour for a given speaker type
+peak_sc_speaker = metricFunction({"speaker"}, {"speaker_type", "syllables"})(peak_hour_metric()(sc_speaker))
+sc_speaker_ph = metricFunction({"speaker"}, {"speaker_type", "syllables"})(per_hour_metric()(sc_speaker))
+sc_speaker = metricFunction({"speaker"}, {"speaker_type", "syllables"})(sc_speaker)
+
+
+def pc_speaker(annotations: pd.DataFrame, duration: int, **kwargs):
+    """number of phonemes for a given speaker type
     
     Required keyword arguments:
         - speaker : speaker_type to use
     """
-    return annotations[annotations["speaker_type"] == kwargs["speaker"]]["phonemes"].sum() * (3600000 / duration)
+    return annotations[annotations["speaker_type"] == kwargs["speaker"]]["phonemes"].sum()
 
 
-def wc_adu_ph(annotations: pd.DataFrame, duration: int, **kwargs):
-    """number of words per hour for all speakers
+peak_pc_speaker = metricFunction({"speaker"}, {"speaker_type", "phonemes"})(peak_hour_metric()(pc_speaker))
+pc_speaker_ph = metricFunction({"speaker"}, {"speaker_type", "phonemes"})(per_hour_metric()(pc_speaker))
+pc_speaker = metricFunction({"speaker"}, {"speaker_type", "phonemes"})(pc_speaker)
+
+
+def wc_adu(annotations: pd.DataFrame, duration: int, **kwargs):
+    """number of words for all speakers
     
     Required keyword arguments:
     """
-    return annotations["words"].sum() * (3600000 / duration)
+    return annotations["words"].sum()
 
 
-peak_wc_adu_ph = metricFunction(set(), {"words"})(peak_hour_metric()(wc_adu_ph))
-wc_adu_ph = metricFunction(set(), {"words"})(wc_adu_ph)
+peak_wc_adu = metricFunction(set(), {"words"})(peak_hour_metric()(wc_adu))
+wc_adu_ph = metricFunction(set(), {"words"})(per_hour_metric()(wc_adu))
+wc_adu = metricFunction(set(), {"words"})(wc_adu)
 
 
-@metricFunction(set(), {"syllables"})
-def sc_adu_ph(annotations: pd.DataFrame, duration: int, **kwargs):
-    """number of syllables per hour for all speakers
+def sc_adu(annotations: pd.DataFrame, duration: int, **kwargs):
+    """number of syllables for all speakers
     
     Required keyword arguments:
     """
-    return annotations["syllables"].sum() * (3600000 / duration)
+    return annotations["syllables"].sum()
 
 
-@metricFunction(set(), {"phonemes"})
-def pc_adu_ph(annotations: pd.DataFrame, duration: int, **kwargs):
-    """number of phonemes per hour for all speakers
+peak_sc_adu = metricFunction(set(), {"syllables"})(peak_hour_metric()(sc_adu))
+sc_adu_ph = metricFunction(set(), {"syllables"})(per_hour_metric()(sc_adu))
+sc_adu = metricFunction(set(), {"syllables"})(sc_adu)
+
+
+def pc_adu(annotations: pd.DataFrame, duration: int, **kwargs):
+    """number of phonemes for all speakers
     
     Required keyword arguments:
     """
-    return annotations["phonemes"].sum() * (3600000 / duration)
+    return annotations["phonemes"].sum()
 
 
-@metricFunction({"speaker"}, {"speaker_type", "vcm_type"})
-def cry_voc_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):
-    """number of cry vocalizations per hour for a given speaker (based on vcm_type)
+peak_pc_adu = metricFunction(set(), {"phonemes"})(peak_hour_metric()(pc_adu))
+pc_adu_ph = metricFunction(set(), {"phonemes"})(per_hour_metric()(pc_adu))
+pc_adu = metricFunction(set(), {"phonemes"})(pc_adu)
+
+
+def cry_voc_speaker(annotations: pd.DataFrame, duration: int, **kwargs):
+    """number of cry vocalizations for a given speaker (based on vcm_type)
     
     Required keyword arguments:
         - speaker : speaker_type to use
     """
     return annotations.loc[(annotations["speaker_type"] == kwargs["speaker"]) &
-                           (annotations["vcm_type"] == "Y")].shape[0] * (3600000 / duration)
+                           (annotations["vcm_type"] == "Y")].shape[0]
 
 
-@metricFunction({"speaker"}, {"speaker_type", "vcm_type", "duration"})
-def cry_voc_dur_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):
-    """total duration of cry vocalizations by a given speaker type in milliseconds per hour (based on vcm_type)
+peak_cry_voc_speaker = metricFunction({"speaker"}, {"speaker_type", "vcm_type"})(peak_hour_metric()(cry_voc_speaker))
+cry_voc_speaker_ph = metricFunction({"speaker"}, {"speaker_type", "vcm_type"})(per_hour_metric()(cry_voc_speaker))
+cry_voc_speaker = metricFunction({"speaker"}, {"speaker_type", "vcm_type"})(cry_voc_speaker)
+
+
+def cry_voc_dur_speaker(annotations: pd.DataFrame, duration: int, **kwargs):
+    """total duration of cry vocalizations by a given speaker type in milliseconds (based on vcm_type)
     
     Required keyword arguments:
         - speaker : speaker_type to use
     """
     return annotations.loc[(annotations["speaker_type"] == kwargs["speaker"]) &
-                           (annotations["vcm_type"] == "Y")]["duration"].sum() * (3600000 / duration)
+                           (annotations["vcm_type"] == "Y")]["duration"].sum()
+
+
+peak_cry_voc_dur_speaker = metricFunction({"speaker"}, {"speaker_type", "vcm_type", "duration"})(
+    peak_hour_metric()(cry_voc_dur_speaker))
+cry_voc_dur_speaker_ph = metricFunction({"speaker"}, {"speaker_type", "vcm_type", "duration"})(
+    per_hour_metric()(cry_voc_dur_speaker))
+cry_voc_dur_speaker = metricFunction({"speaker"}, {"speaker_type", "vcm_type", "duration"})(cry_voc_dur_speaker)
 
 
 @metricFunction({"speaker"}, {"speaker_type", "vcm_type", "duration"}, np.nan)
@@ -274,26 +318,36 @@ def avg_cry_voc_dur_speaker(annotations: pd.DataFrame, duration: int, **kwargs):
     return value
 
 
-@metricFunction({"speaker"}, {"speaker_type", "vcm_type"})
-def can_voc_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):
-    """number of canonical vocalizations per hour for a given speaker type (based on vcm_type)
+def can_voc_speaker(annotations: pd.DataFrame, duration: int, **kwargs):
+    """number of canonical vocalizations for a given speaker type (based on vcm_type)
     
     Required keyword arguments:
         - speaker : speaker_type to use
     """
     return annotations.loc[(annotations["speaker_type"] == kwargs["speaker"]) & (annotations["vcm_type"] == "C")].shape[
-        0] * (3600000 / duration)
+        0]
 
 
-@metricFunction({"speaker"}, {"speaker_type", "vcm_type", "duration"})
-def can_voc_dur_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):
-    """total duration of canonical vocalizations by a given speaker type in milliseconds per hour (based on vcm_type)
+peak_can_voc_speaker = metricFunction({"speaker"}, {"speaker_type", "vcm_type"})(peak_hour_metric()(can_voc_speaker))
+can_voc_speaker_ph = metricFunction({"speaker"}, {"speaker_type", "vcm_type"})(per_hour_metric()(can_voc_speaker))
+can_voc_speaker = metricFunction({"speaker"}, {"speaker_type", "vcm_type"})(can_voc_speaker)
+
+
+def can_voc_dur_speaker(annotations: pd.DataFrame, duration: int, **kwargs):
+    """total duration of canonical vocalizations by a given speaker type in milliseconds (based on vcm_type)
     
     Required keyword arguments:
         - speaker : speaker_type to use
     """
     return annotations.loc[(annotations["speaker_type"] == kwargs["speaker"]) & (annotations["vcm_type"] == "C")][
-        "duration"].sum() * (3600000 / duration)
+        "duration"].sum()
+
+
+peak_can_voc_dur_speaker = metricFunction({"speaker"}, {"speaker_type", "vcm_type", "duration"})(
+    peak_hour_metric()(can_voc_dur_speaker))
+can_voc_dur_speaker_ph = metricFunction({"speaker"}, {"speaker_type", "vcm_type", "duration"})(
+    per_hour_metric()(can_voc_dur_speaker))
+can_voc_dur_speaker = metricFunction({"speaker"}, {"speaker_type", "vcm_type", "duration"})(can_voc_dur_speaker)
 
 
 @metricFunction({"speaker"}, {"speaker_type", "vcm_type", "duration"}, np.nan)
@@ -309,26 +363,38 @@ def avg_can_voc_dur_speaker(annotations: pd.DataFrame, duration: int, **kwargs):
     return value
 
 
-@metricFunction({"speaker"}, {"speaker_type", "vcm_type"})
-def non_can_voc_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):
-    """number of non-canonical vocalizations per hour for a given speaker type (based on vcm_type)
+def non_can_voc_speaker(annotations: pd.DataFrame, duration: int, **kwargs):
+    """number of non-canonical vocalizations for a given speaker type (based on vcm_type)
     
     Required keyword arguments:
         - speaker : speaker_type to use
     """
     return annotations.loc[(annotations["speaker_type"] == kwargs["speaker"]) &
-                           (annotations["vcm_type"] == "N")].shape[0] * (3600000 / duration)
+                           (annotations["vcm_type"] == "N")].shape[0]
 
 
-@metricFunction({"speaker"}, {"speaker_type", "vcm_type", "duration"})
-def non_can_voc_dur_speaker_ph(annotations: pd.DataFrame, duration: int, **kwargs):
-    """total duration of non-canonical vocalizations by a given speaker type in milliseconds per hour (based on vcm_type)
+peak_non_can_voc_speaker = metricFunction({"speaker"}, {"speaker_type", "vcm_type"})(
+    peak_hour_metric()(non_can_voc_speaker))
+non_can_voc_speaker_ph = metricFunction({"speaker"}, {"speaker_type", "vcm_type"})(
+    per_hour_metric()(non_can_voc_speaker))
+non_can_voc_speaker = metricFunction({"speaker"}, {"speaker_type", "vcm_type"})(non_can_voc_speaker)
+
+
+def non_can_voc_dur_speaker(annotations: pd.DataFrame, duration: int, **kwargs):
+    """total duration of non-canonical vocalizations by a given speaker type in milliseconds (based on vcm_type)
     
     Required keyword arguments:
         - speaker : speaker_type to use
     """
     return annotations.loc[(annotations["speaker_type"] == kwargs["speaker"]) &
-                           (annotations["vcm_type"] == "N")]["duration"].sum() * (3600000 / duration)
+                           (annotations["vcm_type"] == "N")]["duration"].sum()
+
+
+peak_non_can_voc_dur_speaker = metricFunction({"speaker"}, {"speaker_type", "vcm_type", "duration"})(
+    peak_hour_metric()(non_can_voc_dur_speaker))
+non_can_voc_dur_speaker_ph = metricFunction({"speaker"}, {"speaker_type", "vcm_type", "duration"})(
+    per_hour_metric()(non_can_voc_dur_speaker))
+non_can_voc_dur_speaker = metricFunction({"speaker"}, {"speaker_type", "vcm_type", "duration"})(non_can_voc_dur_speaker)
 
 
 @metricFunction({"speaker"}, {"speaker_type", "vcm_type", "duration"}, np.nan)
@@ -450,6 +516,7 @@ def lena_CVC(annotations: pd.DataFrame, duration: int, **kwargs):
 
 
 peak_lena_CVC = metricFunction(set(), {"utterances_count"})(peak_hour_metric()(lena_CVC))
+lena_CVC_ph = metricFunction(set(), {"utterances_count"})(per_hour_metric()(lena_CVC))
 lena_CVC = metricFunction(set(), {"utterances_count"})(lena_CVC)
 
 
@@ -463,6 +530,7 @@ def lena_CTC(annotations: pd.DataFrame, duration: int, **kwargs):
 
 
 peak_lena_CTC = metricFunction(set(), {"lena_conv_turn_type"})(peak_hour_metric()(lena_CTC))
+lena_CTC_ph = metricFunction(set(), {"utterances_count"})(per_hour_metric()(lena_CTC))
 lena_CTC = metricFunction(set(), {"lena_conv_turn_type"})(lena_CTC)
 
 
@@ -517,4 +585,5 @@ def simple_CTC(annotations: pd.DataFrame,
 
 
 peak_simple_CTC = metricFunction(set(), {"speaker_type"})(peak_hour_metric()(simple_CTC))
+simple_CTC_ph = metricFunction(set(), {"utterances_count"})(per_hour_metric()(simple_CTC))
 simple_CTC = metricFunction(set(), {"speaker_type"})(simple_CTC)
