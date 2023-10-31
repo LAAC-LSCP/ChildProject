@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - validating a dataset now results in warnings for broken symlinks and no errors anymore (#425)
+- validation with recordings existing but for which mediainfo can't read the sample rate no longer fail but outputs a warning.
 
 ### Fixed
 
