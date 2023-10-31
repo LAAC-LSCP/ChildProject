@@ -530,7 +530,7 @@ def lena_CTC(annotations: pd.DataFrame, duration: int, **kwargs):
 
 
 peak_lena_CTC = metricFunction(set(), {"lena_conv_turn_type"})(peak_hour_metric()(lena_CTC))
-lena_CTC_ph = metricFunction(set(), {"utterances_count"})(per_hour_metric()(lena_CTC))
+lena_CTC_ph = metricFunction(set(), {"lena_conv_turn_type"})(per_hour_metric()(lena_CTC))
 lena_CTC = metricFunction(set(), {"lena_conv_turn_type"})(lena_CTC)
 
 
@@ -585,5 +585,5 @@ def simple_CTC(annotations: pd.DataFrame,
 
 
 peak_simple_CTC = metricFunction(set(), {"speaker_type"})(peak_hour_metric()(simple_CTC))
-simple_CTC_ph = metricFunction(set(), {"utterances_count"})(per_hour_metric()(simple_CTC))
+simple_CTC_ph = metricFunction(set(), {"speaker_type"})(per_hour_metric()(simple_CTC))
 simple_CTC = metricFunction(set(), {"speaker_type"})(simple_CTC)
