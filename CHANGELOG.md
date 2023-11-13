@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- audio conversion has now a 'standard' conversion pipeline that will convert files to mono channel 16kHz pcm_s16le (no need to convert channels and then sampling rate and no need to know the options)
+
 ### Changed
 
 - validating a dataset now results in warnings for broken symlinks and no errors anymore (#425)
