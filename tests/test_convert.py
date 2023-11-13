@@ -51,6 +51,37 @@ def test_basic(project):
         ]
     ), "recording files are missing"
 
+def test_standard(project):
+    # Starting the audio processing pipeline using the default settings
+    processed, parameters = AudioProcessingPipeline().run(
+        processor="standard",
+        path=project.path,
+    )
+
+    recordings = project.recordings
+    converted_recordings = pd.read_csv(processed)
+
+    assert np.isclose(
+        8000, project.compute_recordings_duration()["duration"].sum()
+    ), "audio duration equals expected value"
+    assert os.path.exists(
+        os.path.join(project.path, CONVERTED_RECORDINGS, "test")
+    ), "missing processed recordings folder"
+    assert (
+        recordings.shape[0] == converted_recordings.shape[0]
+    ), "conversion table is incomplete"
+    assert all(
+        converted_recordings["success"].tolist()
+    ), "not all recordings were successfully processed"
+    assert all(
+        [
+            os.path.exists(
+                os.path.join(project.path, CONVERTED_RECORDINGS, "test", f)
+            )
+            for f in converted_recordings["converted_filename"].tolist()
+        ]
+    ), "recording files are missing"
+
 
 def test_vetting(project):
     pd.DataFrame(
