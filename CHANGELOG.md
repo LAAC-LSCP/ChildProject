@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- the output of the CLI in the terminal is now handled by the logger module and not by print statements
+
 ## [0.1.1] 2023-05-11
 
 ### Added
