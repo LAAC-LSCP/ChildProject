@@ -174,13 +174,13 @@ class EafBuilderPipeline(Pipeline):
             {"recording_filename", "segment_onset", "segment_offset"},
         )
 
-        imported_set = None
+        imported_sets = None
         prefill = path and import_speech_from
         if prefill:
             project = ChildProject(path)
             am = AnnotationManager(project)
             am.read()
-            imported_set = import_speech_from
+            imported_sets = import_speech_from.split(',')
 
         for recording_filename, segs in segments.groupby("recording_filename"):
             recording_prefix = os.path.splitext(recording_filename)[0]
@@ -197,18 +197,20 @@ class EafBuilderPipeline(Pipeline):
             speech_segments = None
             imported_format = None
             if prefill:
+                list_sets = import_speech_from.split(',')
                 ranges = segs.assign(recording_filename=recording_filename).rename(
                     columns={
                         "segment_onset": "range_onset",
                         "segment_offset": "range_offset",
                     }
                 )
-                matches = am.get_within_ranges(ranges, [import_speech_from], 'warn')
+                matches = am.get_within_ranges(ranges, list_sets, 'warn')
 
                 if len(matches) == 0:
                     continue
 
                 speech_segments = am.get_segments(matches)
+                print(speech_segments.columns)
                 try:
                     matches = matches["format"].drop_duplicates()
                     if len(matches.index) == 1:
@@ -230,7 +232,7 @@ class EafBuilderPipeline(Pipeline):
                 context_offset,
                 template,
                 speech_segments,
-                imported_set,
+                imported_sets,
                 imported_format,
             )
 
