@@ -4,9 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- audio conversion has now a 'standard' conversion pipeline that will convert files to mono channel 16kHz pcm_s16le (no need to convert channels and then sampling rate and no need to know the options)
+
 ### Changed
 
 - the output of the CLI in the terminal is now handled by the logger module and not by print statements
+- validating a dataset now results in warnings for broken symlinks and no errors anymore (#425)
+- validation with recordings existing but for which mediainfo can't read the sample rate no longer fail but outputs a warning.
+
+### Fixed
+
+- zooniverse chunks upload was failing if the dataset column was missing in the csv
+- eaf_builder with speaker_id NA no longer fails (#438)
 
 ## [0.1.1] 2023-05-11
 

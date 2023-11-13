@@ -762,13 +762,16 @@ class HighVolubilitySampler(Sampler):
                     .merge(windows)
                 )
             else:
-                segments = (
-                    segments[segments.speaker_type.isin(self.speakers)]
-                    .groupby("chunk", as_index=False)[["segment_onset"]]
-                    .count()
-                    .rename(columns={"segment_onset": self.metric})
-                    .merge(windows)
-                )
+                if 'speaker_type' in segments:
+                    segments = (
+                        segments[segments.speaker_type.isin(self.speakers)]
+                        .groupby("chunk", as_index=False)[["segment_onset"]]
+                        .count()
+                        .rename(columns={"segment_onset": self.metric})
+                        .merge(windows)
+                    )
+                else:
+                    segments = pd.DataFrame()
 
         elif self.metric == "words":
             # NOTE: This is the equivalent of AWC (tab3) in rlena_extract.R

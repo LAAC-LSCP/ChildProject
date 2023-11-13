@@ -65,7 +65,7 @@ def create_eaf(
         for segment in speech_segments.to_dict(orient="records"):
             speaker_id = None
 
-            if "speaker_id" in segment:
+            if "speaker_id" in segment and not pd.isnull(segment["speaker_id"]):
                 speaker_id = segment["speaker_id"]
             elif "speaker_type" in segment:
                 speaker_id = segment["speaker_type"]
@@ -103,8 +103,6 @@ def create_eaf(
     )
 
     eaf.to_file(destination)
-    for i in eaf.get_tier_names():
-        print(i, ":", eaf.get_annotation_data_for_tier(i))
 
     return eaf
 

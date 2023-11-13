@@ -471,7 +471,7 @@ class ZooniversePipeline(Pipeline):
                     os.path.join(os.path.dirname(self.chunks_file), "chunks", chunk["mp3"])
                 )
                 subject.metadata["date_extracted"] = chunk["date_extracted"]
-                subject.metadata["dataset"] = chunk["dataset"] if 'dataset' in chunk.keys() else pd.NA
+                subject.metadata["dataset"] = chunk["dataset"] if 'dataset' in chunk.keys() else ""
                 subject.metadata["filename"] = chunk["mp3"]
 
                 subject.save()

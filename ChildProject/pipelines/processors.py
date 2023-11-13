@@ -232,6 +232,8 @@ class BasicProcessor(AudioProcessor):
     @staticmethod
     def add_parser(subparsers, subcommand):
         parser = subparsers.add_parser(subcommand, help="basic audio conversion")
+        parser.add_argument("name", help="name of the export profile")
+
         parser.add_argument("--format", help="audio format (e.g. wav)", required=True)
         parser.add_argument(
             "--codec", help="audio codec (e.g. pcm_s16le)", required=True
@@ -335,6 +337,8 @@ class VettingProcessor(AudioProcessor):
     @staticmethod
     def add_parser(subparsers, subcommand):
         parser = subparsers.add_parser(subcommand, help="vetting")
+        parser.add_argument("name", help="name of the export profile")
+
         parser.add_argument(
             "--segments-path",
             help="path to the CSV dataframe containing the segments to be vetted",
@@ -420,6 +424,8 @@ class ChannelMapper(AudioProcessor):
     @staticmethod
     def add_parser(subparsers, subcommand):
         parser = subparsers.add_parser(subcommand, help="channel mapping")
+        parser.add_argument("name", help="name of the export profile")
+
         parser.add_argument(
             "--channels",
             help="lists of weigths for each channel",
@@ -433,6 +439,124 @@ class ChannelMapper(AudioProcessor):
             nargs="+",
         )
 
+class AudioStandard(AudioProcessor):
+    SUBCOMMAND = "standard"
+
+    def __init__(
+        self,
+        project: ChildProject.projects.ChildProject,
+        threads: int = 1,
+        recordings: Union[str, List[str], pd.DataFrame] = None,
+        skip_existing: bool = False,
+        input_profile: str = None,
+    ):
+
+        super().__init__(
+            project,
+            name='standard',
+            threads=threads,
+            recordings=recordings,
+            input_profile=input_profile,
+        )
+
+        self.format = "wav"
+        self.codec = "pcm_s16le"
+        self.sampling = "16000"
+        self.skip_existing = bool(skip_existing)
+
+    def process_recording(self, recording):
+        if recording["recording_filename"] == "NA":
+            return pd.DataFrame()
+
+        original_file = self.project.get_recording_path(
+            recording["recording_filename"], self.input_profile
+        )
+
+        destination_file = os.path.join(
+            self.output_directory(),
+            os.path.splitext(recording["recording_filename"])[0]
+            + "."
+            + self.format,
+        )
+
+        os.makedirs(name=os.path.dirname(destination_file), exist_ok=True)
+
+        skip = self.skip_existing and (
+            os.path.exists(destination_file) or os.path.islink(destination_file)
+        )
+
+        if skip:
+            return pd.DataFrame()
+
+        args = [
+            "ffmpeg",
+            "-y",
+            "-loglevel",
+            "error",
+            "-i",
+            original_file,
+            "-c:a",
+            self.codec,
+            "-ar",
+            str(self.sampling),
+            "-map_channel",
+            "0.0.0",
+        ]
+
+        args.append(destination_file)
+
+        proc = subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+        (stdout, stderr) = proc.communicate()
+        success = proc.returncode == 0
+
+        if not success:
+            print(stderr, file=sys.stderr)
+
+            return pd.DataFrame(
+                [
+                    {
+                        "original_filename": recording["recording_filename"],
+                        "converted_filename": "",
+                        "success": False,
+                        "error": stderr,
+                    }
+                ]
+            )
+        else:
+            converted_files = [
+                os.path.splitext(recording["recording_filename"])[0]
+                + "."
+                + self.format
+            ]
+
+        return pd.DataFrame(
+            [
+                {
+                    "original_filename": recording["recording_filename"],
+                    "converted_filename": cf,
+                    "success": True,
+                }
+                for cf in converted_files
+            ]
+        )
+
+    @staticmethod
+    def add_parser(subparsers, subcommand):
+        parser = subparsers.add_parser(subcommand, help="standard audio conversion")
+        
+        parser.add_argument(
+            "--skip-existing",
+            dest="skip_existing",
+            required=False,
+            default=False,
+            action="store_true",
+        )
+        parser.add_argument(
+            "--recordings",
+            help="list of recordings to process, separated by whitespaces; only values of 'recording_filename' present in the metadata are supported.",
+            default=None,
+            nargs="+",
+        )
 
 class AudioProcessingPipeline(Pipeline):
     def __init__(self):
@@ -441,7 +565,6 @@ class AudioProcessingPipeline(Pipeline):
     def run(
         self,
         path: str,
-        name: str,
         processor: str,
         threads: int = 1,
         func=None,
@@ -462,7 +585,7 @@ class AudioProcessingPipeline(Pipeline):
         if processor not in pipelines:
             raise NotImplementedError(f"invalid pipeline '{processor}'")
 
-        proc = pipelines[processor](self.project, name, threads=threads, **kwargs)
+        proc = pipelines[processor](self.project, threads=threads, **kwargs)
         proc.process(f"parameters_{date}.yml")
      
         logger_annotations.info(
@@ -494,7 +617,7 @@ class AudioProcessingPipeline(Pipeline):
     @staticmethod
     def setup_parser(parser):
         parser.add_argument("path", help="path to the dataset")
-        parser.add_argument("name", help="name of the export profile")
+        #parser.add_argument("name", help="name of the export profile")
 
         subparsers = parser.add_subparsers(help="processor", dest="processor")
         for pipeline in pipelines:
@@ -513,4 +636,3 @@ class AudioProcessingPipeline(Pipeline):
             help="profile of input recordings (process raw recordings by default)",
             default=None,
         )
-
