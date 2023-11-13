@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- eafbuilder can now import multiple sets to the eaf to help with annotations
 - validating a dataset now results in warnings for broken symlinks and no errors anymore (#425)
 
 ### Fixed
