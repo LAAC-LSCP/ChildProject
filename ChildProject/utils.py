@@ -15,6 +15,18 @@ def path_is_parent(parent_path: str, child_path: str):
     )
 
 
+def docstring_parameter(*sub):
+    """this function allows to put changing values inside of doctrings.
+    This way a value in a constant that could change will be updated
+    (e.g. metadata files are now stored in 'index' instead of 'metadata'
+    Put {0}, {1} etc in the docstring and use this function as decorator
+    with the values to use as arguments in the order
+    """
+    def dec(obj):
+        obj.__doc__ = obj.__doc__.format(*sub)
+        return obj
+    return dec
+
 class Segment:
     def __init__(self, start, stop):
         self.start = start

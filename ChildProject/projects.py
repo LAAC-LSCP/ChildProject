@@ -24,11 +24,13 @@ class Folders:
     METADATA = Path("metadata")
     SCRIPTS = Path("scripts")
     DOC = Path("doc")
+    EXTRA = Path("extra")
 
 
 class FilesMeta:
     RECORDINGS = Folders.METADATA / 'recordings.csv'
     CHILDREN = Folders.METADATA / 'children.csv'
+    ANNOTATIONS = Folders.METADATA / 'annotations.csv'
 
 
 class Paths:
@@ -36,6 +38,8 @@ class Paths:
     # RAW_RECORDINGS = os.path.normpath("recordings/raw")
     CONVERTED_RECORDINGS = Folders.RECORDINGS / 'converted'
     # CONVERTED_RECORDINGS = os.path.normpath("recordings/converted")
+    RAW_ANNOTS = Path('raw')
+    CONVERTED_ANNOTS = Path('converted')
 
 
 STANDARD_SAMPLE_RATE = 16000
