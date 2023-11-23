@@ -35,11 +35,7 @@ class AudioProcessor(ABC):
         self.input_profile = input_profile
 
         if self.input_profile:
-            input_path = os.path.join(
-                self.project.path,
-                ChildProject.projects.CONVERTED_RECORDINGS,
-                self.input_profile,
-            )
+            input_path = self.project.path / ChildProject.projects.Paths.CONVERTED_RECORDINGS / self.input_profile
 
             assert os.path.exists(
                 input_path
@@ -52,11 +48,7 @@ class AudioProcessor(ABC):
         pipelines[cls.SUBCOMMAND] = cls
 
     def output_directory(self):
-        return os.path.join(
-            self.project.path,
-            ChildProject.projects.CONVERTED_RECORDINGS,
-            self.name,
-        )
+        return self.project.path / ChildProject.projects.Paths.CONVERTED_RECORDINGS / self.name
 
     def read_metadata(self):
         path = os.path.join(self.output_directory(), "recordings.csv")

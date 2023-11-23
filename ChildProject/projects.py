@@ -6,6 +6,7 @@ import os
 import pandas as pd
 import re
 import subprocess
+from pathlib import Path
 
 from .tables import (
     IndexTable,
@@ -16,16 +17,31 @@ from .tables import (
 )
 from .utils import get_audio_duration, path_is_parent
 
-RAW_RECORDINGS = os.path.normpath("recordings/raw")
-CONVERTED_RECORDINGS = os.path.normpath("recordings/converted")
+
+class Folders:
+    RECORDINGS = Path("recordings")
+    ANNOTATIONS = Path("annotations")
+    METADATA = Path("metadata")
+    SCRIPTS = Path("scripts")
+    DOC = Path("doc")
+
+
+class FilesMeta:
+    RECORDINGS = Folders.METADATA / 'recordings.csv'
+    CHILDREN = Folders.METADATA / 'children.csv'
+
+
+class Paths:
+    RAW_RECORDINGS = Folders.RECORDINGS / 'raw'
+    # RAW_RECORDINGS = os.path.normpath("recordings/raw")
+    CONVERTED_RECORDINGS = Folders.RECORDINGS / 'converted'
+    # CONVERTED_RECORDINGS = os.path.normpath("recordings/converted")
+
+
 STANDARD_SAMPLE_RATE = 16000
-STANDARD_PROFILE = 'standard' # profile that is expected to contain the standardized audios (16kHz). The existence and sampling rates of this profile are checked when <validating this profile> or <validating without profile and the raw recordings are not 16kHz>.
-
-METADATA_FOLDER = 'metadata'
-CHILDREN_CSV = 'children.csv'
-RECORDINGS_CSV = 'recordings.csv'
-
-PROJECT_FOLDERS = ["recordings", "annotations", "metadata", "doc", "scripts"]
+STANDARD_PROFILE = 'standard'  # profile that is expected to contain the standardized audios (16kHz). The existence and
+# sampling rates of this profile are checked when <validating this profile> or <validating without profile and the raw
+# recordings are not 16kHz>.
 
 
 class ChildProject:
@@ -43,7 +59,7 @@ class ChildProject:
     
     Attributes:
     :param path: path to the root of the dataset.
-    :type path: str
+    :type path: Path
     :param recordings: pandas dataframe representation of this dataset metadata/recordings.csv 
     :type recordings: class:`pd.DataFrame`
     :param children: pandas dataframe representation of this dataset metadata/children.csv 
@@ -274,7 +290,7 @@ class ChildProject:
     def __init__(
         self, path: str, enforce_dtypes: bool = False, ignore_discarded: bool = True
     ):
-        self.path = path
+        self.path = Path(path)
         self.experiment = None
         self.enforce_dtypes = enforce_dtypes
         self.ignore_discarded = ignore_discarded
@@ -297,7 +313,7 @@ class ChildProject:
         merge_column: str,
         verbose=False,
     ) -> pd.DataFrame:
-        md_path = os.path.join(self.path, METADATA_FOLDER, table)
+        md_path = self.path / Folders.METADATA / table
 
         if not os.path.exists(md_path):
             return df
@@ -371,13 +387,13 @@ class ChildProject:
         """
         self.ct = IndexTable(
             "children",
-            os.path.join(self.path, METADATA_FOLDER,CHILDREN_CSV),
+            self.path / FilesMeta.CHILDREN,
             self.CHILDREN_COLUMNS,
             enforce_dtypes=self.enforce_dtypes,
         )
         self.rt = IndexTable(
             "recordings",
-            os.path.join(self.path, METADATA_FOLDER,RECORDINGS_CSV),
+            self.path / FilesMeta.RECORDINGS,
             self.RECORDINGS_COLUMNS,
             enforce_dtypes=self.enforce_dtypes,
         )
@@ -428,10 +444,10 @@ class ChildProject:
         :rtype: pandas.DataFrame
         """
         if self.recordings is None:
-            #logger to add (can not write recordings file as recordings is not initialized)
+            # logger to add (can not write recordings file as recordings is not initialized)
             return None
-        #get the file as reference point
-        current_csv = pd.read_csv(os.path.join(self.path, METADATA_FOLDER,RECORDINGS_CSV))
+        # get the file as reference point
+        current_csv = pd.read_csv(self.path / FilesMeta.RECORDINGS)
         
         if 'discard' in current_csv.columns and keep_discarded:
             # put the discard column into a usable form
@@ -451,7 +467,7 @@ class ChildProject:
         else:
             columns = self.recordings.columns
             
-        recs_to_write.sort_index().to_csv(os.path.join(self.path, METADATA_FOLDER, RECORDINGS_CSV),columns = columns,index=False)
+        recs_to_write.sort_index().to_csv(self.path / FilesMeta.RECORDINGS, columns=columns, index=False)
         return recs_to_write
 
     def validate(self, ignore_recordings: bool = False, profile: str = None, accumulate: bool = True) -> tuple:
@@ -506,16 +522,13 @@ class ChildProject:
 
                     try:
                         path = self.get_recording_path(raw_filename, profile)
-                    except:
+                    except Exception:
                         if profile:
-                            profile_metadata = os.path.join(
-                                self.path,
-                                CONVERTED_RECORDINGS,
-                                profile,
-                                RECORDINGS_CSV,
-                            )
+                            profile_metadata = (self.path / Paths.CONVERTED_RECORDINGS /
+                                                profile / FilesMeta.RECORDINGS.name)
                             self.errors.append(
-                                f"failed to recover the path for recording '{raw_filename}' and profile '{profile}'. Does the profile exist? Does {profile_metadata} exist?"
+                                f"failed to recover the path for recording '{raw_filename}' and profile '{profile}'. "
+                                f"Does the profile exist? Does {profile_metadata} exist?"
                             )
                         continue
 
@@ -529,29 +542,65 @@ class ChildProject:
                                         std_info = mediainfo(std_path)
                                         if 'sample_rate' not in std_info:
                                             self.warnings.append(
-                                                f"Could not read the sample rate of converted version of recording '{raw_filename}' at '{std_path}'. {STANDARD_SAMPLE_RATE}Hz is expected for profile {STANDARD_PROFILE}")
+                                                f"Could not read the sample rate of converted version of recording "
+                                                f"'{raw_filename}' at '{std_path}'. {STANDARD_SAMPLE_RATE}Hz is "
+                                                f"expected for profile {STANDARD_PROFILE}")
                                         elif int(std_info['sample_rate']) != STANDARD_SAMPLE_RATE:
-                                            self.warnings.append(f"converted version of recording '{raw_filename}' at '{std_path}' has unexpected sampling rate {std_info['sample_rate']}Hz when {STANDARD_SAMPLE_RATE}Hz is expected for profile {STANDARD_PROFILE}")
+                                            self.warnings.append(f"converted version of recording '{raw_filename}' at "
+                                                                 f"'{std_path}' has unexpected sampling rate "
+                                                                 f"{std_info['sample_rate']}Hz when "
+                                                                 f"{STANDARD_SAMPLE_RATE}Hz is expected for profile "
+                                                                 f"{STANDARD_PROFILE}")
                                     else:
                                         if 'sample_rate' in info:
                                             self.warnings.append(
-                                                f"recording '{raw_filename}' at '{path}' has a non standard sampling rate of {info['sample_rate']}Hz and no standard conversion in profile {STANDARD_PROFILE} was found. Does the standard profile exist? Does {profile_metadata} exist? you can create the standard profile with 'child-project process {self.path} {STANDARD_PROFILE} basic --format=wav --sampling={STANDARD_SAMPLE_RATE} --codec=pcm_s16le --skip-existing'")
+                                                f"recording '{raw_filename}' at '{path}' has a non standard sampling"
+                                                f" rate of {info['sample_rate']}Hz and no standard conversion in "
+                                                f"profile {STANDARD_PROFILE} was found. Does the standard profile "
+                                                f"exist? Does {profile_metadata} exist? you can create the standard "
+                                                f"profile with 'child-project process {self.path} {STANDARD_PROFILE} "
+                                                f"basic --format=wav --sampling={STANDARD_SAMPLE_RATE} "
+                                                f"--codec=pcm_s16le --skip-existing'")
                                         else:
                                             self.warnings.append(
-                                                f"Could not read the sample rate of recording '{raw_filename}' at '{path}' and no standard conversion in profile {STANDARD_PROFILE} was found. Does the standard profile exist? Does {profile_metadata} exist? you can create the standard profile with 'child-project process {self.path} {STANDARD_PROFILE} basic --format=wav --sampling={STANDARD_SAMPLE_RATE} --codec=pcm_s16le --skip-existing'")
-                                except:
-                                    profile_metadata = os.path.join(self.path,CONVERTED_RECORDINGS,STANDARD_PROFILE,RECORDINGS_CSV,)
+                                                f"Could not read the sample rate of recording '{raw_filename}' at "
+                                                f"'{path}' and no standard conversion in profile {STANDARD_PROFILE} "
+                                                f"was found. Does the standard profile exist? Does {profile_metadata} "
+                                                f"exist? you can create the standard profile with 'child-project "
+                                                f"process {self.path} {STANDARD_PROFILE} basic --format=wav --sampling"
+                                                f"={STANDARD_SAMPLE_RATE} --codec=pcm_s16le --skip-existing'")
+                                except Exception:
+                                    profile_metadata = (self.path / Paths.CONVERTED_RECORDINGS / STANDARD_PROFILE /
+                                                        FilesMeta.RECORDINGS.name)
                                     if 'sample_rate' in info:
-                                        self.warnings.append(f"recording '{raw_filename}' at '{path}' has a non standard sampling rate of {info['sample_rate']}Hz and no standard conversion in profile {STANDARD_PROFILE} was found. Does the standard profile exist? Does {profile_metadata} exist? you can create the standard profile with 'child-project process {self.path} {STANDARD_PROFILE} basic --format=wav --sampling={STANDARD_SAMPLE_RATE} --codec=pcm_s16le --skip-existing'")
+                                        self.warnings.append(f"recording '{raw_filename}' at '{path}' has a non standar"
+                                                             f"d sampling rate of {info['sample_rate']}Hz and no standa"
+                                                             f"rd conversion in profile {STANDARD_PROFILE} was found. D"
+                                                             f"oes the standard profile exist? Does {profile_metadata} "
+                                                             f"exist? you can create the standard profile with 'child-p"
+                                                             f"roject process {self.path} {STANDARD_PROFILE} basic --fo"
+                                                             f"rmat=wav --sampling={STANDARD_SAMPLE_RATE} --codec=pcm_s"
+                                                             f"16le --skip-existing'")
                                     else:
-                                        self.warnings.append(f"Could not read the sample rate of recording '{raw_filename}' at '{path}' and no standard conversion in profile {STANDARD_PROFILE} was found. Does the standard profile exist? Does {profile_metadata} exist? you can create the standard profile with 'child-project process {self.path} {STANDARD_PROFILE} basic --format=wav --sampling={STANDARD_SAMPLE_RATE} --codec=pcm_s16le --skip-existing'")
+                                        self.warnings.append(f"Could not read the sample rate of recording '"
+                                                             f"{raw_filename}' at '{path}' and no standard conversion i"
+                                                             f"n profile {STANDARD_PROFILE} was found. Does the standar"
+                                                             f"d profile exist? Does {profile_metadata} exist? you can "
+                                                             f"create the standard profile with 'child-project process "
+                                                             f"{self.path} {STANDARD_PROFILE} basic --format=wav --samp"
+                                                             f"ling={STANDARD_SAMPLE_RATE} --codec=pcm_s16le --skip-exi"
+                                                             f"sting'")
                         elif profile == STANDARD_PROFILE:
                             info = mediainfo(path)
                             if 'sample_rate' in info and int(info['sample_rate']) != STANDARD_SAMPLE_RATE:
-                                self.warnings.append(f"recording '{raw_filename}' at '{path}' has unexpected sampling rate {info['sample_rate']}Hz when {STANDARD_SAMPLE_RATE}Hz is expected for profile {STANDARD_PROFILE}")
+                                self.warnings.append(f"recording '{raw_filename}' at '{path}' has unexpected sampling r"
+                                                     f"ate {info['sample_rate']}Hz when {STANDARD_SAMPLE_RATE}Hz is exp"
+                                                     f"ected for profile {STANDARD_PROFILE}")
                     
                     elif os.path.islink(path):
-                        message = self.warnings.append(f"the data content of recording '{raw_filename}' at path '{path}' is absent. See 'broken symlinks'") #The path is valid but there's no content. See broken symlinks (try 'Datalad get $filename')
+                        message = self.warnings.append(f"the data content of recording '{raw_filename}' at path '{path}"
+                                                       f"' is absent. See 'broken symlinks'")
+                        #  The path is valid but there's no content. See broken symlinks (try 'Datalad get $filename')
                     else:    
                         message = f"cannot find recording '{raw_filename}' at '{path}'"
                         if column_attr.required:
@@ -578,8 +627,9 @@ class ChildProject:
             )
 
             self.errors += [
-                f"Age at recording is negative in recordings on line {index} ({age:.1f} months). Check date_iso for that recording and child_dob for the corresponding child."
-                for index, age in ages[ages<0].iteritems()
+                (f"Age at recording is negative in recordings on line {index} ({age:.1f} months). Check date_iso for "
+                 f"that recording and child_dob for the corresponding child.")
+                for index, age in ages[ages < 0].iteritems()
             ]
 
         # detect un-indexed recordings and throw warnings
@@ -590,12 +640,12 @@ class ChildProject:
         ]
 
         indexed_files = [
-            os.path.abspath(os.path.join(self.path, RAW_RECORDINGS, str(f)))
+            os.path.abspath(self.path / Paths.RAW_RECORDINGS / str(f))
             for f in pd.core.common.flatten(files)
         ]
 
         recordings_files = glob.glob(
-            os.path.join(os.path.normcase(self.path), RAW_RECORDINGS, "**/*.*"), recursive=True
+            os.path.normcase(self.path / Paths.RAW_RECORDINGS / "**" / "*.*"), recursive=True
         )
 
         for rf in recordings_files:
@@ -631,11 +681,9 @@ class ChildProject:
             if converted_filename is None:
                 return None
 
-            return os.path.join(
-                os.path.normcase(self.path), CONVERTED_RECORDINGS, profile, os.path.normpath(converted_filename),
-            )
+            return os.path.normcase(self.path / Paths.CONVERTED_RECORDINGS / profile / converted_filename)
         else:
-            return os.path.join(os.path.normcase(self.path), RAW_RECORDINGS, os.path.normpath(recording_filename))
+            return os.path.normcase(self.path / Paths.RAW_RECORDINGS / recording_filename)
 
     def get_converted_recording_filename(
         self, profile: str, recording_filename: str
@@ -657,9 +705,7 @@ class ChildProject:
             return self.converted_recordings_hashtable[key]
 
         converted_recordings = pd.read_csv(
-            os.path.join(
-                self.path, CONVERTED_RECORDINGS, profile, RECORDINGS_CSV
-            )
+            self.path / Paths.CONVERTED_RECORDINGS / profile / FilesMeta.RECORDINGS.name
         )
         converted_recordings.dropna(subset=["converted_filename"], inplace=True)
 
@@ -683,9 +729,9 @@ class ChildProject:
             raise NotImplementedError(
                 "cannot recover recording from the path to a converted media yet"
             )
-            # media_path = os.path.join(self.path, CONVERTED_RECORDINGS, profile)
+            # media_path = self.path / Paths.CONVERTED_RECORDINGS / profile
         else:
-            media_path = os.path.join(self.path, RAW_RECORDINGS)
+            media_path = self.path / Paths.RAW_RECORDINGS
 
         if not path_is_parent(media_path, path):
             return None
@@ -728,7 +774,7 @@ class ChildProject:
                 recs = pd.Series(recordings)
                 missing_recs = recs[~recs.isin(self.recordings['recording_filename'])].tolist()
                 #self.recordings[~self.recordings['recording_filename'].isin(recordings)]['recording_filename'].tolist()
-                raise ValueError("recordings {} were not found in the dataset index. Check the names and make sure they exist in '{}'".format(missing_recs,os.path.join(METADATA_FOLDER,RECORDINGS_CSV)))
+                raise ValueError("recordings {} were not found in the dataset index. Check the names and make sure they exist in '{}'".format(missing_recs,FilesMeta.RECORDINGS))
                 
 
         return _recordings
