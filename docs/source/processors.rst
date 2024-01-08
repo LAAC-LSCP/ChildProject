@@ -18,13 +18,13 @@ audios are stored into ``recordings/converted/<profile-name>``.
 
 .. clidoc::
 
-   child-project process /path/to/dataset test basic --help
+   child-project process /path/to/dataset basic test --help
 
 Example:
 
 ::
 
-   child-project process /path/to/dataset 16kHz basic --format=wav --sampling=16000 --codec=pcm_s16le
+   child-project process /path/to/dataset basic standard --format=wav --sampling=16000 --codec=pcm_s16le
 
 .. We typically run the following, to split long sound files every 15
 .. hours, because the software we use for human annotation (ELAN, Praat)
@@ -36,7 +36,7 @@ Processing can be restricted to a white-list of recordings only using the ``--re
 
 ::
 
-   child-project process /path/to/dataset 16kHz basic --format=wav --sampling=16000 --codec=pcm_s16le --recordings audio1.wav audio2.wav
+   child-project process /path/to/dataset basic standard --format=wav --sampling=16000 --codec=pcm_s16le --recordings audio1.wav audio2.wav
 
 Values provided to this option should be existing ``recording_filename`` values in ``metadata/recordings.csv``.
 
@@ -53,7 +53,7 @@ guide <https://slurm.schedmd.com/quickstart.html>`__
 
 ::
 
-   sbatch --mem=64G --time=5:00:00 --cpus-per-task=4 --ntasks=1 -o namibia.txt child-project process --threads 4 /path/to/dataset 16kHz basic --format=wav --sampling=16000 --codec=pcm_s16le
+   sbatch --mem=64G --time=5:00:00 --cpus-per-task=4 --ntasks=1 -o namibia.txt child-project process --threads 4 /path/to/dataset basic standard --format=wav --sampling=16000 --codec=pcm_s16le
 
 Vetting
 ~~~~~~~
@@ -66,7 +66,7 @@ The timestamps need to be expressed in milliseconds.
 
 .. clidoc::
 
-    child-project process /path/to/dataset test vetting --help
+   child-project process /path/to/dataset vetting test --help
 
 Channel mapping
 ~~~~~~~~~~~~~~~
@@ -78,7 +78,7 @@ It allows to filter or to combine channels from the original recordings at your 
 
 .. clidoc::
 
-   child-project process /path/to/dataset test channel-mapping --help
+   child-project process /path/to/dataset channel-mapping test --help
 
 In mathematical terms, assuming the input recordings have :math:`n` channels
 with signals :math:`s_{j}(t)`;
@@ -121,7 +121,7 @@ The following command will extract the first channel from the recordings:
 
 .. code-block:: bash
 
-   child-project process /path/to/dataset channel1 channel-mapping --channels 1,0,0,0
+   child-project process /path/to/dataset channel-mapping channel1 --channels 1,0,0,0
 
 Invert a stereo signal
 ======================
@@ -131,4 +131,4 @@ The command below will flip the two channels:
 
 .. code-block:: bash
 
-   child-project process /path/to/dataset channel1 channel-mapping --channels 0,1 --channels 1,0
+   child-project process /path/to/dataset channel-mapping channel1 --channels 0,1 --channels 1,0
