@@ -3,6 +3,7 @@ import numpy as np
 import ast
 import re
 import functools
+from typing import Union
 
 """
 This file lists all the metrics functions commonly used.
@@ -24,12 +25,12 @@ New metrics can be added by defining new functions for the Metrics class to use 
 """
 
 # error message in case of missing columns in annotations
-MISSING_COLUMNS = 'The given set <{}> does not have the required column <{}> for computing the {} metric'
+MISSING_COLUMNS = 'The given set <{}> does not have the required column(s) <{}> for computing the {} metric'
 
 RESERVED = {'set', 'name', 'callable'}  # arguments reserved usage. use other keyword labels.
 
 
-def metricFunction(args: set, columns: set, empty_value=0, default_name: str = None):
+def metricFunction(args: set, columns: Union[set[str], tuple[set[str], ...]], empty_value=0, default_name: str = None):
     """Decorator for all metrics functions to make them ready to be called by the pipeline.
     
     :param args: set of required keyword arguments for that function, raise ValueError if were not given \
@@ -75,9 +76,24 @@ def metricFunction(args: set, columns: set, empty_value=0, default_name: str = N
             for arg in kwargs:
                 metric_name_replaced = re.sub(arg, str(kwargs[arg]).lower(), metric_name_replaced)
             if annotations.shape[0]:
-                missing_columns = columns - set(annotations.columns)
-                if missing_columns:
-                    raise ValueError(MISSING_COLUMNS.format(annotations['set'].iloc[0], missing_columns, metric_name))
+                # if multiple possibilities of columns, explore each and fail only if each combination is missing
+                # a column, if one possibility, fail if a column is missing
+                if isinstance(columns, tuple) and len(columns) > 0 and isinstance(columns[0], set):
+                    missing_columns = []
+                    for possible_cols in columns:
+                        possible_missing = possible_cols - set(annotations.columns)
+                        if possible_missing:
+                            missing_columns.append(possible_missing)
+                    # if we have as many cases of missing columns as possibilities, we can't compute the metric
+                    if len(missing_columns) == len(columns):
+                        raise ValueError(
+                            MISSING_COLUMNS.format(annotations['set'].iloc[0],
+                                                   ' or '.join([str(s) for s in missing_columns]),
+                                                   metric_name))
+                else:
+                    missing_columns = columns - set(annotations.columns)
+                    if missing_columns:
+                        raise ValueError(MISSING_COLUMNS.format(annotations['set'].iloc[0], missing_columns, metric_name))
                 res = function(annotations, duration, **kwargs)
             else:  # no annotation for that unit
                 res = empty_value if duration else None  # duration != 0 => was annotated but not segments there
@@ -273,46 +289,62 @@ pc_adu = metricFunction(set(), {"phonemes"})(pc_adu)
 
 
 def cry_voc_speaker(annotations: pd.DataFrame, duration: int, **kwargs):
-    """number of cry vocalizations for a given speaker (based on vcm_type)
+    """number of cry vocalizations for a given speaker (based on vcm_type or lena cries)
     
     Required keyword arguments:
         - speaker : speaker_type to use
     """
-    return annotations.loc[(annotations["speaker_type"] == kwargs["speaker"]) &
-                           (annotations["vcm_type"] == "Y")].shape[0]
+    if 'vcm_type' in annotations.columns:
+        return annotations.loc[(annotations["speaker_type"] == kwargs["speaker"]) &
+                               (annotations["vcm_type"] == "Y")].shape[0]
+    # elif 'cries' in annotations.columns:
+    else:
+        return annotations[annotations['speaker_type'] == kwargs["speaker"]]["cries"].apply(lambda x: len(ast.literal_eval(x))).sum()
 
 
-peak_cry_voc_speaker = metricFunction({"speaker"}, {"speaker_type", "vcm_type"})(peak_hour_metric()(cry_voc_speaker))
-cry_voc_speaker_ph = metricFunction({"speaker"}, {"speaker_type", "vcm_type"})(per_hour_metric()(cry_voc_speaker))
-cry_voc_speaker = metricFunction({"speaker"}, {"speaker_type", "vcm_type"})(cry_voc_speaker)
+peak_cry_voc_speaker = metricFunction({"speaker"}, ({"speaker_type", "vcm_type"}, {"speaker_type", "cries"})
+                                      )(peak_hour_metric()(cry_voc_speaker))
+cry_voc_speaker_ph = metricFunction({"speaker"}, ({"speaker_type", "vcm_type"}, {"speaker_type", "cries"})
+                                    )(per_hour_metric()(cry_voc_speaker))
+cry_voc_speaker = metricFunction({"speaker"}, ({"speaker_type", "vcm_type"}, {"speaker_type", "cries"})
+                                 )(cry_voc_speaker)
 
 
 def cry_voc_dur_speaker(annotations: pd.DataFrame, duration: int, **kwargs):
-    """total duration of cry vocalizations by a given speaker type in milliseconds (based on vcm_type)
+    """total duration of cry vocalizations by a given speaker type in milliseconds (based on vcm_type or lena cry)
     
     Required keyword arguments:
         - speaker : speaker_type to use
     """
-    return annotations.loc[(annotations["speaker_type"] == kwargs["speaker"]) &
-                           (annotations["vcm_type"] == "Y")]["duration"].sum()
+    if 'vcm_type' in annotations.columns and 'duration' in annotations.columns:
+        return annotations.loc[(annotations["speaker_type"] == kwargs["speaker"]) &
+                               (annotations["vcm_type"] == "Y")]["duration"].sum()
+    # elif 'child_cry_vfx_len' in annotations.columns:
+    else:
+        return annotations[annotations['speaker_type'] == kwargs["speaker"]]["child_cry_vfx_len"].sum()
 
 
-peak_cry_voc_dur_speaker = metricFunction({"speaker"}, {"speaker_type", "vcm_type", "duration"})(
+peak_cry_voc_dur_speaker = metricFunction({"speaker"}, ({"speaker_type", "vcm_type", "duration"}, {"speaker_type", "child_cry_vfx_len"}))(
     peak_hour_metric()(cry_voc_dur_speaker))
-cry_voc_dur_speaker_ph = metricFunction({"speaker"}, {"speaker_type", "vcm_type", "duration"})(
+cry_voc_dur_speaker_ph = metricFunction({"speaker"}, ({"speaker_type", "vcm_type", "duration"}, {"speaker_type", "child_cry_vfx_len"}))(
     per_hour_metric()(cry_voc_dur_speaker))
-cry_voc_dur_speaker = metricFunction({"speaker"}, {"speaker_type", "vcm_type", "duration"})(cry_voc_dur_speaker)
+cry_voc_dur_speaker = metricFunction({"speaker"}, ({"speaker_type", "vcm_type", "duration"}, {"speaker_type", "child_cry_vfx_len"}))(cry_voc_dur_speaker)
 
 
-@metricFunction({"speaker"}, {"speaker_type", "vcm_type", "duration"}, np.nan)
+@metricFunction({"speaker"}, ({"speaker_type", "vcm_type", "duration"}, {'speaker_type', "child_cry_vfx_len", "cries"}), np.nan)
 def avg_cry_voc_dur_speaker(annotations: pd.DataFrame, duration: int, **kwargs):
-    """average duration of cry vocalizations by a given speaker type (based on vcm_type)
+    """average duration of cry vocalizations by a given speaker type (based on vcm_type or lena cries)
     
     Required keyword arguments:
         - speaker : speaker_type to use
     """
-    value = annotations.loc[(annotations["speaker_type"] == kwargs["speaker"]) &
-                            (annotations["vcm_type"] == "Y")]["duration"].mean()
+    if 'vcm_type' in annotations.columns and 'duration' in annotations.columns:
+        value = annotations.loc[(annotations["speaker_type"] == kwargs["speaker"]) &
+                                (annotations["vcm_type"] == "Y")]["duration"].mean()
+    else:
+        annots = annotations[annotations['speaker_type'] == kwargs["speaker"]]
+        value = annots["child_cry_vfx_len"].sum() / annots["cries"].apply(lambda x: len(ast.literal_eval(x))).sum()
+
     if pd.isnull(value):
         value = 0
     return value
