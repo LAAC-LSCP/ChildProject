@@ -14,7 +14,7 @@ pandas>=1.1.0,<=1.5.0
 panoptes_client
 praat-parselmouth
 pyannote.metrics; python_version >= "3.7.0"
-pygamma-agreement[notebook]; python_version >= "3.6.0"
+pygamma-agreement[notebook]==0.5.6; python_version >= "3.6.0"
 pylangacq
 pympi-ling
 soundfile
