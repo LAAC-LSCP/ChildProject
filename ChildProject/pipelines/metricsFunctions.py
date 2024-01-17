@@ -3,7 +3,7 @@ import numpy as np
 import ast
 import re
 import functools
-from typing import Union
+from typing import Union, Set, Tuple
 
 """
 This file lists all the metrics functions commonly used.
@@ -30,7 +30,7 @@ MISSING_COLUMNS = 'The given set <{}> does not have the required column(s) <{}> 
 RESERVED = {'set', 'name', 'callable'}  # arguments reserved usage. use other keyword labels.
 
 
-def metricFunction(args: set, columns: Union[set[str], tuple[set[str], ...]], empty_value=0, default_name: str = None):
+def metricFunction(args: set, columns: Union[Set[str], Tuple[Set[str], ...]], empty_value=0, default_name: str = None):
     """Decorator for all metrics functions to make them ready to be called by the pipeline.
     
     :param args: set of required keyword arguments for that function, raise ValueError if were not given \

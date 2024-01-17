@@ -780,7 +780,7 @@ class MetricsSpecificationPipeline(Pipeline):
     def __init__(self):
         self.metrics = []
 
-    def run(self, parameters_input):
+    def run(self, parameters_input,func=None):
         #build a dictionary with all parameters used
         parameters = None
         with open(parameters_input, "r") as stream:
@@ -855,4 +855,4 @@ class MetricsSpecificationPipeline(Pipeline):
 
     @staticmethod
     def setup_parser(parser):
-        parser.add_argument("path", help="path to the yml file with all parameters")
+        parser.add_argument("parameters_input", help="path to the yml file with all parameters")
