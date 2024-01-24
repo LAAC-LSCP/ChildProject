@@ -596,7 +596,7 @@ class AnnotationManager:
         input: pd.DataFrame,
         threads: int = -1,
         import_function: Callable[[str], pd.DataFrame] = None,
-        new_tiers: list = None,
+        new_tiers: list = [],
         overwrite_existing: bool = False,
     ) -> pd.DataFrame:
         """Import and convert annotations.
