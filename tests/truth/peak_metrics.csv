@@ -1,0 +1,3 @@
+recording_filename,child_id,duration_peak_alice,wc_adu_ph,peak_wc_adu,duration_peak_vtc,voc_fem,voc_chi,peak_voc_fem,peak_voc_chi,voc_fem_ph,voc_chi_ph,simple_CTC,peak_simple_CTC
+sound.wav,1,4000,7200,2,4000,8,20,2,,7200,18000,16,4
+sound2.wav,1,0,,,0,,,,,,,,

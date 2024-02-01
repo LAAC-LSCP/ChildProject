@@ -14,7 +14,7 @@ pandas>=1.1.0,<=1.5.0
 panoptes_client
 praat-parselmouth
 pyannote.metrics; python_version >= "3.7.0"
-pygamma-agreement[notebook]; python_version >= "3.6.0"
+pygamma-agreement[notebook]==0.5.6; python_version >= "3.6.0"
 pylangacq
 pympi-ling
 soundfile
@@ -24,5 +24,5 @@ requests==2.25.0
 scipy
 scikit-learn
 sphinx
-sphinx_rtd_theme==1.1.1
-sphinx-tabs==3.0.0
+sphinx_rtd_theme
+sphinx-tabs

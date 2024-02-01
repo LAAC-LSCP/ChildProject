@@ -227,11 +227,11 @@ class Metrics(ABC):
                     duration_set = (
                             index["range_offset"] - index["range_onset"]
                         ).sum()
-                else : duration_set = 0
+                else: duration_set = 0
                 row[1]["duration_{}".format(line["set"])] = duration_set
                 prev_set = curr_set            
-                
-            name, value = line["callable"](annotations, duration_set, **line.drop(['callable', 'set'],errors='ignore').dropna().to_dict())
+
+            name, value = line["callable"](annotations, duration_set, **line.drop(['callable', 'set']).dropna().to_dict())
             row[1][name] = value
         
         return row[1]
@@ -261,7 +261,7 @@ class Metrics(ABC):
         return self.metrics
 
     def retrieve_segments(self, sets: List[str], row: str):
-        """from a list of sets and and a row identifying the unit computed, return the relevant annotation segments
+        """from a list of sets and a row identifying the unit computed, return the relevant annotation segments
         
         :param sets: List of annotation sets to keep
         :type sets: List[str]
@@ -277,13 +277,13 @@ class Metrics(ABC):
                     columns=['recording_filename','range_onset', 'range_offset']),
                     sets= sets,
                     missing_data = 'warn')
-        #else prepare and use get_within_time_range
+        # else prepare and use get_within_time_range
         else:
             annotations = self.am.annotations[self.am.annotations[self.by] == row[self.by]]
             annotations = annotations[annotations["set"].isin(sets)]
-            #restrict to time ranges
+            # restrict to time ranges
             if self.from_time and self.to_time:
-                #add the periods columns
+                # add the periods columns
                 if self.period:
                     st_hour = row["period_start"]
                     end_hour = row["period_end"]
@@ -291,9 +291,9 @@ class Metrics(ABC):
                     matches = pd.concat([self.am.get_within_time_range(annotations,i) for i in intervals],ignore_index =True) if intervals else pd.DataFrame()
                 else:
                     matches = self.am.get_within_time_range(
-                    annotations, TimeInterval(self.from_time,self.to_time))
+                    annotations, TimeInterval(self.from_time, self.to_time))
             elif self.period:
-                #add the periods columns
+                # add the periods columns
                 st_hour = row["period_start"]
                 end_hour = row["period_end"]
                 matches = self.am.get_within_time_range(
@@ -304,7 +304,7 @@ class Metrics(ABC):
         if matches.shape[0]:
             segments = self.am.get_segments(matches)
         else:
-            #no annotations for that unit
+            # no annotations for that unit
             return pd.DataFrame(), pd.DataFrame()
 
         # prevent overflows
@@ -337,13 +337,13 @@ class Metrics(ABC):
                 self.periods["key"]=0
                 self.metrics = pd.merge(self.metrics,self.periods,on='key',how='outer').drop('key',axis=1)
         
-        #add info for child_id
+        # add info for child_id
         self.metrics["child_id"] = self.metrics.apply(
                 lambda row:self.project.recordings[self.project.recordings[self.by] == row[self.by]
         ]["child_id"].iloc[0],
         axis=1)
         
-        #get and add to dataframe children.csv columns asked
+        # get and add to dataframe children.csv columns asked
         if self.child_cols:
             for label in self.child_cols:
                 self.metrics[label]= self.metrics.apply(lambda row:
@@ -351,28 +351,29 @@ class Metrics(ABC):
                         self.project.children["child_id"] == row["child_id"]
                 ][label].iloc[0], axis=1)
             
-        #this loop is for the purpose of checking for name duplicates in the metrics
-        #we do a dry run on the first line with no annotations bc impractical to check in multiprocessing
+        # this loop is for the purpose of checking for name duplicates in the metrics
+        # we do a dry run on the first line with no annotations bc impractical to check in multiprocessing
         df = pd.DataFrame()
         duration_set = 0
         names = set()
         for i, line in self.metrics_list.iterrows():
-            name, value = line["callable"](df, duration_set, **line.drop(['callable', 'set'],errors='ignore').dropna().to_dict())
+            name, value = line["callable"](df, duration_set, **line.drop(['callable', 'set'],
+                                                                         errors='ignore').dropna().to_dict())
                 
             if name in names:
                 raise ValueError('the metric name <{}> is used multiple times, make sure it is unique'.format(name))
             else:
                 names.add(name)
             
-        #checking that columns added by the user are unique (e.g. date_iso may be different when extract by child_id), replace with NA if they are not
+        # checking that columns added by the user are unique (e.g. date_iso may be different when extract by child_id), replace with NA if they are not
         def check_unicity(row, label):
             value=self.project.recordings[
                         self.project.recordings[self.by] == row[self.by]
                 ][label].drop_duplicates()
-            #check that there is only one row remaining (ie this column has a unique value for that unit)
+            # check that there is only one row remaining (ie this column has a unique value for that unit)
             if len(value) == 1:
                 return value.iloc[0]
-            #otherwise, leave the column as NA
+            # otherwise, leave the column as NA
             else:
                 return np.nan
         
@@ -779,7 +780,7 @@ class MetricsSpecificationPipeline(Pipeline):
     def __init__(self):
         self.metrics = []
 
-    def run(self, parameters_input):
+    def run(self, parameters_input,func=None):
         #build a dictionary with all parameters used
         parameters = None
         with open(parameters_input, "r") as stream:
@@ -854,4 +855,4 @@ class MetricsSpecificationPipeline(Pipeline):
 
     @staticmethod
     def setup_parser(parser):
-        parser.add_argument("path", help="path to the yml file with all parameters")
+        parser.add_argument("parameters_input", help="path to the yml file with all parameters")
