@@ -109,6 +109,7 @@ class VtcConverter(AnnotationConverter):
                 "conf",
                 "unk",
             ],
+            dtype={'type': str, "file" : str, 'stype':str}
         )
 
         n_recordings = len(rttm["file"].unique())

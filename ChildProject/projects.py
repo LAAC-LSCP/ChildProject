@@ -177,9 +177,9 @@ class ChildProject:
         ),
         IndexColumn(
             name="recording_device_type",
-            description="lena, usb, olympus, babylogger (lowercase)",
+            description="lena, usb, olympus, babylogger (lowercase), izyrec",
             required=True,
-            choices=["lena", "usb", "olympus", "babylogger", "unknown"],
+            choices=["lena", "usb", "olympus", "babylogger", "izyrec", "unknown"],
         ),
         IndexColumn(
             name="recording_filename",
