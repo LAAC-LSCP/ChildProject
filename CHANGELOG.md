@@ -22,6 +22,7 @@ All notable changes to this project will be documented in this file.
 - zooniverse chunks upload was failing if the dataset column was missing in the csv
 - eaf_builder with speaker_id NA no longer fails (#438)
 - name of files in rttm that contain only digits in their name now work correctly with the filter ($457)
+- periodic sampler having extra NA rows when using explode
 
 ## [0.1.1] 2023-05-11
 
