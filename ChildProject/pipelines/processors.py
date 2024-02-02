@@ -10,9 +10,15 @@ import shutil
 import subprocess
 from typing import Union, List
 from yaml import dump
+import logging
 
 import ChildProject
 from ChildProject.pipelines.pipeline import Pipeline
+
+# Create a logger for the module (file)
+logger_annotations = logging.getLogger(__name__)
+# messages are propagated to the higher level logger (ChildProject), used in cmdline.py
+logger_annotations.propagate = True
 
 pipelines = {}
 
@@ -194,8 +200,7 @@ class BasicProcessor(AudioProcessor):
         success = proc.returncode == 0
 
         if not success:
-            print(stderr, file=sys.stderr)
-
+            logger_annotations.error(stderr)
             return pd.DataFrame(
                 [
                     {
@@ -402,13 +407,13 @@ class ChannelMapper(AudioProcessor):
         signal, sr = librosa.load(original_file, sr=None, mono=False)
 
         if self.channels.shape[1] != signal.shape[0]:
-            print(
-                "skipping '{}' due to channel mismatch (expected {} channels, got {})".format(
-                    recording["recording_filename"],
-                    self.channels.shape[1],
-                    signal.shape[0],
+            logger_annotations.error(
+                "skipping '%s' due to channel mismatch (expected %d channels, got %d)", 
+                recording["recording_filename"], 
+                self.channels.shape[1], 
+                signal.shape[0],
                 )
-            )
+            
             return df.assign(success=False)
 
         output = np.matmul(self.channels, signal)
@@ -582,8 +587,13 @@ class AudioProcessingPipeline(Pipeline):
 
         proc = pipelines[processor](self.project, threads=threads, **kwargs)
         proc.process(f"parameters_{date}.yml")
-
-        print("exported audio to {}".format(proc.output_directory()))
+     
+        logger_annotations.info(
+                "Exported audio to %s", 
+                proc.output_directory(), 
+                )
+            
+        
 
         parameters_path = os.path.join(
             proc.output_directory(), f"parameters_{date}.yml"
@@ -596,8 +606,12 @@ class AudioProcessingPipeline(Pipeline):
             },
             open(parameters_path, "w+"),
         )
-        print("exported processor parameters to {}".format(parameters_path))
-
+        
+        logger_annotations.info(
+            "exported processor parameters to ",
+            parameters_path,
+            )   
+        
         return os.path.join(proc.output_directory(), "recordings.csv"), parameters_path
 
     @staticmethod

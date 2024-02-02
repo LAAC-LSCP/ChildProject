@@ -11,7 +11,34 @@ import os
 import pandas as pd
 import sys
 import random
+import logging
 
+# add this to setup,py in the requires section and in requirements.txt
+import colorlog
+
+# Create a ColorFormatter with desired color settings
+color_formatter = colorlog.ColoredFormatter(
+    '%(log_color)s%(levelname)-8s%(reset)s %(message)s %(purple)s[%(name)s]%(reset)s',
+    log_colors={
+        'DEBUG': 'cyan',
+        'INFO': 'green',
+        'WARNING': 'yellow',
+        'ERROR': 'red',
+        'CRITICAL': 'bold_red',
+    }
+)
+
+# Create a StreamHandler and set the formatter
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(color_formatter)
+#stream_handler.formatter._fmt = '%(log_color)s%(levelname)-8s%(reset)s  <%(name)s>: %(message)s'
+
+# Create a logger and add the handlers for CLI calls
+logger = logging.getLogger(__name__)
+logger.addHandler(stream_handler)
+logger.setLevel(logging.INFO)
+
+# Setting up the parse of arguments
 parser = argparse.ArgumentParser()
 subparsers = parser.add_subparsers()
 parser.add_argument('--version', action='version', version="{} {}".format(__name__, __version__), help='displays the current version of the package')
@@ -49,18 +76,15 @@ def perform_validation(project: ChildProject, require_success: bool = True, **ar
 
     if len(errors) > 0:
         if require_success:
-            print(
-                "[\033[31merror\033[0m]: dataset validation failed, {} error(s) occured.\nCannot continue. Please run the validation procedure to list and correct all errors.".format(
-                    len(errors)
-                ),
-                file=sys.stderr,
+            logger.error(
+                "dataset validation failed, %d error(s) occurred. Cannot continue. Please run the validation procedure to list and correct all errors.",
+                len(errors),
             )
             sys.exit(1)
         else:
-            print(
-                "[\033[33mwarning\033[0m]: dataset validation failed, {} error(s) occured.\nProceeding despite errors; expect failures.".format(
-                    len(errors)
-                )
+            logger.warning(
+                "dataset validation failed, %d error(s) occurred. Proceeding despite errors; expect failures.",
+                len(errors),
             )
 
 
@@ -140,16 +164,17 @@ def validate(args):
         warnings.extend(annotations_warnings)
 
     for error in errors:
-        print("error: {}".format(error))
+        pass
+        logger.error('%s',error)
 
     for warning in warnings:
-        print("warning: {}".format(warning))
-
+        pass
+        logger.warning('%s',warning )
     if len(errors) > 0:
-        print("validation failed, {} error(s) occured".format(len(errors)))
+        logger.warning('validation failed, %s error(s) occured', len(errors))
         sys.exit(1)
 
-    print("validation successfully completed with {} warning(s).".format(len(warnings)))
+    logger.info('validation successfully completed with %d warning(s).', len(warnings))
 
 
 @subcommand(
@@ -201,23 +226,21 @@ def import_annotations(args):
     imported, errors_imp = am.import_annotations(annotations, args.threads, overwrite_existing=args.overwrite_existing)
     
     if errors_imp is not None and errors_imp.shape[0] > 0:
-        print("the importation failed for {} entry/ies".format(errors_imp.shape[0]))
-        print(errors_imp)
+        logger.error('The importation failed for %d entry/ies',errors_imp.shape[0])
+        logger.debug(errors_imp) 
     
     if imported is not None and imported.shape[0] > 0:
         errors, warnings = am.validate(imported, threads=args.threads)
-    
+ 
         if len(am.errors) > 0:
-            print(
-                "in the resulting annotations {} errors and {} warnings were found".format(
-                    len(am.errors) + len(errors), len(warnings)
-                ),
-                file=sys.stderr,
-            )
-            print("\n".join(am.errors), file=sys.stderr)
-            print("\n".join(errors), file=sys.stderr)
-            print("\n".join(warnings))
-
+            logger.error(
+                "in the resulting annotations %s errors and %s warnings were found",
+                len(am.errors) + len(errors),
+                len(warnings),
+            ) # Is it right ?
+            logger.error("\n".join(am.errors))
+            logger.error("\n".join(errors))
+            logger.error("\n".join(warnings))
 
 @subcommand(
     [
@@ -344,7 +367,7 @@ def overview(args):
     am = AnnotationManager(project)
     project.read()
 
-    print("\n\033[1mrecordings\033[0m:")
+    logger.info("\n\033[1mrecordings\033[0m:")
     _recordings = (
         project.recordings.dropna(subset=["recording_filename"])
         .sort_values(["recording_device_type", "date_iso"])
@@ -371,13 +394,9 @@ def overview(args):
             .sum()
         )
 
-        print(
-            "\033[94m{}\033[0m: {}, {}/{} files locally available".format(
-                recording_device_type, duration, available, len(recordings)
-            )
-        )
+        logger.info("\033[94m%s\033[0m: %d, %s/%d files locally available", recording_device_type, duration, available, len(recordings))
 
-    print("\n\033[1mannotations\033[0m:")
+    logger.info("\n\033[1mannotations\033[0m:")
     _annotations = (
         am.annotations.dropna(subset=["annotation_filename"])
         .sort_values(["set", "imported_at"])
@@ -407,14 +426,7 @@ def overview(args):
             .sum()
         )
 
-        print(
-            "\033[94m{}\033[0m: {:.2f} hours, {}/{} files locally available".format(
-                annotation_set,
-                duration_covered / (3600 * 1000),
-                available,
-                len(annotations),
-            )
-        )
+        logger.info("\033[94m%s\033[0m: %.2f hours, %s/%s files locally available", annotation_set, duration_covered / (3600 * 1000), available, len(annotations))
 
 
 @subcommand(
@@ -467,22 +479,22 @@ def explain(args):
 
 
     if not len(documentation):
-        print(f"could not find any documentation for variable '{variable}'")
+        logger.info("Could not find any documentation for variable '%s'", variable)
         return
     
-    print(f"Matching documentation for '{variable}':")
+    logger.info("Matching documentation for '%s':", variable)
     for doc in documentation.to_dict(orient = 'records'):
-        print(f"\n\033[94mtable\033[0m: {doc['table']}")
-        print(f"\033[94mdescription\033[0m: {doc['description']}")
+        logger.info("\n\033[94mtable\033[0m: %s", doc['table'])
+        logger.info("\033[94mdescription\033[0m: %s", {doc['description']})
 
         if 'values' in doc and not pd.isnull(doc['values']):
-            print(f"\033[94mvalues\033[0m: {doc['values']}")
+            logger.info("\033[94mvalues\033[0m: %s", {doc['values']})
 
         if 'annotation_set' in doc and not pd.isnull(doc['annotation_set']):
-            print(f"\033[94mannotation set(s)\033[0m: {doc['annotation_set']}")
+            logger.info("\033[94mannotation set(s)\033[0m: %s", doc['annotation_set'])
 
         if 'scope' in doc and not pd.isnull(doc['scope']):
-            print(f"\033[94mscope\033[0m: {doc['scope']}")
+            logger.info("\033[94mscope\033[0m: %s", doc['scope'])
 
 @subcommand(
     [
@@ -500,7 +512,7 @@ def compute_durations(args):
 
     if "duration" in project.recordings.columns:
         if not args.force:
-            print("duration exists, aborting")
+            logger.info("The 'duration' column already exists, aborting the procces")
             return
 
         project.recordings.drop(columns=["duration"], inplace=True)
@@ -541,20 +553,20 @@ def compare_recordings(args):
     if rec2.empty or rec2.shape[0] > 1: raise ValueError("{} was not found in the indexed recordings in metadata/recordings.csv or has multiple occurences".format(args.audio2))
     
     if 'duration' not in rec1.columns: 
-        print("WARNING : duration was not found for audio {}. We attempt to compute it...".format(args.audio1))
+        logger.warning("WARNING : duration was not found for audio %s. We attempt to compute it...", args.audio1)
         rec1["duration"].iloc[0] = get_audio_duration(project.get_recording_path(args.audio1, args.profile))
     if 'duration' not in rec2.columns: 
-        print("WARNING : duration was not found for audio {}. We attempt to compute it...".format(args.audio2))
+        logger.watning("WARNING : duration was not found for audio %s. We attempt to compute it...", args.audio2)
         rec2["duration"].iloc[0] = get_audio_duration(project.get_recording_path(args.audio2, args.profile))
         
     if rec1['duration'].iloc[0] != rec2['duration'].iloc[0]:
-        print('WARNING : the 2 audio files have different durations, it is unlikely they are the same recording:\n{} : {}ms\n{} : {}ms'.format(args.audio1,rec1['duration'].iloc[0],args.audio2,rec2['duration'].iloc[0]))
-        
+        logger.warning('WARNING : the 2 audio files have different durations, it is unlikely they are the same recording:\n%s : %dms\n%s : %dms', args.audio1, rec1['duration'].iloc[0], args.audio2, rec2['duration'].iloc[0])
+ 
     interval = args.interval * 60 * 1000
     
     dur = min(rec1['duration'].iloc[0],rec2['duration'].iloc[0])
     if dur < interval :
-        print("WARNING : the duration of the audio is too short for an interval {}ms :\nnew interval is set to {}ms, this will cover the entire duration.".format(interval,dur))
+        logger.warning("WARNING : the duration of the audio is too short for an interval %dms :\nnew interval is set to %dms, this will cover the entire duration.", interval, dur)
         interval = dur
         offset = 0
     else:
@@ -568,8 +580,9 @@ def compare_recordings(args):
         interval/1000
     )
     
-    if size < 48000 : print('WARNING : the number of values ({}) in the sample is low, raise the interval value, if possible, for a more reliable analysis'.format(size))
-    print('RESULTS :\ndivergence score = {} over a sample of {} values\nREFERENCE :\ndivergence score < 0.1 => the 2 files seem very similar\ndivergence score > 1   => sizable difference'.format(avg,size))
+    if size < 48000 : 
+        logger.warning('WARNING : the number of values (%d) in the sample is low, raise the interval value, if possible, for a more reliable analysis', size)
+    logger.info("RESULTS :\ndivergence score = %d over a sample of %d values\nREFERENCE :\ndivergence score < 0.1 => the 2 files seem very similar\ndivergence score > 1   => sizable difference", avg, size)
 
 def main():
     register_pipeline("process", AudioProcessingPipeline)

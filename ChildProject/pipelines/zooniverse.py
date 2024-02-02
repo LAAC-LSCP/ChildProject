@@ -13,6 +13,7 @@ import array
 import traceback
 import signal
 import re
+import logging
 
 from typing import List
 from yaml import dump
@@ -38,6 +39,10 @@ from typing import Tuple
 
 import time
 
+# Create a logger for the module (file)
+logger_annotations = logging.getLogger(__name__)
+# messages are propagated to the higher level logger (ChildProject), used in cmdline.py
+logger_annotations.propagate = True
 
 def pad_interval(
     onset: int, offset: int, chunks_length: int, chunks_min_amount: int = 1
@@ -71,7 +76,6 @@ class Chunk:
             self.offset,
             extension,
         )
-
 
 class ZooniversePipeline(Pipeline):
     def __init__(self):
@@ -154,7 +158,8 @@ class ZooniversePipeline(Pipeline):
 
         audio = AudioSegment.from_file(source)
 
-        print("extracting chunks from {}...".format(source))
+        logger_annotations.info("extracting chunks from %s...", source)
+
 
         for segment in segments:
             original_onset = int(segment["segment_onset"])
@@ -168,7 +173,7 @@ class ZooniversePipeline(Pipeline):
                 )
 
                 if onset < 0:
-                    print("skipping chunk with negative onset ({})".format(onset))
+                    logger_annotations.warning("skipping chunk with negative onset (%s)",onset)
                     continue
 
                 intervals = [
@@ -192,12 +197,12 @@ class ZooniversePipeline(Pipeline):
                 mp3 = os.path.join(self.destination, "chunks", chunk.getbasename("mp3"))
 
                 if os.path.exists(wav) and os.path.getsize(wav) > 0:
-                    print("{} already exists, exportation skipped.".format(wav))
+                    logger_annotations.warning("%s already exists, exportation skipped.", wav)
                 else:
                     chunk_audio.export(wav, format="wav")
 
                 if os.path.exists(mp3) and os.path.getsize(mp3) > 0:
-                    print("{} already exists, exportation skipped.".format(mp3))
+                    logger_annotations.warning("%s already exists, exportation skipped.", mp3)
                 else:
                     chunk_audio.export(mp3, format="mp3")
                     
@@ -213,7 +218,7 @@ class ZooniversePipeline(Pipeline):
                     fig = _create_spectrogram(sound,sr) #create the plot figure
                     
                     if os.path.exists(png) and os.path.getsize(png) > 0:
-                        print("{} already exists, exportation skipped.".format(png))
+                        logger_annotations.warning("%s already exists, exportation skipped.", png)
                     else:
                         fig.savefig(png)
                     plt.close(fig)
@@ -338,7 +343,7 @@ class ZooniversePipeline(Pipeline):
         parameters_path = os.path.join(destination, "parameters_{}.yml".format(date))
 
         self.chunks.to_csv(chunks_path)
-        print("exported chunks metadata to {}".format(chunks_path))
+        logger_annotations.info("exported chunks metadata to %s", chunks_path)
         dump(
             {
                 "parameters": parameters,
@@ -347,7 +352,7 @@ class ZooniversePipeline(Pipeline):
             },
             open(parameters_path, "w+"),
         )
-        print("exported extract-chunks parameters to {}".format(parameters_path))
+        logger_annotations.info("exported extract-chunks parameters to %s", parameters_path)
 
         return chunks_path, parameters_path
 
@@ -434,7 +439,7 @@ class ZooniversePipeline(Pipeline):
         chunks_to_upload = chunks_to_upload.to_dict(orient="index")
 
         if len(chunks_to_upload) == 0:
-            print("nothing left to upload.")
+            logger_annotations.warning("nothing left to upload.")
             return
         
         self.orphan_chunks = []
@@ -451,11 +456,12 @@ class ZooniversePipeline(Pipeline):
         for chunk_index in chunks_to_upload:
             chunk = chunks_to_upload[chunk_index]
 
-            print(
-                "uploading chunk {} ({},{})".format(
-                    chunk["recording_filename"], chunk["onset"], chunk["offset"]
+            logger_annotations.info(
+                "uploading chunk %s (%s, %s)",
+                chunk["recording_filename"],
+                chunk["onset"],
+                chunk["offset"], 
                 )
-            )
 
             try:
                 #we take the mp3 file as the is the format supported by zooniverse
@@ -470,28 +476,29 @@ class ZooniversePipeline(Pipeline):
 
                 subject.save()
             except Exception as e:
-                print(
-                    "failed to save chunk {}. an exception has occured:\n{}".format(
-                        chunk_index, str(e)
-                    )
+                logger_annotations.error(
+                "failed to save chunk %s. an exception has occured:\n%s",
+                chunk_index,
+                str(e),
                 )
-                print(traceback.format_exc())
+                logger_annotations.error("%s", traceback.format_exc())
 
                 if ignore_errors and not re.fullmatch(max_subjects_error, str(e)):
                     continue
                 else:
-                    print("subject upload halting here.")
+                    logger_annotations.error("subject upload halting here.")
                     break
                 
             try: 
                 retry_func(subject_set.add, PanoptesAPIException, 3, subjects=subject)              
             except PanoptesAPIException as e:
-                print(
-                    "failed to add subject {} to subject_set {}. an exception has occured:\n{}".format(
-                        chunk_index, subject_set.display_name, str(e)
-                    )
+                logger_annotations.error(
+                "failed to add subject %s to subject_set %s. An exception has occured:\n%s",
+                chunk_index,
+                subject_set.display_name,
+                str(e),
                 )
-                print(traceback.format_exc())
+                logger_annotations.error("%s", traceback.format_exc())
                 
                 chunk["index"] = chunk_index
                 chunk["zooniverse_id"] = str(subject.id)
@@ -504,7 +511,7 @@ class ZooniversePipeline(Pipeline):
                 if ignore_errors:
                     continue
                 else:
-                    print("subject upload halting here.")
+                    logger_annotations.error("subject upload halting here.")
                     break
 
             chunk["index"] = chunk_index
@@ -523,7 +530,11 @@ class ZooniversePipeline(Pipeline):
         if record_orphan and len(self.orphan_chunks): 
             self.chunks.update(pd.DataFrame(self.orphan_chunks).set_index("index"))
 
-            print("WARNING: {} chunks were uploaded but not linked to the subject set {}. To attempt to relink them, try link_orphan_subjects".format(len(self.orphan_chunks), subject_set.display_name))
+            logger_annotations.warning(
+                "%d chunks were uploaded but not linked to the subject set '%s'. To attempt to relink them, try link_orphan_subjects",
+                len(self.orphan_chunks),
+                subject_set.display_name,
+                )
 
         self.chunks.to_csv(self.chunks_file)
         
@@ -536,11 +547,14 @@ class ZooniversePipeline(Pipeline):
             
             if rec_orphan and len(self.orphan_chunks): 
                 self.chunks.update(pd.DataFrame(self.orphan_chunks).set_index("index"))
-                print("WARNING: {} chunks were uploaded but not linked to the subject set {}. To attempt to relink them, try link_orphan_subjects".format(len(self.orphan_chunks), sub_set))
+                logger_annotations.warning(
+                "%d chunks were uploaded but not linked to the subject set '%s'. To attempt to relink them, try link_orphan_subjects",
+                len(self.orphan_chunks),
+                sub_set,
+                )
                 
             self.chunks.to_csv(self.chunks_file)
-            
-        print("Signal interruption {}, exited gracefully".format(args[0]))
+        logger_annotations.warning('Signal interruption %s, exited gracefully', args[0])
         sys.exit(0)
         
         
@@ -627,49 +641,51 @@ class ZooniversePipeline(Pipeline):
         chunks_to_link = chunks_to_link.to_dict(orient="index")
 
         if len(chunks_to_link) == 0:
-            print("no orphan chunks to link.")
+            logger_annotations.warning("no orphan chunks to link.")
             return
 
         for chunk_index in chunks_to_link:
             chunk = chunks_to_link[chunk_index]
 
-            print(
-                "linking chunk {} ({},{})".format(
-                    chunk["recording_filename"], chunk["onset"], chunk["offset"]
+            logger_annotations.info(
+                "linking chunk %s (%d,%d)",
+                chunk["recording_filename"],
+                chunk["onset"],
+                chunk["offset"],
                 )
-            )
 
             try:
                 subject = Subject.find(chunk['zooniverse_id'])
                 
             except Exception as e:
-                print(
-                    "Could not find subject {}. an exception has occured:\n{}".format(
-                        chunk['zooniverse_id'], str(e)
-                    )
+                logger_annotations.error(
+                "Could not find subject %s. an exception has occured:\n%s \n%s",
+                chunk['zooniverse_id'],
+                str(e),
+                chunk["offset"],
+                traceback.format_exc(),
                 )
-                print(traceback.format_exc())
 
                 if ignore_errors:
                     continue
                 else:
-                    print("subject linking halting here.")
+                    logger_annotations.error("subject linking halting here.")
                     break
                 
             try: 
                 retry_func(subject_set.add, PanoptesAPIException, 3, subjects=subject)                
             except PanoptesAPIException as e:
-                print(
-                    "failed to add subject {} to subject_set {}. an exception has occured:\n{}".format(
-                        chunk_index, subject_set.display_name, str(e)
-                    )
+                logger_annotations.error(
+                "failed to add subject %d to subject_set %s. an exception has occured:\n%s \n%s",
+                chunk_index,
+                subject_set.display_name,
+                str(e),
+                traceback.format_exc(),
                 )
-                print(traceback.format_exc())
-                
                 if ignore_errors and str(e):
                     continue
                 else:
-                    print("subject upload halting here.")
+                    logger_annotations.error("subject linking halting here.")
                     break
 
             chunk["index"] = chunk_index
@@ -679,13 +695,11 @@ class ZooniversePipeline(Pipeline):
 
         if len(subjects_metadata):
             tmp = pd.DataFrame(subjects_metadata)
-            print(tmp.columns)
-            print(tmp)
+            logger_annotations.info('%s \n%s', tmp.columns, tmp)
             self.chunks.update(pd.DataFrame(subjects_metadata).set_index("index"))
 
             self.chunks.to_csv(self.chunks_file)
-            
-        print("linked {}/{} subjects".format(len(subjects_metadata),len(chunks_to_link)))
+        logger_annotations.info('linked %d/%d subjects', len(subjects_metadata), len(chunks_to_link))
         
     def reset_orphan_subjects(
         self,
@@ -729,9 +743,9 @@ class ZooniversePipeline(Pipeline):
         if nb_reset.shape[0]:
             self.chunks.to_csv(self.chunks_file)
             
-            print("reset {} orphan subjects".format(nb_reset))
+            logger_annotations.info('reset %d orphan subjects', nb_reset)
         else:
-            print("no orphan subject to reset".format(nb_reset))
+            logger_annotations.info('no orphan subject to reset')
 
     def retrieve_classifications(
         self,

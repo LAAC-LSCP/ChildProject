@@ -10,9 +10,15 @@ import sys
 import traceback
 from typing import Union, List
 from yaml import dump
+import logging
 
 import ChildProject
 from ChildProject.pipelines.pipeline import Pipeline
+
+# Create a logger for the module (file)
+logger_annotations = logging.getLogger(__name__)
+# messages are propagated to the higher level logger (ChildProject), used in cmdline.py
+logger_annotations.propagate = True
 
 pipelines = {}
 
@@ -229,10 +235,7 @@ class PeriodicSampler(Sampler):
         recordings = self.project.get_recordings_from_list(self.recordings)
 
         if not "duration" in recordings.columns:
-            print(
-                """recordings duration was not found in the metadata
-            and an attempt will be made to calculate it."""
-            )
+            logger_annotations.error("recordings duration was not found in the metadata and an attempt will be made to calculate it.")
 
             durations = self.project.compute_recordings_duration(self.profile).dropna()
             recordings = recordings.merge(
@@ -335,11 +338,11 @@ class RandomVocalizationSampler(Sampler):
         segments = self.retrieve_segments(recording["recording_filename"])
 
         if segments is None:
-            print(
-                "warning: no annotations from the set '{}' were found for the recording '{}'".format(
-                    self.annotation_set, recording["recording_filename"]
+            logger_annotations.warning(
+                "no annotations from the set '%s' were found for the recording '%s'", 
+                self.annotation_set, 
+                recording["recording_filename"], 
                 )
-            )
             return pd.DataFrame(
                 columns=["segment_onset", "segment_offset", "recording_filename"]
             )
@@ -472,24 +475,21 @@ class EnergyDetectionSampler(Sampler):
         )
 
         if recording_path is None:
-            print(
-                "failed to retrieve the path to '{}' (profile: {})".format(
-                    recording["recording_filename"], self.profile
-                ),
-                file=sys.stderr,
-            )
+            logger_annotations.error(
+                "failed to retrieve the path to '%s' (profile: %s)", 
+                recording["recording_filename"], 
+                self.profile, 
+                )
             return pd.DataFrame()
 
         try:
             audio = AudioSegment.from_file(recording_path)
         except:
-            print(traceback.format_exc(), file=sys.stderr)
-            print(
-                "failed to read '{}', is it a valid audio file ?".format(
-                    recording_path
-                ),
-                file=sys.stderr,
-            )
+            logger_annotations.error(
+                "failed to read '%s', is it a valid audio file ? %s", 
+                recording_path, 
+                traceback.format_exc(), 
+                )
             return pd.DataFrame()
 
         duration = int(audio.duration_seconds * 1000)
@@ -501,12 +501,11 @@ class EnergyDetectionSampler(Sampler):
             self.windows_offset, duration - self.windows_length, self.windows_spacing
         ).astype(int)
         windows = []
-
-        print(
-            "computing the energy of {} windows for recording {}...".format(
-                len(windows_starts), recording["recording_filename"]
-            )
-        )
+        logger_annotations.info(
+                "computing the energy of %d windows for recording %s...", 
+                len(windows_starts), 
+                recording["recording_filename"], 
+                )
         for start in windows_starts:
             energy = 0
             chunk = audio[start : start + self.windows_length].get_array_of_samples()
@@ -694,11 +693,11 @@ class HighVolubilitySampler(Sampler):
         segments = self.retrieve_segments(recording["recording_filename"])
 
         if segments is None:
-            print(
-                "warning: no annotations from the set '{}' were found for the recording '{}'".format(
-                    self.annotation_set, recording["recording_filename"]
+            logger_annotations.warning(
+                "no annotations from the set '%s' were found for the recording '%s'", 
+                self.annotation_set, 
+                recording["recording_filename"], 
                 )
-            )
             return pd.DataFrame(
                 columns=["segment_onset", "segment_offset", "recording_filename"]
             )
@@ -906,11 +905,11 @@ class ConversationSampler(Sampler):
         segments = self.retrieve_segments(recording["recording_filename"])
 
         if segments is None or "speaker_type" not in segments.columns:
-            print(
-                "warning: no annotations from the set '{}' were found for the recording '{}' or speaker_type column missing".format(
-                    self.annotation_set, recording["recording_filename"]
+            logger_annotations.warning(
+                "no annotations from the set '%s' were found for the recording '%s' or speaker_type column is missing", 
+                self.annotation_set, 
+                recording["recording_filename"], 
                 )
-            )
             return pd.DataFrame(
                 columns=[
                     "segment_onset",
@@ -1045,7 +1044,10 @@ class SamplerPipeline(Pipeline):
             set(self.segments.columns)
             & {"recording_filename", "segment_onset", "segment_offset"}
         ].to_csv(segments_path, index=False)
-        print("exported sampled segments to {}".format(segments_path))
+        logger_annotations.info(
+                "exported sampled segments to %s", 
+                segments_path, 
+                )
         dump(
             {
                 "parameters": parameters,
@@ -1054,7 +1056,10 @@ class SamplerPipeline(Pipeline):
             },
             open(parameters_path, "w+"),
         )
-        print("exported sampler parameters to {}".format(parameters_path))
+        logger_annotations.info(
+                "exported sampler parameters to %s", 
+                parameters_path, 
+                )
 
         return segments_path
 

@@ -1,5 +1,6 @@
 /output
 .DS_Store
+._*
 
 # pycharm project files
 /.idea
@@ -82,6 +83,9 @@ instance/
 
 # Sphinx documentation
 docs/_build/
+
+# PyCharm
+/.idea/
 
 # PyBuilder
 target/

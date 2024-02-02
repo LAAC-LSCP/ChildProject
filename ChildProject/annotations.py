@@ -8,6 +8,7 @@ from shutil import move, rmtree
 import sys
 import traceback
 from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
+import logging
 
 from . import __version__
 from .projects import ChildProject
@@ -15,6 +16,11 @@ from .converters import *
 from .tables import IndexTable, IndexColumn, assert_dataframe, assert_columns_presence
 from .utils import Segment, intersect_ranges, path_is_parent, TimeInterval, series_to_datetime, find_lines_involved_in_overlap
 
+
+# Create a logger for the module (file)
+logger_annotations = logging.getLogger(__name__)
+# messages are propagated to the higher level logger (ChildProject), used in cmdline.py
+logger_annotations.propagate = True
 
 class AnnotationManager:
     INDEX_COLUMNS = [
@@ -353,12 +359,7 @@ class AnnotationManager:
         return errors, warnings
 
     def validate_annotation(self, annotation: dict) -> Tuple[List[str], List[str]]:
-        print(
-            "validating {} from {}...".format(
-                annotation["annotation_filename"], annotation["set"]
-            )
-        )
-
+        logger_annotations.info("Validating %s from %s...", annotation["annotation_filename"], annotation["set"])
         segments = IndexTable(
             "segments",
             path=os.path.join(
@@ -490,11 +491,12 @@ class AnnotationManager:
         if self.annotations[(self.annotations['set'] == annotation['set']) &
                             (self.annotations['annotation_filename'] == annotation_filename)].shape[0] > 0:
             if overwrite_existing:
-                print(f"Warning: annotation file {output_filename} will be overwritten")
+                logger_annotations.warning("Annotation file %s will be overwritten", output_filename)
+               
             else:
                 error_filename = output_filename.replace('\\','/')
                 annotation["error"] = f"annotation file {error_filename} already exists, to reimport it, use the overwrite_existing flag"
-                print(f"Error: {annotation['error']}")
+                logger_annotations.error("Error: %s", annotation['error'])
                 annotation["imported_at"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 return annotation
         
@@ -509,7 +511,8 @@ class AnnotationManager:
         if ovl_annots.shape[0] > 0:
             array_tup = list(ovl_annots[['set','recording_filename','range_onset', 'range_offset']].itertuples(index=False, name=None))
             annotation["error"] = f"importation for set <{annotation['set']}> recording <{annotation['recording_filename']}> from {annotation['range_onset']} to {annotation['range_offset']} cannot continue because it overlaps with these existing annotation lines: {array_tup}"
-            print(f"Error: {annotation['error']}")
+            logger_annotations.error("Error: %s", annotation['error'])
+            #(f"Error: {annotation['error']}")
             annotation["imported_at"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             return annotation
             
@@ -541,10 +544,7 @@ class AnnotationManager:
                 )
         except:
             annotation["error"] = traceback.format_exc()
-            print(
-                "an error occured while processing '{}'".format(path), file=sys.stderr
-            )
-            print(traceback.format_exc(), file=sys.stderr)
+            logger_annotations.error("An error occurred while processing '%s'", path, exc_info=True)
 
         if df is None or not isinstance(df, pd.DataFrame):
             annotation["imported_at"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -654,9 +654,7 @@ class AnnotationManager:
       
         builtin = input_processed[input_processed["format"].isin(converters.keys())]
         if not builtin["format"].map(lambda f: converters[f].THREAD_SAFE).all():
-            print(
-                "warning: some of the converters do not support multithread importation; running on 1 thread"
-            )
+            logger_annotations.warning("warning: some of the converters do not support multithread importation; running on 1 thread")
             threads = 1
             
         #if the input to import has overlaps in it, raise an error immediately, nothing will be imported
@@ -688,6 +686,7 @@ class AnnotationManager:
             axis=1,
             inplace=True,
         )
+
         if 'error' in imported.columns:
             errors = imported[~imported["error"].isnull()]
             imported = imported[imported["error"].isnull()] 
@@ -695,7 +694,7 @@ class AnnotationManager:
             if errors.shape[0] > 0:
                 output = os.path.join(self.project.path, "extra","errors_import_{}.csv".format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")))
                 errors.to_csv(output, index=False)
-                print(f"Errors summary exported to {output}")
+                logger_annotations.info("Errors summary exported to %s", output)              
         else:
             errors = None
 
@@ -709,7 +708,7 @@ class AnnotationManager:
         sets = set(input_processed['set'].unique())
         outdated_sets = self._check_for_outdated_merged_sets(sets= sets)
         for warning in outdated_sets:
-            print("warning: {}".format(warning))
+            logger_annotations.warning("warning: %s", warning)          
 
         return (imported, errors)
 
@@ -763,19 +762,18 @@ class AnnotationManager:
         path = os.path.join(
             self.project.path, "annotations", annotation_set, "converted"
         )
-
         try:
             rmtree(path)
         except:
-            print("could not delete '{}', as it does not exist (yet?)".format(path))
+            logger_annotations.info("could not delete '%s', as it does not exist (yet?)", path)
             pass
 
         self.annotations = self.annotations[self.annotations["set"] != annotation_set]
         self.write()
-        
+      
         outdated_sets = self._check_for_outdated_merged_sets(sets= {annotation_set})
         for warning in outdated_sets:
-            print("warning: {}".format(warning))
+            logger_annotations.warning("warning: %s", warning)
 
     def rename_set(
         self,
@@ -1419,7 +1417,7 @@ class AnnotationManager:
                 )
 
                 if missing_data == "warn":
-                    print(f"warning: {error_message}")
+                    logger_annotations.warning("warning: %s", error_message)
                 else:
                     raise Exception(error_message)
 

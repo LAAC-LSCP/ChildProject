@@ -579,7 +579,7 @@ class ChildProject:
 
             self.errors += [
                 f"Age at recording is negative in recordings on line {index} ({age:.1f} months). Check date_iso for that recording and child_dob for the corresponding child."
-                for index, age in ages[ages<0].iteritems()
+                for index, age in ages[ages < 0].items()
             ]
 
         # detect un-indexed recordings and throw warnings
