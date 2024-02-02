@@ -7,17 +7,21 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - audio conversion has now a 'standard' conversion pipeline that will convert files to mono channel 16kHz pcm_s16le (no need to convert channels and then sampling rate and no need to know the options)
+- add the simple_CTC metric to the list of available metrics
 
 ### Changed
 
 - the output of the CLI in the terminal is now handled by the logger module and not by print statements
 - validating a dataset now results in warnings for broken symlinks and no errors anymore (#425)
 - validation with recordings existing but for which mediainfo can't read the sample rate no longer fail but outputs a warning.
+- recording_device_type in recordings.csv now accepts izyrec
+- rework of the list of available metrics functions: now has a absolute value and per_hour decorator, and a peak_ option
 
 ### Fixed
 
 - zooniverse chunks upload was failing if the dataset column was missing in the csv
 - eaf_builder with speaker_id NA no longer fails (#438)
+- name of files in rttm that contain only digits in their name now work correctly with the filter ($457)
 
 ## [0.1.1] 2023-05-11
 
