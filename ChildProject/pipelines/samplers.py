@@ -257,6 +257,8 @@ class PeriodicSampler(Sampler):
             axis=1,
         )
         self.segments = self.segments.explode("segment_onset")
+        # discard recordings that can't include segments (they are NA here bc explode keeps empty lists)
+        self.segments = self.segments.dropna(subset=['segment_onset'])
         self.segments["segment_onset"] = self.segments["segment_onset"].astype(int)
         self.segments["segment_offset"] = self.segments["segment_onset"] + self.length
         self.segments.rename(
