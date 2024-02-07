@@ -12,7 +12,7 @@ addons:
 install:
   - pip install -U importlib_metadata
   - pip install -r requirements.txt
-  - python setup.py install -f
+  - pip install .
 script:
   - rm -rf output/
   - pytest
