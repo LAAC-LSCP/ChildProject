@@ -49,12 +49,18 @@ classifiers = [
     "Topic :: Scientific/Engineering",
 ]
 
+[project.optional-dependencies]
+reliability = ["pygamma-agreement"]
+
 [project.urls]
 Homepage = "https://github.com/LAAC-LSCP/ChildProject"
 Documentation = "https://childproject.readthedocs.io/en/latest/"
 
 [project.scripts]
 child-project = "ChildProject.cmdline:main"
+
+[tool.setuptools]
+packages = ["ChildProject"]
 
 [tool.setuptools.dynamic]
 version = {attr = "ChildProject.__version__"}
