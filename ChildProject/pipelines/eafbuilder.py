@@ -151,11 +151,9 @@ class EafBuilderPipeline(Pipeline):
         pfsx_path = "{}.pfsx".format(template)
 
         if template in ["basic", "native", "non-native"]:
-            with resources.path("ChildProject.templates", etf_path) as etf:
-                etf_path = str(etf)
+            etf_path = str(resources.files("ChildProject.templates").joinpath(etf_path))
 
-            with resources.path("ChildProject.templates", pfsx_path) as pfsx:
-                pfsx_path = str(pfsx)
+            pfsx_path = str(resources.files("ChildProject.templates").joinpath(pfsx_path))
 
         if not os.path.exists(etf_path):
             raise Exception("{} cannot be found".format(etf_path))
