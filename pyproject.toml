@@ -8,8 +8,8 @@ dynamic = ['version']
 dependencies = [
   "colorlog",
   "datalad",
+  "GitPython",
   "keyring==21.4.0; python_version < '3.8'",
-  "librosa",
   "librosa",
   "lxml",
   "matplotlib",
