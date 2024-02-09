@@ -5,7 +5,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        python-version: [3.7.16, 3.8, 3.9, 3.10, 3.11]
+        python-version: ['3.7.16', '3.8', '3.9', '3.10', '3.11']
     name: Tests-linux-macos
     runs-on: ${{ matrix.os }}
     # defaults:
@@ -39,7 +39,7 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest]
-        python-version: [3.7, 3.8, 3.9, 3.10, 3.11]
+        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11']
     name: Tests-windows
     runs-on: ${{ matrix.os }}
     # defaults:
