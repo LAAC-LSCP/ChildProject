@@ -12,6 +12,7 @@ def test_validate():
     stdout, stderr, exit_code = cli(
         ["child-project", "validate", "examples/valid_raw_data"]
     )
+    print(stdout)
     assert exit_code == 0
 
 
