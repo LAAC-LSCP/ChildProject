@@ -13,6 +13,7 @@ def test_validate():
         ["child-project", "validate", "examples/valid_raw_data"]
     )
     print(stdout)
+    print(stderr)
     assert exit_code == 0
 
 
