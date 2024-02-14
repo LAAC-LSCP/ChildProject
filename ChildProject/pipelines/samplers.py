@@ -12,8 +12,10 @@ from typing import Union, List
 from yaml import dump
 import logging
 
-import ChildProject
+from ChildProject.projects import ChildProject
+from ChildProject.annotations import AnnotationManager
 from ChildProject.pipelines.pipeline import Pipeline
+from ChildProject import __version__ as CPVERSION
 
 # Create a logger for the module (file)
 logger_annotations = logging.getLogger(__name__)
@@ -26,7 +28,7 @@ pipelines = {}
 class Sampler(ABC):
     def __init__(
         self,
-        project: ChildProject.projects.ChildProject,
+        project: ChildProject,
         recordings: Union[str, List[str], pd.DataFrame] = None,
         exclude: Union[str, pd.DataFrame] = None,
     ):
@@ -75,7 +77,7 @@ class Sampler(ABC):
         return self.segments
 
     def retrieve_segments(self, recording_filename=None):
-        am = ChildProject.annotations.AnnotationManager(self.project)
+        am = AnnotationManager(self.project)
         annotations = am.annotations
         annotations = annotations[annotations["set"] == self.annotation_set]
 
@@ -178,7 +180,7 @@ class CustomSampler(Sampler):
 
     def __init__(
         self,
-        project: ChildProject.projects.ChildProject,
+        project: ChildProject,
         segments_path: str,
         recordings: Union[str, List[str], pd.DataFrame] = None,
         exclude: Union[str, pd.DataFrame] = None,
@@ -216,7 +218,7 @@ class PeriodicSampler(Sampler):
 
     def __init__(
         self,
-        project: ChildProject.projects.ChildProject,
+        project: ChildProject,
         length: int,
         period: int,
         offset: int = 0,
@@ -319,7 +321,7 @@ class RandomVocalizationSampler(Sampler):
 
     def __init__(
         self,
-        project: ChildProject.projects.ChildProject,
+        project: ChildProject,
         annotation_set: str,
         target_speaker_type: list,
         sample_size: int,
@@ -435,7 +437,7 @@ class EnergyDetectionSampler(Sampler):
 
     def __init__(
         self,
-        project: ChildProject.projects.ChildProject,
+        project: ChildProject,
         windows_length: int,
         windows_spacing: int,
         windows_count: int,
@@ -670,7 +672,7 @@ class HighVolubilitySampler(Sampler):
 
     def __init__(
         self,
-        project: ChildProject.projects.ChildProject,
+        project: ChildProject,
         annotation_set: str,
         metric: str,
         windows_length: int,
@@ -884,7 +886,7 @@ class ConversationSampler(Sampler):
 
     def __init__(
         self,
-        project: ChildProject.projects.ChildProject,
+        project: ChildProject,
         annotation_set: str,
         count: int,
         interval: int = 1000,
@@ -1024,7 +1026,7 @@ class SamplerPipeline(Pipeline):
         ]
         parameters.extend([{key: kwargs[key]} for key in kwargs])
 
-        self.project = ChildProject.projects.ChildProject(path)
+        self.project = ChildProject(path)
         self.project.read()
 
         if sampler not in pipelines:
@@ -1053,7 +1055,7 @@ class SamplerPipeline(Pipeline):
         dump(
             {
                 "parameters": parameters,
-                "package_version": ChildProject.__version__,
+                "package_version": CPVERSION,
                 "date": date,
             },
             open(parameters_path, "w+"),
