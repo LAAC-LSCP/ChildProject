@@ -4,11 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ChildProject"
-dynamic = ['version']
+version = '0.2.0'
 dependencies = [
   "colorlog",
   "datalad",
   "GitPython",
+  "importlib-metadata; python_version < '3.8'",
   "keyring==21.4.0; python_version < '3.8'",
   "librosa",
   "lxml",
@@ -61,6 +62,3 @@ child-project = "ChildProject.cmdline:main"
 
 [tool.setuptools]
 packages = ["ChildProject"]
-
-[tool.setuptools.dynamic]
-version = {attr = "ChildProject.__version__"}
