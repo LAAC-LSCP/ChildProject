@@ -12,8 +12,10 @@ from typing import Union, List
 from yaml import dump
 import logging
 
-import ChildProject
-from ChildProject.pipelines.pipeline import Pipeline
+from ..projects import ChildProject, CONVERTED_RECORDINGS
+from .pipeline import Pipeline
+
+from ChildProject import __version__
 
 # Create a logger for the module (file)
 logger_annotations = logging.getLogger(__name__)
@@ -26,7 +28,7 @@ pipelines = {}
 class AudioProcessor(ABC):
     def __init__(
         self,
-        project: ChildProject.projects.ChildProject,
+        project: ChildProject,
         name: str,
         input_profile: str = None,
         threads: int = 1,
@@ -43,7 +45,7 @@ class AudioProcessor(ABC):
         if self.input_profile:
             input_path = os.path.join(
                 self.project.path,
-                ChildProject.projects.CONVERTED_RECORDINGS,
+                CONVERTED_RECORDINGS,
                 self.input_profile,
             )
 
@@ -60,7 +62,7 @@ class AudioProcessor(ABC):
     def output_directory(self):
         return os.path.join(
             self.project.path,
-            ChildProject.projects.CONVERTED_RECORDINGS,
+            CONVERTED_RECORDINGS,
             self.name,
         )
 
@@ -132,7 +134,7 @@ class BasicProcessor(AudioProcessor):
 
     def __init__(
         self,
-        project: ChildProject.projects.ChildProject,
+        project: ChildProject,
         name: str,
         format: str,
         codec: str,
@@ -265,7 +267,7 @@ class VettingProcessor(AudioProcessor):
 
     def __init__(
         self,
-        project: ChildProject.projects.ChildProject,
+        project: ChildProject,
         name: str,
         segments_path: str,
         threads: int = 1,
@@ -357,7 +359,7 @@ class ChannelMapper(AudioProcessor):
 
     def __init__(
         self,
-        project: ChildProject.projects.ChildProject,
+        project: ChildProject,
         name: str,
         channels: list,
         threads: int = 1,
@@ -444,7 +446,7 @@ class AudioStandard(AudioProcessor):
 
     def __init__(
         self,
-        project: ChildProject.projects.ChildProject,
+        project: ChildProject,
         threads: int = 1,
         recordings: Union[str, List[str], pd.DataFrame] = None,
         skip_existing: bool = False,
@@ -579,7 +581,7 @@ class AudioProcessingPipeline(Pipeline):
         parameters.extend([{key: kwargs[key]} for key in kwargs])
 
         date = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.project = ChildProject.projects.ChildProject(path)
+        self.project = ChildProject(path)
         self.project.read()
 
         if processor not in pipelines:
@@ -601,7 +603,7 @@ class AudioProcessingPipeline(Pipeline):
         dump(
             {
                 "parameters": parameters,
-                "package_version": ChildProject.__version__,
+                "package_version": __version__,
                 "date": date,
             },
             open(parameters_path, "w+"),

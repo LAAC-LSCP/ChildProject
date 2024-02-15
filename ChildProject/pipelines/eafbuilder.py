@@ -4,11 +4,11 @@ import sys
 import os
 import shutil
 
-from ChildProject.projects import ChildProject
-from ChildProject.annotations import AnnotationManager
-from ChildProject.pipelines.pipeline import Pipeline
-from ChildProject.tables import assert_dataframe, assert_columns_presence
-from ChildProject.converters import Formats
+from ..projects import ChildProject
+from ..annotations import AnnotationManager
+from .pipeline import Pipeline
+from ..tables import assert_dataframe, assert_columns_presence
+from ..converters import Formats
 
 FORMAT_SPEECH = {Formats.VTC.value,Formats.VCM.value} #formats for which nan must be replaced with SPEECH
 CHILDPROJECT_TYPE = "childProject_generated"

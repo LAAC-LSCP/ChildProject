@@ -12,10 +12,11 @@ from typing import Union, List
 from yaml import dump
 import logging
 
-from ChildProject.projects import ChildProject
-from ChildProject.annotations import AnnotationManager
-from ChildProject.pipelines.pipeline import Pipeline
-from ChildProject import __version__ as CPVERSION
+from ..projects import ChildProject
+from ..annotations import AnnotationManager
+from .pipeline import Pipeline
+
+from ChildProject import __version__
 
 # Create a logger for the module (file)
 logger_annotations = logging.getLogger(__name__)
@@ -1055,7 +1056,7 @@ class SamplerPipeline(Pipeline):
         dump(
             {
                 "parameters": parameters,
-                "package_version": CPVERSION,
+                "package_version": __version__,
                 "date": date,
             },
             open(parameters_path, "w+"),

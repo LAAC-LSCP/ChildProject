@@ -1,9 +1,16 @@
 #!/usr/bin/env python3
-from ChildProject.projects import ChildProject
-from ChildProject.annotations import AnnotationManager
-from ChildProject.pipelines import *
+from .projects import ChildProject
+from .annotations import AnnotationManager
+from .pipelines.samplers import SamplerPipeline
+from .pipelines.eafbuilder import EafBuilderPipeline
+from .pipelines.zooniverse import ZooniversePipeline
+from .pipelines.metrics import MetricsPipeline
+from .pipelines.metrics import MetricsSpecificationPipeline
+from .pipelines.processors import AudioProcessingPipeline
+from .pipelines.anonymize import AnonymizationPipeline
 from .utils import read_wav, calculate_shift, get_audio_duration
-from ChildProject import __version__
+from . import __version__
+
 from ChildProject import __name__
 
 import argparse

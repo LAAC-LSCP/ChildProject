@@ -30,10 +30,12 @@ from pydub.utils import get_array_type
 from parselmouth import Sound
 from parselmouth import SpectralAnalysisWindowShape
 
-import ChildProject
-from ChildProject.pipelines.pipeline import Pipeline
-from ChildProject.tables import assert_dataframe, assert_columns_presence
-from ChildProject.utils import retry_func
+from ..projects import ChildProject
+from .pipeline import Pipeline
+from ..tables import assert_dataframe, assert_columns_presence
+from ..utils import retry_func
+
+from ChildProject import __version__
 
 from typing import Tuple
 
@@ -272,7 +274,7 @@ class ZooniversePipeline(Pipeline):
         parameters.extend([{key: kwargs[key]} for key in kwargs])
 
         self.destination = destination
-        self.project = ChildProject.projects.ChildProject(path)
+        self.project = ChildProject(path)
         self.project.read()
 
         self.chunks_length = int(chunks_length)
@@ -347,7 +349,7 @@ class ZooniversePipeline(Pipeline):
         dump(
             {
                 "parameters": parameters,
-                "package_version": ChildProject.__version__,
+                "package_version": __version__,
                 "date": date,
             },
             open(parameters_path, "w+"),
@@ -410,7 +412,7 @@ class ZooniversePipeline(Pipeline):
         )
         
         if test_endpoint:
-            from ChildProject.pipelines.fake_panoptes import Panoptes, Project, Subject, SubjectSet, PanoptesAPIException, reset_tests, TEST_MAX_SUBJECT
+            from .fake_panoptes import Panoptes, Project, Subject, SubjectSet, PanoptesAPIException, reset_tests, TEST_MAX_SUBJECT
             reset_tests()
             if test_endpoint == 2: Subject.max_subjects = TEST_MAX_SUBJECT
         else:
@@ -610,7 +612,7 @@ class ZooniversePipeline(Pipeline):
         )
         
         if test_endpoint:
-            from ChildProject.pipelines.fake_panoptes import Panoptes, Project, Subject, SubjectSet, PanoptesAPIException, reset_tests
+            from .fake_panoptes import Panoptes, Project, Subject, SubjectSet, PanoptesAPIException, reset_tests
             reset_tests() 
         else:
             from panoptes_client import Panoptes, Project, Subject, SubjectSet
@@ -777,7 +779,7 @@ class ZooniversePipeline(Pipeline):
 
         # if used in tests, use the fake functions
         if test_endpoint:
-            from ChildProject.pipelines.fake_panoptes import Panoptes, Project, Classification
+            from .fake_panoptes import Panoptes, Project, Classification
         else:
             from panoptes_client import Panoptes, Project, Classification
             
