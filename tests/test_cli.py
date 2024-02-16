@@ -1,5 +1,5 @@
 import subprocess
-
+import sys
 
 def cli(cmd):
     process = subprocess.Popen(cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
@@ -7,6 +7,16 @@ def cli(cmd):
     exit_code = process.wait()
     return stdout, stderr, exit_code
 
+
+def test_interpreter():
+    stdout, stderr, exit_code = cli(
+        ["child-project", "interpreter"]
+    )
+    print(stdout)
+    print(stderr)
+    import sys
+    print(sys.executable)
+    assert 1 == 0
 
 def test_validate():
     stdout, stderr, exit_code = cli(

@@ -319,6 +319,11 @@ def intersect_annotations(args):
     intersection.to_csv(args.destination, index=False)
 
 
+@subcommand([])
+def interpreter(args):
+    print(sys.executable)
+
+
 @subcommand(
     [
         arg("source", help="project path"),
