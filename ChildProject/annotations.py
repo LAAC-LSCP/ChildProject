@@ -710,6 +710,7 @@ class AnnotationManager:
             logger_annotations.warning("warning: %s", warning)          
 
         return (imported, errors)
+
     def derive_annotations(self,
                            input_set: str,
                            output_set: str,
@@ -732,7 +733,7 @@ class AnnotationManager:
         :return: tuple of dataframe of derived annotations, as in :ref:`format-annotations` and dataframe of errors
         :rtype: tuple (pd.DataFrame, pd.DataFrame)
         """
-        input_processed = input.copy().reset_index()
+        input_processed = self.annotations.copy()['set'] == input_set #input.copy().reset_index()
 
         required_columns = {
             c.name
@@ -785,7 +786,7 @@ class AnnotationManager:
 
         if threads == 1:
             imported = input_processed.apply(
-                partial(self._import_annotation, import_function,
+                partial(self._import_annotation, derivation_function,
                         {"new_tiers": new_tiers},
                         overwrite_existing=overwrite_existing
                         ), axis=1
@@ -793,7 +794,7 @@ class AnnotationManager:
         else:
             with mp.Pool(processes=threads if threads > 0 else mp.cpu_count()) as pool:
                 imported = pool.map(
-                    partial(self._import_annotation, import_function,
+                    partial(self._import_annotation, derivation_function,
                             {"new_tiers": new_tiers},
                             overwrite_existing=overwrite_existing
                             ),
