@@ -734,6 +734,10 @@ class AnnotationManager:
         :return: output annotation dictionary (attributes defined according to :ref:`ChildProject.annotations.AnnotationManager.SEGMENTS_COLUMNS`)
         :rtype: dict
         """
+        annotation_result = annotation.copy()
+        annotation_result['set'] = output_set
+        annotation_result['format'] = "NA"
+        annotation_result['merged_from'] = annotation['set']
 
         source_recording = os.path.splitext(annotation["recording_filename"])[0]
         annotation_filename = "{}_{}_{}.csv".format(
@@ -747,15 +751,11 @@ class AnnotationManager:
         if self.annotations[(self.annotations['set'] == output_set) &
                             (self.annotations['annotation_filename'] == annotation_filename)].shape[0] > 0:
             if overwrite_existing:
-                logger_annotations.warning("Annotation file %s will be overwritten", output_filename)
+                logger_annotations.warning("Derived file %s will be overwritten", output_filename)
 
             else:
-                error_filename = output_filename.replace('\\', '/')
-                annotation[
-                    "error"] = f"annotation file {error_filename} already exists, to reimport it, use the overwrite_existing flag"
-                logger_annotations.error("Error: %s", annotation['error'])
-                annotation["imported_at"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                return annotation
+                logger_annotations.warning("File %s already exists. To overwrite, specify parameter ''overwrite_existing''", output_filename)
+                return annotation_result
 
         # find if there are annotation indexes in the same set that overlap the new annotation
         # as it is not possible to annotate multiple times the same audio stretch in the same set
@@ -770,12 +770,12 @@ class AnnotationManager:
             array_tup = list(
                 ovl_annots[['set', 'recording_filename', 'range_onset', 'range_offset']].itertuples(index=False,
                                                                                                     name=None))
-            annotation[
+            annotation_result[
                 "error"] = f"derivation for set <{output_set}> recording <{annotation['recording_filename']}> from {annotation['range_onset']} to {annotation['range_offset']} cannot continue because it overlaps with these existing annotation lines: {array_tup}"
             logger_annotations.error("Error: %s", annotation['error'])
             # (f"Error: {annotation['error']}")
-            annotation["imported_at"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            return annotation
+            annotation_result["imported_at"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            return annotation_result
 
         path = os.path.join(
             self.project.path,
@@ -803,8 +803,8 @@ class AnnotationManager:
             logger_annotations.error("An error occurred while processing '%s'", path, exc_info=True)
 
         if df is None or not isinstance(df, pd.DataFrame):
-            annotation["imported_at"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            return annotation
+            annotation_result["imported_at"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            return annotation_result
 
         if not df.shape[1]:
             df = pd.DataFrame(columns=[c.name for c in self.SEGMENTS_COLUMNS])
@@ -816,12 +816,12 @@ class AnnotationManager:
         df["segment_onset"] = df["segment_onset"].astype(np.int64)
         df["segment_offset"] = df["segment_offset"].astype(np.int64)
 
-        annotation["time_seek"] = np.int64(annotation["time_seek"])
-        annotation["range_onset"] = np.int64(annotation["range_onset"])
-        annotation["range_offset"] = np.int64(annotation["range_offset"])
+        annotation_result["time_seek"] = np.int64(annotation["time_seek"])
+        annotation_result["range_onset"] = np.int64(annotation["range_onset"])
+        annotation_result["range_offset"] = np.int64(annotation["range_offset"])
 
         df = AnnotationManager.clip_segments(
-            df, annotation["range_onset"], annotation["range_offset"]
+            df, annotation_result["range_onset"], annotation_result["range_offset"]
         )
 
         sort_columns = ["segment_onset", "segment_offset"]
@@ -836,16 +836,13 @@ class AnnotationManager:
         )
         df.to_csv(os.path.join(self.project.path, output_filename), index=False)
 
-        annotation["annotation_filename"] = annotation_filename
-        annotation["imported_at"] = datetime.datetime.now().strftime(
+        annotation_result["annotation_filename"] = annotation_filename
+        annotation_result["imported_at"] = datetime.datetime.now().strftime(
             "%Y-%m-%d %H:%M:%S"
         )
-        annotation["package_version"] = __version__
+        annotation_result["package_version"] = __version__
 
-        if pd.isnull(annotation["format"]):
-            annotation["format"] = "NA"
-
-        return annotation
+        return annotation_result
 
     def derive_annotations(self,
                            input_set: str,
@@ -864,12 +861,13 @@ class AnnotationManager:
         :rtype: Union[str, Callable]
         :param threads: If > 1, conversions will be run on ``threads`` threads, defaults to -1
         :type threads: int, optional
-        :param overwrite_existing: choose if lines with the same set and annotation_filename should be overwritten
+        :param overwrite_existing: choice if lines with the same set and annotation_filename should be overwritten
         :type overwrite_existing: bool, optional
         :return: tuple of dataframe of derived annotations, as in :ref:`format-annotations` and dataframe of errors
         :rtype: tuple (pd.DataFrame, pd.DataFrame)
         """
         input_processed = self.annotations[self.annotations['set'] == input_set].copy()
+        assert not input_processed.empty, "Input set {0} does not exist".format(input_set)
 
         if threads == 1:
             imported = input_processed.apply(

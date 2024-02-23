@@ -66,7 +66,7 @@ def conversations(annotations: pd.DataFrame,
         annotations['conv_count'] = annotations[(annotations['is_CT']) | (annotations['diff'])][
             'conv_number'].interpolate(method='pad', limit_direction='forward')
         df = annotations.drop(columns=['diff', 'conv_number'])
-      
+
         return df
     else:
         return pd.DataFrame([])
