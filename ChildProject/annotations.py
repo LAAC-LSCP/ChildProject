@@ -13,6 +13,7 @@ import logging
 from . import __version__
 from .projects import ChildProject
 from .converters import *
+from .pipelines.derivations import DERIVATIONS
 from .tables import IndexTable, IndexColumn, assert_dataframe, assert_columns_presence
 from .utils import Segment, intersect_ranges, path_is_parent, TimeInterval, series_to_datetime, find_lines_involved_in_overlap
 
@@ -711,6 +712,141 @@ class AnnotationManager:
 
         return (imported, errors)
 
+    def _derive_annotation(
+            self, import_function: Callable[[str], pd.DataFrame],
+            output_set: str,
+            params: dict,
+            annotation: dict,
+            overwrite_existing: bool = False,
+    ):
+        """import and convert ``annotation``. This function should not be called outside of this class.
+
+        :param import_function: If callable, ``import_function`` will be called to convert the input annotation into a dataframe. Otherwise, the conversion will be performed by a built-in function.
+        :type import_function: Callable[[str], pd.DataFrame]
+        :param output_set: name of the new set of derived annotations
+        :type output_set: str
+        :param params: Optional parameters. With ```new_tiers```, the corresponding EAF tiers will be imported
+        :type params: dict
+        :param annotation: input annotation dictionary (attributes defined according to :ref:`ChildProject.annotations.AnnotationManager.SEGMENTS_COLUMNS`)
+        :type annotation: dict
+        :param overwrite_existing: choose if lines with the same set and annotation_filename should be overwritten
+        :type overwrite_existing: bool
+        :return: output annotation dictionary (attributes defined according to :ref:`ChildProject.annotations.AnnotationManager.SEGMENTS_COLUMNS`)
+        :rtype: dict
+        """
+
+        source_recording = os.path.splitext(annotation["recording_filename"])[0]
+        annotation_filename = "{}_{}_{}.csv".format(
+            source_recording, annotation["range_onset"], annotation["range_offset"]
+        )
+        output_filename = os.path.join(
+            "annotations", annotation["set"], "converted", annotation_filename
+        )
+
+        # check if the annotation file already exists in dataset (same filename and same set)
+        if self.annotations[(self.annotations['set'] == annotation['set']) &
+                            (self.annotations['annotation_filename'] == annotation_filename)].shape[0] > 0:
+            if overwrite_existing:
+                logger_annotations.warning("Annotation file %s will be overwritten", output_filename)
+
+            else:
+                error_filename = output_filename.replace('\\', '/')
+                annotation[
+                    "error"] = f"annotation file {error_filename} already exists, to reimport it, use the overwrite_existing flag"
+                logger_annotations.error("Error: %s", annotation['error'])
+                annotation["imported_at"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                return annotation
+
+        # find if there are annotation indexes in the same set that overlap the new annotation
+        # as it is not possible to annotate multiple times the same audio stretch in the same set
+        ovl_annots = self.annotations[(self.annotations['set'] == annotation['set']) &
+                                      (self.annotations[
+                                           'annotation_filename'] != annotation_filename) &  # this condition avoid matching a line that should be overwritten (so has the same annotation_filename), it is dependent on the previous block!!!
+                                      (self.annotations['recording_filename'] == annotation['recording_filename']) &
+                                      (self.annotations['range_onset'] < annotation['range_offset']) &
+                                      (self.annotations['range_offset'] > annotation['range_onset'])
+                                      ]
+        if ovl_annots.shape[0] > 0:
+            array_tup = list(
+                ovl_annots[['set', 'recording_filename', 'range_onset', 'range_offset']].itertuples(index=False,
+                                                                                                    name=None))
+            annotation[
+                "error"] = f"importation for set <{annotation['set']}> recording <{annotation['recording_filename']}> from {annotation['range_onset']} to {annotation['range_offset']} cannot continue because it overlaps with these existing annotation lines: {array_tup}"
+            logger_annotations.error("Error: %s", annotation['error'])
+            # (f"Error: {annotation['error']}")
+            annotation["imported_at"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            return annotation
+
+        path = os.path.join(
+            self.project.path,
+            "annotations",
+            annotation["set"],
+            "converted", #EXPAND
+            annotation["converted_filename"],
+        )
+
+        #TODO CHECK FOR DTYPES
+        df_input = pd.read_csv(path)
+        df = None
+
+        try:
+            if callable(import_function):
+                df = import_function(df_input)
+            elif import_function in DERIVATIONS.keys():
+                df = DERIVATIONS[import_function](df_input)
+            else:
+                raise ValueError(
+                    "derivation value '{}' unknown, use one of {}".format(import_function, DERIVATIONS.keys())
+                )
+        except:
+            annotation["error"] = traceback.format_exc()
+            logger_annotations.error("An error occurred while processing '%s'", path, exc_info=True)
+
+        if df is None or not isinstance(df, pd.DataFrame):
+            annotation["imported_at"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            return annotation
+
+        if not df.shape[1]:
+            df = pd.DataFrame(columns=[c.name for c in self.SEGMENTS_COLUMNS])
+
+        df["raw_filename"] = annotation["raw_filename"]
+
+        df["segment_onset"] += np.int64(annotation["time_seek"])
+        df["segment_offset"] += np.int64(annotation["time_seek"])
+        df["segment_onset"] = df["segment_onset"].astype(np.int64)
+        df["segment_offset"] = df["segment_offset"].astype(np.int64)
+
+        annotation["time_seek"] = np.int64(annotation["time_seek"])
+        annotation["range_onset"] = np.int64(annotation["range_onset"])
+        annotation["range_offset"] = np.int64(annotation["range_offset"])
+
+        df = AnnotationManager.clip_segments(
+            df, annotation["range_onset"], annotation["range_offset"]
+        )
+
+        sort_columns = ["segment_onset", "segment_offset"]
+        if "speaker_type" in df.columns:
+            sort_columns.append("speaker_type")
+
+        df.sort_values(sort_columns, inplace=True)
+
+        os.makedirs(
+            os.path.dirname(os.path.join(self.project.path, output_filename)),
+            exist_ok=True,
+        )
+        df.to_csv(os.path.join(self.project.path, output_filename), index=False)
+
+        annotation["annotation_filename"] = annotation_filename
+        annotation["imported_at"] = datetime.datetime.now().strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
+        annotation["package_version"] = __version__
+
+        if pd.isnull(annotation["format"]):
+            annotation["format"] = "NA"
+
+        return annotation
+
     def derive_annotations(self,
                            input_set: str,
                            output_set: str,
@@ -733,69 +869,21 @@ class AnnotationManager:
         :return: tuple of dataframe of derived annotations, as in :ref:`format-annotations` and dataframe of errors
         :rtype: tuple (pd.DataFrame, pd.DataFrame)
         """
-        input_processed = self.annotations.copy()['set'] == input_set #input.copy().reset_index()
-
-        required_columns = {
-            c.name
-            for c in AnnotationManager.INDEX_COLUMNS
-            if c.required and not c.generated
-        }
-
-        assert_dataframe("input", input_processed)
-        assert_columns_presence("input", input_processed, required_columns)
-
-        input_processed["range_onset"] = input_processed["range_onset"].astype(np.int64)
-        input_processed["range_offset"] = input_processed["range_offset"].astype(np.int64)
-
-        assert (input_processed["range_offset"] > input_processed[
-            "range_onset"]).all(), "range_offset must be greater than range_onset"
-        assert (input_processed["range_onset"] >= 0).all(), "range_onset must be greater or equal to 0"
-        if "duration" in self.project.recordings.columns:
-            assert (input_processed["range_offset"] <= input_processed.merge(self.project.recordings,
-                                                                             how='left',
-                                                                             on='recording_filename',
-                                                                             validate='m:1'
-                                                                             ).reset_index()["duration"]
-                    ).all(), "range_offset must be smaller than the duration of the recording"
-
-        missing_recordings = input_processed[
-            ~input_processed["recording_filename"].isin(
-                self.project.recordings["recording_filename"]
-            )
-        ]
-        missing_recordings = missing_recordings["recording_filename"]
-
-        if len(missing_recordings) > 0:
-            raise ValueError(
-                "cannot import annotations, because the following recordings are not referenced in the metadata:\n{}".format(
-                    "\n".join(missing_recordings)
-                )
-            )
-
-        builtin = input_processed[input_processed["format"].isin(converters.keys())]
-        if not builtin["format"].map(lambda f: converters[f].THREAD_SAFE).all():
-            logger_annotations.warning(
-                "warning: some of the converters do not support multithread importation; running on 1 thread")
-            threads = 1
-
-        # if the input to import has overlaps in it, raise an error immediately, nothing will be imported
-        ovl_ranges = find_lines_involved_in_overlap(input_processed, labels=['recording_filename', 'set'])
-        if ovl_ranges[ovl_ranges == True].shape[0] > 0:
-            ovl_ranges = ovl_ranges[ovl_ranges].index.values.tolist()
-            raise ValueError(f"the ranges given to import have overlaps on indexes : {ovl_ranges}")
+        print(self.annotations)
+        input_processed = self.annotations[self.annotations['set'] == input_set].copy() #input.copy().reset_index()
 
         if threads == 1:
             imported = input_processed.apply(
-                partial(self._import_annotation, derivation_function,
-                        {"new_tiers": new_tiers},
+                partial(self._derive_annotation, derivation_function,
+                        output_set=output_set,
                         overwrite_existing=overwrite_existing
                         ), axis=1
             ).to_dict(orient="records")
         else:
             with mp.Pool(processes=threads if threads > 0 else mp.cpu_count()) as pool:
                 imported = pool.map(
-                    partial(self._import_annotation, derivation_function,
-                            {"new_tiers": new_tiers},
+                    partial(self._derive_annotation, derivation_function,
+                            output_set=output_set,
                             overwrite_existing=overwrite_existing
                             ),
                     input_processed.to_dict(orient="records"),
@@ -814,7 +902,7 @@ class AnnotationManager:
             # when errors occur, separate them in a different csv in extra
             if errors.shape[0] > 0:
                 output = os.path.join(self.project.path, "extra",
-                                      "errors_import_{}.csv".format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")))
+                                      "errors_derive_{}.csv".format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")))
                 errors.to_csv(output, index=False)
                 logger_annotations.info("Errors summary exported to %s", output)
         else:
