@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 from .projects import ChildProject
 from .annotations import AnnotationManager
-#from .pipelines.samplers import SamplerPipeline
-#from .pipelines.eafbuilder import EafBuilderPipeline
-#from .pipelines.zooniverse import ZooniversePipeline
-#from .pipelines.metrics import MetricsPipeline
-#from .pipelines.metrics import MetricsSpecificationPipeline
-#from .pipelines.processors import AudioProcessingPipeline
-#from .pipelines.anonymize import AnonymizationPipeline
+from .pipelines.samplers import SamplerPipeline
+from .pipelines.eafbuilder import EafBuilderPipeline
+from .pipelines.zooniverse import ZooniversePipeline
+from .pipelines.metrics import MetricsPipeline
+from .pipelines.metrics import MetricsSpecificationPipeline
+from .pipelines.processors import AudioProcessingPipeline
+from .pipelines.anonymize import AnonymizationPipeline
 from .utils import read_wav, calculate_shift, get_audio_duration
 from . import __version__
 
@@ -597,13 +597,13 @@ def compare_recordings(args):
     logger.info("RESULTS :\ndivergence score = %d over a sample of %d values\nREFERENCE :\ndivergence score < 0.1 => the 2 files seem very similar\ndivergence score > 1   => sizable difference", avg, size)
 
 def main():
-    # register_pipeline("process", AudioProcessingPipeline)
-    # register_pipeline("sampler", SamplerPipeline)
-    # register_pipeline("zooniverse", ZooniversePipeline)
-    # register_pipeline("eaf-builder", EafBuilderPipeline)
-    # register_pipeline("anonymize", AnonymizationPipeline)
-    # register_pipeline("metrics", MetricsPipeline)
-    # register_pipeline("metrics-specification", MetricsSpecificationPipeline)
+    register_pipeline("process", AudioProcessingPipeline)
+    register_pipeline("sampler", SamplerPipeline)
+    register_pipeline("zooniverse", ZooniversePipeline)
+    register_pipeline("eaf-builder", EafBuilderPipeline)
+    register_pipeline("anonymize", AnonymizationPipeline)
+    register_pipeline("metrics", MetricsPipeline)
+    register_pipeline("metrics-specification", MetricsSpecificationPipeline)
 
     args = parser.parse_args()
     args.func(args)
