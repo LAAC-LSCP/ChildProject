@@ -6,10 +6,10 @@ def acoustics():
     pass
 
 def conversations(annotations: pd.DataFrame,
-        interlocutors_1=('CHI',),
-        interlocutors_2=('FEM', 'MAL', 'OCH'),
-        max_interval=1000,
-        min_delay=0):
+                  interlocutors_1=('CHI',),
+                  interlocutors_2=('FEM', 'MAL', 'OCH'),
+                  max_interval=1000,
+                  min_delay=0):
 
     """
 
@@ -49,7 +49,6 @@ def conversations(annotations: pd.DataFrame,
 
         annotations["delay"] = annotations["segment_onset"] - annotations["segment_onset"].shift(1)
         annotations = annotations.reset_index(drop=True)
-        annotations['idx'] = annotations.index
 
         # not using absolute value for 'iti' is a choice and should be evaluated (we allow speakers to 'interrupt'
         # themselves
@@ -66,9 +65,9 @@ def conversations(annotations: pd.DataFrame,
         annotations['conv_number'] = annotations['diff'][annotations['diff'] == 1].cumsum().astype('Int64')
         annotations['conv_count'] = annotations[(annotations['is_CT']) | (annotations['diff'])][
             'conv_number'].interpolate(method='pad', limit_direction='forward')
-        annotations = annotations[['segment_onset', 'segment_offset', 'raw_filename', 'iti', 'delay', 'is_CT', 'conv_count']]
-        print(annotations)
-        return annotations
+        df = annotations.drop(columns=['diff', 'conv_number'])
+      
+        return df
     else:
         return pd.DataFrame([])
 
