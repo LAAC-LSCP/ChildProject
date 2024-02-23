@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
 from ChildProject.projects import ChildProject
 from ChildProject.annotations import AnnotationManager
-from ChildProject.pipelines import *
+from .pipelines.samplers import SamplerPipeline
+from .pipelines.eafbuilder import EafBuilderPipeline
+from .pipelines.zooniverse import ZooniversePipeline
+from .pipelines.metrics import MetricsPipeline
+from .pipelines.metrics import MetricsSpecificationPipeline
+from .pipelines.processors import AudioProcessingPipeline
+from .pipelines.anonymize import AnonymizationPipeline
 from .utils import read_wav, calculate_shift, get_audio_duration
 from ChildProject import __version__
 from ChildProject import __name__
 
-from .pipelines.derivations import derivations
+from .pipelines.derivations import DERIVATIONS
 
 import argparse
 import os
@@ -248,7 +254,7 @@ def import_annotations(args):
 @subcommand(
     [
         arg("source", help="project path"),
-        arg("derivation", help="Type of derivation", type=str, choices=derivations.keys()),
+        arg("derivation", help="Type of derivation", type=str, choices=DERIVATIONS.keys()),
         arg("--input-set", "-i", help="input set", required=True, type=str),
         arg("--output-set", "-o", help="output set", required=True, type=str),
         arg("--threads", help="amount of threads to run on", type=int, default=0),
