@@ -782,7 +782,7 @@ class AnnotationManager:
             "annotations",
             annotation["set"],
             "converted", #EXPAND
-            annotation["converted_filename"],
+            annotation["annotation_filename"],
         )
 
         #TODO CHECK FOR DTYPES
@@ -880,6 +880,7 @@ class AnnotationManager:
                         ), axis=1
             ).to_dict(orient="records")
         else:
+
             with mp.Pool(processes=threads if threads > 0 else mp.cpu_count()) as pool:
                 imported = pool.map(
                     partial(self._derive_annotation,
