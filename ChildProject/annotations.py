@@ -11,9 +11,9 @@ from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
 import logging
 
 from . import __version__
+from .pipelines.derivations import DERIVATIONS
 from .projects import ChildProject
 from .converters import *
-from .pipelines.derivations import DERIVATIONS
 from .tables import IndexTable, IndexColumn, assert_dataframe, assert_columns_presence
 from .utils import Segment, intersect_ranges, path_is_parent, TimeInterval, series_to_datetime, find_lines_involved_in_overlap
 
@@ -869,8 +869,7 @@ class AnnotationManager:
         :return: tuple of dataframe of derived annotations, as in :ref:`format-annotations` and dataframe of errors
         :rtype: tuple (pd.DataFrame, pd.DataFrame)
         """
-        print(self.annotations)
-        input_processed = self.annotations[self.annotations['set'] == input_set].copy() #input.copy().reset_index()
+        input_processed = self.annotations[self.annotations['set'] == input_set].copy()
 
         if threads == 1:
             imported = input_processed.apply(
