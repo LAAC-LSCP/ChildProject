@@ -12,8 +12,9 @@ addons:
 install:
   - pip install -U importlib_metadata
   - pip install -r requirements.txt
-  - pip install .
+  - pip install -e .
 script:
+  - ls ChildProject/templates
   - ls -l /home/travis/virtualenv/python3.7.13/lib/python3.7/site-packages/ChildProject/templates
   - rm -rf output/
   - pytest
