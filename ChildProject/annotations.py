@@ -713,10 +713,10 @@ class AnnotationManager:
         return (imported, errors)
 
     def _derive_annotation(
-            self, import_function: Callable[[str], pd.DataFrame],
-            output_set: str,
-            params: dict,
+            self,
             annotation: dict,
+            import_function: Callable[[str], pd.DataFrame],
+            output_set: str,
             overwrite_existing: bool = False,
     ):
         """import and convert ``annotation``. This function should not be called outside of this class.
@@ -740,11 +740,11 @@ class AnnotationManager:
             source_recording, annotation["range_onset"], annotation["range_offset"]
         )
         output_filename = os.path.join(
-            "annotations", annotation["set"], "converted", annotation_filename
+            "annotations", output_set, "converted", annotation_filename
         )
 
         # check if the annotation file already exists in dataset (same filename and same set)
-        if self.annotations[(self.annotations['set'] == annotation['set']) &
+        if self.annotations[(self.annotations['set'] == output_set) &
                             (self.annotations['annotation_filename'] == annotation_filename)].shape[0] > 0:
             if overwrite_existing:
                 logger_annotations.warning("Annotation file %s will be overwritten", output_filename)
@@ -759,7 +759,7 @@ class AnnotationManager:
 
         # find if there are annotation indexes in the same set that overlap the new annotation
         # as it is not possible to annotate multiple times the same audio stretch in the same set
-        ovl_annots = self.annotations[(self.annotations['set'] == annotation['set']) &
+        ovl_annots = self.annotations[(self.annotations['set'] == output_set) &
                                       (self.annotations[
                                            'annotation_filename'] != annotation_filename) &  # this condition avoid matching a line that should be overwritten (so has the same annotation_filename), it is dependent on the previous block!!!
                                       (self.annotations['recording_filename'] == annotation['recording_filename']) &
@@ -771,7 +771,7 @@ class AnnotationManager:
                 ovl_annots[['set', 'recording_filename', 'range_onset', 'range_offset']].itertuples(index=False,
                                                                                                     name=None))
             annotation[
-                "error"] = f"importation for set <{annotation['set']}> recording <{annotation['recording_filename']}> from {annotation['range_onset']} to {annotation['range_offset']} cannot continue because it overlaps with these existing annotation lines: {array_tup}"
+                "error"] = f"derivation for set <{output_set}> recording <{annotation['recording_filename']}> from {annotation['range_onset']} to {annotation['range_offset']} cannot continue because it overlaps with these existing annotation lines: {array_tup}"
             logger_annotations.error("Error: %s", annotation['error'])
             # (f"Error: {annotation['error']}")
             annotation["imported_at"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -873,7 +873,8 @@ class AnnotationManager:
 
         if threads == 1:
             imported = input_processed.apply(
-                partial(self._derive_annotation, derivation_function,
+                partial(self._derive_annotation,
+                        import_function=derivation_function,
                         output_set=output_set,
                         overwrite_existing=overwrite_existing
                         ), axis=1
@@ -881,7 +882,8 @@ class AnnotationManager:
         else:
             with mp.Pool(processes=threads if threads > 0 else mp.cpu_count()) as pool:
                 imported = pool.map(
-                    partial(self._derive_annotation, derivation_function,
+                    partial(self._derive_annotation,
+                            import_function=derivation_function,
                             output_set=output_set,
                             overwrite_existing=overwrite_existing
                             ),
