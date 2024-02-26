@@ -61,4 +61,5 @@ Documentation = "https://childproject.readthedocs.io/en/latest/"
 child-project = "ChildProject.cmdline:main"
 
 [tool.setuptools.packages.find]
+namespaces = true
 include = ["ChildProject*"]
