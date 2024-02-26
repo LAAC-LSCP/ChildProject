@@ -12,7 +12,7 @@
 #
 import os
 import sys
-from importlib.metadata import version
+from ChildProject import __version__
 
 sys.path.insert(0, os.path.abspath('../../ChildProject/'))
 
@@ -24,7 +24,7 @@ copyright = '2021, Lucas Gautheron'
 author = 'Lucas Gautheron'
 
 # The full version, including alpha/beta/rc tags
-release = version('ChildProject')
+release = __version__
 
 
 # -- General configuration ---------------------------------------------------
