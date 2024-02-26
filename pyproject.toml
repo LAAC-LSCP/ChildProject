@@ -7,30 +7,24 @@ name = "ChildProject"
 version = '0.2.0'
 dependencies = [
   "colorlog",
-  "datalad",
   "GitPython",
   "importlib-metadata; python_version < '3.8'",
-  "keyring==21.4.0; python_version < '3.8'",
   "librosa",
   "lxml",
   "matplotlib",
   "nltk",
   "numpy>=1.17",
-  "pydub",
   "pandas>=1.1.0,<=1.5.3",
   "panoptes_client",
   "praat-parselmouth",
-  "pyannote.metrics",
+  "pyannote.core",
+  "pydub",
   "pylangacq",
   "pympi-ling",
   "python-dateutil>=2.8.1",
   "PyYAML",
   "requests>=2.25.0",
-  "scipy",
   "soundfile",
-  "sphinx",
-  "sphinx_rtd_theme",
-  "sphinx-tabs",
 ]
 license = {file = 'LICENSE'}
 authors = [
@@ -52,6 +46,13 @@ classifiers = [
 
 [project.optional-dependencies]
 reliability = ["pygamma-agreement"]
+tests = ["pytest"]
+docs = [
+    "sphinx",
+    "sphinx_rtd_theme",
+    "sphinx-tabs",
+]
+repository = ["datalad"]
 
 [project.urls]
 Homepage = "https://github.com/LAAC-LSCP/ChildProject"
