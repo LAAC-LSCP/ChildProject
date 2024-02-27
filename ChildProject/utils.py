@@ -203,18 +203,17 @@ def calculate_shift(file1, file2, start1, start2, interval):
     return res,len(ref)
 
 def find_lines_involved_in_overlap(df: pd.DataFrame, onset_label: str = 'range_onset', offset_label:str = 'range_offset', labels = []):
-    """
-    takes a dataframe as input. The dataframe is supposed to have a column for the onset
+    """takes a dataframe as input. The dataframe is supposed to have a column for the onset
     og a timeline and one for the offset. The function returns a boolean series where
     all indexes having 'True' are lines involved in overlaps and 'False' when not
     e.g. to select all lines involved in overlaps, use:
-        ```
-        ovl_segments = df[find_lines_involved_in_overlap(df, 'segment_onset', 'segment_offset')]
-        ```
-        and to select line that never overlap, use:
-        ```
-        ovl_segments = df[~find_lines_involved_in_overlap(df, 'segment_onset', 'segment_offset')]
-        ```
+    ```
+    ovl_segments = df[find_lines_involved_in_overlap(df, 'segment_onset', 'segment_offset')]
+    ```
+    and to select line that never overlap, use:
+    ```
+    ovl_segments = df[~find_lines_involved_in_overlap(df, 'segment_onset', 'segment_offset')]
+    ```
         
     :param df: pandas DataFrame where we want to find overlaps, having some time segments described by 2 columns (onset and offset)
     :type df: pd.DataFrame

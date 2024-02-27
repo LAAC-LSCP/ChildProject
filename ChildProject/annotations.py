@@ -71,7 +71,7 @@ class AnnotationManager:
         ),
         IndexColumn(
             name="annotation_filename",
-            description="output formatted annotation location, relative to `annotations/<set>/converted (automatic column, don't specify)",
+            description="output formatted annotation location, relative to `annotations/<set>/converted` (automatic column, don't specify)",
             filename=True,
             required=False,
             generated=True,
