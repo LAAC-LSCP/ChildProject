@@ -290,6 +290,42 @@ def derive_annotations(args):
             logger.error("\n".join(errors))
             logger.error("\n".join(warnings))
 
+@subcommand(
+    [
+        arg("source", help="project path"),
+        arg("--input-set", "-i", help="input set", required=True, type=str),
+        arg("--threads", help="amount of threads to run on", type=int, default=0),
+        arg("--overwrite-existing", "--ow",
+            help="overwrites existing summary file if should generate the same output file (useful when reimporting)",
+            action='store_true'),
+    ]
+)
+def summarise_conversations(args):
+    """generate summary metrics for conversations"""
+
+    project = ChildProject(args.source)
+
+    perform_validation(project, require_success=True, ignore_recordings=True)
+
+    am = AnnotationManager(project)
+    imported, errors_der = am.summarise_conversations(args.input_set, args.threads, overwrite_existing=args.overwrite_existing)
+
+    if errors_der is not None and errors_der.shape[0] > 0:
+        logger.error('Conversational summary generation failed for %d entry/ies', errors_der.shape[0])
+        logger.debug(errors_der)
+
+    if imported is not None and imported.shape[0] > 0:
+        errors, warnings = am.validate(imported, threads=args.threads)
+
+        if len(am.errors) > 0:
+            logger.error(
+                "in the resulting annotations %s errors and %s warnings were found",
+                len(am.errors) + len(errors),
+                len(warnings),
+            )  # Is it right ?
+            logger.error("\n".join(am.errors))
+            logger.error("\n".join(errors))
+            logger.error("\n".join(warnings))
 
 @subcommand(
     [
