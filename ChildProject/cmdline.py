@@ -259,7 +259,7 @@ def import_annotations(args):
         arg("--output-set", "-o", help="output set", required=True, type=str),
         arg("--threads", help="amount of threads to run on", type=int, default=0),
         arg("--overwrite-existing", "--ow",
-            help="overwrites existing annotation file if should generate the same output file (useful when reimporting",
+            help="overwrites existing annotation file if should generate the same output file (useful when reimporting)",
             action='store_true'),
     ]
 )
