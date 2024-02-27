@@ -8,7 +8,7 @@ def acoustics():
 def conversations(annotations: pd.DataFrame,
                   interlocutors_1=('CHI',),
                   interlocutors_2=('FEM', 'MAL', 'OCH'),
-                  max_interval=1000,
+                  max_interval=5000,
                   min_delay=0):
 
     """
@@ -19,7 +19,7 @@ def conversations(annotations: pd.DataFrame,
     :type interlocutors_1: tuple
     :param interlocutors_2: second group of interlocutors, default = ('FEM','MAL','OCH')
     :type interlocutors_2: tuple
-    :param max_interval: maximum interval in ms for it to be considered a turn, default = 1000
+    :param max_interval: maximum interval in ms for it to be considered a turn, default = 5000
     :type max_interval: int
     :param min_delay: minimum delay between somebody starting speaking
     :type min_delay: int
