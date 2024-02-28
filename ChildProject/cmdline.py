@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 from ChildProject.projects import ChildProject
 from ChildProject.annotations import AnnotationManager
+from .pipelines.conversations import ConversationsPipeline
+from .pipelines.conversations import ConversationsSpecificationPipeline
 from .pipelines.samplers import SamplerPipeline
 from .pipelines.eafbuilder import EafBuilderPipeline
 from .pipelines.zooniverse import ZooniversePipeline
@@ -641,7 +643,8 @@ def main():
     register_pipeline("anonymize", AnonymizationPipeline)
     register_pipeline("metrics", MetricsPipeline)
     register_pipeline("metrics-specification", MetricsSpecificationPipeline)
-    #register_pipeline("conversations-summary", ConversationsPipeline)
+    register_pipeline("conversations-summary", ConversationsPipeline)
+    register_pipeline("conversations-specification", ConversationsSpecificationPipeline)
 
     args = parser.parse_args()
     args.func(args)
