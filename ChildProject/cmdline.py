@@ -677,6 +677,7 @@ def main():
     register_pipeline("anonymize", AnonymizationPipeline)
     register_pipeline("metrics", MetricsPipeline)
     register_pipeline("metrics-specification", MetricsSpecificationPipeline)
+    #register_pipeline("conversations-summary", ConversationsPipeline)
 
     args = parser.parse_args()
     args.func(args)
