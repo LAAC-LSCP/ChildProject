@@ -20,9 +20,9 @@ from ..utils import TimeInterval, time_intervals_intersect
 pipelines = {}
 
 
-class Metrics(ABC):
+class Conversations(ABC):
     """
-    Main class for generating metrics from a project object and a list of desired metrics
+    Main class for generating conversational metrics from a project object and a list of desired metrics
 
     :param project: ChildProject instance of the target dataset.
     :type project: ChildProject.projects.ChildProject
@@ -40,10 +40,6 @@ class Metrics(ABC):
     :type rec_cols: str, optional
     :param child_cols: comma separated columns from children.csv to include in the outputted metrics (optional), None by default
     :type child_cols: str, optional
-    :param period: time units to aggregate (optional); equivalent to ``pandas.Grouper`` freq argument.
-    :type period: str, optional
-    :param segments: DataFrame or path to csv file of the segments to extract from, containing 'recording_filename', 'segment_onset' and 'segment_offset' columns. To use this option, the option must be set to 'segments'. Also, this option cannot be combined with options [recordings,period,from_time,to_time].
-    :type segments: Union[str, pd.DataFrame], optional
     :param threads: amount of threads to run on, defaults to 1
     :type threads: int, optional
     """
@@ -58,8 +54,6 @@ class Metrics(ABC):
             to_time: str = None,
             rec_cols: str = None, #metadata
             child_cols: str = None, #metadata
-            #period: str = None,
-            #segments: Union[str, pd.DataFrame] = None,
             threads: int = 1,
     ):
 
@@ -75,7 +69,7 @@ class Metrics(ABC):
                     f = getattr(metfunc, row["callable"])
                 except Exception:
                     raise ValueError(
-                        "{} function is not defined and was not found in ChildProject/pipelines/metricsFunctions.py".format(
+                        "{} function is not defined and was not found in ChildProject/pipelines/conversationFunctions.py".format(
                             row["callable"]))
                 return f
             else:
@@ -158,59 +152,25 @@ class Metrics(ABC):
             self.child_cols = None
 
         self.by = by
-        self.period = period
-        self.segments = segments
         self.recordings = Pipeline.recordings_from_list(recordings)
 
-        # If the extraction is done on segments
-        if segments is not None:
-            # we enforce that incompatible arguments are not set
-            assert by == 'segments' and period is None and recordings is None and from_time is None and to_time is None, "the <segments> option can not be combined with options [period,recordings,from_time,to_time], and <by> should be set to 'segments'"
-
-            dtypes = {'recording_filename': 'string', 'segment_onset': 'Int64', 'segment_offset': 'Int64'}
-            # use the DataFrame provided or import it from a csv file
-            if isinstance(segments, pd.DataFrame):
-                self.segments = segments.astype(dtypes)
-            else:
-                self.segments = read_csv_with_dtype(segments, dtypes)
-
-            # check that required columns are present and dataframe not empty
-            assert_dataframe("segments", self.segments, not_empty=True)
-            assert_columns_presence(
-                "segments",
-                self.segments,
-                {"recording_filename", "segment_onset", "segment_offset"},
-            )
-        # not on segments
-        else:
-
-            # build a dataframe with all the periods we will want for each unit
-            if self.period:
-                self.periods = pd.interval_range(
-                    start=datetime.datetime(1900, 1, 1, 0, 0, 0, 0),
-                    end=datetime.datetime(1900, 1, 2, 0, 0, 0, 0),
-                    freq=self.period,
-                    closed="both",
-                )
-                self.periods = pd.DataFrame(self.periods.to_tuples().to_list(), columns=['period_start', 'period_end'])
-
-            # turn from_time and to to_time to datetime objects
-            if from_time:
-                try:
-                    self.from_time = datetime.datetime.strptime(from_time, "%H:%M:%S")
-                except:
-                    raise ValueError(
+        # turn from_time and to to_time to datetime objects
+        if from_time:
+            try:
+                self.from_time = datetime.datetime.strptime(from_time, "%H:%M:%S")
+            except:
+                raise ValueError(
                         f"invalid value for from_time ('{from_time}'); should have HH:MM:SS format instead")
-            else:
-                self.from_time = None
+        else:
+            self.from_time = None
 
-            if to_time:
-                try:
-                    self.to_time = datetime.datetime.strptime(to_time, "%H:%M:%S")
-                except:
-                    raise ValueError(f"invalid value for to_time ('{to_time}'); should have HH:MM:SS format instead")
-            else:
-                self.to_time = None
+        if to_time:
+            try:
+                self.to_time = datetime.datetime.strptime(to_time, "%H:%M:%S")
+            except:
+                raise ValueError(f"invalid value for to_time ('{to_time}'); should have HH:MM:SS format instead")
+        else:
+            self.to_time = None
 
         self._initiate_metrics_df()
 
@@ -218,9 +178,9 @@ class Metrics(ABC):
         super().__init_subclass__(**kwargs)
         pipelines[cls.SUBCOMMAND] = cls
 
-    def _process_unit(self, row): #process recording line
+    def _process_recording(self, row): #process recording line
         #keep lines for which conv_count is nopt Na and group by conv
-        """for one unit (i.e. 1 {recording|session|child} [period]) compute the list of required metrics and store the results in the current row of self.metrics
+        """for one unit (i.e. 1 recording) compute the list of required metrics and store the results in the current row of self.metrics
 
         :param row: index and Series of the unit to process, to be modified with the results
         :type row: (int , pandas.Series)
@@ -259,18 +219,15 @@ class Metrics(ABC):
         """
         if self.threads == 1:
             self.metrics = pd.DataFrame(
-                [self._process_unit(row) for row in self.metrics.iterrows()]
+                [self._process_recording(row) for row in self.metrics.iterrows()]
             )
         else:
             with mp.Pool(
                     processes=self.threads if self.threads >= 1 else mp.cpu_count()
             ) as pool:
                 self.metrics = pd.DataFrame(
-                    pool.map(self._process_unit, self.metrics.iterrows())
+                    pool.map(self._process_recording, self.metrics.iterrows())
                 )
-        if self.period:
-            self.metrics['period_start'] = self.metrics['period_start'].dt.strftime('%H:%M:%S')
-            self.metrics['period_end'] = self.metrics['period_end'].dt.strftime('%H:%M:%S')
         return self.metrics
 
     def retrieve_segments(self, sets: List[str], row: str):
@@ -337,21 +294,15 @@ class Metrics(ABC):
              - 48 rows if 2 recordings in the corpus --period 1h --by recording_filename
         Then the extract() method should populate the dataframe with actual metrics
         """
-        # build the metrics dataframe from the segments argument
-        if self.segments is not None:
-            recordings = self.project.get_recordings_from_list(self.segments['recording_filename'].unique())
-            self.by = 'recording_filename'
-            self.metrics = self.segments.copy()
-        # else use the list of recordings of the dataset and the by option
-        else:
-            recordings = self.project.get_recordings_from_list(self.recordings)
-            self.metrics = pd.DataFrame(recordings[self.by].unique(), columns=[self.by])
-            if self.period:
-                # if period, use the self.periods dataframe to build all the list of segments per unit
-                self.metrics[
-                    "key"] = 0  # with old versions of pandas, we are forced to have a common column to do a cross join, we drop the column after
-                self.periods["key"] = 0
-                self.metrics = pd.merge(self.metrics, self.periods, on='key', how='outer').drop('key', axis=1)
+
+        recordings = self.project.get_recordings_from_list(self.recordings)
+        self.metrics = pd.DataFrame(recordings[self.by].unique(), columns=[self.by])
+        if self.period:
+            # if period, use the self.periods dataframe to build all the list of segments per unit
+            self.metrics[
+                "key"] = 0  # with old versions of pandas, we are forced to have a common column to do a cross join, we drop the column after
+            self.periods["key"] = 0
+            self.metrics = pd.merge(self.metrics, self.periods, on='key', how='outer').drop('key', axis=1)
 
         # add info for child_id
         self.metrics["child_id"] = self.metrics.apply(
@@ -399,7 +350,7 @@ class Metrics(ABC):
                 self.metrics[label] = self.metrics.apply(lambda row: check_unicity(row, label), axis=1)
 
 
-class CustomMetrics(Metrics):
+class CustomMetrics(Conversations):
     """metrics extraction from a csv file.
     Extracts a number of metrics listed in a csv file as a dataframe.
     the csv file must contain the columns :
@@ -424,10 +375,6 @@ class CustomMetrics(Metrics):
     :type child_cols: str, optional
     :param by: unit to extract metric from (recording_filename, experiment, child_id, session_id, segments), defaults to 'recording_filename', 'segments' is mandatory if passing the segments argument
     :type by: str, optional
-    :param period: time units to aggregate (optional); equivalent to ``pandas.Grouper`` freq argument.
-    :type period: str, optional
-    :param segments: DataFrame or path to csv file of the segments to extract from, containing 'recording_filename', 'segment_onset' and 'segment_offset' columns. To use this option, the option must be set to 'segments'. Also, this option cannot be combined with options [recordings,period,from_time,to_time].
-    :type segments: Union[str, pd.DataFrame], optional
     :param threads: amount of threads to run on, defaults to 1
     :type threads: int, optional
     """
@@ -444,15 +391,13 @@ class CustomMetrics(Metrics):
             rec_cols: str = None,
             child_cols: str = None,
             by: str = "recording_filename",
-            period: str = None,
-            segments: Union[str, pd.DataFrame] = None,
             threads: int = 1,
     ):
         metrics_df = pd.read_csv(metrics)
 
         super().__init__(project, metrics_df, by=by, recordings=recordings,
                          from_time=from_time, to_time=to_time, rec_cols=rec_cols,
-                         child_cols=child_cols, period=period, segments=segments, threads=threads)
+                         child_cols=child_cols, threads=threads)
 
     @staticmethod
     def add_parser(subparsers, subcommand):
@@ -462,7 +407,7 @@ class CustomMetrics(Metrics):
                             )
 
 
-class LenaMetrics(Metrics):
+class LenaMetrics(Conversations):
     """LENA metrics extractor.
     Extracts a number of metrics from the LENA .its annotations.
 
@@ -482,10 +427,6 @@ class LenaMetrics(Metrics):
     :type child_cols: str, optional
     :param by: unit to extract metric from (recording_filename, experiment, child_id, session_id, segments), defaults to 'recording_filename', 'segments' is mandatory if passing the segments argument
     :type by: str, optional
-    :param period: time units to aggregate (optional); equivalent to ``pandas.Grouper`` freq argument.
-    :type period: str, optional
-    :param segments: DataFrame or path to csv file of the segments to extract from, containing 'recording_filename', 'segment_onset' and 'segment_offset' columns. To use this option, the option must be set to 'segments'. Also, this option cannot be combined with options [recordings,period,from_time,to_time].
-    :type segments: Union[str, pd.DataFrame], optional
     :param threads: amount of threads to run on, defaults to 1
     :type threads: int, optional
     """
@@ -502,8 +443,6 @@ class LenaMetrics(Metrics):
             rec_cols: str = None,
             child_cols: str = None,
             by: str = "recording_filename",
-            period: str = None,
-            segments: Union[str, pd.DataFrame] = None,
             threads: int = 1,
     ):
         self.set = set
@@ -531,8 +470,8 @@ class LenaMetrics(Metrics):
              ]), columns=["callable", "set", "speaker"])
 
         super().__init__(project, METRICS, by=by, recordings=recordings,
-                         period=period, from_time=from_time, to_time=to_time, rec_cols=rec_cols,
-                         child_cols=child_cols, segments=segments, threads=threads)
+                         from_time=from_time, to_time=to_time, rec_cols=rec_cols,
+                         child_cols=child_cols, threads=threads)
 
         if self.set not in self.am.annotations["set"].values:
             raise ValueError(
@@ -546,7 +485,7 @@ class LenaMetrics(Metrics):
         parser.add_argument("set", help="name of the LENA its annotations set")
 
 
-class AclewMetrics(Metrics):
+class AclewMetrics(Conversations):
     """ACLEW metrics extractor.
     Extracts a number of metrics from the ACLEW pipeline annotations, which includes:
 
@@ -574,10 +513,6 @@ class AclewMetrics(Metrics):
     :type child_cols: str, optional
     :param by: unit to extract metric from (recording_filename, experiment, child_id, session_id, segments), defaults to 'recording_filename', 'segments' is mandatory if passing the segments argument
     :type by: str, optional
-    :param period: time units to aggregate (optional); equivalent to ``pandas.Grouper`` freq argument.
-    :type period: str, optional
-    :param segments: DataFrame or path to csv file of the segments to extract from, containing 'recording_filename', 'segment_onset' and 'segment_offset' columns. To use this option, the option must be set to 'segments'. Also, this option cannot be combined with options [recordings,period,from_time,to_time].
-    :type segments: Union[str, pd.DataFrame], optional
     :param threads: amount of threads to run on, defaults to 1
     :type threads: int, optional
     """
@@ -595,8 +530,6 @@ class AclewMetrics(Metrics):
             to_time: str = None,
             rec_cols: str = None,
             child_cols: str = None,
-            period: str = None,
-            segments: Union[str, pd.DataFrame] = None,
             by: str = "recording_filename",
             threads: int = 1,
     ):
@@ -661,8 +594,8 @@ class AclewMetrics(Metrics):
         METRICS = pd.DataFrame(METRICS, columns=["callable", "set", "speaker"])
 
         super().__init__(project, METRICS, by=by, recordings=recordings,
-                         period=period, from_time=from_time, to_time=to_time,
-                         rec_cols=rec_cols, child_cols=child_cols, segments=segments,
+                         from_time=from_time, to_time=to_time,
+                         rec_cols=rec_cols, child_cols=child_cols,
                          threads=threads)
 
     @staticmethod
@@ -673,7 +606,7 @@ class AclewMetrics(Metrics):
         parser.add_argument("--vcm", help="vcm set", default="vcm")
 
 
-class MetricsPipeline(Pipeline):
+class ConversationsPipeline(Pipeline):
     def __init__(self):
         self.metrics = []
 
@@ -752,18 +685,6 @@ class MetricsPipeline(Pipeline):
         )
 
         parser.add_argument(
-            "--segments",
-            help="path to a CSV dataframe containing the list of segments to sample from. The CSV should have 3 columns named recording_filename, segment_onset, segment_offset. --by must be set to 'segments', Can not be used along with options [--period,--recordings,--from-tim,--to-time]",
-            default=None,
-        )
-
-        parser.add_argument(
-            "--period",
-            help="time units to aggregate (optional); equivalent to ``pandas.Grouper`` freq argument. The resulting metrics will be split for each unit across all the resulting periods.",
-            default=None,
-        )
-
-        parser.add_argument(
             "-f",
             "--from-time",
             help="time range start in HH:MM:SS format (optional)",
@@ -794,7 +715,7 @@ class MetricsPipeline(Pipeline):
         )
 
 
-class MetricsSpecificationPipeline(Pipeline):
+class ConversationsSpecificationPipeline(Pipeline):
     def __init__(self):
         self.metrics = []
 
@@ -852,7 +773,7 @@ class MetricsSpecificationPipeline(Pipeline):
             if key not in {"metrics_list", "path", "destination", "dataset_hash"}
         }
         try:
-            metrics = Metrics(self.project, metrics_df, **arguments)
+            metrics = Conversations(self.project, metrics_df, **arguments)
         except TypeError as e:
             raise ValueError('Unrecognized parameter found {}'.format(e.args[0][46:])) from e
         metrics.extract()
