@@ -105,37 +105,21 @@ def conversationFunction(args: set, columns: Union[Set[str], Tuple[Set[str], ...
 
     return decorator
 
-@conversationFunction(set(), {"speaker_type", "vcm_type", "duration"}, np.nan)
+@conversationFunction(set(), {"speaker_type", "conv_count", "duration"}, np.nan)
 def is_speaker(annotations: pd.DataFrame, **kwargs):
     return kwargs["speaker"] in annotations['speaker_type'].tolist()
 
-@conversationFunction(set(), {"speaker_type", "vcm_type", "duration"}, np.nan)
+@conversationFunction(set(), {"speaker_type", "conv_count", "duration"}, np.nan)
 def voc_counter(annotations: pd.DataFrame, **kwargs):
     return annotations[annotations['speaker_type'] == kwargs["speaker"]]['speaker_type'].count()
 
-@conversationFunction(set(), {"speaker_type", "vcm_type", "duration"}, np.nan)
+@conversationFunction(set(), {"speaker_type", "conv_count", "duration"}, np.nan)
 def voc_total(annotations: pd.DataFrame, **kwargs):
     return annotations[annotations['speaker_type'] == kwargs["speaker"]]['voc_duration'].sum(min_count=1)
 
-@conversationFunction(set(), {"speaker_type", "vcm_type", "duration"}, np.nan)
-def voc_average(annotations: pd.DataFrame, **kwargs):
-    return annotations[annotations['speaker_type'] == kwargs["speaker"]]['voc_duration'].mean()
-
-
-def cp_dur(annotations: pd.DataFrame, duration: int, **kwargs):
-    """canonical proportion on the number of vocalizations for CHI (based on vcm_type)
-
-    Required keyword arguments:
-    """
-    speech_dur = annotations.loc[(annotations["speaker_type"] == "CHI") &
-                                 (annotations["vcm_type"].isin(["N", "C"]))]["duration"].sum()
-    can_dur = annotations.loc[(annotations["speaker_type"] == "CHI") &
-                              (annotations["vcm_type"] == "C")]["duration"].sum()
-    if speech_dur:
-        value = can_dur / speech_dur
-    else:
-        value = np.nan
-    return value
+# @conversationFunction(set(), {"speaker_type", "conv_count", "duration"}, np.nan)
+# def voc_average(annotations: pd.DataFrame, **kwargs):
+#     return annotations[annotations['speaker_type'] == kwargs["speaker"]]['voc_duration'].mean()
 
 
 def peak_hour_metric(empty_value=0):
