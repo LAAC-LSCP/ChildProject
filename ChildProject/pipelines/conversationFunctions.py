@@ -8,7 +8,7 @@ from typing import Union, Set, Tuple
 
 """
 This file lists all the metrics functions commonly used.
-New metrics can be added by defining new functions for the Metrics class to use :
+New metrics can be added by defining new functions for the Conversations class to use :
  - Create a new function using the same arguments (i.e. annotations, duration, **kwargs)
  - Define calculation of the metric with:
      - annotations, which is a dataframe containing all the relevant annotated segments  to use. It contains the
@@ -19,7 +19,7 @@ New metrics can be added by defining new functions for the Metrics class to use 
      - duration which is the duration of audio annotated in milliseconds
      - kwargs, whatever keyword parameter you chose to pass to the function (except 'name', 'callable', 'set' which can 
        not be used). This will need to be given with the list of metrics when called
- - Wrap you function with the 'metricFunction' decorator to make it callable by the pipeline, read metricFunction help 
+ - Wrap you function with the 'conversationFunction' decorator to make it callable by the pipeline, read conversationFunction help 
    for more info
 
 !! Metrics functions should still behave and return the correct result when receiving an empty dataframe
@@ -31,7 +31,7 @@ MISSING_COLUMNS = 'The given set <{}> does not have the required column(s) <{}> 
 RESERVED = {'set', 'name', 'callable'}  # arguments reserved usage. use other keyword labels.
 
 
-def metricFunction(args: set, columns: Union[Set[str], Tuple[Set[str], ...]], empty_value=0, default_name: str = None):
+def conversationFunction(args: set, columns: Union[Set[str], Tuple[Set[str], ...]], empty_value=0, default_name: str = None):
     """Decorator for all metrics functions to make them ready to be called by the pipeline.
 
     :param args: set of required keyword arguments for that function, raise ValueError if were not given \
@@ -104,6 +104,38 @@ def metricFunction(args: set, columns: Union[Set[str], Tuple[Set[str], ...]], em
         return new_func
 
     return decorator
+
+@conversationFunction(set(), {"speaker_type", "vcm_type", "duration"}, np.nan)
+def is_speaker(annotations: pd.DataFrame, **kwargs):
+    return kwargs["speaker"] in annotations['speaker_type'].tolist()
+
+@conversationFunction(set(), {"speaker_type", "vcm_type", "duration"}, np.nan)
+def voc_counter(annotations: pd.DataFrame, **kwargs):
+    return annotations[annotations['speaker_type'] == kwargs["speaker"]]['speaker_type'].count()
+
+@conversationFunction(set(), {"speaker_type", "vcm_type", "duration"}, np.nan)
+def voc_total(annotations: pd.DataFrame, **kwargs):
+    return annotations[annotations['speaker_type'] == kwargs["speaker"]]['voc_duration'].sum(min_count=1)
+
+@conversationFunction(set(), {"speaker_type", "vcm_type", "duration"}, np.nan)
+def voc_average(annotations: pd.DataFrame, **kwargs):
+    return annotations[annotations['speaker_type'] == kwargs["speaker"]]['voc_duration'].mean()
+
+
+def cp_dur(annotations: pd.DataFrame, duration: int, **kwargs):
+    """canonical proportion on the number of vocalizations for CHI (based on vcm_type)
+
+    Required keyword arguments:
+    """
+    speech_dur = annotations.loc[(annotations["speaker_type"] == "CHI") &
+                                 (annotations["vcm_type"].isin(["N", "C"]))]["duration"].sum()
+    can_dur = annotations.loc[(annotations["speaker_type"] == "CHI") &
+                              (annotations["vcm_type"] == "C")]["duration"].sum()
+    if speech_dur:
+        value = can_dur / speech_dur
+    else:
+        value = np.nan
+    return value
 
 
 def peak_hour_metric(empty_value=0):

@@ -14,7 +14,7 @@ import ChildProject
 from ChildProject.pipelines.pipeline import Pipeline
 
 from ChildProject.tables import assert_dataframe, assert_columns_presence, read_csv_with_dtype
-import ChildProject.pipelines.metricsFunctions as metfunc
+import ChildProject.pipelines.conversationFunctions as convfunc
 from ..utils import TimeInterval, time_intervals_intersect
 
 pipelines = {}
@@ -61,12 +61,12 @@ class Conversations(ABC):
         self.am = ChildProject.annotations.AnnotationManager(self.project)
         self.threads = int(threads)
 
-        # check that the callable column is either a callable function or a string that can be found as being part of the list of metrics in ChildProject/pipelines/metricsFunctions.py
+        # check that the callable column is either a callable function or a string that can be found as being part of the list of metrics in ChildProject/pipelines/conversationFunctions.py
         def check_callable(row):
             if callable(row["callable"]): return row["callable"]
             if isinstance(row["callable"], str):
                 try:
-                    f = getattr(metfunc, row["callable"])
+                    f = getattr(convfunc, row["callable"])
                 except Exception:
                     raise ValueError(
                         "{} function is not defined and was not found in ChildProject/pipelines/conversationFunctions.py".format(
