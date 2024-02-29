@@ -342,10 +342,10 @@ class ZooniversePipeline(Pipeline):
                         "%Y-%m-%d %H:%M:%S"
                     ),
                     "uploaded": False,
-                    "project_id": "",
+                    "project_id": pd.NA,
                     "subject_set": "",
                     "subject_set_id": pd.NA,
-                    "zooniverse_id": 0,
+                    "zooniverse_id": pd.NA,
                     "keyword": keyword,
                     "dataset": self.project.experiment
                 }
