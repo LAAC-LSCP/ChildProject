@@ -41,6 +41,24 @@ from typing import Tuple
 
 import time
 
+CHUNKS_DTYPES = {
+    'recording_filename':  'string',
+    'onset': int,
+    'offset': int,
+    'segment_onset': int,
+    'segment_offset': int,
+    'wav': 'string',
+    'mp3': 'string',
+    'date_extracted': 'string',
+    'uploaded': 'boolean',
+    'project_id': 'Int64',
+    'subject_set': 'string',
+    'zooniverse_id': 'Int64',
+    'keyword': 'string',
+    'subject_set_id': 'Int64',
+    'dataset' : 'string',
+}
+
 # Create a logger for the module (file)
 logger_annotations = logging.getLogger(__name__)
 # messages are propagated to the higher level logger (ChildProject), used in cmdline.py
@@ -398,7 +416,7 @@ class ZooniversePipeline(Pipeline):
 
         metadata_location = os.path.join(self.chunks_file)
         try:
-            self.chunks = pd.read_csv(metadata_location, index_col="index")
+            self.chunks = pd.read_csv(metadata_location, index_col="index", dtype=CHUNKS_DTYPES)
         except:
             raise Exception(
                 "cannot read chunk metadata from {}.".format(metadata_location)
@@ -503,8 +521,8 @@ class ZooniversePipeline(Pipeline):
                 logger_annotations.error("%s", traceback.format_exc())
                 
                 chunk["index"] = chunk_index
-                chunk["zooniverse_id"] = str(subject.id)
-                chunk["project_id"] = str(project_id)
+                chunk["zooniverse_id"] = subject.id
+                chunk["project_id"] = project_id
                 chunk["subject_set"] = ""
                 chunk['subject_set_id'] = pd.NA
                 chunk["uploaded"] = True
@@ -517,18 +535,19 @@ class ZooniversePipeline(Pipeline):
                     break
 
             chunk["index"] = chunk_index
-            chunk["zooniverse_id"] = str(subject.id)
-            chunk["project_id"] = str(project_id)
+            chunk["zooniverse_id"] = subject.id
+            chunk["project_id"] = project_id
             chunk["subject_set"] = str(subject_set.display_name)
-            chunk["subject_set_id"] = str(subject_set.id)
+            chunk["subject_set_id"] = subject_set.id
             chunk["uploaded"] = True
             self.subjects_metadata.append(chunk)
 
         if len(self.subjects_metadata) + len(self.orphan_chunks) == 0:
             return
 
-        if len(self.subjects_metadata) : self.chunks.update(pd.DataFrame(self.subjects_metadata).set_index("index"))
-        
+        if len(self.subjects_metadata):
+            self.chunks.update(pd.DataFrame(self.subjects_metadata).set_index("index"))
+
         if record_orphan and len(self.orphan_chunks): 
             self.chunks.update(pd.DataFrame(self.orphan_chunks).set_index("index"))
 
@@ -538,6 +557,8 @@ class ZooniversePipeline(Pipeline):
                 subject_set.display_name,
                 )
 
+        # known issue in pandas < 2.0, dtypes are changed with update, save the dtypes and restore them
+        self.chunks = self.chunks.astype(CHUNKS_DTYPES)
         self.chunks.to_csv(self.chunks_file)
         
         signal.signal(signal.SIGINT, original_sigint_handler)
@@ -545,16 +566,21 @@ class ZooniversePipeline(Pipeline):
         
     def exit_upload(self, *args, rec_orphan, sub_set):
         if len(self.subjects_metadata) + len(self.orphan_chunks) != 0:
-            if len(self.subjects_metadata) : self.chunks.update(pd.DataFrame(self.subjects_metadata).set_index("index"))
+
+            if len(self.subjects_metadata):
+                self.chunks.update(pd.DataFrame(self.subjects_metadata).set_index("index"))
             
             if rec_orphan and len(self.orphan_chunks): 
                 self.chunks.update(pd.DataFrame(self.orphan_chunks).set_index("index"))
+
                 logger_annotations.warning(
                 "%d chunks were uploaded but not linked to the subject set '%s'. To attempt to relink them, try link_orphan_subjects",
                 len(self.orphan_chunks),
                 sub_set,
                 )
-                
+
+            # known issue in pandas < 2.0, dtypes are changed with update, save the dtypes and restore them
+            self.chunks.astype(CHUNKS_DTYPES)
             self.chunks.to_csv(self.chunks_file)
         logger_annotations.warning('Signal interruption %s, exited gracefully', args[0])
         sys.exit(0)
@@ -598,7 +624,7 @@ class ZooniversePipeline(Pipeline):
 
         metadata_location = os.path.join(self.chunks_file)
         try:
-            self.chunks = pd.read_csv(metadata_location, index_col="index")
+            self.chunks = pd.read_csv(metadata_location, index_col="index", dtype=CHUNKS_DTYPES)
         except:
             raise Exception(
                 "cannot read chunk metadata from {}.".format(metadata_location)
@@ -692,7 +718,7 @@ class ZooniversePipeline(Pipeline):
 
             chunk["index"] = chunk_index
             chunk["subject_set"] = str(subject_set.display_name)
-            chunk["subject_set_id"] = str(subject_set.id)
+            chunk["subject_set_id"] = subject_set.id
             subjects_metadata.append(chunk)
 
         if len(subjects_metadata):
@@ -700,6 +726,8 @@ class ZooniversePipeline(Pipeline):
             logger_annotations.info('%s \n%s', tmp.columns, tmp)
             self.chunks.update(pd.DataFrame(subjects_metadata).set_index("index"))
 
+            # known issue in pandas < 2.0, dtypes are changed with update, save the dtypes and restore them
+            self.chunks = self.chunks.astype(CHUNKS_DTYPES)
             self.chunks.to_csv(self.chunks_file)
         logger_annotations.info('linked %d/%d subjects', len(subjects_metadata), len(chunks_to_link))
         
@@ -720,7 +748,7 @@ class ZooniversePipeline(Pipeline):
 
         metadata_location = os.path.join(self.chunks_file)
         try:
-            self.chunks = pd.read_csv(metadata_location, index_col="index")
+            self.chunks = pd.read_csv(metadata_location, index_col="index", dtype=CHUNKS_DTYPES)
         except:
             raise Exception(
                 "cannot read chunk metadata from {}.".format(metadata_location)
@@ -739,7 +767,7 @@ class ZooniversePipeline(Pipeline):
                       (~self.chunks['project_id'].isnull()) &
                       (self.chunks['subject_set'].isnull()))
 
-        self.chunks.loc[selection , ['uploaded','zooniverse_id','project_id']] = (False, "", "") 
+        self.chunks.loc[selection , ['uploaded','zooniverse_id','project_id']] = (False, pd.NA, pd.NA)
 
         nb_reset = selection[selection == True]
         if nb_reset.shape[0]:
