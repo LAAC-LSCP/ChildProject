@@ -745,8 +745,8 @@ def check_its(segments, truth):
         partial(gather_columns_to_dict, "startVfx", "endVfx"), axis=1
     ).astype(str)
 
-    truth["segment_onset"] = (truth["segment_onset"] * 1000).astype(int)
-    truth["segment_offset"] = (truth["segment_offset"] * 1000).astype(int)
+    truth["segment_onset"] = (truth["segment_onset"] * 1000).round().astype(int)
+    truth["segment_offset"] = (truth["segment_offset"] * 1000).round().astype(int)
 
     truth["lena_conv_floor_type"].fillna("NA", inplace=True)
     truth["lena_conv_turn_type"].fillna("NA", inplace=True)
