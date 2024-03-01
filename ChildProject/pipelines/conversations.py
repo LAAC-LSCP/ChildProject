@@ -442,6 +442,30 @@ class AclewConversations(Conversations):
 
         METRICS = np.array(
             [["conversation_onset", "conversation_onset", pd.NA],
+             ["conversation_offset", "conversation_offset", pd.NA],
+             ["conversation_duration", "conversation_duration", pd.NA],
+             ["vocalisations_count", "vocalisations_count", pd.NA],
+             ["who_initiated", "initiator", pd.NA],
+             ["who_finished", "finisher", pd.NA],
+             ["total_duration_of_vocalisations", "total_duration_of_vocalisations", pd.NA],
+             ["conversation_duration", "conversation_duration", pd.NA],
+             ["is_speaker", "CHI_present", 'CHI'],
+             ["is_speaker", "FEM_present", 'FEM'],
+             ["is_speaker", "MAL_present", 'MAL'],
+             ["is_speaker", "OCH_present", 'OCH'],
+             ["voc_counter", "CHI_voc_counter", 'CHI'],
+             ["voc_counter", "FEM_voc_counter", 'FEM'],
+             ["voc_counter", "MAL_voc_counter", 'MAL'],
+             ["voc_counter", "OCH_voc_counter", 'OCH'],
+             ["voc_total", "CHI_voc_total", 'CHI'],
+             ["voc_total", "FEM_voc_total", 'FEM'],
+             ["voc_total", "MAL_voc_total", 'MAL'],
+             ["voc_total", "OCH_voc_total", 'OCH'],
+             ["voc_contribution", "CHI_voc_contribution", 'CHI'],
+             ["voc_contribution", "FEM_voc_contribution", 'FEM'],
+             ["voc_contribution", "MAL_voc_contribution", 'MAL'],
+             ["voc_contribution", "OCH_voc_contribution", 'OCH'],
+             ["assign_conv_type", "conversation_type", pd.NA],
              ])
 
         METRICS = pd.DataFrame(METRICS, columns=["callable", "name", "speaker"])
