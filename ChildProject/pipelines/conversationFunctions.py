@@ -59,75 +59,98 @@ def conversationFunction(args: set = set()):
 
     return decorator
 
+
 @conversationFunction()
 def conversation_onset(annotations: pd.DataFrame):
     return annotations.reset_index().iloc[0]['segment_onset']
+
 
 @conversationFunction()
 def conversation_offset(annotations: pd.DataFrame):
     return annotations.reset_index().iloc[-1]['segment_offset']
 
+
 @conversationFunction()
 def conversation_duration(annotations: pd.DataFrame):
     return annotations.reset_index().iloc[-1]['segment_offset'] - annotations.reset_index().iloc[0]['segment_onset']
+
 
 @conversationFunction()
 def vocalisations_count(annotations: pd.DataFrame):
     return annotations['speaker_type'].count()
 
+
 @conversationFunction()
 def who_initiated(annotations: pd.DataFrame):
     return annotations.reset_index().iloc[0]['speaker_type']
+
 
 @conversationFunction()
 def who_finished(annotations: pd.DataFrame):
     return annotations.reset_index().iloc[-1]['speaker_type']
 
+
 @conversationFunction()
 def total_duration_of_vocalisations(annotations: pd.DataFrame):
     return annotations['voc_duration'].sum()
+
 
 @conversationFunction({'speaker'})
 def is_speaker(annotations: pd.DataFrame, **kwargs):
     return kwargs["speaker"] in annotations['speaker_type'].tolist()
 
+
 @conversationFunction({'speaker'})
 def voc_counter(annotations: pd.DataFrame, **kwargs):
     return annotations[annotations['speaker_type'] == kwargs["speaker"]]['speaker_type'].count()
+
 
 @conversationFunction({'speaker'})
 def voc_total(annotations: pd.DataFrame, **kwargs):
     return annotations[annotations['speaker_type'] == kwargs["speaker"]]['voc_duration'].sum(min_count=1)
 
+
+@conversationFunction({'speaker'})
+def voc_contribution(annotations: pd.DataFrame, **kwargs):
+    speaker_total = annotations[annotations['speaker_type'] == kwargs["speaker"]]['voc_duration'].sum(min_count=1)
+    total = annotations['voc_duration'].sum()
+    return speaker_total / total
+
+
 @conversationFunction()
-def assign_conv_type(annotations: pd.DataFrame, **kwargs):
+def assign_conv_type(annotations: pd.DataFrame):
+    #pd.Categorical(['overheard', 'dyadic_FEM', 'dyadic_MAL', 'peer', 'parent', 'triadic_FEM', 'triadic_MAL', 'multiparty'])
     speaker_present = {}
     for speaker in ['CHI', 'FEM', 'MAL', 'OCH']:
-        speaker_present[speaker] = speaker in annotations['speaker_type'].tolist()
-    speaker_df = pd.DataFrame.from_dict(speaker_present)
+        speaker_present[speaker] = [speaker in annotations['speaker_type'].tolist()]
+    speaker_df = pd.DataFrame.from_dict(speaker_present).iloc[0, :]
 
     if not speaker_df['CHI']:
         return 'overheard'
+
     elif speaker_df['CHI']:
         if not speaker_df['OCH'] and speaker_df[['FEM', 'MAL']].sum() == 1:
             if speaker_df['FEM']:
                 return 'dyadic_FEM'
+
             if speaker_df['MAL']:
                 return 'dyadic_MAL'
+
         if speaker_df['OCH'] and speaker_df[['FEM', 'MAL']].sum() == 0:
             return 'peer'
+
         if not speaker_df['OCH'] and speaker_df[['FEM', 'MAL']].sum() == 2:
             return 'parent'
+
         if speaker_df['OCH'] and speaker_df[['FEM', 'MAL']].sum() == 1:
             if speaker_df['FEM']:
                 return 'triadic_FEM'
             if speaker_df['MAL']:
                 return 'triadic_MAL'
+
         if speaker_df[['OCH', 'FEM', 'MAL']].sum() == 3:
             return 'multiparty'
     return np.nan()
-# @conversationFunction(set())
-# def voc_average(annotations: pd.DataFrame, **kwargs):
-#     return annotations[annotations['speaker_type'] == kwargs["speaker"]]['voc_duration'].mean()
+
 
 
