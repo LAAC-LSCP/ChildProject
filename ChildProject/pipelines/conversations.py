@@ -47,8 +47,8 @@ class Conversations(ABC):
     def __init__(
             self,
             project: ChildProject.projects.ChildProject,
+            setname: str,
             metrics_list: pd.DataFrame,
-            by: str = "recording_filename",
             recordings: Union[str, List[str], pd.DataFrame] = None,
             from_time: str = None,
             to_time: str = None,
@@ -78,20 +78,20 @@ class Conversations(ABC):
 
         # block checking presence of required columns and evaluates the callable functions
         if isinstance(metrics_list, pd.DataFrame):
-            if ({'callable', 'set'}).issubset(metrics_list.columns):
+            if ({'callable', 'name'}).issubset(metrics_list.columns):
                 metrics_list["callable"] = metrics_list.apply(check_callable, axis=1)
             else:
-                raise ValueError("metrics_list parameter must contain atleast the columns [callable,set]")
+                raise ValueError("metrics_list parameter must contain at least the columns [callable,name]")
         else:
             raise ValueError("metrics_list parameter must be a pandas DataFrame")
         metrics_list.sort_values(by="set", inplace=True)
 
-        for setname in np.unique(metrics_list['set'].values):
-            if setname not in self.am.annotations["set"].values:
-                raise ValueError(
-                    f"annotation set '{setname}' was not found in the index; "
-                    "check spelling and make sure the set was properly imported."
-                )
+        if setname not in self.am.annotations["set"].values:
+            raise ValueError(
+                f"annotation set '{setname}' was not found in the index; "
+                "check spelling and make sure the set was properly imported."
+            )
+        self.set = setname
         self.metrics_list = metrics_list
 
         # necessary columns to construct the metrics
@@ -104,8 +104,7 @@ class Conversations(ABC):
         }
         # get existing columns of the dataset for recordings
         correct_cols = set(self.project.recordings.columns)
-        if by != 'segments' and by not in correct_cols: raise ValueError(
-            "<{}> is not specified in this dataset, cannot extract by it, change your --by option".format(by))
+
         if rec_cols:
             # when user requests recording columns, build the list and verify they exist (warn otherwise)
             rec_cols = set(rec_cols.split(","))
@@ -151,8 +150,10 @@ class Conversations(ABC):
         else:
             self.child_cols = None
 
-        self.by = by
-        self.recordings = Pipeline.recordings_from_list(recordings)
+        if recordings is None:
+            self.recordings = self.project.recordings['recording_filename'].to_list()
+        else:
+            self.recordings = Pipeline.recordings_from_list(recordings)
 
         # turn from_time and to to_time to datetime objects
         if from_time:
@@ -172,13 +173,11 @@ class Conversations(ABC):
         else:
             self.to_time = None
 
-        self._initiate_metrics_df()
-
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         pipelines[cls.SUBCOMMAND] = cls
 
-    def _process_recording(self, row): #process recording line
+    def _process_recording(self, annotations): #process recording line
         #keep lines for which conv_count is nopt Na and group by conv
         """for one unit (i.e. 1 recording) compute the list of required metrics and store the results in the current row of self.metrics
 
@@ -187,35 +186,14 @@ class Conversations(ABC):
         :return: Series containing all the computed metrics result for that unit
         :rtype: pandas.Series
         """
-        # row[0] is the index of the row we are processing
-        # row[1] is the actual Series containing all the metrics for the currently processed line
-        prev_set = ""
-        duration_set = 0
+        result = {}
         for i, line in self.metrics_list.iterrows():
-            curr_set = line["set"]
-            if prev_set != curr_set:
-                index, annotations = self.retrieve_segments([curr_set], row[1])
-                # Change the annotations dataframe, i.e. group by conversations
-                annotations = annotations.dropna(subset='conv_count')
-                annotations['voc_duration'] = annotations['segment_offset'] - annotations['segment_onset']
-                if index.shape[0]:
-                    duration_set = (
-                            index["range_offset"] - index["range_onset"]
-                    ).sum()
-                else:
-                    duration_set = 0
-                row[1]["duration_{}".format(line["set"])] = duration_set
-                prev_set = curr_set
 
-            # name, value = line["callable"](annotations, duration_set,
-            #                                **line.drop(['callable', 'set']).dropna().to_dict())
-            name, value = annotations.groupby('conv_count').apply(
-                lambda conv: line["callable"](conv, duration_set,
-                                             **line.drop(['callable', 'set']).dropna().to_dict()))
+            annotations['voc_duration'] = annotations['segment_offset'] - annotations['segment_onset']
 
-            row[1][name] = value
+            result[line['name']] = line["callable"](annotations, **line.drop(['callable', 'name']).dropna().to_dict())
 
-        return row[1]
+        return result
 
     def extract(self):
         """from the initiated self.metrics, compute each row metrics (handles threading)
@@ -225,19 +203,30 @@ class Conversations(ABC):
         :rtype: pandas.DataFrame
         """
         if self.threads == 1:
-            self.metrics = pd.DataFrame(
-                [self._process_recording(row) for row in self.metrics.iterrows()]
+            full_annotations = pd.concat([self.retrieve_segments(rec) for rec in self.recordings])
+        else:
+            with mp.Pool(
+                    processes=self.threads if self.threads >= 1 else mp.cpu_count()
+            ) as pool:
+                full_annotations = pd.concat(pool.map(self.retrieve_segments, self.recordings))
+
+        conversations = full_annotations.groupby(['recording_filename', 'conv_count'])
+
+        if self.threads == 1:
+            self.conversations = pd.DataFrame(
+                [self._process_conversation(conversation) for group, conversation in conversations]
             )
         else:
             with mp.Pool(
                     processes=self.threads if self.threads >= 1 else mp.cpu_count()
             ) as pool:
-                self.metrics = pd.DataFrame(
-                    pool.map(self._process_recording, self.metrics.iterrows())
+                self.conversations = pd.DataFrame(
+                    pool.map(self._process_conversation, [conv for group, conv in conversations])
                 )
-        return self.metrics
 
-    def retrieve_segments(self, sets: List[str], row: str):
+        return self.conversations
+
+    def retrieve_segments(self, recording: str):
         """from a list of sets and a row identifying the unit computed, return the relevant annotation segments
 
         :param sets: List of annotation sets to keep
@@ -247,117 +236,30 @@ class Conversations(ABC):
         :return: relevant annotation DataFrame and index DataFrame
         :rtype: (pandas.DataFrame , pandas.DataFrame)
         """
-        # if extraction from segments, annotations are retrieved from get_within_ranges
-        if self.segments is not None:
-            matches = self.am.get_within_ranges(ranges=pd.DataFrame(
-                [[row['recording_filename'], row['segment_onset'], row['segment_offset']]],
-                columns=['recording_filename', 'range_onset', 'range_offset']),
-                sets=sets,
-                missing_data='warn')
-        # else prepare and use get_within_time_range
+        annotations = self.am.annotations[recording == self.am.annotations['recording_filename']]
+        annotations = annotations[annotations["set"] == self.set]
+        # restrict to time ranges
+        if self.from_time and self.to_time:
+            matches = self.am.get_within_time_range(
+                annotations, TimeInterval(self.from_time, self.to_time))
         else:
-            annotations = self.am.annotations[self.am.annotations[self.by] == row[self.by]]
-            annotations = annotations[annotations["set"].isin(sets)]
-            # restrict to time ranges
-            if self.from_time and self.to_time:
-                # add the periods columns
-                if self.period:
-                    st_hour = row["period_start"]
-                    end_hour = row["period_end"]
-                    intervals = time_intervals_intersect(TimeInterval(self.from_time, self.to_time),
-                                                         TimeInterval(st_hour, end_hour))
-                    matches = pd.concat([self.am.get_within_time_range(annotations, i) for i in intervals],
-                                        ignore_index=True) if intervals else pd.DataFrame()
-                else:
-                    matches = self.am.get_within_time_range(
-                        annotations, TimeInterval(self.from_time, self.to_time))
-            elif self.period:
-                # add the periods columns
-                st_hour = row["period_start"]
-                end_hour = row["period_end"]
-                matches = self.am.get_within_time_range(
-                    annotations, TimeInterval(st_hour, end_hour))
-            else:
-                matches = annotations
+            matches = annotations
 
         if matches.shape[0]:
             segments = self.am.get_segments(matches)
+            segments = segments.dropna(subset='conv_count')
         else:
             # no annotations for that unit
             return pd.DataFrame(), pd.DataFrame()
 
-        # prevent overflows
-        segments["duration"] = (
-            (segments["segment_offset"] - segments["segment_onset"])
-            .astype(float)
-            .fillna(0)
-        )
+        segments['recording_filename'] = recording
 
-        return matches, segments
+        #TODO check that required columns exist
 
-    def _initiate_metrics_df(self):
-        """builds a dataframe with all the rows necessary and their labels
-        eg : - one row per child if --by child_id and no --period
-             - 48 rows if 2 recordings in the corpus --period 1h --by recording_filename
-        Then the extract() method should populate the dataframe with actual metrics
-        """
-
-        recordings = self.project.get_recordings_from_list(self.recordings)
-        self.metrics = pd.DataFrame(recordings[self.by].unique(), columns=[self.by])
-        if self.period:
-            # if period, use the self.periods dataframe to build all the list of segments per unit
-            self.metrics[
-                "key"] = 0  # with old versions of pandas, we are forced to have a common column to do a cross join, we drop the column after
-            self.periods["key"] = 0
-            self.metrics = pd.merge(self.metrics, self.periods, on='key', how='outer').drop('key', axis=1)
-
-        # add info for child_id
-        self.metrics["child_id"] = self.metrics.apply(
-            lambda row: self.project.recordings[self.project.recordings[self.by] == row[self.by]
-                                                ]["child_id"].iloc[0],
-            axis=1)
-
-        # get and add to dataframe children.csv columns asked
-        if self.child_cols:
-            for label in self.child_cols:
-                self.metrics[label] = self.metrics.apply(lambda row:
-                                                         self.project.children[
-                                                             self.project.children["child_id"] == row["child_id"]
-                                                             ][label].iloc[0], axis=1)
-
-        # this loop is for the purpose of checking for name duplicates in the metrics
-        # we do a dry run on the first line with no annotations bc impractical to check in multiprocessing
-        df = pd.DataFrame()
-        duration_set = 0
-        names = set()
-        for i, line in self.metrics_list.iterrows():
-            name, value = line["callable"](df, duration_set, **line.drop(['callable', 'set'],
-                                                                         errors='ignore').dropna().to_dict())
-
-            if name in names:
-                raise ValueError('the metric name <{}> is used multiple times, make sure it is unique'.format(name))
-            else:
-                names.add(name)
-
-        # checking that columns added by the user are unique (e.g. date_iso may be different when extract by child_id), replace with NA if they are not
-        def check_unicity(row, label):
-            value = self.project.recordings[
-                self.project.recordings[self.by] == row[self.by]
-                ][label].drop_duplicates()
-            # check that there is only one row remaining (ie this column has a unique value for that unit)
-            if len(value) == 1:
-                return value.iloc[0]
-            # otherwise, leave the column as NA
-            else:
-                return np.nan
-
-        # get and add to dataframe recordings.csv columns asked
-        if self.rec_cols:
-            for label in self.rec_cols:
-                self.metrics[label] = self.metrics.apply(lambda row: check_unicity(row, label), axis=1)
+        return segments
 
 
-class CustomMetrics(Conversations):
+class CustomConversations(Conversations):
     """metrics extraction from a csv file.
     Extracts a number of metrics listed in a csv file as a dataframe.
     the csv file must contain the columns :
@@ -492,7 +394,7 @@ class LenaMetrics(Conversations):
         parser.add_argument("set", help="name of the LENA its annotations set")
 
 
-class AclewMetrics(Conversations):
+class AclewConversations(Conversations):
     """ACLEW metrics extractor.
     Extracts a number of metrics from the ACLEW pipeline annotations, which includes:
 
@@ -529,78 +431,22 @@ class AclewMetrics(Conversations):
     def __init__(
             self,
             project: ChildProject.projects.ChildProject,
-            vtc: str = "vtc",
-            alice: str = "alice",
-            vcm: str = "vcm",
+            setname: str = "vtc/conversations",
             recordings: Union[str, List[str], pd.DataFrame] = None,
             from_time: str = None,
             to_time: str = None,
             rec_cols: str = None,
             child_cols: str = None,
-            by: str = "recording_filename",
             threads: int = 1,
     ):
 
-        self.vtc = vtc
-        self.alice = alice
-        self.vcm = vcm
-
-        am = ChildProject.annotations.AnnotationManager(
-            project)  # temporary instance to check for existing sets. This is suboptimal because an annotation manager will be created by Metrics. However, the metrics class raises a ValueError for every set passed that does not exist, here we want to check in advance which of the alice and vcm sets exist without raising an error
-
         METRICS = np.array(
-            [["voc_speaker_ph", self.vtc, 'FEM'],
-             ["voc_speaker_ph", self.vtc, 'MAL'],
-             ["voc_speaker_ph", self.vtc, 'OCH'],
-             ["voc_speaker_ph", self.vtc, 'CHI'],
-             ["voc_dur_speaker_ph", self.vtc, 'FEM'],
-             ["voc_dur_speaker_ph", self.vtc, 'MAL'],
-             ["voc_dur_speaker_ph", self.vtc, 'OCH'],
-             ["voc_dur_speaker_ph", self.vtc, 'CHI'],
-             ["avg_voc_dur_speaker", self.vtc, 'FEM'],
-             ["avg_voc_dur_speaker", self.vtc, 'MAL'],
-             ["avg_voc_dur_speaker", self.vtc, 'OCH'],
-             ["avg_voc_dur_speaker", self.vtc, 'CHI'],
-             ["simple_CTC_ph", self.vtc, pd.NA],
+            [["conversation_onset", "conversation_onset", pd.NA],
              ])
 
-        if self.alice not in am.annotations["set"].values:
-            print(f"The ALICE set ('{self.alice}') was not found in the index.")
-        else:
-            METRICS = np.concatenate((METRICS, np.array(
-                [["wc_speaker_ph", self.alice, 'FEM'],
-                 ["wc_speaker_ph", self.alice, 'MAL'],
-                 ["sc_speaker_ph", self.alice, 'FEM'],
-                 ["sc_speaker_ph", self.alice, 'MAL'],
-                 ["pc_speaker_ph", self.alice, 'FEM'],
-                 ["pc_speaker_ph", self.alice, 'MAL'],
-                 ["wc_adu_ph", self.alice, pd.NA],
-                 ["sc_adu_ph", self.alice, pd.NA],
-                 ["pc_adu_ph", self.alice, pd.NA],
-                 ])))
+        METRICS = pd.DataFrame(METRICS, columns=["callable", "name", "speaker"])
 
-        if self.vcm not in am.annotations["set"].values:
-            print(f"The vcm set ('{self.vcm}') was not found in the index.")
-        else:
-            METRICS = np.concatenate((METRICS, np.array(
-                [["cry_voc_speaker_ph", self.vcm, 'CHI'],
-                 ["cry_voc_dur_speaker_ph", self.vcm, 'CHI'],
-                 ["avg_cry_voc_dur_speaker", self.vcm, 'CHI'],
-                 ["can_voc_speaker_ph", self.vcm, 'CHI'],
-                 ["can_voc_dur_speaker_ph", self.vcm, 'CHI'],
-                 ["avg_can_voc_dur_speaker", self.vcm, 'CHI'],
-                 ["non_can_voc_speaker_ph", self.vcm, 'CHI'],
-                 ["non_can_voc_dur_speaker_ph", self.vcm, 'CHI'],
-                 ["avg_non_can_voc_dur_speaker", self.vcm, 'CHI'],
-                 ["lp_n", self.vcm, pd.NA],
-                 ["lp_dur", self.vcm, pd.NA],
-                 ["cp_n", self.vcm, pd.NA],
-                 ["cp_dur", self.vcm, pd.NA],
-                 ])))
-
-        METRICS = pd.DataFrame(METRICS, columns=["callable", "set", "speaker"])
-
-        super().__init__(project, METRICS, by=by, recordings=recordings,
+        super().__init__(project, setname, METRICS, recordings=recordings,
                          from_time=from_time, to_time=to_time,
                          rec_cols=rec_cols, child_cols=child_cols,
                          threads=threads)
@@ -608,9 +454,7 @@ class AclewMetrics(Conversations):
     @staticmethod
     def add_parser(subparsers, subcommand):
         parser = subparsers.add_parser(subcommand, help="LENA metrics")
-        parser.add_argument("--vtc", help="vtc set", default="vtc")
-        parser.add_argument("--alice", help="alice set", default="alice")
-        parser.add_argument("--vcm", help="vcm set", default="vcm")
+        parser.add_argument("--set", help="set", default="vtc/conversations")
 
 
 class ConversationsPipeline(Pipeline):

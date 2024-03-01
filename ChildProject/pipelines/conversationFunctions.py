@@ -24,25 +24,15 @@ New metrics can be added by defining new functions for the Conversations class t
 
 !! Metrics functions should still behave and return the correct result when receiving an empty dataframe
 """
-
-# error message in case of missing columns in annotations
-MISSING_COLUMNS = 'The given set <{}> does not have the required column(s) <{}> for computing the {} metric'
-
-RESERVED = {'set', 'name', 'callable'}  # arguments reserved usage. use other keyword labels.
+RESERVED = {'name', 'callable'}  # arguments reserved usage. use other keyword labels.
 
 
-def conversationFunction(args: set, columns: Union[Set[str], Tuple[Set[str], ...]], empty_value=0, default_name: str = None):
+def conversationFunction(args: set = set()):
     """Decorator for all metrics functions to make them ready to be called by the pipeline.
 
     :param args: set of required keyword arguments for that function, raise ValueError if were not given \
     you cannot use keywords [name, callable, set] as they are reserved
     :type args: set
-    :param columns: required columns in the dataframe given, missing columns raise ValueError
-    :type columns: set
-    :param default_name: default name to use for the metric in the resulting dataframe. Every keyword argument found in the name will be replaced by its value (e.g. 'voc_speaker_ph' uses kwarg 'speaker' so if speaker = 'CHI', name will be 'voc_chi_ph'). if no name is given, the __name__ of the function is used
-    :type default_name: str
-    :param empty_value: value to return when annotations are empty but the unit was annotated (e.g. 0 for counts like voc_speaker_ph , None for proportions like lp_n)
-    :type empty_value: float|int
     :return: new function to substitute the metric function
     :rtype: Callable
     """
@@ -56,90 +46,87 @@ def conversationFunction(args: set, columns: Union[Set[str], Tuple[Set[str], ...
                         function.__name__, a, RESERVED))
 
         @functools.wraps(function)
-        def new_func(annotations: pd.DataFrame, duration: int, **kwargs):
+        def new_func(annotations: pd.DataFrame, **kwargs):
             for arg in args:
                 if arg not in kwargs:
                     raise ValueError(f"{function.__name__} metric needs an argument <{arg}>")
-            # if a name is explicitly given, use it
-            if 'name' in kwargs and not pd.isnull(kwargs['name']) and kwargs['name']:
-                metric_name = kwargs['name']
-            # else if a default name for the function exists, use the function name
-            elif default_name:
-                metric_name = default_name
-            # else, no name was found, use the name of the function
-            else:
-                metric_name = function.__name__
 
-            metric_name_replaced = metric_name
-            # metric_name is the basename used to designate this metric (voc_speaker_ph),
-            # metric_name_replaced replaces the values of kwargs
-            # found in the name by their values, giving the metric name for that instance only (voc_chi_ph)
-            for arg in kwargs:
-                metric_name_replaced = re.sub(arg, str(kwargs[arg]).lower(), metric_name_replaced)
-            if annotations.shape[0]:
-                # if multiple possibilities of columns, explore each and fail only if each combination is missing
-                # a column, if one possibility, fail if a column is missing
-                if isinstance(columns, tuple) and len(columns) > 0 and isinstance(columns[0], set):
-                    missing_columns = []
-                    for possible_cols in columns:
-                        possible_missing = possible_cols - set(annotations.columns)
-                        if possible_missing:
-                            missing_columns.append(possible_missing)
-                    # if we have as many cases of missing columns as possibilities, we can't compute the metric
-                    if len(missing_columns) == len(columns):
-                        raise ValueError(
-                            MISSING_COLUMNS.format(annotations['set'].iloc[0],
-                                                   ' or '.join([str(s) for s in missing_columns]),
-                                                   metric_name))
-                else:
-                    missing_columns = columns - set(annotations.columns)
-                    if missing_columns:
-                        raise ValueError(
-                            MISSING_COLUMNS.format(annotations['set'].iloc[0], missing_columns, metric_name))
-                res = function(annotations, duration, **kwargs)
-            else:  # no annotation for that unit
-                res = empty_value if duration else None  # duration != 0 => was annotated but not segments there
-            return metric_name_replaced, res
+            res = function(annotations, **kwargs)
+
+            return res
 
         return new_func
 
     return decorator
 
-@conversationFunction(set(), {"speaker_type", "conv_count", "duration"}, np.nan)
+@conversationFunction()
+def conversation_onset(annotations: pd.DataFrame):
+    return annotations.reset_index().iloc[0]['segment_onset']
+
+@conversationFunction()
+def conversation_offset(annotations: pd.DataFrame):
+    return annotations.reset_index().iloc[-1]['segment_offset']
+
+@conversationFunction()
+def conversation_duration(annotations: pd.DataFrame):
+    return annotations.reset_index().iloc[-1]['segment_offset'] - annotations.reset_index().iloc[0]['segment_onset']
+
+@conversationFunction()
+def vocalisations_count(annotations: pd.DataFrame):
+    return annotations['speaker_type'].count()
+
+@conversationFunction()
+def who_initiated(annotations: pd.DataFrame):
+    return annotations.reset_index().iloc[0]['speaker_type']
+
+@conversationFunction()
+def who_finished(annotations: pd.DataFrame):
+    return annotations.reset_index().iloc[-1]['speaker_type']
+
+@conversationFunction()
+def total_duration_of_vocalisations(annotations: pd.DataFrame):
+    return annotations['voc_duration'].sum()
+
+@conversationFunction({'speaker'})
 def is_speaker(annotations: pd.DataFrame, **kwargs):
     return kwargs["speaker"] in annotations['speaker_type'].tolist()
 
-@conversationFunction(set(), {"speaker_type", "conv_count", "duration"}, np.nan)
+@conversationFunction({'speaker'})
 def voc_counter(annotations: pd.DataFrame, **kwargs):
     return annotations[annotations['speaker_type'] == kwargs["speaker"]]['speaker_type'].count()
 
-@conversationFunction(set(), {"speaker_type", "conv_count", "duration"}, np.nan)
+@conversationFunction({'speaker'})
 def voc_total(annotations: pd.DataFrame, **kwargs):
     return annotations[annotations['speaker_type'] == kwargs["speaker"]]['voc_duration'].sum(min_count=1)
 
-@conversationFunction(set(), {"speaker_type", "conv_count", "duration"}, np.nan)
-def assign_conv_type(conv):
-    if not conv['CHI_present']:
+@conversationFunction()
+def assign_conv_type(annotations: pd.DataFrame, **kwargs):
+    speaker_present = {}
+    for speaker in ['CHI', 'FEM', 'MAL', 'OCH']:
+        speaker_present[speaker] = speaker in annotations['speaker_type'].tolist()
+    speaker_df = pd.DataFrame.from_dict(speaker_present)
+
+    if not speaker_df['CHI']:
         return 'overheard'
-    elif conv['CHI_present']:
-        if not conv['OCH_present'] and conv[['FEM_present', 'MAL_present']].sum() == 1:
-            if conv['FEM_present']:
+    elif speaker_df['CHI']:
+        if not speaker_df['OCH'] and speaker_df[['FEM', 'MAL']].sum() == 1:
+            if speaker_df['FEM']:
                 return 'dyadic_FEM'
-            if conv['MAL_present']:
+            if speaker_df['MAL']:
                 return 'dyadic_MAL'
-        if conv['OCH_present'] and conv[['FEM_present', 'MAL_present']].sum() == 0:
+        if speaker_df['OCH'] and speaker_df[['FEM', 'MAL']].sum() == 0:
             return 'peer'
-        if not conv['OCH_present'] and conv[['FEM_present', 'MAL_present']].sum() == 2:
+        if not speaker_df['OCH'] and speaker_df[['FEM', 'MAL']].sum() == 2:
             return 'parent'
-        if conv['OCH_present'] and conv[['FEM_present', 'MAL_present']].sum() == 1:
-            if conv['FEM_present']:
+        if speaker_df['OCH'] and speaker_df[['FEM', 'MAL']].sum() == 1:
+            if speaker_df['FEM']:
                 return 'triadic_FEM'
-            if conv['MAL_present']:
+            if speaker_df['MAL']:
                 return 'triadic_MAL'
-        if conv[['OCH_present', 'FEM_present', 'MAL_present']].sum() == 3:
+        if speaker_df[['OCH', 'FEM', 'MAL']].sum() == 3:
             return 'multiparty'
     return np.nan()
-# @conversationFunction(set(), {"speaker_type", "conv_count", "duration"}, np.nan)
+# @conversationFunction(set())
 # def voc_average(annotations: pd.DataFrame, **kwargs):
 #     return annotations[annotations['speaker_type'] == kwargs["speaker"]]['voc_duration'].mean()
 
