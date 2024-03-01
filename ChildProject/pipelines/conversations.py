@@ -195,6 +195,9 @@ class Conversations(ABC):
             curr_set = line["set"]
             if prev_set != curr_set:
                 index, annotations = self.retrieve_segments([curr_set], row[1])
+                # Change the annotations dataframe, i.e. group by conversations
+                annotations = annotations.dropna(subset='conv_count')
+                annotations['voc_duration'] = annotations['segment_offset'] - annotations['segment_onset']
                 if index.shape[0]:
                     duration_set = (
                             index["range_offset"] - index["range_onset"]
@@ -204,8 +207,12 @@ class Conversations(ABC):
                 row[1]["duration_{}".format(line["set"])] = duration_set
                 prev_set = curr_set
 
-            name, value = line["callable"](annotations, duration_set,
-                                           **line.drop(['callable', 'set']).dropna().to_dict())
+            # name, value = line["callable"](annotations, duration_set,
+            #                                **line.drop(['callable', 'set']).dropna().to_dict())
+            name, value = annotations.groupby('conv_count').apply(
+                lambda conv: line["callable"](conv, duration_set,
+                                             **line.drop(['callable', 'set']).dropna().to_dict()))
+
             row[1][name] = value
 
         return row[1]
