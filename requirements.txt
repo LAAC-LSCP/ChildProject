@@ -14,7 +14,8 @@ panoptes-client==1.6.1
 praat-parselmouth==0.4.3
 pyannote.core==5.0.0
 pydub==0.25.1
-pygamma-agreement==0.5.9
+pygamma-agreement==0.5.6; python_version <= '3.7'
+pygamma-agreement==0.5.9; python_version > '3.7'
 pylangacq==0.17.0
 pympi-ling==1.70.2
 pytest==7.4.4
