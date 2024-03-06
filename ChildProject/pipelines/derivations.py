@@ -5,13 +5,22 @@ import pandas as pd
 def acoustics():
     pass
 
+
+INTERACTIONS = {
+    'CHI': {'FEM', 'MAL', 'OCH', 'CHI'},
+    'FEM': {'FEM', 'MAL', 'OCH', 'CHI'},
+    'MAL': {'FEM', 'MAL', 'OCH', 'CHI'},
+    'OCH': {'FEM', 'MAL', 'OCH', 'CHI'},
+}
+# Work in progress, method and parameters may evolve
 def conversations(annotations: pd.DataFrame,
-                  interlocutors_1=('CHI',),
-                  interlocutors_2=('FEM', 'MAL', 'OCH'),
+                  interactions = INTERACTIONS,
                   max_interval=5000,
                   min_delay=0):
 
-    """
+    """ The function takes a dataframe of annotations as an input and based on the given interval and delay, classifies
+    whether each annotation is a part of the conversation. Then adds a column grouping vocalisations which belong to
+    the same conversation
 
     :param annotations: dataframe of annotations
     :type annotations: DataFrame
@@ -27,16 +36,7 @@ def conversations(annotations: pd.DataFrame,
     :return: output annotation dataframe
     :rtype: DataFrame
     """
-
-    speakers = set(interlocutors_1 + interlocutors_2)
-
-    interactants = {k: set(interlocutors_2) for k in interlocutors_1}
-
-    for k in interlocutors_2:
-        if k in interactants:
-            interactants[k] = interactants[k] | set(interlocutors_1)
-        else:
-            interactants[k] = set(interlocutors_1)
+    speakers = set(interactions.keys())
 
     annotations = annotations[annotations["speaker_type"].isin(speakers)].copy()
 
@@ -53,7 +53,7 @@ def conversations(annotations: pd.DataFrame,
         # not using absolute value for 'iti' is a choice and should be evaluated (we allow speakers to 'interrupt'
         # themselves
         annotations["is_CT"] = (
-                (annotations.apply(lambda row: row["prev_speaker_type"] in interactants[row['speaker_type']], axis=1))
+                (annotations.apply(lambda row: row["prev_speaker_type"] in interactions[row['speaker_type']], axis=1))
                 &
                 (annotations['iti'] < max_interval)
                 &
