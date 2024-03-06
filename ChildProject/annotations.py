@@ -715,21 +715,19 @@ class AnnotationManager:
     def _derive_annotation(
             self,
             annotation: dict,
-            import_function: Callable[[str], pd.DataFrame],
+            import_function: Callable,
             output_set: str,
             overwrite_existing: bool = False,
     ):
         """import and convert ``annotation``. This function should not be called outside of this class.
 
-        :param import_function: If callable, ``import_function`` will be called to convert the input annotation into a dataframe. Otherwise, the conversion will be performed by a built-in function.
+        :param annotation: input annotation dictionary (attributes defined according to :ref:`ChildProject.annotations.AnnotationManager.SEGMENTS_COLUMNS`)
+        :type annotation: dict
+        :param import_function: derivation function to apply to the original set. This can be a python function or a string name of a stored method in .pipelines.derivations.DERIVATIONS .
         :type import_function: Callable[[str], pd.DataFrame]
         :param output_set: name of the new set of derived annotations
         :type output_set: str
-        :param params: Optional parameters. With ```new_tiers```, the corresponding EAF tiers will be imported
-        :type params: dict
-        :param annotation: input annotation dictionary (attributes defined according to :ref:`ChildProject.annotations.AnnotationManager.SEGMENTS_COLUMNS`)
-        :type annotation: dict
-        :param overwrite_existing: choose if lines with the same set and annotation_filename should be overwritten
+        :param overwrite_existing: use for lines with the same set and annotation_filename to be rederived and overwritten
         :type overwrite_existing: bool
         :return: output annotation dictionary (attributes defined according to :ref:`ChildProject.annotations.AnnotationManager.SEGMENTS_COLUMNS`)
         :rtype: dict
@@ -754,7 +752,7 @@ class AnnotationManager:
                 logger_annotations.warning("Derived file %s will be overwritten", output_filename)
 
             else:
-                logger_annotations.warning("File %s already exists. To overwrite, specify parameter ''overwrite_existing''", output_filename)
+                logger_annotations.warning("File %s already exists. To overwrite, specify parameter ''overwrite_existing'' to True", output_filename)
                 return annotation_result
 
         # find if there are annotation indexes in the same set that overlap the new annotation
@@ -771,7 +769,7 @@ class AnnotationManager:
                 ovl_annots[['set', 'recording_filename', 'range_onset', 'range_offset']].itertuples(index=False,
                                                                                                     name=None))
             annotation_result[
-                "error"] = f"derivation for set <{output_set}> recording <{annotation['recording_filename']}> from {annotation['range_onset']} to {annotation['range_offset']} cannot continue because it overlaps with these existing annotation lines: {array_tup}"
+                "error"] = f"derivation for set <{output_set}> recording <{annotation['recording_filename']}> from {annotation['range_onset']} to {annotation['range_offset']} cannot continue because it overlaps with these existing annotation lines: {array_tup} . You could try removing entirely the set and trying again."
             logger_annotations.error("Error: %s", annotation['error'])
             # (f"Error: {annotation['error']}")
             annotation_result["imported_at"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -785,26 +783,34 @@ class AnnotationManager:
             annotation["annotation_filename"],
         )
 
-        #TODO CHECK FOR DTYPES
+        #TODO CHECK FOR DTYPES, enforcing dtypes of converted annotation files will become standard in a future update
         df_input = pd.read_csv(path)
         df = None
 
-        try:
-            if callable(import_function):
-                df = import_function(df_input)
-            elif import_function in DERIVATIONS.keys():
-                df = DERIVATIONS[import_function](df_input)
-            else:
-                raise ValueError(
-                    "derivation value '{}' unknown, use one of {}".format(import_function, DERIVATIONS.keys())
-                )
-        except:
-            annotation["error"] = traceback.format_exc()
+        def bad_derivation(annotation_result, msg, error, path):
+            annotation_result["error"] = traceback.format_exc()
             logger_annotations.error("An error occurred while processing '%s'", path, exc_info=True)
-
-        if df is None or not isinstance(df, pd.DataFrame):
             annotation_result["imported_at"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             return annotation_result
+
+
+        # apply the derivation to the annotation dataframe
+        # if the derivation raises an exception stop the processing there and return the line
+        try:
+            df = import_function(df_input)
+        except Exception as e:
+            return bad_derivation(annotation_result, e, traceback.format_exc(), path)
+
+        # if the derivation function did not return a dataframe, stop there and return the line
+        if df is None or not isinstance(df, pd.DataFrame):
+            msg = f"{import_function.__name__} did not return a pandas DataFrame"
+            return bad_derivation(annotation_result, msg, msg, path)
+
+        # if the derivation does not contain the required columns of annotations
+        if not {c.name for c in self.SEGMENTS_COLUMNS if c.required}.issubset(df.columns):
+            required = {c.name for c in self.SEGMENTS_COLUMNS if c.required}
+            msg = f"DataFrame result of {import_function.__name__} function does not contain the required {required}"
+            return bad_derivation(annotation_result, msg, msg, path)
 
         if not df.shape[1]:
             df = pd.DataFrame(columns=[c.name for c in self.SEGMENTS_COLUMNS])
@@ -851,7 +857,8 @@ class AnnotationManager:
                            threads: int = -1,
                            overwrite_existing: bool = False,
                            ) -> (pd.DataFrame, pd.DataFrame):
-        """Derive annotations.
+        """Derive annotations. From an existing set of annotations, create a new set that derive its result from
+        the original set
 
         :param input_set: name of the set of annotations to be derived
         :rtype: str
@@ -867,9 +874,19 @@ class AnnotationManager:
         :rtype: tuple (pd.DataFrame, pd.DataFrame)
         """
         input_processed = self.annotations[self.annotations['set'] == input_set].copy()
-        assert not input_processed.empty, "Input set {0} does not exist".format(input_set)
+        assert not input_processed.empty, "Input set {0} does not exist,\
+         existing sets are in the 'set' column of annotations.csv".format(input_set)
+
+        if not callable(derivation_function):
+            if derivation_function in DERIVATIONS.keys():
+                derivation_function = DERIVATIONS[derivation_function]
+            else:
+                raise ValueError(
+                    "derivation value '{}' unknown, use one of {}".format(derivation_function, DERIVATIONS.keys())
+                )
 
         if threads == 1:
+            # apply the derivation function to each annotation file that needs to be derived (sequential)
             imported = input_processed.apply(
                 partial(self._derive_annotation,
                         import_function=derivation_function,
@@ -878,7 +895,7 @@ class AnnotationManager:
                         ), axis=1
             ).to_dict(orient="records")
         else:
-
+            # apply the derivation function to each annotation file that needs to be derived (threaded)
             with mp.Pool(processes=threads if threads > 0 else mp.cpu_count()) as pool:
                 imported = pool.map(
                     partial(self._derive_annotation,
@@ -890,13 +907,16 @@ class AnnotationManager:
                 )
 
         imported = pd.DataFrame(imported)
+        # drop additional columns that are not supposed to be kept in annotations.csv
         imported.drop(
             list(set(imported.columns) - {c.name for c in self.INDEX_COLUMNS}),
             axis=1,
             inplace=True,
         )
 
+        # if at least 1 error occured
         if 'error' in imported.columns:
+            # separate importations that resulted in error from successful ones
             errors = imported[~imported["error"].isnull()]
             imported = imported[imported["error"].isnull()]
             # when errors occur, separate them in a different csv in extra
@@ -917,6 +937,10 @@ class AnnotationManager:
         self.write()
 
         sets = set(input_processed['set'].unique())
+
+        # this block should be executed everytime we change annotations.csv
+        # it checks that sets that are derived or merged from others are not outdated
+        # (meaning their importation is more recent than the merge/derivation)
         outdated_sets = self._check_for_outdated_merged_sets(sets=sets)
         for warning in outdated_sets:
             logger_annotations.warning("warning: %s", warning)
