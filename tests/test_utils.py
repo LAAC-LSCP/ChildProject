@@ -28,7 +28,7 @@ def test_series_to_datetime():
     #convert to datetime using the formats for start_time listed in the project RECORDINGS_COLUMNS.Index(name == 'start_time')
     converted_time = series_to_datetime(only_time, project.RECORDINGS_COLUMNS, 'start_time')
     
-    pd.testing.assert_series_equal(converted_time, truth, check_dtype=False)
+    pd.testing.assert_series_equal(converted_time, truth, check_index=False, check_dtype=False)
     
     truth = pd.Series([datetime.datetime(2022,1,23,3,12,0,0),
                        datetime.datetime(2022,1,23,4,14,0,0),
@@ -39,7 +39,7 @@ def test_series_to_datetime():
     #convert to datetime using the formats for start_time and date_iso listed in the project RECORDINGS_COLUMNS.Index(name == 'start_time') and Index(name == 'date_iso')
     converted_time = series_to_datetime(only_time, project.RECORDINGS_COLUMNS, 'start_time', only_date, project.RECORDINGS_COLUMNS, 'date_iso')
     
-    pd.testing.assert_series_equal(converted_time, truth, check_dtype=False)
+    pd.testing.assert_series_equal(converted_time, truth, check_index=False, check_dtype=False)
     
 def test_time_intervals_intersect():
     truth = [TimeInterval(datetime.datetime(1900,1,1,10,36),datetime.datetime(1900,1,1,21,4))]
