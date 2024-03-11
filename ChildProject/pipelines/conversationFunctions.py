@@ -25,7 +25,12 @@ New metrics can be added by defining new functions for the Conversations class t
 !! Metrics functions should still behave and return the correct result when receiving an empty dataframe
 """
 RESERVED = {'name', 'callable'}  # arguments reserved usage. use other keyword labels.
-
+#TODO
+# 1. Start and end time of each conversation in the recording
+# 2. Duration of time between conversations (e.g., time between Convo 1 and Convo 2)
+# 3. Key Child ID (i.e., some identifier for the key child in the data set)
+# 4. Recording ID (i.e., which of the Key Child's recordings is this, if the Key Child has multiple recordings)
+# 5. A string with a list of speaker tags in the conversation (e.g., "CHI, FEM, OCH")
 
 def conversationFunction(args: set = set()):
     """Decorator for all metrics functions to make them ready to be called by the pipeline.
