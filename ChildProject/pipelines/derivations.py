@@ -59,7 +59,7 @@ def get_pitch(audio_time_series, sampling_rate, func=None):
             "pitch_range_{}".format(pitch_type): p95_pitch - p5_pitch}
 
 def acoustics(project,
-              metadata: pd.Series,
+              metadata: dict,
               annotations: pd.DataFrame,
               profile=STANDARD_PROFILE,
               target_sr=STANDARD_SAMPLE_RATE,
@@ -113,7 +113,7 @@ INTERACTIONS = {
 }
 # Work in progress, method and parameters may evolve
 def conversations(project,
-                  metadata: pd.Series,
+                  metadata: dict,
                   annotations: pd.DataFrame,
                   interactions=INTERACTIONS,
                   max_interval=5000,
@@ -173,7 +173,94 @@ def conversations(project,
         return pd.DataFrame([])
 
 
+def remove_overlaps(project,
+                    metadata: dict,
+                    annotations,
+                    speakers=['CHI', 'OCH', 'FEM', 'MAL'],
+                    ):
+    """takes a pandas dataframe of annotations containing at least the columns
+    speaker_type segment_onset and segment_offset.
+    Cuts the vocalizations to discard any part that has overlapping speech
+    return the new dataframe of annotations
+
+    :param df: Dataframe of annotations with speaker_type, segment_onset and
+    segment_offset
+    :type df: pd.DataFrame
+    :param speakers: list of speakers to consider in speaker_type column,
+    all the others will be completely ignored and removed (useful to remove
+    <SPEECH> label for example)
+    :type speakers: list[str]
+    """
+    # restrict to wanted speakers  (remove SPEECH)
+    annotations = annotations[annotations['speaker_type'].isin(speakers)]
+    segments = annotations.sort_values(['segment_onset', 'segment_offset'])
+
+    # initiate a new dataframe to concat into
+    new_segments = pd.DataFrame(columns=segments.columns)
+
+    for i, row in segments.iterrows():
+        # print('new seg')
+        # print(pd.DataFrame(row).transpose())
+
+        # select all segments that overlap with the current vocalization
+        overlapping_segments = segments[(segments['segment_onset'] < row['segment_offset']) &
+                                        (segments['segment_offset'] > row['segment_onset']) &
+                                        (segments.index != i)].sort_values('segment_onset')
+
+        overlaps = []
+        index = 0
+
+        # squash overlapping into a single timeline:
+        # we take the list of segments that are overlapping with the original segment
+        # then we merge them to form a continuous 'times where overlaps exist' timeline
+        while index < overlapping_segments.shape[0]:
+            if index == 0 or (overlapping_segments.iloc[index]['segment_onset'] > overlaps[-1][1]):
+                overlaps.append((overlapping_segments.iloc[index]['segment_onset'],
+                                 overlapping_segments.iloc[index]['segment_offset']))
+            elif (overlapping_segments.iloc[index]['segment_onset'] <= overlaps[-1][1] and
+                  overlapping_segments.iloc[index]['segment_offset'] > overlaps[-1][1]):
+                overlaps[-1] = (overlaps[-1][0], overlapping_segments.iloc[index]['segment_offset'])
+            index += 1
+
+        new_seg = pd.DataFrame(row.copy()).transpose()
+
+        # Using the 'overlapping timeline' created previously, edit the original vocalization:
+        # for every overlap segment, reconstruct the vocalization by removing overlapping parts
+        for ovl in overlaps:
+            # print('new ovl')
+            # print(ovl)
+            index = 0
+            while index < new_seg.shape[0]:
+                # print(index)
+                if ovl[0] < new_seg.iloc[index]['segment_offset'] and ovl[1] > new_seg.iloc[index]['segment_onset']:
+                    if ovl[0] <= new_seg.iloc[index]['segment_onset']:
+                        if ovl[1] >= new_seg.iloc[index]['segment_offset']:
+                            new_seg.drop(new_seg.iloc[index].name, inplace=True)
+                            index -= 1
+                        else:
+                            new_seg.iloc[index]['segment_onset'] = ovl[1]
+                    else:
+                        mem_offset = new_seg.iloc[index]['segment_offset']
+                        new_seg.iloc[index]['segment_offset'] = ovl[0]
+                        if ovl[1] < mem_offset:
+                            seg = pd.DataFrame(row.copy()).transpose()
+                            seg['segment_onset'] = ovl[1]
+                            seg['segment_offset'] = mem_offset
+                            new_seg = pd.concat([new_seg.iloc[:index + 1],
+                                                 seg,
+                                                 new_seg.iloc[index + 1:]]
+                                                ).reset_index(drop=True)
+                # else:
+                # print('skip {} {}'.format(new_seg.iloc[index]['segment_onset'],new_seg.iloc[index]['segment_offset']))
+                index += 1
+
+        new_segments = pd.concat([new_segments, new_seg]).reset_index(drop=True)
+
+    return new_segments
+
+
 DERIVATIONS = {
     "acoustics": acoustics,
     "conversations": conversations,
+    "remove-overlaps": remove_overlaps,
 }
