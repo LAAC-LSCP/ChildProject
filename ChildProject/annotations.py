@@ -787,17 +787,23 @@ class AnnotationManager:
         df_input = pd.read_csv(path)
         df = None
 
-        def bad_derivation(annotation_result, msg, error, path):
-            annotation_result["error"] = traceback.format_exc()
-            logger_annotations.error("An error occurred while processing '%s'", path, exc_info=True)
-            annotation_result["imported_at"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            return annotation_result
+        def bad_derivation(annotation_dict, msg_err, error, path_file):
+            annotation_dict["error"] = traceback.format_exc()
+            logger_annotations.error("An error occurred while processing '%s': %s", path_file, msg_err, exc_info=True)
+            annotation_dict["imported_at"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            return annotation_dict
 
+        # get all the metadata into a single dictionary for the derivation function
+        rec_dict = self.project.recordings[
+            self.project.recordings['recording_filename'] == annotation['recording_filename']].iloc[0].to_dict()
+        chi_dict = self.project.children[
+            self.project.children['child_id'] == rec_dict['child_id']].iloc[0].to_dict()
+        metadata = {**chi_dict, **rec_dict, **annotation}
 
         # apply the derivation to the annotation dataframe
         # if the derivation raises an exception stop the processing there and return the line
         try:
-            df = import_function(df_input)
+            df = import_function(self.project, metadata, df_input)
         except Exception as e:
             return bad_derivation(annotation_result, e, traceback.format_exc(), path)
 
