@@ -1,5 +1,10 @@
 import subprocess
+import pytest
+import os
+import shutil
+from pathlib import Path
 
+PATH = Path("output/cli")
 
 def cli(cmd):
     process = subprocess.Popen(cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
@@ -7,49 +12,60 @@ def cli(cmd):
     exit_code = process.wait()
     return stdout, stderr, exit_code
 
+@pytest.fixture(scope="function")
+def project(request):
+    if os.path.exists(PATH):
+        # shutil.copytree(src="examples/valid_raw_data", dst=PATH)
+        shutil.rmtree(PATH)
+    shutil.copytree(src="examples/valid_raw_data", dst=PATH)
 
-def test_validate():
+    project = 1
+
+    yield project
+
+
+def test_validate(project):
     stdout, stderr, exit_code = cli(
-        ["child-project", "validate", "examples/valid_raw_data"]
+        ["child-project", "validate", PATH]
     )
     assert exit_code == 0
 
 
-def test_overview():
+def test_overview(project):
     stdout, stderr, exit_code = cli(
-        ["child-project", "overview", "examples/valid_raw_data"]
+        ["child-project", "overview", PATH]
     )
     assert exit_code == 0
 
 
-def test_import_annotations():
+def test_import_annotations(project):
     stdout, stderr, exit_code = cli(
         [
             "child-project",
             "import-annotations",
-            "examples/valid_raw_data",
+            PATH,
             "--annotations",
             "examples/valid_raw_data/annotations/input_short.csv",
         ]
     )
     assert exit_code == 0
 
-def test_compute_durations():
+def test_compute_durations(project):
     stdout, stderr, exit_code = cli(
         [
             "child-project",
             "compute-durations",
-            "examples/valid_raw_data"
+            PATH
         ]
     )
     assert exit_code == 0
 
-def test_explain():
+def test_explain(project):
     stdout, stderr, exit_code = cli(
         [
             "child-project",
             "explain",
-            "examples/valid_raw_data",
+            PATH,
             "notes"
         ]
     )
@@ -59,18 +75,18 @@ def test_explain():
         [
             "child-project",
             "explain",
-            "examples/valid_raw_data",
+            PATH,
             "non-existent-variable"
         ]
     )
     assert exit_code == 0
     
-def test_compare_recordings():
+def test_compare_recordings(project):
     stdout, stderr, exit_code = cli(
         [
             "child-project",
             "compare-recordings",
-            "examples/valid_raw_data",
+            PATH,
             "sound.wav",
             "sound2.wav",
             "--interval",

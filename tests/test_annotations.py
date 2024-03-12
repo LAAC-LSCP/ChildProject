@@ -31,11 +31,6 @@ def project(request):
         shutil.rmtree("output/annotations")
     shutil.copytree(src="examples/valid_raw_data", dst="output/annotations")
 
-    if os.path.isfile("output/annotations/metadata/annotations.csv"):
-        os.remove("output/annotations/metadata/annotations.csv")
-    for raw_annotation in glob.glob("output/annotations/annotations/*/converted"):
-        shutil.rmtree(raw_annotation)
-
     project = ChildProject("output/annotations")
 
     yield project
@@ -167,12 +162,14 @@ def test_rejected_imports(project, nline, column, value, exception, error):
 
 
 def test_import(project, am):
+    am.read()
+    original_number = am.annotations.shape[0]
     input_annotations = pd.read_csv("examples/valid_raw_data/annotations/input.csv")
     am.import_annotations(input_annotations)
-    am.read()
+
 
     assert (
-            am.annotations.shape[0] == input_annotations.shape[0]
+            am.annotations.shape[0] == input_annotations.shape[0] + original_number
     ), "imported annotations length does not match input"
 
     assert all(
@@ -222,15 +219,16 @@ def test_import(project, am):
                           ("input_import_duration_overflow.csv", False, None, None, AssertionError),
                           ])
 def test_multiple_imports(project, am, input_file, ow, rimported, rerrors, exception):
+    am.read()
+    original_number = am.annotations.shape[0]
     input_file = os.path.join(DATA, input_file)
 
     input_annotations = pd.read_csv("examples/valid_raw_data/annotations/input.csv")
 
     am.import_annotations(input_annotations)
-    am.read()
 
     assert (
-            am.annotations.shape[0] == input_annotations.shape[0]
+            am.annotations.shape[0] == input_annotations.shape[0] + original_number
     ), "first importation did not complete successfully"
 
     second_input = pd.read_csv(input_file)
@@ -287,6 +285,39 @@ def test_multiple_imports(project, am, input_file, ow, rimported, rerrors, excep
         print(warnings)
         assert len(errors) == 0 and len(warnings) == 0, "malformed annotation indexes detected"
 
+
+@pytest.mark.parametrize("input_set",
+                         [(1)]
+                         )
+def test_derive(project, am, input_set):
+    pass
+
+
+# function used as a derivation function, it should throw errors if not returning dataframe or without required columns
+def dv_func(a, b, x, type):
+    if type == 'number':
+        return 1
+    elif type == 'columns':
+        return pd.DataFrame([],columns=['segment_onset','segment_offset'])
+    elif type == 'normal':
+        return x
+
+
+# function used for derivation but does not hav correct signature
+def bad_func(a, b):
+    return b
+@pytest.mark.parametrize("input_set,function,output_set,ow,error",
+                         [("missing", partial(dv_func,type='normal'), "output", False, AssertionError),
+                          ("derivation", partial(dv_func,type='number'), "output", False, None),
+                          ("derivation", partial(dv_func,type='columns'), "output", False, None),
+                          ("derivation", bad_func, "output", False, None),
+                          ("derivation", partial(dv_func,type='normal'), "derivation", False, AssertionError),
+                          ("input_reimport.csv", True, "imp_reimport_ow.csv", None, None),
+                          ("input_importoverlaps.csv", False, "imp_overlap.csv", "err_overlap.csv", None),
+                          ("input_import_duration_overflow.csv", False, None, None, AssertionError),
+                          ])
+def test_derive_inputs(project, am, input_set, function, output_set, ow, error):
+    pass
 
 def test_intersect(project, am):
     input_annotations = pd.read_csv("examples/valid_raw_data/annotations/intersect.csv")
