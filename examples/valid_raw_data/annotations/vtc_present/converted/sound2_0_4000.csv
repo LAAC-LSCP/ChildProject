@@ -1,0 +1,17 @@
+segment_onset,segment_offset,speaker_type,raw_filename
+0,342,CHI,example.rttm
+113,486,FEM,example.rttm
+200,901,OCH,example.rttm
+782,1421,MAL,example.rttm
+1401,1753,NA,example.rttm
+203,1000,CHI,example.rttm
+1200,1656,OCH,example.rttm
+1350,2111,MAL,example.rttm
+1821,2324,FEM,example.rttm
+2301,2845,NA,example.rttm
+2556,2890,CHI,example.rttm
+2901,3205,FEM,example.rttm
+3056,3457,OCH,example.rttm
+3301,3654,MAL,example.rttm
+3456,3705,NA,example.rttm
+3900,3987,CHI,example.rttm
