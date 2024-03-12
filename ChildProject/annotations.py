@@ -883,6 +883,9 @@ class AnnotationManager:
         assert not input_processed.empty, "Input set {0} does not exist,\
          existing sets are in the 'set' column of annotations.csv".format(input_set)
 
+        assert input_set != output_set, "Input set {0} should be different than output\
+         set {1}".format(input_set, output_set)
+
         # check the existence of the derivation function and that it is callable or predefined
         if not callable(derivation_function):
             if derivation_function in DERIVATIONS.keys():
