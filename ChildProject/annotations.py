@@ -883,6 +883,7 @@ class AnnotationManager:
         assert not input_processed.empty, "Input set {0} does not exist,\
          existing sets are in the 'set' column of annotations.csv".format(input_set)
 
+        # check the existence of the derivation function and that it is callable or predefined
         if not callable(derivation_function):
             if derivation_function in DERIVATIONS.keys():
                 derivation_function = DERIVATIONS[derivation_function]
@@ -920,7 +921,7 @@ class AnnotationManager:
             inplace=True,
         )
 
-        # if at least 1 error occured
+        # if at least 1 error occurred
         if 'error' in imported.columns:
             # separate importations that resulted in error from successful ones
             errors = imported[~imported["error"].isnull()]
@@ -934,6 +935,7 @@ class AnnotationManager:
         else:
             errors = None
 
+        # here we add the new lines of imported annotations to the annotations.csv file
         self.read()
         self.annotations = pd.concat([self.annotations, imported], sort=False)
         # at this point, 2 lines with same set and annotation_filename can happen if specified overwrite,

@@ -358,8 +358,9 @@ def test_within_ranges(project, am):
     try:
         am.get_within_ranges(ranges, ["matching"], "raise")
     except Exception as e:
-        if str(e) == "annotations from set 'matching' do not cover the whole selected range for recording 'sound.wav',\
-         3.000s covered instead of 4.000s":
+        print(e)
+        if str(e) == ("annotations from set 'matching' do not cover the whole selected range for recording "
+                      "'sound.wav', 3.000s covered instead of 4.000s"):
             exception_caught = True
 
     assert (

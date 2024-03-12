@@ -129,12 +129,13 @@ def conversations(project,
     :type annotations: DataFrame
     :param interactions: dictionary mapping each speaker_type to the speaker_types it can interact with
     :type interactions: dict
-    :param max_interval: maximum interval in ms for it to be considered a turn, default = 5000
+    :param max_interval: maximum interval in ms for it to be considered a turn transition, default = 5000
     :type max_interval: int
-    :param min_delay: minimum delay between somebody starting speaking
+    :param min_delay: minimum delay in ms from previous speaker start of vocalization from
+     a vocalization to be considered a response to the previous one
     :type min_delay: int
 
-    :return: output annotation dataframe
+    :return: output annotation DataFrame
     :rtype: DataFrame
     """
     speakers = set(interactions.keys())
@@ -151,8 +152,11 @@ def conversations(project,
         annotations["delay"] = annotations["segment_onset"] - annotations["segment_onset"].shift(1)
         annotations = annotations.reset_index(drop=True)
 
-        # not using absolute value for 'iti' is a choice and should be evaluated (we allow speakers to 'interrupt'
-        # themselves
+        # each row is a turn transition if: 1) the speaker can interact with previous speaker, 2) it did not start
+        # further than <max_interval> after the previous speaker stopped talking, 3) it did not begin earlier than
+        # <delay> ms after the previous speaker started speaking
+        # note that we allow iti to be negative, which means that a turn transition can exist when speaking before
+        # the previous speaker finished talking
         annotations["is_CT"] = (
                 (annotations.apply(lambda row: row["prev_speaker_type"] in interactions[row['speaker_type']], axis=1))
                 &
@@ -161,6 +165,7 @@ def conversations(project,
                 (annotations['delay'] >= min_delay)
         )
 
+        # find places where the sequence of turn transitions changes status to find beginning and ends of conversations
         diff = np.diff(annotations['is_CT'].to_list() + [0])
         annotations['diff'] = pd.Series(diff)
         annotations['conv_number'] = annotations['diff'][annotations['diff'] == 1].cumsum().astype('Int64')
