@@ -1,17 +1,15 @@
 from ChildProject.projects import ChildProject
 from ChildProject.annotations import AnnotationManager
-from ChildProject.tables import IndexTable
 from ChildProject.converters import *
 from functools import partial
-import glob
+
 import pandas as pd
 import numpy as np
 import datetime
 import os
 import pytest
 import shutil
-import subprocess
-import sys
+from pathlib import Path
 import time
 
 
@@ -20,18 +18,19 @@ def standardize_dataframe(df, columns):
     return df.sort_index(axis=1).sort_values(list(columns)).reset_index(drop=True)
 
 
-DATA = os.path.join('tests', 'data')
-TRUTH = os.path.join('tests', 'truth')
+DATA = Path('tests', 'data')
+TRUTH = Path('tests', 'truth')
+PATH = Path('output', 'annotations')
 
 
 @pytest.fixture(scope="function")
 def project(request):
-    if os.path.exists("output/annotations"):
+    if os.path.exists(PATH):
         # shutil.copytree(src="examples/valid_raw_data", dst="output/annotations")
-        shutil.rmtree("output/annotations")
-    shutil.copytree(src="examples/valid_raw_data", dst="output/annotations")
+        shutil.rmtree(PATH)
+    shutil.copytree(src="examples/valid_raw_data", dst=PATH)
 
-    project = ChildProject("output/annotations")
+    project = ChildProject(PATH)
 
     yield project
 
@@ -286,13 +285,6 @@ def test_multiple_imports(project, am, input_file, ow, rimported, rerrors, excep
         assert len(errors) == 0 and len(warnings) == 0, "malformed annotation indexes detected"
 
 
-@pytest.mark.parametrize("input_set",
-                         [(1)]
-                         )
-def test_derive(project, am, input_set):
-    pass
-
-
 # function used as a derivation function, it should throw errors if not returning dataframe or without required columns
 def dv_func(a, b, x, type):
     if type == 'number':
@@ -303,17 +295,50 @@ def dv_func(a, b, x, type):
         return x
 
 
+@pytest.mark.parametrize("exists,ow",
+                         [(False, False),
+                          (True, False),
+                          (False, True),
+                          (True, True),
+                          ])
+def test_derive(project, am, exists, ow):
+    input_set = 'vtc_present'
+    output_set = 'output'
+    function = partial(dv_func, type='normal')
+    am.read()
+
+    # copy the input set to act as an existing output_set
+    if exists:
+        shutil.copytree(src=PATH / 'annotations' / input_set, dst=PATH / 'annotations' / output_set)
+        additions = am.annotations[am.annotations['set'] == input_set].copy()
+        additions['set'] = output_set
+        am.annotations = pd.concat([am.annotations, additions])
+
+    imported, errors = am.derive_annotations(input_set, output_set, function, overwrite_existing=ow)
+    assert imported.shape[0] == am.annotations[am.annotations['set'] == input_set].shape[0]
+    assert errors.shape[0] == 0
+
+    truth = am.annotations[am.annotations['set'] == input_set]
+    truth['merged_from'] = truth['set']
+    truth['set'] = output_set
+    truth['format'] = 'NA'
+    cols = ['imported_at', 'package_version']
+    pd.testing.assert_frame_equal(truth.drop(columns=cols).reset_index(drop=True),
+                                  imported.drop(columns=cols).reset_index(drop=True))
+
+
 # function used for derivation but does not hav correct signature
 def bad_func(a, b):
     return b
+
+
 @pytest.mark.parametrize("input_set,function,output_set,exists,ow,error",
                          [("missing", partial(dv_func, type='normal'), "output", False, False, AssertionError),
                           ("vtc_present", partial(dv_func, type='number'), "output", False, False, None),
                           ("vtc_present", partial(dv_func, type='columns'), "output", False, False, None),
                           ("vtc_present", bad_func, "output", False, False, None),
                           ("vtc_present", partial(dv_func, type='normal'), "vtc_present", False, False, AssertionError),
-                          ("vtc_present", partial(dv_func, type='normal'), "output", True, False, AssertionError),
-                          ("vtc_present", partial(dv_func, type='normal'), "output", True, True, AssertionError),
+                          ("vtc_present", 'not_a_function', "output", False, False, ValueError),
                           ])
 def test_derive_inputs(project, am, input_set, function, output_set, exists, ow, error):
     am.read()
@@ -326,7 +351,12 @@ def test_derive_inputs(project, am, input_set, function, output_set, exists, ow,
 
     if error:
         with pytest.raises(error):
-            am.rename_set(old, new)
+            am.derive_annotations(input_set, output_set, function, overwrite_existing=ow)
+    else:
+        imported, errors = am.derive_annotations(input_set, output_set, function, overwrite_existing=ow)
+        # check that 0 lines were imported because of bad input
+        assert imported.shape[0] == 0
+        assert errors.shape[0] == am.annotations[am.annotations['set'] == input_set].shape[0]
 
 def test_intersect(project, am):
     input_annotations = pd.read_csv("examples/valid_raw_data/annotations/intersect.csv")
