@@ -809,13 +809,13 @@ class AnnotationManager:
 
         # if the derivation function did not return a dataframe, stop there and return the line
         if df is None or not isinstance(df, pd.DataFrame):
-            msg = f"{import_function.__name__} did not return a pandas DataFrame"
+            msg = f"<{import_function}> did not return a pandas DataFrame"
             return bad_derivation(annotation_result, msg, msg, path)
 
         # if the derivation does not contain the required columns of annotations
         if not {c.name for c in self.SEGMENTS_COLUMNS if c.required}.issubset(df.columns):
             required = {c.name for c in self.SEGMENTS_COLUMNS if c.required}
-            msg = f"DataFrame result of {import_function.__name__} function does not contain the required {required}"
+            msg = f"DataFrame result of <{import_function}> function does not contain the required {required}"
             return bad_derivation(annotation_result, msg, msg, path)
 
         if not df.shape[1]:
