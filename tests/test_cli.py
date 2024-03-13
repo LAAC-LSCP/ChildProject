@@ -4,7 +4,7 @@ import os
 import shutil
 from pathlib import Path
 
-PATH = Path("output", "cli")
+PATH = os.path.join("output", "cli")
 
 def cli(cmd):
     process = subprocess.Popen(cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
