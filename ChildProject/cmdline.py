@@ -237,20 +237,17 @@ def import_annotations(args):
     
     if errors_imp is not None and errors_imp.shape[0] > 0:
         logger.error('The importation failed for %d entry/ies',errors_imp.shape[0])
-        logger.debug(errors_imp) 
-    
+        logger.debug(errors_imp)
+
     if imported is not None and imported.shape[0] > 0:
         errors, warnings = am.validate(imported, threads=args.threads)
  
-        if len(am.errors) > 0:
+        if len(errors) > 0:
             logger.error(
-                "in the resulting annotations %s errors and %s warnings were found",
-                len(am.errors) + len(errors),
-                len(warnings),
-            ) # Is it right ?
-            logger.error("\n".join(am.errors))
-            logger.error("\n".join(errors))
-            logger.error("\n".join(warnings))
+                "in the resulting annotations %s errors were found:\n%s",
+                len(errors),
+                "\n".join(errors),
+            )
 
 
 @subcommand(
@@ -261,7 +258,7 @@ def import_annotations(args):
         arg("--output-set", "-o", help="output set", required=True, type=str),
         arg("--threads", help="amount of threads to run on", type=int, default=0),
         arg("--overwrite-existing", "--ow",
-            help="overwrites existing annotation file if should generate the same output file (useful when reimporting)",
+            help="overwrites existing annotation file when deriving (useful when reimporting), False by default",
             action='store_true'),
     ]
 )
@@ -282,15 +279,12 @@ def derive_annotations(args):
     if imported is not None and imported.shape[0] > 0:
         errors, warnings = am.validate(imported, threads=args.threads)
 
-        if len(am.errors) > 0:
+        if len(errors) > 0:
             logger.error(
-                "in the resulting annotations %s errors and %s warnings were found",
-                len(am.errors) + len(errors),
-                len(warnings),
-            )  # Is it right ?
-            logger.error("\n".join(am.errors))
-            logger.error("\n".join(errors))
-            logger.error("\n".join(warnings))
+                "in the resulting annotations %s errors were found:\n%s",
+                len(errors),
+                "\n".join(errors),
+            )
 
 
 @subcommand(

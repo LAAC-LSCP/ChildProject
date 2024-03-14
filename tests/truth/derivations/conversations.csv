@@ -1,0 +1,14 @@
+segment_onset,segment_offset,speaker_type,raw_filename,iti,prev_speaker_type,delay,is_CT,conv_count
+0,342,CHI,example.rttm,,,,False,1
+113,486,FEM,example.rttm,-229.0,CHI,113.0,True,1
+200,901,OCH,example.rttm,-286.0,FEM,87.0,True,1
+782,1421,MAL,example.rttm,-119.0,OCH,582.0,True,1
+203,1000,CHI,example.rttm,-1218.0,MAL,-579.0,False,2
+1200,1656,OCH,example.rttm,200.0,CHI,997.0,True,2
+1350,2111,MAL,example.rttm,-306.0,OCH,150.0,True,2
+1821,2324,FEM,example.rttm,-290.0,MAL,471.0,True,2
+2556,2890,CHI,example.rttm,232.0,FEM,735.0,True,2
+2901,3205,FEM,example.rttm,11.0,CHI,345.0,True,2
+3056,3457,OCH,example.rttm,-149.0,FEM,155.0,True,2
+3301,3654,MAL,example.rttm,-156.0,OCH,245.0,True,2
+3900,3987,CHI,example.rttm,246.0,MAL,599.0,True,2
