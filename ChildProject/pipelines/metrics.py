@@ -650,7 +650,7 @@ class AclewMetrics(Metrics):
 
     @staticmethod
     def add_parser(subparsers, subcommand):
-        parser = subparsers.add_parser(subcommand, help="LENA metrics")
+        parser = subparsers.add_parser(subcommand, help="ACLEW metrics")
         parser.add_argument("--vtc", help="vtc set", default="vtc")
         parser.add_argument("--alice", help="alice set", default="alice")
         parser.add_argument("--vcm", help="vcm set", default="vcm")

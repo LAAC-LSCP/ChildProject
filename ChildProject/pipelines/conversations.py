@@ -15,7 +15,7 @@ from ChildProject.pipelines.pipeline import Pipeline
 
 from ChildProject.tables import assert_dataframe, assert_columns_presence, read_csv_with_dtype
 import ChildProject.pipelines.conversationFunctions as convfunc
-from ..utils import TimeInterval, time_intervals_intersect
+from ..utils import TimeInterval
 
 pipelines = {}
 
@@ -60,8 +60,10 @@ class Conversations(ABC):
         self.project = project
         self.am = ChildProject.annotations.AnnotationManager(self.project)
         self.threads = int(threads)
+        self.conversations = None
 
-        # check that the callable column is either a callable function or a string that can be found as being part of the list of metrics in ChildProject/pipelines/conversationFunctions.py
+        # check that the callable column is either a callable function or a string that can be found as being part of
+        # the list of metrics in ChildProject/pipelines/conversationFunctions.py
         def check_callable(row):
             if callable(row["callable"]): return row["callable"]
             if isinstance(row["callable"], str):
@@ -84,7 +86,6 @@ class Conversations(ABC):
                 raise ValueError("metrics_list parameter must contain at least the columns [callable,name]")
         else:
             raise ValueError("metrics_list parameter must be a pandas DataFrame")
-        metrics_list.sort_values(by="set", inplace=True)
 
         if setname not in self.am.annotations["set"].values:
             raise ValueError(
@@ -177,7 +178,7 @@ class Conversations(ABC):
         super().__init_subclass__(**kwargs)
         pipelines[cls.SUBCOMMAND] = cls
 
-    def _process_recording(self, annotations): #process recording line
+    def _process_conversation(self, conversation): #process recording line
         #keep lines for which conv_count is nopt Na and group by conv
         """for one unit (i.e. 1 recording) compute the list of required metrics and store the results in the current row of self.metrics
 
@@ -186,7 +187,8 @@ class Conversations(ABC):
         :return: Series containing all the computed metrics result for that unit
         :rtype: pandas.Series
         """
-        result = {}
+        meta, annotations = conversation
+        result = {'recording_filename': meta[0], 'conv_count': meta[1]}
         for i, line in self.metrics_list.iterrows():
 
             annotations['voc_duration'] = annotations['segment_offset'] - annotations['segment_onset']
@@ -214,15 +216,48 @@ class Conversations(ABC):
 
         if self.threads == 1:
             self.conversations = pd.DataFrame(
-                [self._process_conversation(conversation) for group, conversation in conversations]
+                [self._process_conversation(block) for block in conversations]
             )
         else:
             with mp.Pool(
                     processes=self.threads if self.threads >= 1 else mp.cpu_count()
             ) as pool:
                 self.conversations = pd.DataFrame(
-                    pool.map(self._process_conversation, [conv for group, conv in conversations])
+                    pool.map(self._process_conversation, [block for block in conversations])
                 )
+
+        # now add the rec_cols and child_cols in the result
+        if self.rec_cols:
+            if self.child_cols:
+                recs = self.project.recordings.drop(columns=(
+                    [col for col in self.project.recordings.columns if (col not in self.rec_cols
+                                                                        and col != 'recording_filename'
+                                                                        and col != 'child_id')]
+                ))
+                chis = self.project.children.drop(columns=(
+                    [col for col in self.project.children.columns if (col not in self.child_cols
+                                                                      and col != 'child_id')]
+                ))
+                meta = recs.merge(chis, how='inner', on='child_id')
+                self.conversations = self.conversations.merge(meta, how='left', on='recording_filename')
+                if 'child_id' not in self.child_cols and 'child_id' not in self.rec_cols:
+                    self.conversations.drop(columns=['child_id'])
+            else:
+                recs = self.project.recordings.drop(columns=(
+                    [col for col in self.project.recordings.columns if (col not in self.rec_cols
+                                                                        and col != 'recording_filename'
+                                                                        and col != 'child_id')]
+                ))
+                self.conversations = self.conversations.merge(recs, how='left', on='recording_filename')
+        elif self.child_cols:
+            chis = self.project.children.drop(columns=(
+                [col for col in self.project.children.columns if (col not in self.child_cols
+                                                                  and col != 'child_id')]
+            ))
+            meta = chis.merge(self.project.recordings[['recording_filename','child_id']], how='inner', on='child_id')
+            self.conversations = self.conversations.merge(meta, how='left', on='recording_filename')
+            if 'child_id' not in self.child_cols:
+                self.conversations.drop(columns=['child_id'])
 
         return self.conversations
 
@@ -310,91 +345,10 @@ class CustomConversations(Conversations):
 
     @staticmethod
     def add_parser(subparsers, subcommand):
-        parser = subparsers.add_parser(subcommand, help="metrics from a csv file")
-        parser.add_argument("metrics",
-                            help="name if the csv file containing the list of metrics",
-                            )
+        pass
 
 
-class LenaMetrics(Conversations):
-    """LENA metrics extractor.
-    Extracts a number of metrics from the LENA .its annotations.
-
-    :param project: ChildProject instance of the target dataset.
-    :type project: ChildProject.projects.ChildProject
-    :param set: name of the set associated to the .its annotations
-    :type set: str
-    :param recordings: recordings to sample from; if None, all recordings will be sampled, defaults to None
-    :type recordings: Union[str, List[str], pd.DataFrame], optional
-    :param from_time: If specified (in HH:MM:SS format), ignore annotations outside of the given time-range, defaults to None
-    :type from_time: str, optional
-    :param to_time:  If specified (in HH:MM:SS format), ignore annotations outside of the given time-range, defaults to None
-    :type to_time: str, optional
-    :param rec_cols: comma separated columns from recordings.csv to include in the outputted metrics (optional), recording_filename,session_id,child_id,duration are always included if possible and dont need to be specified. Any column that is not unique for a given unit (eg date_iso for a child_id being recorded on multiple days) will output a <NA> value
-    :type rec_cols: str, optional
-    :param child_cols: comma separated columns from children.csv to include in the outputted metrics (optional), None by default
-    :type child_cols: str, optional
-    :param by: unit to extract metric from (recording_filename, experiment, child_id, session_id, segments), defaults to 'recording_filename', 'segments' is mandatory if passing the segments argument
-    :type by: str, optional
-    :param threads: amount of threads to run on, defaults to 1
-    :type threads: int, optional
-    """
-
-    SUBCOMMAND = "lena"
-
-    def __init__(
-            self,
-            project: ChildProject.projects.ChildProject,
-            set: str,
-            recordings: Union[str, List[str], pd.DataFrame] = None,
-            from_time: str = None,
-            to_time: str = None,
-            rec_cols: str = None,
-            child_cols: str = None,
-            by: str = "recording_filename",
-            threads: int = 1,
-    ):
-        self.set = set
-
-        METRICS = pd.DataFrame(np.array(
-            [["voc_speaker_ph", self.set, 'FEM'],
-             ["voc_speaker_ph", self.set, 'MAL'],
-             ["voc_speaker_ph", self.set, 'OCH'],
-             ["voc_speaker_ph", self.set, 'CHI'],
-             ["voc_dur_speaker_ph", self.set, 'FEM'],
-             ["voc_dur_speaker_ph", self.set, 'MAL'],
-             ["voc_dur_speaker_ph", self.set, 'OCH'],
-             ["voc_dur_speaker_ph", self.set, 'CHI'],
-             ["avg_voc_dur_speaker", self.set, 'FEM'],
-             ["avg_voc_dur_speaker", self.set, 'MAL'],
-             ["avg_voc_dur_speaker", self.set, 'OCH'],
-             ["avg_voc_dur_speaker", self.set, 'CHI'],
-             ["wc_speaker_ph", self.set, 'FEM'],
-             ["wc_speaker_ph", self.set, 'MAL'],
-             ["wc_adu_ph", self.set, pd.NA],
-             ["lp_n", self.set, pd.NA],
-             ["lp_dur", self.set, pd.NA],
-             ["lena_CVC", self.set, pd.NA],
-             ["lena_CTC", self.set, pd.NA],
-             ]), columns=["callable", "set", "speaker"])
-
-        super().__init__(project, METRICS, by=by, recordings=recordings,
-                         from_time=from_time, to_time=to_time, rec_cols=rec_cols,
-                         child_cols=child_cols, threads=threads)
-
-        if self.set not in self.am.annotations["set"].values:
-            raise ValueError(
-                f"annotation set '{self.set}' was not found in the index; "
-                "check spelling and make sure the set was properly imported."
-            )
-
-    @staticmethod
-    def add_parser(subparsers, subcommand):
-        parser = subparsers.add_parser(subcommand, help="LENA metrics")
-        parser.add_argument("set", help="name of the LENA its annotations set")
-
-
-class AclewConversations(Conversations):
+class StandardConversations(Conversations):
     """ACLEW metrics extractor.
     Extracts a number of metrics from the ACLEW pipeline annotations, which includes:
 
@@ -426,7 +380,7 @@ class AclewConversations(Conversations):
     :type threads: int, optional
     """
 
-    SUBCOMMAND = "aclew"
+    SUBCOMMAND = "standard"
 
     def __init__(
             self,
@@ -477,8 +431,7 @@ class AclewConversations(Conversations):
 
     @staticmethod
     def add_parser(subparsers, subcommand):
-        parser = subparsers.add_parser(subcommand, help="LENA metrics")
-        parser.add_argument("--set", help="set", default="vtc/conversations")
+        parser = subparsers.add_parser(subcommand, help="standard conversation extraction")
 
 
 class ConversationsPipeline(Pipeline):
@@ -509,14 +462,14 @@ class ConversationsPipeline(Pipeline):
         if pipeline not in pipelines:
             raise NotImplementedError(f"invalid pipeline '{pipeline}'")
 
-        metrics = pipelines[pipeline](self.project, **kwargs)
-        metrics.extract()
+        conversations = pipelines[pipeline](self.project, **kwargs)
+        conversations.extract()
 
-        self.metrics = metrics.metrics
-        self.metrics.to_csv(self.destination, index=False)
+        self.conversations = conversations.conversations
+        self.conversations.to_csv(self.destination, index=False)
 
         # get the df of metrics used from the Metrics class
-        metrics_df = metrics.metrics_list
+        metrics_df = conversations.metrics_list
         metrics_df['callable'] = metrics_df.apply(lambda row: row['callable'].__name__,
                                                   axis=1)  # from the callables used, find their name back
         parameters['metrics_list'] = [{k: v for k, v in m.items() if pd.notnull(v)} for m in
@@ -535,7 +488,7 @@ class ConversationsPipeline(Pipeline):
         )
         print("exported sampler parameters to {}".format(self.parameters_path))
 
-        return self.metrics
+        return self.conversations
 
     @staticmethod
     def setup_parser(parser):
@@ -547,16 +500,16 @@ class ConversationsPipeline(Pipeline):
             pipelines[pipeline].add_parser(subparsers, pipeline)
 
         parser.add_argument(
-            "--recordings",
-            help="path to a CSV dataframe containing the list of recordings to sample from (by default, all recordings will be sampled). The CSV should have one column named recording_filename.",
-            default=None,
+            "--set",
+            help="Set to use to get the conversation annotations",
+            required=True,
+            dest='setname'
         )
 
         parser.add_argument(
-            "--by",
-            help="units to sample from (default behavior is to sample by recording)",
-            choices=["recording_filename", "session_id", "child_id", "experiment", "segments"],
-            default="recording_filename",
+            "--recordings",
+            help="path to a CSV dataframe containing the list of recordings to sample from (by default, all recordings will be sampled). The CSV should have one column named recording_filename.",
+            default=None,
         )
 
         parser.add_argument(
@@ -648,16 +601,16 @@ class ConversationsSpecificationPipeline(Pipeline):
             if key not in {"metrics_list", "path", "destination", "dataset_hash"}
         }
         try:
-            metrics = Conversations(self.project, metrics_df, **arguments)
+            conversations = Conversations(self.project, metrics_df, **arguments)
         except TypeError as e:
             raise ValueError('Unrecognized parameter found {}'.format(e.args[0][46:])) from e
-        metrics.extract()
+        conversations.extract()
 
-        self.metrics = metrics.metrics
-        self.metrics.to_csv(self.destination, index=False)
+        self.conversations = conversations.conversations
+        self.conversations.to_csv(self.destination, index=False)
 
         # get the df of metrics used from the Metrics class
-        metrics_df = metrics.metrics_list
+        metrics_df = conversations.metrics_list
         metrics_df['callable'] = metrics_df.apply(lambda row: row['callable'].__name__,
                                                   axis=1)  # from the callables used, find their name back
         parameters['metrics_list'] = [{k: v for k, v in m.items() if pd.notnull(v)} for m in
@@ -676,7 +629,7 @@ class ConversationsSpecificationPipeline(Pipeline):
         )
         print("exported metrics parameters to {}".format(self.parameters_path))
 
-        return self.metrics
+        return self.conversations
 
     @staticmethod
     def setup_parser(parser):
