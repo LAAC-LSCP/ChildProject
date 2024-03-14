@@ -401,7 +401,7 @@ class StandardConversations(Conversations):
              ["vocalisations_count", "vocalisations_count", pd.NA],
              ["who_initiated", "initiator", pd.NA],
              ["who_finished", "finisher", pd.NA],
-             ["who_participates", "participators", pd.NA],
+             ["who_participates", "participants", pd.NA],
              ["total_duration_of_vocalisations", "total_duration_of_vocalisations", pd.NA],
              ["conversation_duration", "conversation_duration", pd.NA],
              ["is_speaker", "CHI_present", 'CHI'],
