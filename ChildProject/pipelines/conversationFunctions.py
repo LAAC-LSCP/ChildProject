@@ -94,7 +94,7 @@ def who_finished(annotations: pd.DataFrame):
 
 @conversationFunction()
 def who_participates(annotations: pd.DataFrame):
-    return annotations.reset_index()['speaker_type'].unique()
+    return '/'.join(annotations.reset_index()['speaker_type'].unique())
 
 @conversationFunction()
 def total_duration_of_vocalisations(annotations: pd.DataFrame):
