@@ -5,26 +5,32 @@ from pympi import Eaf
 import shutil
 import pytest
 
+
 from ChildProject.projects import ChildProject
 from ChildProject.annotations import AnnotationManager
 from ChildProject.pipelines.samplers import PeriodicSampler
 from ChildProject.pipelines.eafbuilder import EafBuilderPipeline
 
 IMP_FROM = 'vtc'
+PATH = os.path.join('output', 'eaf')
 
 def fake_vocs(data, filename):
     return data
 
 @pytest.fixture(scope="function")
 def project(request):
-    if not os.path.exists("output/eaf"):
-        shutil.copytree(src="examples/valid_raw_data", dst="output/eaf")
+    if os.path.exists(PATH):
+        shutil.rmtree(PATH)
+    shutil.copytree(src="examples/valid_raw_data", dst=PATH)
 
-    project = ChildProject("output/eaf")
+    project = ChildProject(PATH)
     project.read()
 
     yield project
 
+
+@pytest.mark.parametrize("segments,type,template,context_onset,context_offset,path,import_speech_from",
+                         [])
 def test_periodic(project):
     """
     os.makedirs('output/eaf', exist_ok = True)
@@ -55,9 +61,9 @@ def test_periodic(project):
         import_function=partial(fake_vocs, data),
     )
         
-    sampler = PeriodicSampler(project, 500, 500, 250, recordings = ['sound.wav'])
+    sampler = PeriodicSampler(project, 500, 500, 250, recordings=['sound.wav'])
     sampler.sample()
-    sampler.segments.to_csv('output/eaf/segments.csv')
+    sampler.segments.to_csv(PATH / 'segments.csv')
     
     ranges = sampler.segments.rename(
                     columns={
@@ -71,17 +77,17 @@ def test_periodic(project):
 
     eaf_builder = EafBuilderPipeline()
     eaf_builder.run(
-        destination = 'output/eaf',
-        segments = 'output/eaf/segments.csv',
-        eaf_type = 'periodic',
-        template = 'basic',
-        context_onset = 250,
-        context_offset = 250,
-        path='output/eaf',
+        destination=PATH / 'extra' / 'eaf',
+        segments=PATH / 'segments.csv',
+        eaf_type='periodic',
+        template='basic',
+        context_onset=250,
+        context_offset=250,
+        path=PATH,
         import_speech_from='vtc',
     )
 
-    eaf = Eaf('output/eaf/sound/sound_periodic_basic.eaf')
+    eaf = Eaf(PATH / 'extra/eaf/sound_periodic_basic.eaf')
 
     code = eaf.tiers['code_periodic'][0]
     segments = []
