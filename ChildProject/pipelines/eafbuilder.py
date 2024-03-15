@@ -3,6 +3,7 @@ import pandas as pd
 import sys
 import os
 import shutil
+from pathlib import Path
 
 from ChildProject.projects import ChildProject
 from ChildProject.annotations import AnnotationManager
@@ -183,7 +184,8 @@ class EafBuilderPipeline(Pipeline):
             imported_set = import_speech_from
 
         for recording_filename, segs in segments.groupby("recording_filename"):
-            recording_prefix = os.path.splitext(recording_filename)[0]
+            full_recording = Path(recording_filename)
+            recording_prefix = full_recording.stem
             output_filename = (
                 recording_prefix + "_" + eaf_type + "_" + os.path.basename(template)
             )
@@ -217,7 +219,7 @@ class EafBuilderPipeline(Pipeline):
                     imported_format = None
                     
 
-            output_dir = os.path.join(destination, recording_prefix)
+            output_dir = os.path.join(destination, full_recording.parent)
 
             create_eaf(
                 etf_path,
