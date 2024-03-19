@@ -23,7 +23,6 @@ def create_eaf(
     eaf_type: str,
     contxt_on: int,
     contxt_off: int,
-    template: str,
     speech_segments: pd.DataFrame = None,
     imported_set: str = None,
     imported_format: str = None,
@@ -70,7 +69,7 @@ def create_eaf(
                 speaker_id = segment["speaker_id"]
             elif "speaker_type" in segment:
                 speaker_id = segment["speaker_type"]
-                if pd.isnull(speaker_id) and imported_format in FORMAT_SPEECH : speaker_id = "SPEECH" #replace  nan with SPEECH for some formats
+                if pd.isnull(speaker_id) and imported_format in FORMAT_SPEECH: speaker_id = "SPEECH" #replace  nan with SPEECH for some formats
 
             if speaker_id is None:
                 continue
@@ -230,7 +229,6 @@ class EafBuilderPipeline(Pipeline):
                 eaf_type,
                 context_onset,
                 context_offset,
-                template,
                 speech_segments,
                 imported_set,
                 imported_format,
