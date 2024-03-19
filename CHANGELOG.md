@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- eaf_builder replicating the subtree structure of recordings is not happening anymore. And individual files are not placed in individual subfolder anymore
+
 ## [0.1.2] 2024-03-14
 
 ### Added
