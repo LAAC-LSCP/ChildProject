@@ -93,6 +93,22 @@ remove them from the index.
 
    child-project remove-annotations /path/to/dataset --set vtc
 
+Derive annotations
+~~~~~~~~~~~~~~~~~~
+
+This command allows to derive a new set of annotations (or adding new lines)
+by extracting information from an existing set of annotations. A number of
+derivations are available in the package, other derivations can be defined by
+the user when using the python api directly.
+
+.. clidoc::
+
+    child-project derive-annotations /path/to/dataset --help
+
+::
+
+    child-project derive-annotations . conversations --input-set vtc --output-set vtc/conversations
+
 ITS annotations anonymization
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

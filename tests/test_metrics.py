@@ -4,6 +4,7 @@ import os
 import pandas as pd
 import pytest
 import shutil
+from pathlib import Path
 
 from ChildProject.projects import ChildProject
 from ChildProject.annotations import AnnotationManager
@@ -11,6 +12,7 @@ from ChildProject.pipelines.metrics import Metrics, LenaMetrics, AclewMetrics, C
 
 from ChildProject.pipelines.metricsFunctions import metricFunction, RESERVED
 
+PATH = Path('output/metrics')
 
 def fake_vocs(data, filename):
     return data
@@ -18,10 +20,12 @@ def fake_vocs(data, filename):
 
 @pytest.fixture(scope="function")
 def project(request):
-    if not os.path.exists("output/metrics"):
-        shutil.copytree(src="examples/valid_raw_data", dst="output/metrics")
+    if os.path.exists(PATH):
+        # shutil.copytree(src="examples/valid_raw_data", dst="output/annotations")
+        shutil.rmtree(PATH)
+    shutil.copytree(src="examples/valid_raw_data", dst=PATH)
 
-    project = ChildProject("output/metrics")
+    project = ChildProject(PATH)
     project.read()
 
     yield project
@@ -51,7 +55,7 @@ def test_failures(project):
         exception_caught = True
 
     assert (
-        exception_caught == True
+        exception_caught is True
     ), "AclewMetrics failed to throw an exception despite an invalid VTC set being provided"
 
     exception_caught = False
@@ -61,20 +65,20 @@ def test_failures(project):
         exception_caught = True
 
     assert (
-        exception_caught == True
+        exception_caught is True
     ), "LenaMetrics failed to throw an exception despite an invalid ITS set being provided"
     
     exception_caught = False
     try:
         lm = pd.DataFrame(np.array(
-            [["voc_speaker","segments_vtc",'FEM'],         
-             ]), columns=["callable","set","speaker"])
-        m = Metrics(project, lm,  segments="unknown")
-    except ValueError as e:
+            [["voc_speaker", "vtc_present", 'FEM'],
+             ]), columns=["callable", "set", "speaker"])
+        Metrics(project, lm,  segments="unknown")
+    except AssertionError:
         exception_caught = True
 
     assert (
-        exception_caught == True
+        exception_caught is True
     ), "Metrics failed to throw an exception despite having the segments argument and by having a value different than 'recording_filename'"
            
 @pytest.mark.parametrize("error,col_change,new_value",

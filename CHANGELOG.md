@@ -4,8 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- eaf_builder replicating the subtree structure of recordings is not happening anymore. And individual files are not placed in individual subfolder anymore
+
+## [0.1.2] 2024-03-14
+
 ### Added
 
+- add the derived annotation pipeline
 - audio conversion has now a 'standard' conversion pipeline that will convert files to mono channel 16kHz pcm_s16le (no need to convert channels and then sampling rate and no need to know the options)
 - add the simple_CTC metric to the list of available metrics
 

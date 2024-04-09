@@ -13,6 +13,8 @@ from . import __version__
 
 from ChildProject import __name__
 
+from .pipelines.derivations import DERIVATIONS
+
 import argparse
 import os
 import pandas as pd
@@ -234,20 +236,55 @@ def import_annotations(args):
     
     if errors_imp is not None and errors_imp.shape[0] > 0:
         logger.error('The importation failed for %d entry/ies',errors_imp.shape[0])
-        logger.debug(errors_imp) 
-    
+        logger.debug(errors_imp)
+
     if imported is not None and imported.shape[0] > 0:
         errors, warnings = am.validate(imported, threads=args.threads)
  
-        if len(am.errors) > 0:
+        if len(errors) > 0:
             logger.error(
-                "in the resulting annotations %s errors and %s warnings were found",
-                len(am.errors) + len(errors),
-                len(warnings),
-            ) # Is it right ?
-            logger.error("\n".join(am.errors))
-            logger.error("\n".join(errors))
-            logger.error("\n".join(warnings))
+                "in the resulting annotations %s errors were found:\n%s",
+                len(errors),
+                "\n".join(errors),
+            )
+
+
+@subcommand(
+    [
+        arg("source", help="project path"),
+        arg("derivation", help="Type of derivation", type=str, choices=DERIVATIONS.keys()),
+        arg("--input-set", "-i", help="input set", required=True, type=str),
+        arg("--output-set", "-o", help="output set", required=True, type=str),
+        arg("--threads", help="amount of threads to run on", type=int, default=0),
+        arg("--overwrite-existing", "--ow",
+            help="overwrites existing annotation file when deriving (useful when reimporting), False by default",
+            action='store_true'),
+    ]
+)
+def derive_annotations(args):
+    """derive a set of annotations"""
+
+    project = ChildProject(args.source)
+
+    perform_validation(project, require_success=True, ignore_recordings=True)
+
+    am = AnnotationManager(project)
+    imported, errors_der = am.derive_annotations(args.input_set, args.output_set, args.derivation, args.threads, overwrite_existing=args.overwrite_existing)
+
+    if errors_der is not None and errors_der.shape[0] > 0:
+        logger.error('The derivation failed for %d entry/ies', errors_der.shape[0])
+        logger.debug(errors_der)
+
+    if imported is not None and imported.shape[0] > 0:
+        errors, warnings = am.validate(imported, threads=args.threads)
+
+        if len(errors) > 0:
+            logger.error(
+                "in the resulting annotations %s errors were found:\n%s",
+                len(errors),
+                "\n".join(errors),
+            )
+
 
 @subcommand(
     [

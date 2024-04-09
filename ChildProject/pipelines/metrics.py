@@ -606,6 +606,7 @@ class AclewMetrics(Metrics):
              ["avg_voc_dur_speaker",self.vtc,'MAL'],
              ["avg_voc_dur_speaker",self.vtc,'OCH'],
              ["avg_voc_dur_speaker",self.vtc,'CHI'],
+             ["simple_CTC_ph",self.vtc,pd.NA],
              ])
         
         if self.alice not in am.annotations["set"].values:

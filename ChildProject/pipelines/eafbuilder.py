@@ -3,6 +3,7 @@ import pandas as pd
 import sys
 import os
 import shutil
+from pathlib import Path
 
 from ..projects import ChildProject
 from ..annotations import AnnotationManager
@@ -22,7 +23,6 @@ def create_eaf(
     eaf_type: str,
     contxt_on: int,
     contxt_off: int,
-    template: str,
     speech_segments: pd.DataFrame = None,
     imported_set: str = None,
     imported_format: str = None,
@@ -69,7 +69,7 @@ def create_eaf(
                 speaker_id = segment["speaker_id"]
             elif "speaker_type" in segment:
                 speaker_id = segment["speaker_type"]
-                if pd.isnull(speaker_id) and imported_format in FORMAT_SPEECH : speaker_id = "SPEECH" #replace  nan with SPEECH for some formats
+                if pd.isnull(speaker_id) and imported_format in FORMAT_SPEECH: speaker_id = "SPEECH" #replace  nan with SPEECH for some formats
 
             if speaker_id is None:
                 continue
@@ -183,7 +183,8 @@ class EafBuilderPipeline(Pipeline):
             imported_set = import_speech_from
 
         for recording_filename, segs in segments.groupby("recording_filename"):
-            recording_prefix = os.path.splitext(recording_filename)[0]
+            full_recording = Path(recording_filename)
+            recording_prefix = full_recording.stem
             output_filename = (
                 recording_prefix + "_" + eaf_type + "_" + os.path.basename(template)
             )
@@ -217,7 +218,7 @@ class EafBuilderPipeline(Pipeline):
                     imported_format = None
                     
 
-            output_dir = os.path.join(destination, recording_prefix)
+            output_dir = os.path.join(destination, full_recording.parent)
 
             create_eaf(
                 etf_path,
@@ -228,7 +229,6 @@ class EafBuilderPipeline(Pipeline):
                 eaf_type,
                 context_onset,
                 context_offset,
-                template,
                 speech_segments,
                 imported_set,
                 imported_format,
