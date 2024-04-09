@@ -1,29 +1,29 @@
-chardet==3.0.4
-click==7.1.1
-colorlog
-datalad
-GitPython
-keyring==21.4.0; python_version < "3.8"
-jinja2
-librosa
-lxml
-matplotlib
-nltk
-numpy>=1.17,<1.21
-pydub
-pandas>=1.1.0,<=1.5.3
-panoptes_client
-praat-parselmouth
-pyannote.metrics; python_version >= "3.7.0"
-pygamma-agreement[notebook]==0.5.6; python_version >= "3.6.0"
-pylangacq
-pympi-ling
-soundfile
-python-dateutil>=2.8.1
-PyYAML
+colorlog==6.8.2
+datalad==0.19.6
+GitPython==3.1.41
+importlib-metadata; python_version < '3.8'
+librosa==0.10.1
+lxml==5.1.0
+matplotlib==3.5.3; python_version <= '3.10'
+matplotlib==3.8.3; python_version >= '3.11'
+nltk==3.8.1
+numpy==1.20.3; python_version <= '3.9'
+numpy==1.26.4; python_version >= '3.10'
+pandas==1.3.5; python_version <= '3.10'
+pandas==2.2.1; python_version >= '3.11'
+panoptes-client==1.6.1
+praat-parselmouth==0.4.3
+pyannote.core==5.0.0
+pydub==0.25.1
+pygamma-agreement==0.5.6; python_version <= '3.7'
+pygamma-agreement==0.5.9; python_version > '3.7'
+pylangacq==0.17.0
+pympi-ling==1.70.2
+pytest==7.4.4
+python-dateutil==2.8.2
+PyYAML==6.0.1
 requests==2.25.0
-scipy
-scikit-learn
-sphinx
-sphinx_rtd_theme
-sphinx-tabs
+soundfile==0.12.1
+Sphinx==5.3.0
+sphinx-rtd-theme==2.0.0
+sphinx-tabs==3.4.5

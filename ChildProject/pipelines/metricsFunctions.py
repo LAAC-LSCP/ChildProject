@@ -141,7 +141,7 @@ def peak_hour_metric(empty_value=0):
                 return np.nan
 
         # wraps will give the same name and doc, so we need to slightly edit them for the peak function
-        new_func.__doc__ = "Computing the peak for 1h for the following metric:\n" + function.__doc__
+        new_func.__doc__ = "Computing the peak for 1h for the following metric:\n\n" + function.__doc__
         new_func.__name__ = "peak_" + function.__name__
         new_func.__qualname__ = "peak_" + function.__qualname__
         return new_func
@@ -160,7 +160,7 @@ def per_hour_metric():
             return function(annotations, duration, **kwargs) * (3600000 / duration)
 
         # wraps will give the same name and doc, so we need to slightly edit them for the peak function
-        new_func.__doc__ = function.__doc__ + "This value is a 'per hour' value."
+        new_func.__doc__ = function.__doc__ + "\nThis value is a 'per hour' value."
         new_func.__name__ = function.__name__ + '_ph'
         new_func.__qualname__ = function.__qualname__ + '_ph'
         return new_func
