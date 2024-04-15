@@ -416,7 +416,9 @@ def overview(args):
     am = AnnotationManager(project)
     project.read()
 
-    output = "\n\033[1mrecordings\033[0m:\n"
+    output = "\n\033[1mrecordings ({:.2f} hours)\033[0m:\n".format(
+        project.recordings.dropna(subset=["recording_filename"])["duration"].sum() / (3600 * 1000)
+    )
 
     _recordings = (
         project.recordings.dropna(subset=["recording_filename"])
@@ -446,6 +448,7 @@ def overview(args):
 
         output += "\033[94m%s\033[0m: %s, %d/%d files locally available\n" % (
                     recording_device_type, duration, available, len(recordings))
+
 
     output += "\n\033[1mannotations\033[0m:\n"
     _annotations = (
