@@ -3,6 +3,8 @@ import os
 import argparse
 import datetime
 import multiprocessing as mp
+import logging
+
 import numpy as np
 import pandas as pd
 from typing import Union, List
@@ -18,6 +20,11 @@ import ChildProject.pipelines.metricsFunctions as metfunc
 from ..utils import TimeInterval, time_intervals_intersect
 
 pipelines = {}
+
+# Create a logger for the module (file)
+logger_metrics = logging.getLogger(__name__)
+# messages are propagated to the higher level logger (ChildProject), used in cmdline.py
+logger_metrics.propagate = True
 
 class Metrics(ABC):
     """
@@ -442,7 +449,7 @@ class CustomMetrics(Metrics):
     def add_parser(subparsers, subcommand):
         parser = subparsers.add_parser(subcommand, help="metrics from a csv file")
         parser.add_argument("metrics",
-            help="name if the csv file containing the list of metrics",
+            help="name of the csv file containing the list of metrics",
         )
         
 class LenaMetrics(Metrics):
