@@ -397,12 +397,61 @@ def rename_annotations(args):
 
     am = AnnotationManager(project)
     am.read()
+    
     am.rename_set(
         args.set,
         args.new_set,
         recursive=args.recursive,
         ignore_errors=args.ignore_errors,
-    )
+        )
+
+@subcommand([
+    arg("source", help = "project path"),
+    arg("--recordings", help = 'list of recordings to plot', nargs = '*', default = [])
+])
+def plot_annotations(args):
+    from matplotlib import pyplot as plt
+    """show a diagram representing available annotations for each recording"""
+
+    project = ChildProject(args.source)
+    errors, warnings = project.validate(ignore_files = True)
+
+    if len(errors) > 0:
+        print("validation failed, {} error(s) occured".format(len(errors)), file = sys.stderr)
+        sys.exit(1)
+
+    am = AnnotationManager(project)
+    am.read()
+    annotations = am.annotations
+
+    if len(args.recordings):
+        annotations = annotations[annotations['recording_filename'].isin(args.recordings)]
+
+    fig, ax = am.plot(annotations)
+    plt.show()
+
+@subcommand([
+    arg("dataset", help = "dataset to install. Should be a valid repository name at https://github.com/LAAC-LSCP. (e.g.: solomon-data)"),
+    arg("--destination", help = "destination path", required = False, default = ""),
+    arg("--storage-hostname", dest = "storage_hostname", help = "ssh storage hostname (e.g. 'foberon')", required = False, default = "")
+])
+def import_data(args):
+    """import and configures a datalad dataset"""
+
+    import datalad.api
+    import datalad.distribution.dataset
+
+    if args.destination:
+        destination = args.destination
+    else:
+        destination = os.path.splitext(os.path.basename(args.dataset))[0]
+
+    datalad.api.install(source = args.dataset, path = destination)
+
+    ds = datalad.distribution.dataset.require_dataset(
+        destination,
+        check_installed = True,
+        purpose = 'configuration'
 
 
 @subcommand([arg("source", help="source data path")])
