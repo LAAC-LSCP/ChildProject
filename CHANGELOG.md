@@ -4,8 +4,6 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-## [0.1.3] 2024-06-03
-
 ### Changed
 
 - migrated the project to a pyproject.toml implementation
