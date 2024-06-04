@@ -502,7 +502,7 @@ class AudioStandard(AudioProcessor):
             "-ar",
             str(self.sampling),
             "-af",
-            '"pan=mono|c0=FL"',
+            'pan=mono| c0=c0',
         ]
 
         args.append(destination_file)
