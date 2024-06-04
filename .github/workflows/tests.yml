@@ -19,7 +19,7 @@ jobs:
         with:
           python-version: "${{ matrix.python-version }}"
       - name: ffmpeg
-        uses: FedericoCarboni/setup-ffmpeg@v2
+        uses: FedericoCarboni/setup-ffmpeg@v3
         with:
           token: ${{ secrets.GITHUB }}
       - name: sndfile
