@@ -51,12 +51,18 @@ def get_pitch(audio_time_series, sampling_rate, func=None):
 
     pitch_type = "f0" if not callable(func) else func.__name__
 
+    amplitude_abs = np.abs(audio_time_series)
+
     return {"raw_pitch_{}".format(pitch_type): f0,
             "mean_pitch_{}".format(pitch_type): mean_pitch,
             "median_pitch_{}".format(pitch_type): median_pitch,
             "p5_pitch_{}".format(pitch_type): p5_pitch,
             "p95_pitch_{}".format(pitch_type): p95_pitch,
-            "pitch_range_{}".format(pitch_type): p95_pitch - p5_pitch}
+            "pitch_range_{}".format(pitch_type): p95_pitch - p5_pitch,
+            "mean_amplitude": amplitude_abs.mean(),
+            "peak_amplitude": amplitude_abs.max(),
+            "median_amplitude": np.median(amplitude_abs),
+            }
 
 def acoustics(project,
               metadata: dict,
