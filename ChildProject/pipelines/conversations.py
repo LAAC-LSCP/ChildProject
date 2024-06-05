@@ -293,6 +293,10 @@ class Conversations(ABC):
 
         if matches.shape[0]:
             segments = self.am.get_segments(matches)
+            if not segments.shape[0]:
+                # no annotations for that unit
+                return pd.DataFrame(columns=([c.name for c in AnnotationManager.SEGMENTS_COLUMNS if c.required]
+                                         + list(annotations.columns) + ['conv_count']))
             segments = segments.dropna(subset='conv_count')
         else:
             # no annotations for that unit
