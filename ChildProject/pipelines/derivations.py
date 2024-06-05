@@ -175,7 +175,7 @@ def conversations(project,
 
         return df
     else:
-        return pd.DataFrame([])
+        return pd.DataFrame([], columns=['segment_onset', 'raw_filename', 'segment_offset'])
 
 
 def remove_overlaps(project,
