@@ -307,7 +307,7 @@ class Conversations(ABC):
 
         #TODO check that required columns exist
 
-        return segments
+        return segments.reset_index(drop=True)
 
 
 class CustomConversations(Conversations):
