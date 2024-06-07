@@ -12,6 +12,7 @@ def cli(cmd):
     exit_code = process.wait()
     return stdout, stderr, exit_code
 
+
 @pytest.fixture(scope="function")
 def project(request):
     if os.path.exists(PATH):
@@ -28,6 +29,8 @@ def test_validate(project):
     stdout, stderr, exit_code = cli(
         ["child-project", "validate", PATH]
     )
+    print(stdout)
+    print(stderr)
     assert exit_code == 0
 
 

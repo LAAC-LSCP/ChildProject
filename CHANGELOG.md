@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- migrated the project to a pyproject.toml implementation
+
+### Fixed
+
+- eaf_builder replicating the subtree structure of recordings is not happening anymore. And individual files are not placed in individual subfolder anymore
+- child-project overview now correctly displays the amount of audio
+- audio duration in overview now works!
+
 ## [0.1.2] 2024-03-14
 
 ### Added

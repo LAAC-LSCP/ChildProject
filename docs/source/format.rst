@@ -131,7 +131,7 @@ in a separate file.
    For recursive metadata, two dataframes cannot share the same basename.
    For instance, if one dataframe is located at `metadata/children/dates-of-birth.csv` ,
    an error will be thrown if another dataframe exists at
-   `metadata/children/private/dates-of-birth.csv ` .
+   `metadata/children/private/dates-of-birth.csv` .
 
 Annotations
 -----------
@@ -200,9 +200,6 @@ These humans have both annotated the same seven 15 second clips.
    eaf_2021/LM,A730/A730_001105.wav,0,36465000,36480000,A730_001105.eaf,eaf,A730/A730_001105_36465000_36480000.csv
    eaf_2021/LM,A730/A730_001105.wav,0,39450000,39465000,A730_001105.eaf,eaf,A730/A730_001105_39450000_39465000.csv
 
-.. comment::
-    This comment fixes an issue introduced in Sphinx 4.3.1
-
 .. _format-input-annotations:
 
 Annotation importation input format
@@ -246,9 +243,6 @@ to the following table:
 .. index-table:: Machine-readable documentation
    :header: documentation
 
-.. comment::
-    This comment fixes an issue introduced in Sphinx 4.3.1
-
 - Documentation for the children metadata should be stored in ``docs/children.csv``
 - Documentation for the recordings metadata should be stored in ``docs/recordings.csv``
 - Documentation for annotations should be stored in ``docs/annotations.csv``
@@ -256,5 +250,5 @@ to the following table:
 Authorship
 ~~~~~~~~~~
 
-We recommend DataCite's .yaml format (see `here <https://github.com/G-Node/gogs/blob/master/conf/datacite/datacite.yml>`_)
+We recommend DataCite's .yaml format (see `here <https://github.com/G-Node/gogs/blob/master/conf/datacite/datacite.yml>`__)
 

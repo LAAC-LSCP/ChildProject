@@ -1,5 +1,11 @@
 ChildProject
 ============
+[![PyPI](https://img.shields.io/pypi/v/childproject.svg)](https://pypi.org/project/childproject/)
+[![GitHub tests](https://github.com/LAAC-LSCP/ChildProject/actions/workflows/tests.yml/badge.svg)](https://github.com/LAAC-LSCP/ChildProject/actions/workflows/tests.yml)
+[![Travis CI Status](https://app.travis-ci.com/LAAC-LSCP/ChildProject.svg?token=1d35csHFpystSMdwuSY8&branch=master)](https://app.travis-ci.com/LAAC-LSCP/ChildProject)
+[![ReadTheDocs](https://readthedocs.org/projects/childproject/badge/?version=latest)](https://childproject.readthedocs.io/en/latest/)
+[![License](https://img.shields.io/pypi/l/childproject.svg)](https://github.com/LAAC-LSCP/ChildProject/blob/master/LICENSE)
+
 
 - [Introduction](#introduction)
 - [Available tools](#available-tools)

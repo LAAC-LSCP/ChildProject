@@ -8,6 +8,7 @@ from ChildProject.projects import ChildProject
 from ChildProject.pipelines.samplers import PeriodicSampler
 from ChildProject.pipelines.zooniverse import ZooniversePipeline, pad_interval
 from ChildProject.pipelines.fake_panoptes import LOCATION_FAIL
+from ChildProject.pipelines.zooniverse import CHUNKS_DTYPES
 
 
 def test_padding():
@@ -44,7 +45,7 @@ def test_extraction():
         spectrogram=True,
     )
 
-    chunks = pd.read_csv(chunks)
+    chunks = pd.read_csv(chunks, dtype=CHUNKS_DTYPES)
 
     assert len(chunks) == 2 * len(segments)
     assert all(
@@ -85,7 +86,7 @@ def test_uploading(location_fail, amount, ignore_errors, record_orphan, result):
     if amount is None: amount = 1000
     
     if not location_fail: df = df[df['mp3'] != LOCATION_FAIL]
-    
+
     df.to_csv(new_path,index=False)
     
     zooniverse.upload_chunks(new_path,
@@ -99,10 +100,10 @@ def test_uploading(location_fail, amount, ignore_errors, record_orphan, result):
                              test_endpoint=True if result != 'max_subjects_continue.csv' else 2,
                              )
     
-    truth = pd.read_csv(os.path.join('tests','truth','zoochunks',result))
-    #shutil.copy(new_path, os.path.join('tests','truth','zoochunks',result))
+    truth = pd.read_csv(os.path.join('tests','truth','zoochunks',result), dtype=CHUNKS_DTYPES)
+    # shutil.copy(new_path, os.path.join('tests','truth','zoochunks',result))
     
-    pd.testing.assert_frame_equal(truth, pd.read_csv(new_path), check_like=True)
+    pd.testing.assert_frame_equal(truth, pd.read_csv(new_path, dtype=CHUNKS_DTYPES), check_like=True)
    
 #might benefit from a test using invalid csv or/and a test with a csv having no orphan chunk     
 BASE_ORPHAN_CHUNKS = os.path.join('tests', 'data', 'chunks_test_orphan.csv')   
@@ -126,8 +127,9 @@ def test_link_orphan(ignore_errors, result):
                                     ignore_errors,
                                     test_endpoint=True,
                                     )
-   # shutil.copy(new_path, os.path.join('tests','truth','zoochunks',result))
-    pd.testing.assert_frame_equal(pd.read_csv(os.path.join('tests','truth','zoochunks',result)), pd.read_csv(new_path))
+    # shutil.copy(new_path, os.path.join('tests','truth','zoochunks',result))
+    pd.testing.assert_frame_equal(pd.read_csv(os.path.join('tests','truth','zoochunks',result), dtype=CHUNKS_DTYPES),
+                                  pd.read_csv(new_path, dtype=CHUNKS_DTYPES))
     
 @pytest.mark.parametrize("result", 
                          [('reset_orphan.csv'),
@@ -142,8 +144,9 @@ def test_reset_orphan(result):
     
     zooniverse.reset_orphan_subjects(new_path)
     
-    #shutil.copy(new_path, os.path.join('tests','truth','zoochunks',result))
-    pd.testing.assert_frame_equal(pd.read_csv(os.path.join('tests','truth','zoochunks',result)), pd.read_csv(new_path))
+    # shutil.copy(new_path, os.path.join('tests','truth','zoochunks',result))
+    pd.testing.assert_frame_equal(pd.read_csv(os.path.join('tests','truth','zoochunks',result), dtype=CHUNKS_DTYPES),
+                                  pd.read_csv(new_path, dtype=CHUNKS_DTYPES))
     
 def test_classification():
     pass

@@ -12,12 +12,14 @@ import yaml
 from git import Repo
 from git.exc import InvalidGitRepositoryError
 
-import ChildProject
-from ChildProject.pipelines.pipeline import Pipeline
-
-from ChildProject.tables import assert_dataframe, assert_columns_presence, read_csv_with_dtype
-import ChildProject.pipelines.metricsFunctions as metfunc
+from ..projects import ChildProject
+from ..annotations import AnnotationManager
+from ..tables import assert_dataframe, assert_columns_presence, read_csv_with_dtype
 from ..utils import TimeInterval, time_intervals_intersect
+from .pipeline import Pipeline
+from . import metricsFunctions as metfunc
+
+from ChildProject import __version__
 
 pipelines = {}
 
@@ -55,7 +57,7 @@ class Metrics(ABC):
     """
     def __init__(
         self,
-        project: ChildProject.projects.ChildProject,
+        project: ChildProject,
         metrics_list: pd.DataFrame,
         by: str = "recording_filename",
         recordings: Union[str, List[str], pd.DataFrame] = None,
@@ -69,7 +71,7 @@ class Metrics(ABC):
     ):
 
         self.project = project
-        self.am = ChildProject.annotations.AnnotationManager(self.project)
+        self.am = AnnotationManager(self.project)
         self.threads = int(threads)
         
         #check that the callable column is either a callable function or a string that can be found as being part of the list of metrics in ChildProject/pipelines/metricsFunctions.py
@@ -426,7 +428,7 @@ class CustomMetrics(Metrics):
 
     def __init__(
         self,
-        project: ChildProject.projects.ChildProject,
+        project: ChildProject,
         metrics: str,
         recordings: Union[str, List[str], pd.DataFrame] = None,
         from_time: str = None,
@@ -484,7 +486,7 @@ class LenaMetrics(Metrics):
 
     def __init__(
         self,
-        project: ChildProject.projects.ChildProject,
+        project: ChildProject,
         set: str,
         recordings: Union[str, List[str], pd.DataFrame] = None,
         from_time: str = None,
@@ -577,7 +579,7 @@ class AclewMetrics(Metrics):
 
     def __init__(
         self,
-        project: ChildProject.projects.ChildProject,
+        project: ChildProject,
         vtc: str = "vtc",
         alice: str = "alice",
         vcm: str = "vcm",
@@ -596,7 +598,7 @@ class AclewMetrics(Metrics):
         self.alice = alice
         self.vcm = vcm
         
-        am = ChildProject.annotations.AnnotationManager(project) #temporary instance to check for existing sets. This is suboptimal because an annotation manager will be created by Metrics. However, the metrics class raises a ValueError for every set passed that does not exist, here we want to check in advance which of the alice and vcm sets exist without raising an error
+        am = AnnotationManager(project) #temporary instance to check for existing sets. This is suboptimal because an annotation manager will be created by Metrics. However, the metrics class raises a ValueError for every set passed that does not exist, here we want to check in advance which of the alice and vcm sets exist without raising an error
               
         METRICS = np.array(
             [["voc_speaker_ph",self.vtc,'FEM'],
@@ -679,7 +681,7 @@ class MetricsPipeline(Pipeline):
         for key in kwargs: #add all kwargs to dictionary
             parameters[key] = kwargs[key]
         
-        self.project = ChildProject.projects.ChildProject(path)
+        self.project = ChildProject(path)
         self.project.read()
         
         try:
@@ -708,7 +710,7 @@ class MetricsPipeline(Pipeline):
         print("exported metrics to {}".format(self.destination))
         yaml.dump(
             {
-                "package_version": ChildProject.__version__,
+                "package_version": __version__,
                 "date": date,
                 "parameters": parameters,
             },
@@ -818,7 +820,7 @@ class MetricsSpecificationPipeline(Pipeline):
         except InvalidGitRepositoryError:
             print("Your dataset is not currently a git repository")
         
-        self.project = ChildProject.projects.ChildProject(parameters["path"])
+        self.project = ChildProject(parameters["path"])
         self.project.read()
         
         self.destination = parameters['destination']
@@ -851,7 +853,7 @@ class MetricsSpecificationPipeline(Pipeline):
         print("exported metrics to {}".format(self.destination))
         yaml.dump(
             {
-                "package_version": ChildProject.__version__,
+                "package_version": __version__,
                 "date": date,
                 "parameters": parameters,
             },

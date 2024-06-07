@@ -5,9 +5,9 @@ import json
 import re
 import shutil
 
-from ChildProject.projects import ChildProject
-from ChildProject.annotations import AnnotationManager
-from ChildProject.pipelines.pipeline import Pipeline
+from ..projects import ChildProject
+from ..annotations import AnnotationManager
+from .pipeline import Pipeline
 
 
 class AnonymizationPipeline(Pipeline):

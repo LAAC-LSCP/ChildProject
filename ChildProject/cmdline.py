@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-from ChildProject.projects import ChildProject
-from ChildProject.annotations import AnnotationManager
+from .projects import ChildProject
+from .annotations import AnnotationManager
 from .pipelines.conversations import ConversationsPipeline
 from .pipelines.conversations import ConversationsSpecificationPipeline
 from .pipelines.samplers import SamplerPipeline
@@ -11,7 +11,8 @@ from .pipelines.metrics import MetricsSpecificationPipeline
 from .pipelines.processors import AudioProcessingPipeline
 from .pipelines.anonymize import AnonymizationPipeline
 from .utils import read_wav, calculate_shift, get_audio_duration
-from ChildProject import __version__
+from . import __version__
+
 from ChildProject import __name__
 
 from .pipelines.derivations import DERIVATIONS
@@ -357,6 +358,11 @@ def intersect_annotations(args):
     intersection.to_csv(args.destination, index=False)
 
 
+@subcommand([])
+def interpreter(args):
+    print(sys.executable)
+
+
 @subcommand(
     [
         arg("source", help="project path"),
@@ -412,7 +418,10 @@ def overview(args):
     am = AnnotationManager(project)
     project.read()
 
-    logger.info("\n\033[1mrecordings\033[0m:")
+    output = "\n\033[1mrecordings ({:.2f} hours)\033[0m:\n".format(
+        project.recordings.dropna(subset=["recording_filename"])["duration"].sum() / (3600 * 1000)
+    )
+
     _recordings = (
         project.recordings.dropna(subset=["recording_filename"])
         .sort_values(["recording_device_type", "date_iso"])
@@ -439,9 +448,11 @@ def overview(args):
             .sum()
         )
 
-        logger.info("\033[94m%s\033[0m: %d, %s/%d files locally available", recording_device_type, duration, available, len(recordings))
+        output += "\033[94m%s\033[0m: %s, %d/%d files locally available\n" % (
+                    recording_device_type, duration, available, len(recordings))
 
-    logger.info("\n\033[1mannotations\033[0m:")
+
+    output += "\n\033[1mannotations\033[0m:\n"
     _annotations = (
         am.annotations.dropna(subset=["annotation_filename"])
         .sort_values(["set", "imported_at"])
@@ -471,7 +482,10 @@ def overview(args):
             .sum()
         )
 
-        logger.info("\033[94m%s\033[0m: %.2f hours, %s/%s files locally available", annotation_set, duration_covered / (3600 * 1000), available, len(annotations))
+        output += "\033[94m%s\033[0m: %.2f hours, %s/%s files locally available\n" % (
+                    annotation_set, duration_covered / (3600 * 1000), available, len(annotations))
+
+    logger.info(output)
 
 
 @subcommand(

@@ -2,6 +2,7 @@ from collections import defaultdict
 import pandas as pd
 import re
 from enum import Enum
+from .pipelines.metricsFunctions import voc_speaker
 
 converters = {}
 

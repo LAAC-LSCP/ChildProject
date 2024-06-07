@@ -1,0 +1,73 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ChildProject"
+version = '0.2.0'
+dependencies = [
+  "colorlog",
+  "GitPython",
+  "importlib-metadata; python_version < '3.8'",
+  "librosa",
+  "lxml",
+  "matplotlib",
+  "nltk",
+  "numpy>=1.17",
+  "pandas>=1.1.0,<=3.0.0",
+  "panoptes_client",
+  "praat-parselmouth",
+  "pyannote.core",
+  "pydub",
+  "pylangacq",
+  "pympi-ling",
+  "python-dateutil>=2.8.1",
+  "PyYAML",
+  "requests>=2.25.0",
+  "soundfile",
+]
+license = {file = 'LICENSE'}
+authors = [
+  { name="Lucas Gautheron", email="lucas.gautheron@gmail.com" },
+  { name="Loann Peurey", email="loannpeurey@gmail.com" },
+]
+description = "LAAC@LSCP"
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Operating System :: Unix",
+    "Programming Language :: Python",
+    "Topic :: Scientific/Engineering",
+]
+
+[project.optional-dependencies]
+reliability = ["pygamma-agreement"]
+tests = ["pytest"]
+docs = [
+    "sphinx",
+    "sphinx_rtd_theme",
+    "sphinx-tabs",
+    "datalad",
+]
+repository = ["datalad"]
+
+[project.urls]
+Homepage = "https://github.com/LAAC-LSCP/ChildProject"
+Documentation = "https://childproject.readthedocs.io/en/latest/"
+
+[project.scripts]
+child-project = "ChildProject.cmdline:main"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+namespaces = true
+include = ["ChildProject*"]
+
+[tool.setuptools.package-data]
+"ChildProject.templates" = ["*.etf", "*.pfsx"]

@@ -21,7 +21,7 @@ ChildProject.pipelines.eafbuilder module
    :show-inheritance:
 
 ChildProject.pipelines.metrics module
---------------------------------------
+-------------------------------------
 
 .. automodule:: ChildProject.pipelines.metrics
    :members:
@@ -51,7 +51,6 @@ ChildProject.pipelines.processors module
    :members:
    :undoc-members:
    :show-inheritance:
-   
 
 ChildProject.pipelines.samplers module
 --------------------------------------
