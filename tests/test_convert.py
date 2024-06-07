@@ -5,15 +5,18 @@ import os
 import pandas as pd
 import pytest
 import shutil
+from pathlib import Path
 
-
+PATH = Path('output', 'process')
 @pytest.fixture(scope="function")
 def project(request):
-    if not os.path.exists("output/process"):
-        shutil.copytree(src="examples/valid_raw_data", dst="output/process")
+    if os.path.exists(PATH):
+        shutil.rmtree(PATH)
+    shutil.copytree(src="examples/valid_raw_data", dst=PATH)
 
-    project = ChildProject("output/process")
+    project = ChildProject(PATH)
     project.read()
+
     yield project
 
 
@@ -65,7 +68,7 @@ def test_standard(project):
         8000, project.compute_recordings_duration()["duration"].sum()
     ), "audio duration equals expected value"
     assert os.path.exists(
-        os.path.join(project.path, CONVERTED_RECORDINGS, "test")
+        os.path.join(project.path, CONVERTED_RECORDINGS, "standard")
     ), "missing processed recordings folder"
     assert (
         recordings.shape[0] == converted_recordings.shape[0]
@@ -76,7 +79,7 @@ def test_standard(project):
     assert all(
         [
             os.path.exists(
-                os.path.join(project.path, CONVERTED_RECORDINGS, "test", f)
+                os.path.join(project.path, CONVERTED_RECORDINGS, "standard", f)
             )
             for f in converted_recordings["converted_filename"].tolist()
         ]

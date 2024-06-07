@@ -501,8 +501,8 @@ class AudioStandard(AudioProcessor):
             self.codec,
             "-ar",
             str(self.sampling),
-            "-map_channel",
-            "0.0.0",
+            "-af",
+            'pan=mono| c0=c0',
         ]
 
         args.append(destination_file)
