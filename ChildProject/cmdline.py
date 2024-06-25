@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from .projects import ChildProject
+from .projects import ChildProject, RAW_RECORDINGS, METADATA_FOLDER, RECORDINGS_CSV, CHILDREN_CSV
 from .annotations import AnnotationManager
 from .pipelines.samplers import SamplerPipeline
 from .pipelines.eafbuilder import EafBuilderPipeline
@@ -17,6 +17,8 @@ from .pipelines.derivations import DERIVATIONS
 
 import argparse
 import os
+from pathlib import Path
+import glob
 import pandas as pd
 import sys
 import random
@@ -95,6 +97,37 @@ def perform_validation(project: ChildProject, require_success: bool = True, **ar
                 "dataset validation failed, %d error(s) occurred. Proceeding despite errors; expect failures.",
                 len(errors),
             )
+
+
+@subcommand(
+    [
+        arg("source", help="project path"),
+        arg(
+            "--force","-f",
+            help="ignore existing files and create strcture anyway",
+            action="store_true",
+        ),
+    ]
+)
+def init(args):
+    path = Path(args.source)
+
+    files = glob.glob(str(path / '*'))
+    if len(files) != 0 :
+        raise ValueError("Directory {} not empty, cannot create a project".format(path))
+
+    os.makedirs(path / RAW_RECORDINGS, exist_ok=args.force)
+    os.makedirs(path / METADATA_FOLDER, exist_ok=args.force)
+    os.makedirs(path / 'extra', exist_ok=args.force)
+    os.makedirs(path / 'scripts', exist_ok=args.force)
+    os.makedirs(path / 'annotations', exist_ok=args.force)
+    open(path / 'README.md', 'a').close()
+    pd.DataFrame(columns = [col.name for col in ChildProject.RECORDINGS_COLUMNS if col.required]).to_csv(
+        path / METADATA_FOLDER / RECORDINGS_CSV, index=False
+    )
+    pd.DataFrame(columns=[col.name for col in ChildProject.CHILDREN_COLUMNS if col.required]).to_csv(
+        path / METADATA_FOLDER / CHILDREN_CSV, index=False
+    )
 
 
 @subcommand(
