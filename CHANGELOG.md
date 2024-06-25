@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- added the init command: initiate a new dataset
+
+## [0.2.0] 2024-06-03
+
 ### Changed
 
 - migrated the project to a pyproject.toml implementation
