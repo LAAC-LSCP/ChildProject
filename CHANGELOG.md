@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.1] 2024-06-25
+
 ### Added
 
 - added the init command: initiate a new dataset
