@@ -295,7 +295,7 @@ def import_annotations(args):
             "--{}".format(AnnotationManager.INDEX_COLUMNS[6].name),
             help=AnnotationManager.INDEX_COLUMNS[6].description,
             type=str,
-            default=None,
+            required=True,
             choices=AnnotationManager.INDEX_COLUMNS[6].choices,
         ),
         arg("--threads", help="amount of threads to run on", type=int, default=0),
@@ -318,7 +318,7 @@ def automated_import(args):
 
     annotations = project.recordings[['recording_filename', 'duration']]
     annotations['raw_filename'] = annotations['recording_filename'].apply(
-        lambda x: str(Path(x).with_suffix(extensions[args.format]))
+        lambda x: str(Path(x).with_suffix('.' + extensions[args.format]))
     )
     annotations['format'] = args.format
     annotations['range_onset'] = 0
