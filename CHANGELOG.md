@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.2] 2024-06-26
+
 ### Added
 
 - added the automated-import command to more easily import automated annotations covering the entire recording
