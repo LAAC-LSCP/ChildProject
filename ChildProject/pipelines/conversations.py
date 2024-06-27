@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 import os
+import itertools
 import argparse
 import datetime
 import multiprocessing as mp
@@ -19,6 +20,8 @@ from ChildProject.annotations import AnnotationManager
 from ChildProject.tables import assert_dataframe, assert_columns_presence, read_csv_with_dtype
 import ChildProject.pipelines.conversationFunctions as convfunc
 from ..utils import TimeInterval
+
+import time # RM
 
 pipelines = {}
 
@@ -89,6 +92,13 @@ class Conversations(ABC):
         if isinstance(features_list, pd.DataFrame):
             if ({'callable', 'name'}).issubset(features_list.columns):
                 features_list["callable"] = features_list.apply(check_callable, axis=1)
+                try:
+                    features_list = features_list.set_index('name', verify_integrity=True)
+                except ValueError as e:
+                    raise ValueError("features_list parameter has duplicates in 'name' column") from e
+                features_list['args'] = features_list.drop(['callable'], axis=1).apply(
+                    lambda row: row.dropna().to_dict(), axis=1)
+                features_list = features_list[['callable', 'args']]
             else:
                 raise ValueError("features_list parameter must contain at least the columns [callable,name]")
         else:
@@ -196,15 +206,37 @@ class Conversations(ABC):
         :return: Series containing all the computed features result for that unit
         :rtype: pandas.Series
         """
-        meta, annotations = conversation
-        result = {'recording_filename': meta[0], 'conv_count': meta[1]}
-        for i, line in self.features_list.iterrows():
+        start_sub = time.time()# RM
+        # meta, segments = conversation
+        segments = conversation
+        meta = conversation.name
 
-            annotations['voc_duration'] = annotations['segment_offset'] - annotations['segment_onset']
+        result = {}
+        # move to init or at least something done once only
+        index = self.features_list.to_dict(orient="index")
+        # for i in index:
+        #
+        #     result[i] = index[i]["callable"](segments, **index[i]['args'])
+        result['test'] = segments.reset_index().iloc[0]['segment_onset']
 
-            result[line['name']] = line["callable"](annotations, **line.drop(['callable', 'name']).dropna().to_dict())
+        # result['recording_filename'] = meta[0]
+        result['conv_count'] = meta
 
-        return result
+        return result#, time.time() - start_sub #RM last bit
+
+    def _process_recording(self, recording):
+        grouper = 'conv_count'
+        start_sub = time.time()  # RM
+        segments = self.retrieve_segments(recording)
+        segments['voc_duration'] = segments['segment_offset'] - segments['segment_onset']
+
+        conversations = segments.groupby(grouper, group_keys=True)
+
+        #keep as Series??
+        extractions = conversations.apply(self._process_conversation).to_list() if len(conversations) else []
+        # extractions = [self._process_conversation(block) for block in conversations]
+
+        return extractions, time.time() - start_sub #RM last bit
 
     def extract(self):
         """from the initiated self.features_list, compute each row feature (handles threading)
@@ -215,27 +247,32 @@ class Conversations(ABC):
         :rtype: pandas.DataFrame
         """
         if self.threads == 1:
-            full_annotations = pd.concat([self.retrieve_segments(rec) for rec in self.recordings])
+            extractions = []
+            for rec in self.recordings:
+                segments = self.retrieve_segments(rec)
+
+                conversations = segments.groupby(grouper)
+
+                extractions += [self._process_conversation(block) for block in conversations]
+            self.conversations = pd.DataFrame(extractions) if len(extractions) else pd.DataFrame(columns=grouper)
         else:
+            import time
             with mp.Pool(
                     processes=self.threads if self.threads >= 1 else mp.cpu_count()
             ) as pool:
-                full_annotations = pd.concat(pool.map(self.retrieve_segments, self.recordings))
+                results = pool.map(self._process_recording, self.recordings)
 
-        grouper = ['recording_filename', 'conv_count']
-        conversations = full_annotations.groupby(grouper)
+                split = []
+                times = []
+                for i in results:
+                    split += i[0]
+                    times.append(i[1])
 
-        if self.threads == 1:
-            self.conversations = pd.DataFrame(
-                [self._process_conversation(block) for block in conversations]
-            ) if len(conversations) else pd.DataFrame(columns=grouper)
-        else:
-            with mp.Pool(
-                    processes=self.threads if self.threads >= 1 else mp.cpu_count()
-            ) as pool:
-                self.conversations = pd.DataFrame(
-                    pool.map(self._process_conversation, [block for block in conversations])
-                ) if len(conversations) else pd.DataFrame(columns=grouper)
+                results = list(itertools.chain.from_iterable(split))
+                times = np.array(times)
+                print("total_process_rec_time = {} s".format(times.sum()))
+                print("avg_process_rec_time = {} s".format(times.mean()))
+                self.conversations = pd.DataFrame(results) if len(results) else pd.DataFrame(columns=grouper)
 
         # now add the rec_cols and child_cols in the result
         if self.rec_cols:
@@ -410,8 +447,8 @@ class StandardConversations(Conversations):
             threads: int = 1,
     ):
 
-        features = np.array(
-            [["conversation_onset", "conversation_onset", pd.NA],
+        features = np.array([
+            ["conversation_onset", "conversation_onset", pd.NA],
              ["conversation_offset", "conversation_offset", pd.NA],
              ["conversation_duration", "conversation_duration", pd.NA],
              ["vocalisations_count", "vocalisations_count", pd.NA],
@@ -419,7 +456,6 @@ class StandardConversations(Conversations):
              ["who_finished", "finisher", pd.NA],
              ["who_participates", "participants", pd.NA],
              ["total_duration_of_vocalisations", "total_duration_of_vocalisations", pd.NA],
-             ["conversation_duration", "conversation_duration", pd.NA],
              ["is_speaker", "CHI_present", 'CHI'],
              ["is_speaker", "FEM_present", 'FEM'],
              ["is_speaker", "MAL_present", 'MAL'],
