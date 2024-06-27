@@ -1966,8 +1966,8 @@ class AnnotationManager:
         start = int(start)
         stop = int(stop)
 
-        segments["segment_onset"].clip(lower=start, upper=stop, inplace=True)
-        segments["segment_offset"].clip(lower=start, upper=stop, inplace=True)
+        segments["segment_onset"] = segments["segment_onset"].clip(lower=start, upper=stop)
+        segments["segment_offset"] = segments["segment_offset"].clip(lower=start, upper=stop)
 
         segments = segments[segments["segment_offset"] > segments["segment_onset"]]
 
