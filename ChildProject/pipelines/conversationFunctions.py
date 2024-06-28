@@ -9,9 +9,9 @@ from typing import Union, Set, Tuple
 """
 This file lists all the metrics functions commonly used.
 New metrics can be added by defining new functions for the Conversations class to use :
- - Create a new function using the same arguments (i.e. annotations, duration, **kwargs)
+ - Create a new function using the same arguments (i.e. segments, duration, **kwargs)
  - Define calculation of the metric with:
-     - annotations, which is a dataframe containing all the relevant annotated segments  to use. It contains the
+     - segments, which is a dataframe containing all the relevant annotated segments  to use. It contains the
        annotation content (https://childproject.readthedocs.io/en/latest/format.html#id10) joined with the annotation
        index info (https://childproject.readthedocs.io/en/latest/format.html#id11) as well as any column that was
        requested to be added to the results by the user using --child-cols or --rec-cols (eg --child-cols child_dob,
@@ -49,12 +49,12 @@ def conversationFunction(args: set = set()):
                         function.__name__, a, RESERVED))
 
         @functools.wraps(function)
-        def new_func(annotations: pd.DataFrame, **kwargs):
+        def new_func(segments: pd.DataFrame, **kwargs):
             for arg in args:
                 if arg not in kwargs:
                     raise ValueError(f"{function.__name__} metric needs an argument <{arg}>")
 
-            res = function(annotations, **kwargs)
+            res = function(segments, **kwargs)
 
             return res
 
@@ -64,71 +64,51 @@ def conversationFunction(args: set = set()):
 
 
 @conversationFunction()
-def conversation_onset(annotations: pd.DataFrame):
-    return annotations.reset_index().iloc[0]['segment_onset']
+def who_initiated(segments: pd.DataFrame):
+    return segments.iloc[0]['speaker_type']
 
 
 @conversationFunction()
-def conversation_offset(annotations: pd.DataFrame):
-    return annotations.reset_index().iloc[-1]['segment_offset']
-
-
-@conversationFunction()
-def conversation_duration(annotations: pd.DataFrame):
-    return annotations.reset_index().iloc[-1]['segment_offset'] - annotations.reset_index().iloc[0]['segment_onset']
-
+def who_finished(segments: pd.DataFrame):
+    return segments[segments['segment_offset'] == segments['segment_offset'].max()]['speaker_type']
 
 @conversationFunction()
-def vocalisations_count(annotations: pd.DataFrame):
-    return annotations['speaker_type'].count()
-
-
-@conversationFunction()
-def who_initiated(annotations: pd.DataFrame):
-    return annotations.reset_index().iloc[0]['speaker_type']
-
+def who_participates(segments: pd.DataFrame):
+    return '/'.join(segments['speaker_type'].unique())
 
 @conversationFunction()
-def who_finished(annotations: pd.DataFrame):
-    return annotations.reset_index().iloc[-1]['speaker_type']
-
-@conversationFunction()
-def who_participates(annotations: pd.DataFrame):
-    return '/'.join(annotations.reset_index()['speaker_type'].unique())
-
-@conversationFunction()
-def total_duration_of_vocalisations(annotations: pd.DataFrame):
-    return annotations['voc_duration'].sum()
+def total_duration_of_vocalisations(segments: pd.DataFrame):
+    return segments['voc_duration'].sum()
 
 
 @conversationFunction({'speaker'})
-def is_speaker(annotations: pd.DataFrame, **kwargs):
-    return kwargs["speaker"] in annotations['speaker_type'].tolist()
+def is_speaker(segments: pd.DataFrame, **kwargs):
+    return kwargs["speaker"] in segments['speaker_type'].tolist()
 
 
 @conversationFunction({'speaker'})
-def voc_counter(annotations: pd.DataFrame, **kwargs):
-    return annotations[annotations['speaker_type'] == kwargs["speaker"]]['speaker_type'].count()
+def voc_counter(segments: pd.DataFrame, **kwargs):
+    return segments[segments['speaker_type'] == kwargs["speaker"]]['speaker_type'].count()
 
 
 @conversationFunction({'speaker'})
-def voc_total(annotations: pd.DataFrame, **kwargs):
-    return annotations[annotations['speaker_type'] == kwargs["speaker"]]['voc_duration'].sum(min_count=1)
+def voc_total(segments: pd.DataFrame, **kwargs):
+    return segments[segments['speaker_type'] == kwargs["speaker"]]['voc_duration'].sum(min_count=1)
 
 
 @conversationFunction({'speaker'})
-def voc_contribution(annotations: pd.DataFrame, **kwargs):
-    speaker_total = annotations[annotations['speaker_type'] == kwargs["speaker"]]['voc_duration'].sum(min_count=1)
-    total = annotations['voc_duration'].sum()
+def voc_contribution(segments: pd.DataFrame, **kwargs):
+    speaker_total = segments[segments['speaker_type'] == kwargs["speaker"]]['voc_duration'].sum(min_count=1)
+    total = segments['voc_duration'].sum()
     return speaker_total / total
 
 
 @conversationFunction()
-def assign_conv_type(annotations: pd.DataFrame):
+def assign_conv_type(segments: pd.DataFrame):
     #pd.Categorical(['overheard', 'dyadic_FEM', 'dyadic_MAL', 'peer', 'parent', 'triadic_FEM', 'triadic_MAL', 'multiparty'])
     speaker_present = {}
     for speaker in ['CHI', 'FEM', 'MAL', 'OCH']:
-        speaker_present[speaker] = [speaker in annotations['speaker_type'].tolist()]
+        speaker_present[speaker] = [speaker in segments['speaker_type'].tolist()]
     speaker_df = pd.DataFrame.from_dict(speaker_present).iloc[0, :]
 
     if not speaker_df['CHI']:
