@@ -25,10 +25,7 @@ New metrics can be added by defining new functions for the Conversations class t
 !! Metrics functions should still behave and return the correct result when receiving an empty dataframe
 """
 RESERVED = {'name', 'callable'}  # arguments reserved usage. use other keyword labels.
-#TODO
-# 1. Start and end time of each conversation in the recording
-# 2. Duration of time between conversations (e.g., time between Convo 1 and Convo 2)
-# 5. A string with a list of speaker tags in the conversation (e.g., "CHI, FEM, OCH")
+
 
 def conversationFunction(args: set = set()):
     """Decorator for all metrics functions to make them ready to be called by the pipeline.
@@ -65,39 +62,76 @@ def conversationFunction(args: set = set()):
 
 @conversationFunction()
 def who_initiated(segments: pd.DataFrame):
+    """speaker type who spoke first in the conversation
+
+    Required keyword arguments:
+    """
     return segments.iloc[0]['speaker_type']
 
 
 @conversationFunction()
 def who_finished(segments: pd.DataFrame):
+    """speaker type who spoke last in the conversation
+
+    Required keyword arguments:
+    """
     return segments[segments['segment_offset'] == segments['segment_offset'].max()]['speaker_type']
 
 @conversationFunction()
 def who_participates(segments: pd.DataFrame):
+    """list of speakers participating in the conversation, '/' separated
+
+    Required keyword arguments:
+    """
     return '/'.join(segments['speaker_type'].unique())
 
 @conversationFunction()
-def total_duration_of_vocalisations(segments: pd.DataFrame):
+def voc_total_dur(segments: pd.DataFrame):
+    """summed duration of all speech in the conversation (ms) N.B. can be higher than conversation duration as
+    speakers may speak at the same time, resulting in multiple spoken segments happening simultaneously
+
+    Required keyword arguments:
+    """
     return segments['voc_duration'].sum()
 
 
 @conversationFunction({'speaker'})
 def is_speaker(segments: pd.DataFrame, **kwargs):
+    """is a specific speaker type present in the conversation
+
+    Required keyword arguments:
+        - speaker : speaker_type to evaluate presence of
+    """
     return kwargs["speaker"] in segments['speaker_type'].tolist()
 
 
 @conversationFunction({'speaker'})
-def voc_counter(segments: pd.DataFrame, **kwargs):
+def voc_speaker_count(segments: pd.DataFrame, **kwargs):
+    """number of vocalizations produced by a given speaker
+
+    Required keyword arguments:
+        - speaker : speaker_type to count the vocalizations of
+    """
     return segments[segments['speaker_type'] == kwargs["speaker"]]['speaker_type'].count()
 
 
 @conversationFunction({'speaker'})
-def voc_total(segments: pd.DataFrame, **kwargs):
+def voc_speaker_dur(segments: pd.DataFrame, **kwargs):
+    """summed duration of speech for a given speaker in the conversation
+
+    Required keyword arguments:
+        - speaker
+    """
     return segments[segments['speaker_type'] == kwargs["speaker"]]['voc_duration'].sum(min_count=1)
 
 
 @conversationFunction({'speaker'})
 def voc_contribution(segments: pd.DataFrame, **kwargs):
+    """contribution of a given speaker in the conversation compared to others, in terms of total speech duration
+
+    Required keyword arguments:
+        - speaker
+    """
     speaker_total = segments[segments['speaker_type'] == kwargs["speaker"]]['voc_duration'].sum(min_count=1)
     total = segments['voc_duration'].sum()
     return speaker_total / total
@@ -105,6 +139,11 @@ def voc_contribution(segments: pd.DataFrame, **kwargs):
 
 @conversationFunction()
 def assign_conv_type(segments: pd.DataFrame):
+    """Compute the conversation type (overheard, dyadic_XXX, peer, parent, triadic_XXX, multiparty) depending on the
+    participants
+
+    Required keyword arguments:
+    """
     #pd.Categorical(['overheard', 'dyadic_FEM', 'dyadic_MAL', 'peer', 'parent', 'triadic_FEM', 'triadic_MAL', 'multiparty'])
     speaker_present = {}
     for speaker in ['CHI', 'FEM', 'MAL', 'OCH']:

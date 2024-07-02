@@ -197,13 +197,14 @@ class Conversations(ABC):
         pipelines[cls.SUBCOMMAND] = cls
 
     def _process_conversation(self, conversation, rec): #process recording line
-        """for one unit (i.e. 1 recording) compute the list of required features and store the results in the current
-         row of self.conversations
+        """for one conversation block compute the list of required features and store return the results as a dictionary
 
-        :param row: index and Series of the unit to process, to be modified with the results
-        :type row: (int , pandas.Series)
-        :return: Series containing all the computed features result for that unit
-        :rtype: pandas.Series
+        :param conversation: index and Series of the unit to process, to be modified with the results
+        :type conversation: pd.DataFrame
+        :param rec: recording_filename to which belongs that conversation
+        :type rec: str
+        :return: dict containing all the computed features result for that unit
+        :rtype: dict
         """
         segments = conversation
 
@@ -212,7 +213,8 @@ class Conversations(ABC):
                   'conversation_offset': segments['segment_offset'].max(),
                   'voc_count': segments['speaker_type'].count(),
                   'conv_count': conversation.name,
-                  'recording_filename': rec
+                  'interval_last_conv': conversation.iloc[0]['time_since_last_conv'],
+                  'recording_filename': rec,
                   }
         # apply the functions required
         for i in self.features_dict:
@@ -221,9 +223,24 @@ class Conversations(ABC):
         return result
 
     def _process_recording(self, recording):
+        """for one recording, get the segments required, group by conversation and launch computation for each block
+
+        :param recording: recording_filename to which belongs that conversation
+        :type recording: str
+        :return: dict containing all the computed features result for that unit
+        :rtype: list[dict]
+        """
         grouper = 'conv_count'
         segments = self.retrieve_segments(recording)
         segments['voc_duration'] = segments['segment_offset'] - segments['segment_onset']
+
+        # compute the duration between conversation and previous one
+        terminals = segments[segments['conv_count'].shift(-1) != segments['conv_count']]
+        terminals.index += 1
+        steps = (segments[segments['conv_count'].shift(1) != segments['conv_count']]['segment_onset'] -
+                 terminals['segment_offset']).dropna()
+        steps.index = segments.loc[steps.index, 'conv_count']
+        segments['time_since_last_conv'] = segments['conv_count'].map(steps)
 
         conversations = segments.groupby(grouper, group_keys=True)
 
@@ -255,14 +272,9 @@ class Conversations(ABC):
             with mp.Pool(
                     processes=self.threads if self.threads >= 1 else mp.cpu_count()
             ) as pool:
-                # TODO unify usage of np array (or unify not using them)
                 results = list(itertools.chain.from_iterable(pool.map(self._process_recording, self.recordings)))
-                # results = list(np.concatenate(np.array(pool.map(self._process_recording, self.recordings))).ravel())
 
-                # self.conversations = pd.DataFrame(split) if len(split) else pd.DataFrame(columns=grouper)
                 self.conversations = pd.DataFrame(results) if len(results) else pd.DataFrame(columns=grouper)
-
-                # self.conversations = pd.concat(pool.map(self._process_recording, self.recordings))
 
         # now add the rec_cols and child_cols in the result
         if self.rec_cols:
@@ -436,15 +448,15 @@ class StandardConversations(Conversations):
         features = np.array([
              ["who_initiated", "initiator", pd.NA],
              ["who_finished", "finisher", pd.NA],
-             ["total_duration_of_vocalisations", "total_duration_of_vocalisations", pd.NA],
-             ["voc_counter", "CHI_voc_counter", 'CHI'],
-             ["voc_counter", "FEM_voc_counter", 'FEM'],
-             ["voc_counter", "MAL_voc_counter", 'MAL'],
-             ["voc_counter", "OCH_voc_counter", 'OCH'],
-             ["voc_total", "CHI_voc_dur", 'CHI'],
-             ["voc_total", "FEM_voc_dur", 'FEM'],
-             ["voc_total", "MAL_voc_dur", 'MAL'],
-             ["voc_total", "OCH_voc_dur", 'OCH'],
+             ["voc_total_dur", "total_duration_of_vocalisations", pd.NA],
+             ["voc_speaker_count", "CHI_voc_count", 'CHI'],
+             ["voc_speaker_count", "FEM_voc_count", 'FEM'],
+             ["voc_speaker_count", "MAL_voc_count", 'MAL'],
+             ["voc_speaker_count", "OCH_voc_count", 'OCH'],
+             ["voc_speaker_dur", "CHI_voc_dur", 'CHI'],
+             ["voc_speaker_dur", "FEM_voc_dur", 'FEM'],
+             ["voc_speaker_dur", "MAL_voc_dur", 'MAL'],
+             ["voc_speaker_dur", "OCH_voc_dur", 'OCH'],
              ])
 
         features = pd.DataFrame(features, columns=["callable", "name", "speaker"])
