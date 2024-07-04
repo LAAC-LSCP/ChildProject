@@ -36,7 +36,7 @@ def am(request, project):
     project.recordings['duration'] = [100000000, 2000000] #force longer durations to allow for imports
     yield am    
     
-#decorating functions with reserved kwargs should fail
+# decorating functions with reserved kwargs should fail
 @pytest.mark.parametrize("error", [ValueError, ])
 def test_decorator(error):
     for reserved in RESERVED:

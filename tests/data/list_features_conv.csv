@@ -1,0 +1,6 @@
+callable,name,speaker
+who_initiated,initiator,
+who_finished,finisher,
+participants,participants,
+voc_dur_contribution,chi_dur_contrib,CHI
+voc_dur_contribution,fem_dur_contrib,FEM
