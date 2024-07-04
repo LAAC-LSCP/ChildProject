@@ -30,6 +30,7 @@ Welcome to ChildProject's documentation!
    tools
    annotations
    metrics
+   conversations
    processors
    samplers
    elan
