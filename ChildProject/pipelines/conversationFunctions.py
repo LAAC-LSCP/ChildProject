@@ -1,4 +1,3 @@
-# define functions to calculate metrics
 import pandas as pd
 import numpy as np
 import ast
@@ -78,7 +77,7 @@ def who_finished(segments: pd.DataFrame):
     return segments[segments['segment_offset'] == segments['segment_offset'].max()]['speaker_type']
 
 @conversationFunction()
-def who_participates(segments: pd.DataFrame):
+def participants(segments: pd.DataFrame):
     """list of speakers participating in the conversation, '/' separated
 
     Required keyword arguments:
@@ -100,7 +99,7 @@ def is_speaker(segments: pd.DataFrame, **kwargs):
     """is a specific speaker type present in the conversation
 
     Required keyword arguments:
-        - speaker : speaker_type to evaluate presence of
+        - speaker : speaker_type label
     """
     return kwargs["speaker"] in segments['speaker_type'].tolist()
 
@@ -110,7 +109,7 @@ def voc_speaker_count(segments: pd.DataFrame, **kwargs):
     """number of vocalizations produced by a given speaker
 
     Required keyword arguments:
-        - speaker : speaker_type to count the vocalizations of
+        - speaker : speaker_type label
     """
     return segments[segments['speaker_type'] == kwargs["speaker"]]['speaker_type'].count()
 
@@ -120,17 +119,17 @@ def voc_speaker_dur(segments: pd.DataFrame, **kwargs):
     """summed duration of speech for a given speaker in the conversation
 
     Required keyword arguments:
-        - speaker
+        - speaker : speaker_type label
     """
     return segments[segments['speaker_type'] == kwargs["speaker"]]['voc_duration'].sum(min_count=1)
 
 
 @conversationFunction({'speaker'})
-def voc_contribution(segments: pd.DataFrame, **kwargs):
+def voc_dur_contribution(segments: pd.DataFrame, **kwargs):
     """contribution of a given speaker in the conversation compared to others, in terms of total speech duration
 
     Required keyword arguments:
-        - speaker
+        - speaker : speaker_type label
     """
     speaker_total = segments[segments['speaker_type'] == kwargs["speaker"]]['voc_duration'].sum(min_count=1)
     total = segments['voc_duration'].sum()
