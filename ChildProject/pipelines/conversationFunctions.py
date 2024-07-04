@@ -74,7 +74,7 @@ def who_finished(segments: pd.DataFrame):
 
     Required keyword arguments:
     """
-    return segments[segments['segment_offset'] == segments['segment_offset'].max()]['speaker_type']
+    return segments[segments['segment_offset'] == segments['segment_offset'].max()].iloc[0]['speaker_type']
 
 @conversationFunction()
 def participants(segments: pd.DataFrame):

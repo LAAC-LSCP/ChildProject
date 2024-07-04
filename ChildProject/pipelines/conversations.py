@@ -111,6 +111,8 @@ class Conversations(ABC):
             )
         self.set = setname
         self.features_dict = features_list.to_dict(orient="index")
+        features_list['name'] = features_list.index
+        self.features_df = features_list
 
         # necessary columns to construct the conversations
         join_columns = {
@@ -260,21 +262,15 @@ class Conversations(ABC):
         :rtype: pandas.DataFrame
         """
         if self.threads == 1:
-            extractions = []
-            for rec in self.recordings:
-                segments = self.retrieve_segments(rec)
 
-                conversations = segments.groupby(grouper)
-
-                extractions += [self._process_conversation(block) for block in conversations]
-            self.conversations = pd.DataFrame(extractions) if len(extractions) else pd.DataFrame(columns=grouper)
+            results = list(itertools.chain.from_iterable(map(self._process_recording, self.recordings)))
         else:
             with mp.Pool(
                     processes=self.threads if self.threads >= 1 else mp.cpu_count()
             ) as pool:
                 results = list(itertools.chain.from_iterable(pool.map(self._process_recording, self.recordings)))
 
-                self.conversations = pd.DataFrame(results) if len(results) else pd.DataFrame(columns=grouper)
+        self.conversations = pd.DataFrame(results) if len(results) else pd.DataFrame(columns=grouper)
 
         # now add the rec_cols and child_cols in the result
         if self.rec_cols:
@@ -336,7 +332,7 @@ class Conversations(ABC):
                 # no annotations for that unit
                 return pd.DataFrame(columns=list(set([c.name for c in AnnotationManager.SEGMENTS_COLUMNS if c.required]
                                          + list(annotations.columns) + ['conv_count'])))
-            segments = segments.dropna(subset='conv_count')
+            segments = segments.dropna(subset=['conv_count'])
         else:
             # no annotations for that unit
             return pd.DataFrame(columns=list(set([c.name for c in AnnotationManager.SEGMENTS_COLUMNS if c.required]
@@ -509,7 +505,7 @@ class ConversationsPipeline(Pipeline):
         self.conversations.to_csv(self.destination, index=False)
 
         # get the df of features used from the Conversations class
-        features_df = conversations.features_list
+        features_df = conversations.features_df
         features_df['callable'] = features_df.apply(lambda row: row['callable'].__name__,
                                                   axis=1)  # from the callables used, find their name back
         parameters['features_list'] = [{k: v for k, v in m.items() if pd.notnull(v)} for m in
@@ -658,7 +654,8 @@ class ConversationsSpecificationPipeline(Pipeline):
         self.conversations.to_csv(self.destination, index=False)
 
         # get the df of features used from the Conversations class
-        features_df = conversations.features_list
+        features_df = conversations.features_df
+        print(features_df)
         features_df['callable'] = features_df.apply(lambda row: row['callable'].__name__,
                                                     axis=1)  # from the callables used, find their name back
         parameters['features_list'] = [{k: v for k, v in m.items() if pd.notnull(v)} for m in
