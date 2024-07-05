@@ -1,5 +1,5 @@
 package_version: 0.2.0
-date: '20240704_184950'
+date: '20240705_184314'
 parameters:
   path: output/conversations
   destination: output/conversations/extra/std_conv.csv
@@ -14,43 +14,32 @@ parameters:
   dataset_hash: 710ebfe1f4b118f8a48f69d896c6675bb72ef6ba
   features_list:
   - callable: who_initiated
-    args: {}
     name: initiator
   - callable: who_finished
-    args: {}
     name: finisher
   - callable: voc_total_dur
-    args: {}
     name: total_duration_of_vocalisations
   - callable: voc_speaker_count
-    args:
-      speaker: CHI
     name: CHI_voc_count
+    speaker: CHI
   - callable: voc_speaker_count
-    args:
-      speaker: FEM
     name: FEM_voc_count
+    speaker: FEM
   - callable: voc_speaker_count
-    args:
-      speaker: MAL
     name: MAL_voc_count
+    speaker: MAL
   - callable: voc_speaker_count
-    args:
-      speaker: OCH
     name: OCH_voc_count
+    speaker: OCH
   - callable: voc_speaker_dur
-    args:
-      speaker: CHI
     name: CHI_voc_dur
+    speaker: CHI
   - callable: voc_speaker_dur
-    args:
-      speaker: FEM
     name: FEM_voc_dur
+    speaker: FEM
   - callable: voc_speaker_dur
-    args:
-      speaker: MAL
     name: MAL_voc_dur
+    speaker: MAL
   - callable: voc_speaker_dur
-    args:
-      speaker: OCH
     name: OCH_voc_dur
+    speaker: OCH
