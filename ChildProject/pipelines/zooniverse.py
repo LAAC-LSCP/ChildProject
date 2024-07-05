@@ -876,6 +876,7 @@ class ZooniversePipeline(Pipeline):
         if action == "extract-chunks":
             return self.extract_chunks(**kwargs)
         elif action == "upload-chunks":
+            kwargs['test_endpoint'] = kwargs.pop('dry_run')
             return self.upload_chunks(**kwargs)
         elif action == "link-orphan-subjects":
             return self.link_orphan_subjects(**kwargs)
@@ -967,6 +968,11 @@ class ZooniversePipeline(Pipeline):
         parser_upload.add_argument(
             "--record-orphan",
             help="list correctly create subjects as uploaded even if linking to a subject set failed",
+            action="store_true",
+        )
+        parser_upload.add_argument(
+            "--dry-run","-d",
+            help="do a dry run of uploads, checks the upload code but doesn't upload to zooniverse",
             action="store_true",
         )
         
