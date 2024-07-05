@@ -88,6 +88,7 @@ class Conversations(ABC):
                 raise ValueError(
                  "{} cannot be evaluated as a feature, must be a callable object or a string".format(row["callable"]))
 
+        self.features_df = features_list
         # block checking presence of required columns and evaluates the callable functions
         if isinstance(features_list, pd.DataFrame):
             if ({'callable', 'name'}).issubset(features_list.columns):
@@ -111,8 +112,6 @@ class Conversations(ABC):
             )
         self.set = setname
         self.features_dict = features_list.to_dict(orient="index")
-        features_list['name'] = features_list.index
-        self.features_df = features_list
 
         # necessary columns to construct the conversations
         join_columns = {
