@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- conversations summary extraction pipeline
+
 ## [0.2.2] 2024-06-26
 
 ### Added
