@@ -53,6 +53,22 @@ def test_import_annotations(project):
     )
     assert exit_code == 0
 
+
+def test_import_automated(project):
+    stdout, stderr, exit_code = cli(
+        [
+            "child-project",
+            "automated-import",
+            PATH,
+            "--set",
+            "vtc_rttm",
+            "--format",
+            "vtc_rttm",
+        ]
+    )
+    assert exit_code == 0
+
+
 def test_compute_durations(project):
     stdout, stderr, exit_code = cli(
         [
