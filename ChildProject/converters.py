@@ -5,6 +5,16 @@ from enum import Enum
 from .pipelines.metricsFunctions import voc_speaker
 
 converters = {}
+extensions = {
+    'csv': 'csv',
+    'vtc_rttm': 'rttm',
+    'vcm_rttm': 'rttm',
+    'alice': 'text',
+    'its': 'its',
+    'TextGrid': 'TextGrid',
+    'eaf': 'eaf',
+    'cha': 'cha',
+}
 
 class Formats(Enum):
     CSV = 'csv'

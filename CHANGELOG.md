@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.2] 2024-06-26
+
+### Added
+
+- added the automated-import command to more easily import automated annotations covering the entire recording
+
+## [0.2.1] 2024-06-25
+
+### Added
+
+- added the init command: initiate a new dataset
+
+## [0.2.0] 2024-06-03
+
 ### Changed
 
 - migrated the project to a pyproject.toml implementation

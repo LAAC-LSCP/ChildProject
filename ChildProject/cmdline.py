@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-from .projects import ChildProject
+from .projects import ChildProject, RAW_RECORDINGS, METADATA_FOLDER, RECORDINGS_CSV, CHILDREN_CSV
 from .annotations import AnnotationManager
 from .pipelines.conversations import ConversationsPipeline
 from .pipelines.conversations import ConversationsSpecificationPipeline
+from .converters import extensions
 from .pipelines.samplers import SamplerPipeline
 from .pipelines.eafbuilder import EafBuilderPipeline
 from .pipelines.zooniverse import ZooniversePipeline
@@ -19,6 +20,8 @@ from .pipelines.derivations import DERIVATIONS
 
 import argparse
 import os
+from pathlib import Path
+import glob
 import pandas as pd
 import sys
 import random
@@ -97,6 +100,37 @@ def perform_validation(project: ChildProject, require_success: bool = True, **ar
                 "dataset validation failed, %d error(s) occurred. Proceeding despite errors; expect failures.",
                 len(errors),
             )
+
+
+@subcommand(
+    [
+        arg("source", help="project path"),
+        arg(
+            "--force","-f",
+            help="ignore existing files and create strcture anyway",
+            action="store_true",
+        ),
+    ]
+)
+def init(args):
+    path = Path(args.source)
+
+    files = glob.glob(str(path / '*'))
+    if len(files) != 0 :
+        raise ValueError("Directory {} not empty, cannot create a project".format(path))
+
+    os.makedirs(path / RAW_RECORDINGS, exist_ok=args.force)
+    os.makedirs(path / METADATA_FOLDER, exist_ok=args.force)
+    os.makedirs(path / 'extra', exist_ok=args.force)
+    os.makedirs(path / 'scripts', exist_ok=args.force)
+    os.makedirs(path / 'annotations', exist_ok=args.force)
+    open(path / 'README.md', 'a').close()
+    pd.DataFrame(columns = [col.name for col in ChildProject.RECORDINGS_COLUMNS if col.required]).to_csv(
+        path / METADATA_FOLDER / RECORDINGS_CSV, index=False
+    )
+    pd.DataFrame(columns=[col.name for col in ChildProject.CHILDREN_COLUMNS if col.required]).to_csv(
+        path / METADATA_FOLDER / CHILDREN_CSV, index=False
+    )
 
 
 @subcommand(
@@ -243,6 +277,67 @@ def import_annotations(args):
     if imported is not None and imported.shape[0] > 0:
         errors, warnings = am.validate(imported, threads=args.threads)
  
+        if len(errors) > 0:
+            logger.error(
+                "in the resulting annotations %s errors were found:\n%s",
+                len(errors),
+                "\n".join(errors),
+            )
+
+
+@subcommand(
+    [
+        arg("source", help="project path"),
+        arg(
+            "--set",
+            help="set of annotations to import",
+            required=True,
+        ),
+        arg(
+            "--{}".format(AnnotationManager.INDEX_COLUMNS[6].name),
+            help=AnnotationManager.INDEX_COLUMNS[6].description,
+            type=str,
+            required=True,
+            choices=AnnotationManager.INDEX_COLUMNS[6].choices,
+        ),
+        arg("--threads", help="amount of threads to run on", type=int, default=0),
+        arg("--overwrite-existing", "--ow",
+            help="overwrites existing annotation file if should generate the same output file (useful when reimporting",
+            action='store_true'),
+    ]
+)
+def automated_import(args):
+    """convert and import a set of automated annotations covering the entire recording"""
+
+    project = ChildProject(args.source)
+    project.read()
+
+    perform_validation(project, require_success=True, ignore_recordings=True)
+
+    if 'duration' not in project.recordings.columns:
+        raise ValueError("Column <duration> is needed for automated importation."
+                         " Try running <child-project compute-durations .>")
+
+    annotations = project.recordings[['recording_filename', 'duration']]
+    annotations['raw_filename'] = annotations['recording_filename'].apply(
+        lambda x: str(Path(x).with_suffix('.' + extensions[args.format]))
+    )
+    annotations['format'] = args.format
+    annotations['range_onset'] = 0
+    annotations['time_seek'] = 0
+    annotations['set'] = args.set
+    annotations.rename(columns={'duration': 'range_offset'}, inplace=True)
+
+    am = AnnotationManager(project)
+    imported, errors_imp = am.import_annotations(annotations, args.threads, overwrite_existing=args.overwrite_existing)
+
+    if errors_imp is not None and errors_imp.shape[0] > 0:
+        logger.error('The importation failed for %d entry/ies', errors_imp.shape[0])
+        logger.debug(errors_imp)
+
+    if imported is not None and imported.shape[0] > 0:
+        errors, warnings = am.validate(imported, threads=args.threads)
+
         if len(errors) > 0:
             logger.error(
                 "in the resulting annotations %s errors were found:\n%s",
