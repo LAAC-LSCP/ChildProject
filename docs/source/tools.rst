@@ -1,6 +1,22 @@
 Basic tools
 ===========
 
+Dataset initialization
+----------------------
+
+This command allows you to create a new and empty dataset, with the correct structure
+
+.. clidoc::
+
+   child-project init /path/to/dataset --help
+
+Example:
+
+.. code:: bash
+
+   # create a dataset in a folder named mydataset
+   child-project init mydataset
+
 .. _tools-data-validation:
 
 Data validation
