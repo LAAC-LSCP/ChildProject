@@ -204,3 +204,147 @@ def test_specs(project, am, segments):
     output = pd.read_csv(csp.destination)
 
     pd.testing.assert_frame_equal(output, truth, check_like=True)
+
+
+def test_empty_conversations(project, am):
+    empty_segments = pd.DataFrame(columns=["segment_onset", "segment_offset", "speaker_type", "time_since_last_conv", "conv_count"])
+
+    am.import_annotations(
+        pd.DataFrame(
+            [{"set": "empty_conv",
+              "raw_filename": "file.its",
+              "time_seek": 0,
+              "recording_filename": "sound.wav",
+              "range_onset": 0,
+              "range_offset": 30000000,
+              "format": "csv",
+              }]
+        ),
+        import_function=partial(fake_vocs, empty_segments),
+    )
+
+    std = StandardConversations(project, setname='empty_conv')
+    results = std.extract()
+
+    assert results.empty, "The result should be empty for an empty dataset"
+def test_nan_values(project, am):
+    nan_segments = pd.DataFrame({
+        "segment_onset": [np.nan, 10, 20],
+        "segment_offset": [5, np.nan, 25],
+        "speaker_type": ["CHI", np.nan, "FEM"],
+        "time_since_last_conv": [np.nan, 15, 5],
+        "conv_count": [1, 1, 2]
+    })
+
+    am.import_annotations(
+        pd.DataFrame(
+            [{"set": "nan_conv",
+              "raw_filename": "file.its",
+              "time_seek": 0,
+              "recording_filename": "sound.wav",
+              "range_onset": 0,
+              "range_offset": 30000000,
+              "format": "csv",
+              }]
+        ),
+        import_function=partial(fake_vocs, nan_segments),
+    )
+
+    std = StandardConversations(project, setname='nan_conv')
+    results = std.extract()
+
+    assert not results.empty, "The result should not be empty for a dataset with NaN values"
+
+
+def test_single_entry_conversation(project, am):
+    single_segment = pd.DataFrame({
+        "segment_onset": [0],
+        "segment_offset": [5],
+        "speaker_type": ["CHI"],
+        "time_since_last_conv": [np.nan],
+        "conv_count": [1]
+    })
+
+    am.import_annotations(
+        pd.DataFrame(
+            [{"set": "single_conv",
+              "raw_filename": "file.its",
+              "time_seek": 0,
+              "recording_filename": "sound.wav",
+              "range_onset": 0,
+              "range_offset": 30000000,
+              "format": "csv",
+              }]
+        ),
+        import_function=partial(fake_vocs, single_segment),
+    )
+
+    std = StandardConversations(project, setname='single_conv')
+    results = std.extract()
+
+    assert len(results) == 1, "The result should contain one conversation for a single entry dataset"
+
+
+def test_incorrect_data_types(project, am):
+    incorrect_types = pd.DataFrame({
+        "segment_onset": ["0", "10", "20"],
+        "segment_offset": ["5", "15", "25"],
+        "speaker_type": ["CHI", "FEM", "MAN"],
+        "time_since_last_conv": ["nan", "15", "5"],
+        "conv_count": [1, 1, 2]
+    })
+
+    am.import_annotations(
+        pd.DataFrame(
+            [{"set": "incorrect_types_conv",
+              "raw_filename": "file.its",
+              "time_seek": 0,
+              "recording_filename": "sound.wav",
+              "range_onset": 0,
+              "range_offset": 30000000,
+              "format": "csv",
+              }]
+        ),
+        import_function=partial(fake_vocs, incorrect_types),
+    )
+
+    std = StandardConversations(project, setname='incorrect_types_conv')
+    with pytest.raises(Exception):
+        std.extract(), "The code should raise an exception for incorrect data types"
+
+
+def test_unsorted_annotations(project, am):
+    unsorted_segments = pd.DataFrame({
+        "segment_onset": [20, 0, 10],
+        "segment_offset": [25, 5, 15],
+        "speaker_type": ["FEM", "CHI", "MAN"],
+        "time_since_last_conv": [5, np.nan, 15],
+        "conv_count": [2, 1, 1]
+    })
+
+    am.import_annotations(
+        pd.DataFrame(
+            [{"set": "unsorted_conv",
+              "raw_filename": "file.its",
+              "time_seek": 0,
+              "recording_filename": "sound.wav",
+              "range_onset": 0,
+              "range_offset": 30000000,
+              "format": "csv",
+              }]
+        ),
+        import_function=partial(fake_vocs, unsorted_segments),
+    )
+
+    std = StandardConversations(project, setname='unsorted_conv')
+    results = std.extract()
+
+    assert not results.empty, "The result should not be empty for unsorted annotations"
+
+
+def test_all_cases(project, am, segments):
+    test_empty_conversations(project, am)
+    test_nan_values(project, am)
+    test_single_entry_conversation(project, am)
+    test_incorrect_data_types(project, am)
+    test_unsorted_annotations(project, am)
