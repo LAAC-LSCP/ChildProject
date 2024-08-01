@@ -632,10 +632,11 @@ class AnnotationManager:
         assert (input_processed["range_onset"] >= 0).all(), "range_onset must be greater or equal to 0"
         if "duration" in self.project.recordings.columns:
             assert (input_processed["range_offset"] <= input_processed.merge(self.project.recordings,
-                                                                            how='left',
-                                                                            on='recording_filename',
-                                                                            validate='m:1'
-                                                                            ).reset_index()["duration"]
+                                                                             how='left',
+                                                                             on='recording_filename',
+                                                                             validate='m:1',
+                                                                             suffixes=('_input', ''),
+                                                                             ).reset_index()["duration"]
             ).all(), "range_offset must be smaller than the duration of the recording"
 
         missing_recordings = input_processed[

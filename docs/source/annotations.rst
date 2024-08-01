@@ -18,7 +18,7 @@ Importation
 Single annotation importation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Annotations can be imported one by one or in bulk. Annotation
+Annotations can be imported one by one, in bulk or through the automated command. Annotation
 importation does the following :
 
 1. Convert all input annotations from their original format (e.g. rttm,
@@ -62,6 +62,24 @@ Use this to do bulk importation of many annotation files.
 The input dataframe ``/path/to/dataframe.csv`` must have one entry per
 annotation to import, according to the format specified at :ref:`format-input-annotations`.
 
+Automated importation
+^^^^^^^^^^^^^^^^^^^^^
+
+The automated method is mostly used for automated annotations. It is made to assume a certain number of parameters on importation, which allows us to perform the usual importations we are doing without additional input. The command will assume the following:
+- the annotation files will cover the entirety of the audio they annotate (equivalent to range_onset 0 and range_offset <duration of rec>)
+- the annotation files will have timestamps that are not offset compare to the recording (equivalent to time_seek 0)
+- the annotation files will be named exactly like the recording they annotate (including the folder they are in) except for the extension, which depends on the format (equivalent to recording_filename = annotation_filename + extension)
+- the format used is the same for all the files and needs to be given in the call, it determines the extension for all the annotation files
+- the set to import is the same for all files, must be given in the call
+
+.. clidoc::
+
+   child-project automated-import . --help
+
+::
+
+   # import the vtc set by using the vtc_rttm format, all annotation files will need to be with extension ``.rttm``
+   child-project automated-import . --set vtc --format vtc_rttm
 
 Rename a set of annotations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~

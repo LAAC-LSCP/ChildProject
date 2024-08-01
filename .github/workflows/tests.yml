@@ -20,7 +20,6 @@ jobs:
         with:
           ffmpeg-version: release
           architecture: ''
-          linking-type: static
           github-token: ${{ secrets.GITHUB }}
       - name: sndfile
         if: matrix.os == 'ubuntu-latest'
@@ -56,7 +55,6 @@ jobs:
         with:
           ffmpeg-version: release
           architecture: ''
-          linking-type: static
           github-token: ${{ secrets.GITHUB }}
       - name: Setup package
         run: |
@@ -86,7 +84,6 @@ jobs:
         with:
           ffmpeg-version: release
           architecture: ''
-          linking-type: static
           github-token: ${{ secrets.GITHUB }}
       - name: Setup package
         run: |

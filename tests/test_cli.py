@@ -41,6 +41,14 @@ def test_overview(project):
     assert exit_code == 0
 
 
+def test_init():
+    shutil.rmtree(PATH, ignore_errors=True)
+    stdout, stderr, exit_code = cli(
+        ["child-project", "init", PATH]
+    )
+    assert exit_code == 0
+
+
 def test_import_annotations(project):
     stdout, stderr, exit_code = cli(
         [
@@ -52,6 +60,22 @@ def test_import_annotations(project):
         ]
     )
     assert exit_code == 0
+
+
+def test_import_automated(project):
+    stdout, stderr, exit_code = cli(
+        [
+            "child-project",
+            "automated-import",
+            PATH,
+            "--set",
+            "vtc_rttm",
+            "--format",
+            "vtc_rttm",
+        ]
+    )
+    assert exit_code == 0
+
 
 def test_compute_durations(project):
     stdout, stderr, exit_code = cli(
