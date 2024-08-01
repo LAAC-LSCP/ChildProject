@@ -5,6 +5,7 @@ import argparse
 import datetime
 import multiprocessing as mp
 import logging
+import functools
 
 import numpy as np
 import pandas as pd
@@ -223,7 +224,7 @@ class Conversations(ABC):
 
         return result
 
-    def _process_recording(self, recording):
+    def _process_recording(self, recording, grouper):
         """for one recording, get the segments required, group by conversation and launch computation for each block
 
         :param recording: recording_filename to which belongs that conversation
@@ -231,7 +232,6 @@ class Conversations(ABC):
         :return: dict containing all the computed features result for that unit
         :rtype: list[dict]
         """
-        grouper = 'conv_count'
         segments = self.retrieve_segments(recording)
         segments['voc_duration'] = segments['segment_offset'] - segments['segment_onset']
 
@@ -260,16 +260,17 @@ class Conversations(ABC):
         :return: DataFrame of computed features
         :rtype: pandas.DataFrame
         """
+        grouper = 'conv_count'
         if self.threads == 1:
 
-            results = list(itertools.chain.from_iterable(map(self._process_recording, self.recordings)))
+            results = list(itertools.chain.from_iterable(map(functools.partial(self._process_recording, grouper=grouper), self.recordings)))
         else:
             with mp.Pool(
                     processes=self.threads if self.threads >= 1 else mp.cpu_count()
             ) as pool:
-                results = list(itertools.chain.from_iterable(pool.map(self._process_recording, self.recordings)))
+                results = list(itertools.chain.from_iterable(pool.map(functools.partial(self._process_recording, grouper=grouper), self.recordings)))
 
-        self.conversations = pd.DataFrame(results) if len(results) else pd.DataFrame(columns=grouper)
+        self.conversations = pd.DataFrame(results) if len(results) else pd.DataFrame(columns=[grouper])
 
         # now add the rec_cols and child_cols in the result
         if self.rec_cols:
