@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- conversations summary extraction pipeline
 - docs and tests for init command
 - docs and tests for automated-import command
 

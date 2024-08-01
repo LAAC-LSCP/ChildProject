@@ -1,0 +1,4 @@
+conversation_onset,conversation_offset,voc_count,conv_count,interval_last_conv,recording_filename,initiator,finisher,participants,chi_dur_contrib,fem_dur_contrib
+1984136,1988951,3,1.0,,sound.wav,CHI,FEM,CHI/OCH/FEM,0.1286786786786787,0.5193693693693694
+28284010,28287945,2,2.0,26295059.0,sound.wav,OCH,OCH,OCH/MAL,,
+28288492,28294692,2,3.0,2917.0,sound.wav,OCH,MAL,OCH/MAL,,

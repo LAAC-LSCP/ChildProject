@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 from .projects import ChildProject, RAW_RECORDINGS, METADATA_FOLDER, RECORDINGS_CSV, CHILDREN_CSV
 from .annotations import AnnotationManager
+from .pipelines.conversations import ConversationsPipeline
+from .pipelines.conversations import ConversationsSpecificationPipeline
 from .converters import extensions
 from .pipelines.samplers import SamplerPipeline
 from .pipelines.eafbuilder import EafBuilderPipeline
@@ -744,6 +746,8 @@ def main():
     register_pipeline("anonymize", AnonymizationPipeline)
     register_pipeline("metrics", MetricsPipeline)
     register_pipeline("metrics-specification", MetricsSpecificationPipeline)
+    register_pipeline("conversations-summary", ConversationsPipeline)
+    register_pipeline("conversations-specification", ConversationsSpecificationPipeline)
 
     args = parser.parse_args()
     args.func(args)

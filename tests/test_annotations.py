@@ -285,6 +285,31 @@ def test_multiple_imports(project, am, input_file, ow, rimported, rerrors, excep
         assert len(errors) == 0 and len(warnings) == 0, "malformed annotation indexes detected"
 
 
+def test_import_incorrect_data_types(project, am):
+    incorrect_types = pd.DataFrame({
+        "segment_onset": ["0", "10", "20"],
+        "segment_offset": ["5", "15", "25"],
+        "speaker_type": ["CHI", "FEM", "MAN"],
+        "time_since_last_conv": ["nan", "15", "5"],
+        "conv_count": [1, 1, 2]
+    })
+
+    with pytest.raises(Exception):
+        am.import_annotations(
+            pd.DataFrame(
+                [{"set": "incorrect_types_conv",
+                "raw_filename": "file.its",
+                "time_seek": 0,
+                "recording_filename": "sound.wav",
+                "range_onset": 0,
+                "range_offset": 30000000,
+                "format": "csv",
+                }]
+            ),
+            import_function=partial(fake_vocs, incorrect_types),
+        )
+
+
 # function used as a derivation function, it should throw errors if not returning dataframe or without required columns
 def dv_func(a, b, x, type):
     if type == 'number':

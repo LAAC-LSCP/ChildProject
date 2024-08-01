@@ -1,0 +1,45 @@
+package_version: 0.2.0
+date: '20240705_184314'
+parameters:
+  path: output/conversations
+  destination: output/conversations/extra/std_conv.csv
+  pipeline: standard
+  setname: custom_conv
+  recordings: null
+  from_time: null
+  to_time: null
+  rec_cols: null
+  child_cols: null
+  threads: 1
+  dataset_hash: 710ebfe1f4b118f8a48f69d896c6675bb72ef6ba
+  features_list:
+  - callable: who_initiated
+    name: initiator
+  - callable: who_finished
+    name: finisher
+  - callable: voc_total_dur
+    name: total_duration_of_vocalisations
+  - callable: voc_speaker_count
+    name: CHI_voc_count
+    speaker: CHI
+  - callable: voc_speaker_count
+    name: FEM_voc_count
+    speaker: FEM
+  - callable: voc_speaker_count
+    name: MAL_voc_count
+    speaker: MAL
+  - callable: voc_speaker_count
+    name: OCH_voc_count
+    speaker: OCH
+  - callable: voc_speaker_dur
+    name: CHI_voc_dur
+    speaker: CHI
+  - callable: voc_speaker_dur
+    name: FEM_voc_dur
+    speaker: FEM
+  - callable: voc_speaker_dur
+    name: MAL_voc_dur
+    speaker: MAL
+  - callable: voc_speaker_dur
+    name: OCH_voc_dur
+    speaker: OCH

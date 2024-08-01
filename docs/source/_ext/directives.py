@@ -10,7 +10,7 @@ from sphinx.directives.code import CodeBlock
 from ChildProject.projects import ChildProject
 from ChildProject.annotations import AnnotationManager
 
-from ChildProject.pipelines import metricsFunctions
+from ChildProject.pipelines import metricsFunctions, conversationFunctions
 
 import subprocess
 
@@ -117,6 +117,20 @@ class CustomTable(CSVTable):
                     'Callable': name,
                     'Description': wrap(description, 50),
                     'Required arguments': wrap(arguments,25),
+                }
+                df.append(df_entry)
+        elif array == 'list-conversation-metrics':
+            ignores = {'conversationFunction'}
+            metrics = getmembers(conversationFunctions, isfunction)
+            for name, func in metrics:
+                if name in ignores : continue
+                doc = func.__doc__.split('Required keyword arguments:',1)
+                description = cleandoc(doc[0])
+                arguments = cleandoc(doc[1]) if len(doc) > 1 else ""
+                df_entry = {
+                    'Callable': name,
+                    'Description': wrap(description, 45),
+                    'Required arguments': wrap(arguments,35),
                 }
                 df.append(df_entry)
                 

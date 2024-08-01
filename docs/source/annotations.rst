@@ -111,6 +111,8 @@ remove them from the index.
 
    child-project remove-annotations /path/to/dataset --set vtc
 
+.. _derive-annotations:
+
 Derive annotations
 ~~~~~~~~~~~~~~~~~~
 

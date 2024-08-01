@@ -11,7 +11,7 @@ from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
 import logging
 
 from . import __version__
-from .pipelines.derivations import DERIVATIONS
+from .pipelines.derivations import DERIVATIONS, conversations
 from .projects import ChildProject
 from .converters import *
 from .tables import IndexTable, IndexColumn, assert_dataframe, assert_columns_presence
@@ -1967,8 +1967,8 @@ class AnnotationManager:
         start = int(start)
         stop = int(stop)
 
-        segments["segment_onset"].clip(lower=start, upper=stop, inplace=True)
-        segments["segment_offset"].clip(lower=start, upper=stop, inplace=True)
+        segments["segment_onset"] = segments["segment_onset"].clip(lower=start, upper=stop)
+        segments["segment_offset"] = segments["segment_offset"].clip(lower=start, upper=stop)
 
         segments = segments[segments["segment_offset"] > segments["segment_onset"]]
 
