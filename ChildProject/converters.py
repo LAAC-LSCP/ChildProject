@@ -9,7 +9,7 @@ extensions = {
     'csv': 'csv',
     'vtc_rttm': 'rttm',
     'vcm_rttm': 'rttm',
-    'alice': 'text',
+    'alice': 'txt',
     'its': 'its',
     'TextGrid': 'TextGrid',
     'eaf': 'eaf',
