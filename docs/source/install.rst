@@ -153,7 +153,7 @@ If you followed the previous instructions correctly, you should have created and
 .. code:: bash
 
      # install datalad in your environment
-     conda install datalad
+     pip install datalad
 
 
 Check the setup
