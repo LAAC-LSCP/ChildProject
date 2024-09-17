@@ -5,8 +5,8 @@ Installation
 
 The following instructions will let you install two python packages:
 
- - **ChildProject**, the package that is documented here
- - **DataLad**, a python software for the management and delivery of scientific data. Although ChildProject may work without it, a number of datasets of daylong recordings of children require it.
+ - **ChildProject**, the package that is documented here, follow the main installation instructions to get it
+ - **DataLad**, a python software for the management and delivery of scientific data. Although ChildProject may work without it, a number of datasets of daylong recordings of children require it. We advise to work with it alongside ChildProject. Follow the instructions in the section "Datalad installation" to get it as well.
 
 .. note::
 
@@ -143,6 +143,18 @@ If you which to continue using directly Windows, you must do the following:
 
 Congratulations, You are now able to use all the childproject features inside your Anaconda Prompt.
 
+Datalad installation
+~~~~~~~~~~~~~~~~~~~~
+
+This section is optional, it will help you to install Datalad once you have completed the previous step of installing ChildProject.
+
+If you followed the previous instructions correctly, you should have created and activated a conda environment with ChildProject installed. When you are in this environment, run the following:
+
+.. code:: bash
+
+     # install datalad in your environment
+     conda install datalad
+
 
 Check the setup
 ~~~~~~~~~~~~~~~
@@ -156,7 +168,7 @@ Each --version command should output the version of the package
 
 .. clidoc::
 
-    # optional software, for getting and sharing data
+    # run this ONLY IF you have installed the optional software datalad, for getting and sharing data
     datalad --version
 
 .. note::
