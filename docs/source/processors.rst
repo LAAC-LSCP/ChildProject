@@ -42,6 +42,30 @@ Values provided to this option should be existing ``recording_filename`` values 
 
 The ``--skip-existing`` switch can be used to skip previously processed files.
 
+Standard audio conversion
+~~~~~~~~~~~~~~~~~~~~~~
+
+Same as the basic processor but using standard parameters for the conversion:
+- single-channel (first channel is kept)
+- 16KHz sampling rate
+- codec pcm_s16le
+- wav format
+Audios are exported to ``recordings/converted/standard``.
+
+.. clidoc::
+
+   child-project process /path/to/dataset standard --help
+
+Example:
+
+::
+
+   child-project process . standard
+
+Values provided to the option ``--recordings`` should be existing ``recording_filename`` values in ``metadata/recordings.csv``.
+
+The ``--skip-existing`` switch can be used to skip previously processed files.
+
 Multi-core audio conversion with slurm on a cluster
 ===================================================
 
