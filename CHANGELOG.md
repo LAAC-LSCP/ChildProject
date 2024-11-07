@@ -10,6 +10,10 @@ All notable changes to this project will be documented in this file.
 - docs and tests for init command
 - docs and tests for automated-import command
 
+### Fixed
+
+- audio conversions in basic and standard now always include conversion filename and edit the file properly
+
 ## [0.2.2] 2024-06-26
 
 ### Added
