@@ -10,6 +10,10 @@ All notable changes to this project will be documented in this file.
 - docs and tests for init command
 - docs and tests for automated-import command
 
+### Fixed
+
+- does not fail anymore when annotations are missing their merged_from set
+
 ## [0.2.2] 2024-06-26
 
 ### Added
