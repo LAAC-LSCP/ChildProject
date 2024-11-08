@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- does not fail anymore when annotations are missing their merged_from set
 - audio conversions in basic and standard now always include conversion filename and edit the file properly
 
 ## [0.2.2] 2024-06-26

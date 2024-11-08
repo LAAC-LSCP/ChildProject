@@ -455,10 +455,16 @@ class AnnotationManager:
                 for j in row['merged_from'].split(','):
                     #if a list of sets was given and the set is not in that list, skip it
                     if (sets is not None and j in sets) or sets is None:
-                        if row['imported_at'] < last_modif[j]:
-                            warnings.append("set {} is outdated because the {} set it is merged from was modified. Consider updating or rerunning the creation of the {} set.".format(i,j,i))
+                        if j not in last_modif:
+                            warnings.append("set {} was originally derived from set {} which does not exist anymore.\
+                             Consider adding the set {} or updating the information.".format(i,j,j))
+                        else:
+                            if row['imported_at'] < last_modif[j]:
+                                warnings.append("set {} is outdated because the {} set it is merged from was modified.\
+                                 Consider updating or rerunning the creation of the {} set.".format(i,j,i))
                         
         return warnings
+
     def _import_annotation(
         self, import_function: Callable[[str], pd.DataFrame],
         params: dict,
