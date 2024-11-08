@@ -165,12 +165,11 @@ class BasicProcessor(AudioProcessor):
         original_file = self.project.get_recording_path(
             recording["recording_filename"], self.input_profile
         )
+        converted_filename = os.path.splitext(recording["recording_filename"])[0] + "." + self.format
 
         destination_file = os.path.join(
             self.output_directory(),
-            os.path.splitext(recording["recording_filename"])[0]
-            + "."
-            + self.format,
+            converted_filename,
         )
 
         os.makedirs(name=os.path.dirname(destination_file), exist_ok=True)
@@ -201,35 +200,22 @@ class BasicProcessor(AudioProcessor):
         (stdout, stderr) = proc.communicate()
         success = proc.returncode == 0
 
-        if not success:
-            logger_annotations.error(stderr)
-            return pd.DataFrame(
-                [
-                    {
-                        "original_filename": recording["recording_filename"],
-                        "converted_filename": "",
-                        "success": False,
-                        "error": stderr,
-                    }
-                ]
-            )
-        else:
-            converted_files = [
-                os.path.splitext(recording["recording_filename"])[0]
-                + "."
-                + self.format
-            ]
-
-        return pd.DataFrame(
+        df = pd.DataFrame(
             [
                 {
                     "original_filename": recording["recording_filename"],
-                    "converted_filename": cf,
-                    "success": True,
+                    "converted_filename": converted_filename,
                 }
-                for cf in converted_files
             ]
         )
+
+        if not success:
+            logger_annotations.error(stderr)
+            df = df.assign(success=False, error=stderr)
+            return df
+        else:
+            df = df.assign(success=True)
+            return df
 
     @staticmethod
     def add_parser(subparsers, subcommand):
@@ -473,12 +459,11 @@ class AudioStandard(AudioProcessor):
         original_file = self.project.get_recording_path(
             recording["recording_filename"], self.input_profile
         )
+        converted_filename = os.path.splitext(recording["recording_filename"])[0] + "." + self.format
 
         destination_file = os.path.join(
             self.output_directory(),
-            os.path.splitext(recording["recording_filename"])[0]
-            + "."
-            + self.format,
+            converted_filename,
         )
 
         os.makedirs(name=os.path.dirname(destination_file), exist_ok=True)
@@ -511,36 +496,23 @@ class AudioStandard(AudioProcessor):
         (stdout, stderr) = proc.communicate()
         success = proc.returncode == 0
 
-        if not success:
-            print(stderr, file=sys.stderr)
-
-            return pd.DataFrame(
-                [
-                    {
-                        "original_filename": recording["recording_filename"],
-                        "converted_filename": "",
-                        "success": False,
-                        "error": stderr,
-                    }
-                ]
-            )
-        else:
-            converted_files = [
-                os.path.splitext(recording["recording_filename"])[0]
-                + "."
-                + self.format
-            ]
-
-        return pd.DataFrame(
+        df = pd.DataFrame(
             [
                 {
                     "original_filename": recording["recording_filename"],
-                    "converted_filename": cf,
-                    "success": True,
+                    "converted_filename": converted_filename,
                 }
-                for cf in converted_files
             ]
         )
+
+        if not success:
+            logger_annotations.error(stderr)
+            df = df.assign(success='False', error=stderr)
+            return df
+        else:
+            df = df.assign(success='True')
+            return df
+
 
     @staticmethod
     def add_parser(subparsers, subcommand):
@@ -610,7 +582,7 @@ class AudioProcessingPipeline(Pipeline):
         )
         
         logger_annotations.info(
-            "exported processor parameters to ",
+            "exported processor parameters to %s",
             parameters_path,
             )   
         
