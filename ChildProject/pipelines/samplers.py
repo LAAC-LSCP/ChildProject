@@ -224,6 +224,7 @@ class PeriodicSampler(Sampler):
         period: int,
         offset: int = 0,
         profile: str = None,
+        by: str = "recording_filename",
         recordings: Union[str, List[str], pd.DataFrame] = None,
         exclude: Union[str, pd.DataFrame] = None,
     ):
@@ -233,6 +234,7 @@ class PeriodicSampler(Sampler):
         self.period = int(period)
         self.offset = int(offset)
         self.profile = profile
+        self.by = by
 
     def _sample(self):
         recordings = self.project.get_recordings_from_list(self.recordings)
@@ -250,23 +252,34 @@ class PeriodicSampler(Sampler):
 
         recordings["duration"].fillna(0, inplace=True)
 
-        self.segments = recordings[["recording_filename", "duration"]].copy()
-        self.segments["segment_onset"] = self.segments.apply(
-            lambda row: np.arange(
-                self.offset,
-                row["duration"] - self.length + 1e-4,
+        recordings = recordings.copy()
+        recordings['start_ts'] = recordings.apply(
+            lambda row: int(pd.Timestamp(str(row['date_iso']) + 'T' + str(row['start_time'])).timestamp()),
+            axis=1)
+        recordings['end_ts'] = recordings['start_ts'] + recordings['duration']
+        segments = []
+        # work by groups (by argument), create a singular timeline from those groups and choose periodic segments from there
+        # this means that recordings following each other will maintain continuity in sampling period
+        # it also means concurrent recordings in the same session will have the same samples kept time/date wise regardless of shifts in start
+        for i, gdf in recordings.groupby(self.by):
+            all_segments = pd.DataFrame({'segment_onset': np.arange(
+                gdf['start_ts'].min() + self.offset,
+                gdf['end_ts'].max() - self.length,
                 self.period + self.length,
-            ),
-            axis=1,
-        )
-        self.segments = self.segments.explode("segment_onset")
-        # discard recordings that can't include segments (they are NA here bc explode keeps empty lists)
-        self.segments = self.segments.dropna(subset=['segment_onset'])
-        self.segments["segment_onset"] = self.segments["segment_onset"].astype(int)
-        self.segments["segment_offset"] = self.segments["segment_onset"] + self.length
-        self.segments.rename(
-            columns={"recording_filename": "recording_filename"}, inplace=True
-        )
+            )})
+            all_segments['segment_offset'] = all_segments['segment_onset'] + self.length
+            rec_segments = []
+            for recording in gdf.to_dict(orient='records'):
+                tmp_segs = all_segments[(all_segments['segment_offset'] > recording['start_ts']) & (all_segments['segment_onset'] < recording['end_ts'])].copy()
+                # cut down overflowing stamps
+                tmp_segs['segment_onset'] = tmp_segs['segment_onset'].apply(lambda x: max(x, recording['start_ts']))
+                tmp_segs['segment_offset'] = tmp_segs['segment_offset'].apply(lambda x: min(x, recording['end_ts']))
+                tmp_segs['segment_onset'] = tmp_segs['segment_onset'] - recording['start_ts']
+                tmp_segs['segment_offset'] = tmp_segs['segment_offset'] - recording['start_ts']
+                tmp_segs['recording_filename'] = recording['recording_filename']
+                rec_segments.append(tmp_segs)
+            segments.append(pd.concat(rec_segments))
+        self.segments = pd.concat(segments)
 
         return self.segments
 
@@ -296,6 +309,12 @@ class PeriodicSampler(Sampler):
             help="name of the profile of recordings to use to estimate duration (uses raw recordings if empty)",
             default="",
             type=str,
+        )
+        parser.add_argument(
+            "--by",
+            help="units to sample from (default behavior is to sample by recording)",
+            choices=["recording_filename", "session_id", "child_id"],
+            default="recording_filename",
         )
 
 
