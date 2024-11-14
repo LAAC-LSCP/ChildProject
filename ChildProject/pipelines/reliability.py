@@ -3,33 +3,34 @@ import pandas as pd
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
+from itertools import chain
+from sklearn.metrics import multilabel_confusion_matrix, precision_recall_fscore_support, classification_report, confusion_matrix
 
 from ChildProject.projects import ChildProject
 from ChildProject.annotations import AnnotationManager
 from ChildProject.metrics import segments_to_grid, conf_matrix, segments_to_annotation
-from pyannote.metrics.detection import DetectionPrecisionRecallFMeasure
-from sklearn.metrics import confusion_matrix as sk_confusion_matrix
 
 class ReliabilityAnalysis:
-    def __init__(self, project: ChildProject, reference_set: str, hypothesis_set: str, speakers=None):
+    def __init__(self, project: ChildProject, reference_set: str, hypothesis_set: str, speakers=None, granularity=10):
         """
-        Initializes the reliability analysis.
+        Initializes the reliability analysis with multilabel support.
 
         Args:
             project (ChildProject): The ChildProject object.
             reference_set (str): Name of the reference annotation set.
             hypothesis_set (str): Name of the hypothesis annotation set.
             speakers (list, optional): List of speakers to include in the analysis. Defaults to ['CHI', 'OCH', 'FEM', 'MAL'].
+            granularity (int): Temporal resolution of the grid in milliseconds.
         """
         self.project = project
         self.reference_set = reference_set
         self.hypothesis_set = hypothesis_set
         self.speakers = speakers if speakers is not None else ['CHI', 'OCH', 'FEM', 'MAL']
-        self.labels = self.speakers + ["Silence"]
+        self.granularity = granularity
 
     def load_data(self):
         """
-        Loads the annotations and prepares them for comparison.
+        Loads and filters annotation data for the specified speakers.
         """
         am = AnnotationManager(self.project)
         intersection = AnnotationManager.intersection(am.annotations, [self.reference_set, self.hypothesis_set])
@@ -37,77 +38,137 @@ class ReliabilityAnalysis:
         segments = segments[segments['speaker_type'].isin(self.speakers)]
         return segments
 
-    def generate_confusion_matrices(self, segments, output_directory):
+    def segments_to_multilabel_grid(self, segments, annotation_set):
         """
-        Generates and saves confusion matrices.
+        Convert segments to a multilabel grid with the specified granularity.
 
         Args:
             segments (pd.DataFrame): Segments data.
+            annotation_set (str): The annotation set to process.
+
+        Returns:
+            np.array: A multilabel grid representation.
+        """
+        max_offset = segments['segment_offset'].max()
+        grid_points = int(np.ceil(max_offset / self.granularity))
+        
+        # Initialize a multilabel grid as an array of sets
+        grid = np.empty((grid_points,), dtype=object)
+        for i in range(grid_points):
+            grid[i] = set()
+
+        for _, row in segments[segments['set'] == annotation_set].iterrows():
+            start = int(row['segment_onset'] / self.granularity)
+            end = min(int(row['segment_offset'] / self.granularity), grid_points - 1)  # Limit end to grid size
+            
+            for i in range(start, end + 1):
+                grid[i].add(row['speaker_type'])
+
+        return grid
+
+
+    def generate_confusion_matrices(self, ref_grid, hyp_grid, output_directory):
+        """
+        Generates and saves multiclass confusion matrices, both raw and normalized.
+
+        Args:
+            ref_grid (np.array): Reference multilabel grid.
+            hyp_grid (np.array): Hypothesis multilabel grid.
             output_directory (str): Directory to save the confusion matrices.
         """
-        # Create grids for reference and hypothesis sets
-        grids = {}
-        for annotation_set in [self.reference_set, self.hypothesis_set]:
-            grids[annotation_set] = segments_to_grid(
-                segments[segments['set'] == annotation_set],
-                0,
-                segments['segment_offset'].max(),
-                100,
-                'speaker_type',
-                self.speakers
-            )
+        # Replace '/' with '-' in set names to avoid errors in file names
+        ref_set_safe = self.reference_set.replace('/', '-')
+        hyp_set_safe = self.hypothesis_set.replace('/', '-')
 
-        # Compute non-normalized confusion matrix
-        confusion_counts = conf_matrix(grids[self.reference_set], grids[self.hypothesis_set])
-        pd.DataFrame(confusion_counts, index=self.labels, columns=self.labels).to_csv(
-            os.path.join(output_directory, "confusion_counts.csv"))
+        # Possible classes for the confusion matrix
+        classes = self.speakers + ['SILENCE']
 
-        # Plot and save non-normalized confusion matrix
+        # Convert each point in ref_grid and hyp_grid into a unique label based on present speakers
+        ref_labels = []
+        hyp_labels = []
+
+        for ref_set, hyp_set in zip(ref_grid, hyp_grid):
+            ref_label = '-'.join(sorted(ref_set)) if ref_set else 'SILENCE'
+            hyp_label = '-'.join(sorted(hyp_set)) if hyp_set else 'SILENCE'
+            ref_labels.append(ref_label)
+            hyp_labels.append(hyp_label)
+
+        # Generate the raw confusion matrix
+        conf_matrix = confusion_matrix(ref_labels, hyp_labels, labels=classes)
+
+        # Create a DataFrame for the raw matrix
+        conf_matrix_df = pd.DataFrame(conf_matrix, index=classes, columns=classes)
+        conf_matrix_df.to_csv(os.path.join(output_directory, f"confusion_matrix_{ref_set_safe}_vs_{hyp_set_safe}.csv"))
+
+        # Visualize and save the raw matrix
         plt.figure(figsize=(10, 8))
-        sns.heatmap(confusion_counts, annot=True, cmap="Blues", fmt='d', xticklabels=self.labels, yticklabels=self.labels)
+        sns.heatmap(conf_matrix_df, annot=True, cmap="Blues", fmt='d', xticklabels=classes, yticklabels=classes)
+        plt.title(f"Confusion Matrix ({self.reference_set} vs {self.hypothesis_set})")
         plt.xlabel("Hypothesis")
         plt.ylabel("Reference")
-        plt.title("Non-Normalized Confusion Matrix")
-        plt.savefig(os.path.join(output_directory, "confusion_counts.jpg"))
+        plt.savefig(os.path.join(output_directory, f"confusion_matrix_{ref_set_safe}_vs_{hyp_set_safe}.jpg"))
         plt.close()
 
-        # Compute normalized confusion matrix
-        confusion_normalized = confusion_counts / np.sum(grids[self.reference_set], axis=0)[:, None]
-        pd.DataFrame(confusion_normalized, index=self.labels, columns=self.labels).to_csv(
-            os.path.join(output_directory, "confusion_normalized.csv"))
+        # Calculate the row-normalized confusion matrix
+        normalized_conf_matrix = conf_matrix.astype('float') / conf_matrix.sum(axis=1)[:, np.newaxis]
+        normalized_conf_matrix_df = pd.DataFrame(normalized_conf_matrix, index=classes, columns=classes)
+        normalized_conf_matrix_df.to_csv(os.path.join(output_directory, f"normalized_confusion_matrix_{ref_set_safe}_vs_{hyp_set_safe}.csv"))
 
+        # Visualize and save the normalized matrix
         plt.figure(figsize=(10, 8))
-        sns.heatmap(confusion_normalized, annot=True, cmap="Reds", fmt='.2f', xticklabels=self.labels, yticklabels=self.labels)
+        sns.heatmap(normalized_conf_matrix_df, annot=True, cmap="Reds", fmt='.2f', xticklabels=classes, yticklabels=classes)
+        plt.title(f"Normalized Confusion Matrix ({self.reference_set} vs {self.hypothesis_set})")
         plt.xlabel("Hypothesis")
         plt.ylabel("Reference")
-        plt.title("Normalized Confusion Matrix")
-        plt.savefig(os.path.join(output_directory, "confusion_normalized.jpg"))
+        plt.savefig(os.path.join(output_directory, f"normalized_confusion_matrix_{ref_set_safe}_vs_{hyp_set_safe}.jpg"))
         plt.close()
 
-    def compute_detection_metrics(self, segments, output_directory):
+
+    def compute_classification_report(self, ref_grid, hyp_grid, output_directory):
         """
-        Computes and saves detection metrics (Precision, Recall, F-measure).
+        Computes and saves a classification report with Precision, Recall, and F-measure.
 
         Args:
-            segments (pd.DataFrame): Segments data.
-            output_directory (str): Directory to save detection metrics.
+            ref_grid (np.array): Reference multilabel grid.
+            hyp_grid (np.array): Hypothesis multilabel grid.
+            output_directory (str): Directory to save the report.
         """
-        ref = segments_to_annotation(segments[segments['set'] == self.reference_set], 'speaker_type')
-        hyp = segments_to_annotation(segments[segments['set'] == self.hypothesis_set], 'speaker_type')
+        # Convert each entry in the grids to a binary vector for each speaker
+        ref_binary = np.array([[1 if speaker in labels else 0 for speaker in self.speakers] for labels in ref_grid])
+        hyp_binary = np.array([[1 if speaker in labels else 0 for speaker in self.speakers] for labels in hyp_grid])
 
-        metric = DetectionPrecisionRecallFMeasure()
-        detail = metric.compute_components(ref, hyp)
-        precision, recall, f_measure = metric.compute_metrics(detail)
+        ref_set_safe = self.reference_set.replace('/', '-')
+        hyp_set_safe = self.hypothesis_set.replace('/', '-')
 
-        with open(os.path.join(output_directory, "detection_metrics.txt"), 'w') as f:
-            f.write(f"Detection Metrics for {self.reference_set} vs {self.hypothesis_set}\n")
-            f.write(f'Precision: {precision:.2f}\n')
-            f.write(f'Recall: {recall:.2f}\n')
-            f.write(f'F-measure: {f_measure:.2f}\n')
+        # Ensure both ref_binary and hyp_binary have the same shape
+        if ref_binary.shape != hyp_binary.shape:
+            raise ValueError("Mismatch in binary label shapes between reference and hypothesis grids.")
+
+        # Compute precision, recall, F-score, and support for each class
+        precision, recall, f1, support = precision_recall_fscore_support(ref_binary, hyp_binary, average=None, zero_division=0)
+        overall_precision, overall_recall, overall_f1, _ = precision_recall_fscore_support(ref_binary, hyp_binary, average="weighted", zero_division=0)
+
+        # Create a DataFrame for the detailed report
+        report_df = pd.DataFrame({
+            "Speaker": self.speakers,
+            "Precision": precision,
+            "Recall": recall,
+            "F1-Score": f1,
+            "Support": support
+        })
+
+        # Add overall metrics to the report
+        overall_row = pd.DataFrame([["Overall", overall_precision, overall_recall, overall_f1, support.sum()]],
+                                columns=report_df.columns)
+        report_df = pd.concat([report_df, overall_row], ignore_index=True)
+
+        # Save report to CSV
+        report_df.to_csv(os.path.join(output_directory, f"classification_report_{ref_set_safe}_vs_{hyp_set_safe}.csv"), index=False)
+
 
     def run(self, output_directory: str):
         """
-        Runs the reliability analysis and saves the results.
+        Runs the multilabel reliability analysis and saves the results.
 
         Args:
             output_directory (str): Path to the directory where results will be saved.
@@ -117,10 +178,14 @@ class ReliabilityAnalysis:
         # Load data
         segments = self.load_data()
 
-        # Generate confusion matrices
-        self.generate_confusion_matrices(segments, output_directory)
+        # Generate multilabel grids
+        ref_grid = self.segments_to_multilabel_grid(segments, self.reference_set)
+        hyp_grid = self.segments_to_multilabel_grid(segments, self.hypothesis_set)
 
-        # Compute and save detection metrics
-        self.compute_detection_metrics(segments, output_directory)
+        # Generate and save confusion matrices
+        self.generate_confusion_matrices(ref_grid, hyp_grid, output_directory)
+
+        # Compute and save classification report
+        self.compute_classification_report(ref_grid, hyp_grid, output_directory)
 
         print(f"The reliability analysis results have been saved in {output_directory}.")
