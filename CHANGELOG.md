@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 - conversations summary extraction pipeline
 - docs and tests for init command
 - docs and tests for automated-import command
+- option '--by' for periodic sampling along with doc and tests
 
 ### Fixed
 
