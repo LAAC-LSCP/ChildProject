@@ -254,17 +254,17 @@ class PeriodicSampler(Sampler):
 
         recordings = recordings.copy()
         recordings['start_ts'] = recordings.apply(
-            lambda row: int(pd.Timestamp(str(row['date_iso']) + 'T' + str(row['start_time'])).timestamp()),
+            lambda row: int(pd.Timestamp(str(row['date_iso']) + 'T' + str(row['start_time'])).timestamp()) * 1000,
             axis=1)
         recordings['end_ts'] = recordings['start_ts'] + recordings['duration']
         segments = []
         # work by groups (by argument), create a singular timeline from those groups and choose periodic segments from there
         # this means that recordings following each other will maintain continuity in sampling period
-        # it also means concurrent recordings in the same session will have the same samples kept time/date wise regardless of shifts in start
+        # also means concurrent recordings in the same session will have the same samples kept time/date wise regardless of shifts in start
         for i, gdf in recordings.groupby(self.by):
             all_segments = pd.DataFrame({'segment_onset': np.arange(
                 gdf['start_ts'].min() + self.offset,
-                gdf['end_ts'].max() - self.length,
+                gdf['end_ts'].max(),
                 self.period + self.length,
             )})
             all_segments['segment_offset'] = all_segments['segment_onset'] + self.length
