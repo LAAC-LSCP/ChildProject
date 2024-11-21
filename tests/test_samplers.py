@@ -3,6 +3,7 @@ import pandas as pd
 import pytest
 import shutil
 from functools import partial
+from pathlib import Path
 
 from ChildProject.projects import ChildProject
 from ChildProject.annotations import AnnotationManager
@@ -15,6 +16,8 @@ from ChildProject.pipelines.samplers import (
     SamplerPipeline,
 )
 
+TRUTH = Path('tests', 'truth')
+PATH = Path('output', 'samplers')
 
 def fake_conversation(data, filename):
     return data
@@ -22,25 +25,30 @@ def fake_conversation(data, filename):
 
 @pytest.fixture(scope="function")
 def project(request):
-    if not os.path.exists("output/samplers"):
-        shutil.copytree(src="examples/valid_raw_data", dst="output/samplers")
+    if os.path.exists(PATH):
+        # shutil.copytree(src="examples/valid_raw_data", dst="output/annotations")
+        shutil.rmtree(PATH)
+    shutil.copytree(src="examples/valid_raw_data", dst=PATH)
 
-    project = ChildProject("output/samplers")
+    project = ChildProject(PATH)
     project.read()
+
     yield project
 
-
-def test_periodic(project):
+@pytest.mark.parametrize("by,truth",
+                         [('recording_filename', TRUTH / 'sampler' / 'periodic_rec.csv'),
+                          ('session_id', TRUTH / 'sampler' / 'periodic_sess.csv'),
+                          ])
+def test_periodic(project, by, truth):
     sampler = PeriodicSampler(
-        project=project, length=1000, period=1000, recordings=["sound.wav"]
+        project=project, offset=1000, length=500, period=200, recordings=["sound.wav",'sound2.wav'], by=by
     )
     sampler.sample()
 
-    duration = project.recordings[
-        project.recordings["recording_filename"] == "sound.wav"
-    ]["duration"].iloc[0]
+    # sampler.segments.to_csv(truth, index=False)
+    truth = pd.read_csv(truth)
 
-    assert len(sampler.segments) == int(duration / (1000 + 1000))
+    pd.testing.assert_frame_equal(sampler.segments.reset_index(drop=True), truth, check_like=True)
 
 
 def test_energy_detection(project):

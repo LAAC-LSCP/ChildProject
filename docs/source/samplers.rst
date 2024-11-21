@@ -35,7 +35,17 @@ All samplers have a few parameters in common:
 Periodic sampler
 ~~~~~~~~~~~~~~~~
 
-Draw segments from the recordings, periodically
+Draw segments from the recordings periodically.
+
+The ``--period`` argument is between the end of the previous segment until the start of the next. For example
+length:60000(1min) period:3540000(59min) will sample the first minute of every hour whereas length:60000(1min)
+period:3600000(1h) will sample the 1st min of the 1st hour, the 2nd min o the 2nd hour and so on.
+
+The ``--by`` argument will group recordings to form a single timeline in which the periodicity defines the parts
+to annotate, then those parts are extracted from the recordings of the group. this means that recordings following
+each other will maintain continuity in sampling period if in the same session and sampling by session_id. It also means
+concurrent recordings in the same session will have the same samples kept time/date wise regardless of shifts in start.
+The default is to sample by 'recording_filename' which will simply periodicly sample each recording independently.
 
 .. clidoc::
 

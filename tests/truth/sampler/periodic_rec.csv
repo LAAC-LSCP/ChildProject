@@ -1,0 +1,11 @@
+segment_onset,segment_offset,recording_filename
+1000,1500,sound.wav
+1700,2200,sound.wav
+2400,2900,sound.wav
+3100,3600,sound.wav
+3800,4000,sound.wav
+1000,1500,sound2.wav
+1700,2200,sound2.wav
+2400,2900,sound2.wav
+3100,3600,sound2.wav
+3800,4000,sound2.wav
