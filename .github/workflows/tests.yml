@@ -46,6 +46,7 @@ jobs:
           sudo apt-get install libsndfile1-dev sox
       - name: Setup package
         run: |
+          pip install --upgrade setuptools
           pip install -r requirements.txt
           pip install . --upgrade
           python -m pip install --user pytest
@@ -145,6 +146,7 @@ jobs:
           github-token: ${{ secrets.GITHUB }}
       - name: Setup package
         run: |
+          pip install --upgrade setuptools
           pip install -r requirements.txt
           pip install . --upgrade
           python -m pip install --user pytest
