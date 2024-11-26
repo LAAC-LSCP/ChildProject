@@ -283,6 +283,7 @@ class AnnotationManager:
         """
         self.project = project
         self.annotations = None
+        self.controlled_voc = pd.DataFrame()
         self.errors = []
 
         if not isinstance(project, ChildProject):
@@ -356,6 +357,10 @@ class AnnotationManager:
                 )
         
         warnings += self._check_for_outdated_merged_sets()
+
+        controlled_voc_path = os.path.join(self.project.path, "metadata/controlled_vocabulary.csv")
+        if os.path.exists(controlled_voc_path):
+            self.controlled_voc = pd.read_csv(controlled_voc_path, index_col=0)
 
         return errors, warnings
 
@@ -464,6 +469,16 @@ class AnnotationManager:
                                  Consider updating or rerunning the creation of the {} set.".format(i,j,i))
                         
         return warnings
+
+    def write_controlled_vocabulary(self, imported_controlled_vocabulary: pd.DataFrame):
+        """
+        Update the controlled vocabulary of EAF files
+        """
+        self.controlled_voc = pd.concat([self.controlled_voc, imported_controlled_vocabulary])
+        self.controlled_voc = self.controlled_voc.astype(str).drop_duplicates()
+        self.controlled_voc.to_csv(
+            os.path.join(self.project.path, "metadata/controlled_vocabulary.csv"), index=True
+        )
 
     def _import_annotation(
         self, import_function: Callable[[str], pd.DataFrame],
@@ -591,6 +606,10 @@ class AnnotationManager:
             "%Y-%m-%d %H:%M:%S"
         )
         annotation["package_version"] = __version__
+
+        if annotation_format == "eaf":
+            controlled_voc = EafConverter.get_controlled_vocabulary(path)
+            self.write_controlled_vocabulary(controlled_voc)
 
         if pd.isnull(annotation["format"]):
             annotation["format"] = "NA"

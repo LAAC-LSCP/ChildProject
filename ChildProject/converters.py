@@ -481,7 +481,30 @@ class EafConverter(AnnotationConverter):
     FORMAT = Formats.EAF.value
 
     @staticmethod
-    def convert(filename: str, filter=None, **kwargs) -> pd.DataFrame:
+    def get_controlled_vocabulary(filename: str) -> pd.DataFrame:
+        import pympi
+
+        eaf = pympi.Elan.Eaf(filename)
+
+        controlled_voc = pd.DataFrame.from_dict(
+                    eaf.controlled_vocabularies,
+                    orient='index',
+                    columns=['description', 'entries', 'external_references']
+                )
+    
+        controlled_voc['description'] = \
+            controlled_voc['description'].transform(lambda x: x[0][1] if len(x) > 0 else x)
+        controlled_voc['entries'] = \
+            controlled_voc['entries'] \
+                .transform(
+                    lambda x: [value[0][0] if len(value) > 0 else value for value in x.values()]
+                )
+
+        return controlled_voc
+
+
+    @staticmethod
+    def convert(filename: str, filter: str=None, new_tiers: list=None, **kwargs) -> pd.DataFrame:
         import pympi
 
         eaf = pympi.Elan.Eaf(filename)
@@ -564,8 +587,19 @@ class EafConverter(AnnotationConverter):
                     segment["vcm_type"] = value
                 elif label == "msc":
                     segment["msc_type"] = value
-                elif label in kwargs["new_tiers"]:
-                    segment[label] = value
+                elif new_tiers is not None and label in new_tiers:
+                    if label in eaf.controlled_vocabularies.keys():
+                        controlled_values = \
+                            [value[0][0][0] for value in eaf.controlled_vocabularies[label][1].values()]
+                        if value not in controlled_values:
+                            print(
+                                f'warning: {value} is not in the controlled'
+                                f'vocabulary {controlled_values} for {label}'
+                            )
+                        else:
+                            segment[label] = value
+                    else:
+                        segment[label] = value
 
         return pd.DataFrame(segments.values())
 

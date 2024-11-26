@@ -1,5 +1,5 @@
 ,segment_onset,segment_offset,speaker_id,speaker_type,vcm_type,lex_type,mwu_type,addressee,transcription,words,newtier2,newtier
-0,1519558,1519992,CHI,CHI,NA,NA,NA,NA,NA,NA,W,S
+0,1519558,1519992,CHI,CHI,NA,NA,NA,NA,NA,NA,bad_value,NA
 1,1521553,1522341,CHI,CHI,NA,NA,NA,NA,NA,NA,A,S
 2,1523290,1524546,CHI,CHI,NA,NA,NA,NA,NA,NA,V,C
 3,1528034,1530395,CHI,CHI,NA,NA,NA,NA,NA,NA,V,C
