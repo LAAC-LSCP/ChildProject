@@ -271,7 +271,7 @@ class ChildProject:
     REC_COL_REF = {c.name: c for c in RECORDINGS_COLUMNS}
 
     def __init__(
-        self, path: Union[Path, str], enforce_dtypes: bool = False, ignore_discarded: bool = True
+        self, path: Union[Path, str], enforce_dtypes: bool = True, ignore_discarded: bool = True
     ):
         self.path = Path(path)
         self.experiment = None
