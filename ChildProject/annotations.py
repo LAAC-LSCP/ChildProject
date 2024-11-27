@@ -12,11 +12,13 @@ import logging
 
 from . import __version__
 from .pipelines.derivations import DERIVATIONS, conversations
-from .projects import ChildProject
+from .projects import ChildProject, METADATA_FOLDER
 from .converters import *
 from .tables import IndexTable, IndexColumn, assert_dataframe, assert_columns_presence
 from .utils import Segment, intersect_ranges, path_is_parent, TimeInterval, series_to_datetime, find_lines_involved_in_overlap
 
+ANNOTATIONS_CSV = 'annotations.csv'
+SETS_CSV = 'sets.csv'
 
 # Create a logger for the module (file)
 logger_annotations = logging.getLogger(__name__)
@@ -290,7 +292,7 @@ class AnnotationManager:
 
         self.project.read()
 
-        index_path = os.path.join(self.project.path, "metadata","annotations.csv")
+        index_path = os.path.join(self.project.path, METADATA_FOLDER,ANNOTATIONS_CSV)
         if not os.path.exists(index_path):
             open(index_path, "w+").write(",".join([c.name for c in self.INDEX_COLUMNS]))
 
@@ -306,7 +308,7 @@ class AnnotationManager:
         """
         table = IndexTable(
             "input",
-            path=os.path.join(self.project.path, "metadata/annotations.csv"),
+            path=os.path.join(self.project.path, METADATA_FOLDER, ANNOTATIONS_CSV),
             columns=self.INDEX_COLUMNS,
         )
         self.annotations = table.read()
@@ -426,7 +428,7 @@ class AnnotationManager:
         ] = self.annotations[["time_seek", "range_onset", "range_offset"]].astype(np.int64)
         self.annotations = self.annotations.sort_values(['imported_at','set', 'annotation_filename'])
         self.annotations.to_csv(
-            os.path.join(self.project.path, "metadata/annotations.csv"), index=False
+            os.path.join(self.project.path, METADATA_FOLDER, ANNOTATIONS_CSV), index=False
         )
         
     def _check_for_outdated_merged_sets(self, sets: set = None):
@@ -888,7 +890,7 @@ class AnnotationManager:
         """
         input_processed = self.annotations[self.annotations['set'] == input_set].copy()
         assert not input_processed.empty, "Input set {0} does not exist,\
-         existing sets are in the 'set' column of annotations.csv".format(input_set)
+         existing sets are in the 'set' column of {1}".format(input_set, ANNOTATIONS_CSV)
 
         assert input_set != output_set, "Input set {0} should be different than output\
          set {1}".format(input_set, output_set)
