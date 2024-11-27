@@ -9,16 +9,20 @@ import sys
 import traceback
 from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
 import logging
+from pathlib import Path
 
 from . import __version__
 from .pipelines.derivations import DERIVATIONS, conversations
-from .projects import ChildProject, METADATA_FOLDER
+from .projects import ChildProject, METADATA_FOLDER, EXTRA
 from .converters import *
 from .tables import IndexTable, IndexColumn, assert_dataframe, assert_columns_presence
-from .utils import Segment, intersect_ranges, path_is_parent, TimeInterval, series_to_datetime, find_lines_involved_in_overlap
+from .utils import Segment, intersect_ranges, TimeInterval, series_to_datetime, find_lines_involved_in_overlap
 
-ANNOTATIONS_CSV = 'annotations.csv'
-SETS_CSV = 'sets.csv'
+ANNOTATIONS = Path("annotations")
+ANNOTATIONS_CSV = Path('annotations.csv')
+CONVERTED = Path('converted')
+RAW = Path('raw')
+METANNOTS = Path('metannots.yml')
 
 # Create a logger for the module (file)
 logger_annotations = logging.getLogger(__name__)
@@ -286,14 +290,15 @@ class AnnotationManager:
         self.project = project
         self.annotations = None
         self.errors = []
+        self.sets = None
 
         if not isinstance(project, ChildProject):
             raise ValueError("project should derive from ChildProject")
 
         self.project.read()
 
-        index_path = os.path.join(self.project.path, METADATA_FOLDER,ANNOTATIONS_CSV)
-        if not os.path.exists(index_path):
+        index_path = self.project.path / METADATA_FOLDER /ANNOTATIONS_CSV
+        if not index_path.exists():
             open(index_path, "w+").write(",".join([c.name for c in self.INDEX_COLUMNS]))
 
         self.errors, self.warnings = self.read()
@@ -308,7 +313,7 @@ class AnnotationManager:
         """
         table = IndexTable(
             "input",
-            path=os.path.join(self.project.path, METADATA_FOLDER, ANNOTATIONS_CSV),
+            path=self.project.path / METADATA_FOLDER / ANNOTATIONS_CSV,
             columns=self.INDEX_COLUMNS,
         )
         self.annotations = table.read()
@@ -361,17 +366,13 @@ class AnnotationManager:
 
         return errors, warnings
 
+
     def validate_annotation(self, annotation: dict) -> Tuple[List[str], List[str]]:
         logger_annotations.info("Validating %s from %s...", annotation["annotation_filename"], annotation["set"])
         segments = IndexTable(
             "segments",
-            path=os.path.join(
-                self.project.path,
-                "annotations",
-                annotation["set"],
-                "converted",
-                str(annotation["annotation_filename"]),
-            ),
+            path=self.project.path /
+                 ANNOTATIONS / annotation["set"] / CONVERTED / str(annotation["annotation_filename"]),
             columns=self.SEGMENTS_COLUMNS,
         )
 
@@ -427,9 +428,7 @@ class AnnotationManager:
             ["time_seek", "range_onset", "range_offset"]
         ] = self.annotations[["time_seek", "range_onset", "range_offset"]].astype(np.int64)
         self.annotations = self.annotations.sort_values(['imported_at','set', 'annotation_filename'])
-        self.annotations.to_csv(
-            os.path.join(self.project.path, METADATA_FOLDER, ANNOTATIONS_CSV), index=False
-        )
+        self.annotations.to_csv(self.project.path / METADATA_FOLDER / ANNOTATIONS_CSV, index=False)
         
     def _check_for_outdated_merged_sets(self, sets: set = None):
         """Checks the annotations dataframe for sets that were used in merged sets and modified afterwards.
@@ -486,14 +485,12 @@ class AnnotationManager:
         :return: output annotation dictionary (attributes defined according to :ref:`ChildProject.annotations.AnnotationManager.SEGMENTS_COLUMNS`)
         :rtype: dict
         """
-
+        # here we are building string based names that will be kept like this regardless of the os used, so do not use pathlib
         source_recording = os.path.splitext(annotation["recording_filename"])[0]
         annotation_filename = "{}_{}_{}.csv".format(
             source_recording, annotation["range_onset"], annotation["range_offset"]
         )
-        output_filename = os.path.join(
-            "annotations", annotation["set"], "converted", annotation_filename
-        )
+        output_filename = ANNOTATIONS / annotation["set"] / CONVERTED / annotation_filename
         
         #check if the annotation file already exists in dataset (same filename and same set)
         if self.annotations[(self.annotations['set'] == annotation['set']) &
@@ -502,8 +499,7 @@ class AnnotationManager:
                 logger_annotations.warning("Annotation file %s will be overwritten", output_filename)
                
             else:
-                error_filename = output_filename.replace('\\','/')
-                annotation["error"] = f"annotation file {error_filename} already exists, to reimport it, use the overwrite_existing flag"
+                annotation["error"] = f"annotation file {output_filename} already exists, to reimport it, use the overwrite_existing flag"
                 logger_annotations.error("Error: %s", annotation['error'])
                 annotation["imported_at"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 return annotation
@@ -524,13 +520,7 @@ class AnnotationManager:
             annotation["imported_at"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             return annotation
             
-        path = os.path.join(
-            self.project.path,
-            "annotations",
-            annotation["set"],
-            "raw",
-            annotation["raw_filename"],
-        )
+        path = self.project.path / ANNOTATIONS / annotation["set"] / RAW / annotation["raw_filename"]
         annotation_format = annotation["format"]
 
         df = None
@@ -583,10 +573,10 @@ class AnnotationManager:
         df.sort_values(sort_columns, inplace=True)
 
         os.makedirs(
-            os.path.dirname(os.path.join(self.project.path, output_filename)),
+            (self.project.path / output_filename).parent,
             exist_ok=True,
         )
-        df.to_csv(os.path.join(self.project.path, output_filename), index=False)
+        df.to_csv(self.project.path / output_filename, index=False)
 
         annotation["annotation_filename"] = annotation_filename
         annotation["imported_at"] = datetime.datetime.now().strftime(
@@ -701,7 +691,7 @@ class AnnotationManager:
             imported = imported[imported["error"].isnull()] 
             #when errors occur, separate them in a different csv in extra
             if errors.shape[0] > 0:
-                output = os.path.join(self.project.path, "extra","errors_import_{}.csv".format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")))
+                output = self.project.path / "extra" / "errors_import_{}.csv".format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
                 errors.to_csv(output, index=False)
                 logger_annotations.info("Errors summary exported to %s", output)              
         else:
@@ -750,9 +740,7 @@ class AnnotationManager:
         annotation_filename = "{}_{}_{}.csv".format(
             source_recording, annotation["range_onset"], annotation["range_offset"]
         )
-        output_filename = os.path.join(
-            "annotations", output_set, "converted", annotation_filename
-        )
+        output_filename = ANNOTATIONS / output_set / CONVERTED / annotation_filename
 
         # check if the annotation file already exists in dataset (same filename and same set)
         if self.annotations[(self.annotations['set'] == output_set) &
@@ -777,20 +765,16 @@ class AnnotationManager:
             array_tup = list(
                 ovl_annots[['set', 'recording_filename', 'range_onset', 'range_offset']].itertuples(index=False,
                                                                                                     name=None))
-            annotation_result[
-                "error"] = f"derivation for set <{output_set}> recording <{annotation['recording_filename']}> from {annotation['range_onset']} to {annotation['range_offset']} cannot continue because it overlaps with these existing annotation lines: {array_tup} . You could try removing entirely the set and trying again."
+            annotation_result["error"] = f"derivation for set <{output_set}> recording \
+            <{annotation['recording_filename']}> from {annotation['range_onset']} to {annotation['range_offset']} \
+            cannot continue because it overlaps with these existing annotation lines: {array_tup} . You could try \
+            removing entirely the set and trying again."
             logger_annotations.error("Error: %s", annotation['error'])
             # (f"Error: {annotation['error']}")
             annotation_result["imported_at"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             return annotation_result
 
-        path = os.path.join(
-            self.project.path,
-            "annotations",
-            annotation["set"],
-            "converted", #EXPAND
-            annotation["annotation_filename"],
-        )
+        path = self.project.path / ANNOTATIONS / annotation["set"] / CONVERTED / annotation["annotation_filename"]
 
         #TODO CHECK FOR DTYPES, enforcing dtypes of converted annotation files will become standard in a future update
         df_input = pd.read_csv(path)
@@ -852,10 +836,10 @@ class AnnotationManager:
         df.sort_values(sort_columns, inplace=True)
 
         os.makedirs(
-            os.path.dirname(os.path.join(self.project.path, output_filename)),
+            (self.project.path / output_filename).parent,
             exist_ok=True,
         )
-        df.to_csv(os.path.join(self.project.path, output_filename), index=False)
+        df.to_csv(self.project.path / output_filename, index=False)
 
         annotation_result["annotation_filename"] = annotation_filename
         annotation_result["imported_at"] = datetime.datetime.now().strftime(
@@ -940,8 +924,8 @@ class AnnotationManager:
             imported = imported[imported["error"].isnull()]
             # when errors occur, separate them in a different csv in extra
             if errors.shape[0] > 0:
-                output = os.path.join(self.project.path, "extra",
-                                      "errors_derive_{}.csv".format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")))
+                output = self.project.path / EXTRA / "errors_derive_{}.csv".format(
+                    datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
                 errors.to_csv(output, index=False)
                 logger_annotations.info("Errors summary exported to %s", output)
         else:
@@ -979,14 +963,12 @@ class AnnotationManager:
         """
         subsets = []
 
-        path = os.path.join(self.project.path, "annotations", annotation_set)
-        candidates = list(set(os.listdir(path)) - {"raw", "converted"})
+        path = self.project.path / "annotations" / annotation_set
+        candidates = list(set([f.name for f in path.iterdir()]) - {"raw", "converted"})
         for candidate in candidates:
-            subset = os.path.join(annotation_set, candidate)
+            subset = Path(annotation_set) / candidate
 
-            if not os.path.isdir(
-                os.path.join(self.project.path, "annotations", subset)
-            ):
+            if not (self.project.path / ANNOTATIONS / subset).is_dir():
                 continue
 
             subsets.append(subset)
@@ -1014,9 +996,7 @@ class AnnotationManager:
         for subset in subsets:
             self.remove_set(subset, recursive=recursive)
 
-        path = os.path.join(
-            self.project.path, "annotations", annotation_set, "converted"
-        )
+        path = self.project.path / ANNOTATIONS / annotation_set / CONVERTED
         try:
             rmtree(path)
         except:
@@ -1054,19 +1034,19 @@ class AnnotationManager:
         annotation_set = annotation_set.rstrip("/").rstrip("\\")
         new_set = new_set.rstrip("/").rstrip("\\")
 
-        current_path = os.path.join(self.project.path, "annotations", annotation_set)
-        new_path = os.path.join(self.project.path, "annotations", new_set)
+        current_path = self.project.path / ANNOTATIONS / annotation_set
+        new_path = self.project.path / ANNOTATIONS / new_set
 
-        if not os.path.exists(current_path):
+        if not current_path.exists():
             raise Exception("'{}' does not exists, aborting".format(current_path))
 
-        if os.path.exists(new_path):
-            if os.path.exists(os.path.join(new_path, 'raw')):
-                raise Exception("raw folder '{}' already exists, aborting".format(os.path.join(new_path, 'raw')))
-            if os.path.exists(os.path.join(new_path, 'converted')):
-                raise Exception("converted folder '{}' already exists, aborting".format(os.path.join(new_path, 'converted')))
+        if new_path.exists():
+            if (new_path / RAW).exists():
+                raise Exception("raw folder '{}' already exists, aborting".format(new_path / RAW))
+            if (new_path / CONVERTED).exists():
+                raise Exception("converted folder '{}' already exists, aborting".format(new_path / CONVERTED))
                 
-        if (self.annotations[self.annotations["set"] == new_set].shape[0] > 0): 
+        if self.annotations[self.annotations["set"] == new_set].shape[0] > 0:
             raise Exception("'{}' set already exists in the index".format(new_set))
 
         if (
@@ -1096,20 +1076,17 @@ class AnnotationManager:
 
         os.makedirs(new_path, exist_ok=True)
 
-        if os.path.exists(os.path.join(current_path, "raw")):
-            move(os.path.join(current_path, "raw"), os.path.join(new_path, "raw"))
+        if (current_path / RAW).exists():
+            move(current_path / RAW, new_path / RAW)
 
-        if os.path.exists(os.path.join(current_path, "converted")):
-            move(
-                os.path.join(current_path, "converted"),
-                os.path.join(new_path, "converted"),
-            )
+        if (current_path / CONVERTED).exists():
+            move(current_path / CONVERTED, new_path / CONVERTED)
 
         self.annotations.loc[
             (self.annotations["set"] == annotation_set), "set"
         ] = new_set
                 
-        #find the merged from lines that should be updated and update them
+        # find the merged from lines that should be updated and update them
         if 'merged_from' in self.annotations.columns:
             merged_from = self.annotations['merged_from'].astype(str).str.split(',')
             matches = [False if not isinstance(s, list) else annotation_set in s for s in merged_from.values.tolist()]
@@ -1146,23 +1123,23 @@ class AnnotationManager:
         :return: annotation indexes created by the merge, should be added to annotations.csv
         :rtype: pandas.DataFrame
         """
-        #get the left and right annotation dataframes
+        # get the left and right annotation dataframes
         left_annotations = input["left_annotations"]
         right_annotations = input["right_annotations"]
         
-        #start the new annotations from a copy of the left set
+        # start the new annotations from a copy of the left set
         annotations = left_annotations.copy()
-        #store the annotation filenames used to keep a reference to those existing files
+        # store the annotation filenames used to keep a reference to those existing files
         annotations['left_annotation_filename'] = annotations["annotation_filename"]
         annotations['right_annotation_filename'] = right_annotations['annotation_filename']
-        #populate the raw_filename column with the raw filenames of the sets used to merge, separated by a comma
+        # populate the raw_filename column with the raw filenames of the sets used to merge, separated by a comma
         annotations['raw_filename'] = left_annotations['raw_filename'] + ',' + right_annotations['raw_filename']
-        #package version is the version used by the merge, not the one used in the merged sets
+        # package version is the version used by the merge, not the one used in the merged sets
         annotations["package_version"] = __version__
         
-        #format of a merged set is undefined
+        # format of a merged set is undefined
         annotations["format"] = "NA"
-        #compute the names of the new annotation filenames that will be created
+        # compute the names of the new annotation filenames that will be created
         annotations["annotation_filename"] = annotations.apply(
             lambda annotation: "{}_{}_{}.csv".format(
                 os.path.splitext(annotation["recording_filename"])[0],
@@ -1171,50 +1148,41 @@ class AnnotationManager:
             ),
             axis=1,
         )
-        #store in 'merged_from' the names of the sets it was merged from
+        # store in 'merged_from' the names of the sets it was merged from
         annotations['merged_from'] = ','.join(np.concatenate([left_annotations['set'].unique() , right_annotations['set'].unique()]))
-        #the timestamps will be recomputed from the start of the file, so time_seek is always 0 on a merged set
+        # the timestamps will be recomputed from the start of the file, so time_seek is always 0 on a merged set
         annotations['time_seek'] = 0
         
-        #if skip existing, only keep the line where the resulting converted file does not already exist (even as a broken symlink)
+        # if skip existing, only keep the line where the resulting converted file does not already exist (even as a broken symlink)
         if skip_existing:
-            annotations = annotations[~annotations['annotation_filename'].map(lambda x : os.path.lexists(os.path.join(self.project.path,"annotations",output_set, "converted", x)))]
-            left_annotations = left_annotations[left_annotations['annotation_filename'].isin(annotations['left_annotation_filename'].to_list())]
-            right_annotations = right_annotations[right_annotations['annotation_filename'].isin(annotations['right_annotation_filename'].to_list())]
+            annotations = annotations[~annotations['annotation_filename'].map(lambda x:
+                os.path.lexists(self.project.path / ANNOTATIONS / output_set / CONVERTED / x))]
+            left_annotations = left_annotations[left_annotations['annotation_filename'].isin(
+                annotations['left_annotation_filename'].to_list())]
+            right_annotations = right_annotations[right_annotations['annotation_filename'].isin(
+                annotations['right_annotation_filename'].to_list())]
         
         for key in columns:
             annotations[key] = columns[key]
 
         annotations["set"] = output_set
 
-        #check the presence of the converted files in the left_set
+        # check the presence of the converted files in the left_set
         left_annotation_files = [
-            os.path.join(
-                self.project.path,
-                "annotations",
-                a["set"],
-                "converted",
-                a["annotation_filename"],
-            )
+            self.project.path / ANNOTATIONS / a["set"] / CONVERTED / a["annotation_filename"]
             for a in left_annotations.to_dict(orient="records")
         ]
         left_missing_annotations = [
-            f for f in left_annotation_files if not os.path.exists(f)
+            f for f in left_annotation_files if not f.exists()
         ]
 
-        #check the presence of the converted files in the right_set
+        # check the presence of the converted files in the right_set
         right_annotation_files = [
-            os.path.join(
-                self.project.path,
-                "annotations",
-                a["set"],
-                "converted",
-                a["annotation_filename"],
-            )
+            self.project.path / ANNOTATIONS / a["set"] / CONVERTED / a["annotation_filename"]
             for a in right_annotations.to_dict(orient="records")
         ]
         right_missing_annotations = [
-            f for f in right_annotation_files if not os.path.exists(f)
+            f for f in right_annotation_files if not f.exists()
         ]
 
         if left_missing_annotations:
@@ -1231,7 +1199,7 @@ class AnnotationManager:
                 )
             )
 
-        #get the actual annotation segments
+        # get the actual annotation segments
         left_segments = self.get_segments(left_annotations)
         right_segments = self.get_segments(right_annotations)
 
@@ -1247,7 +1215,7 @@ class AnnotationManager:
             right_segments.columns.union(rc, sort=False), axis=1, fill_value="NA"
         )
 
-        #merge left and right annotations segments
+        # merge left and right annotations segments
         output_segments = left_segments[list(lc)].merge(
             right_segments[list(rc)],
             how="outer",
@@ -1272,34 +1240,23 @@ class AnnotationManager:
             columns=["raw_filename_x", "raw_filename_y", "time_seek"], inplace=True
         )
 
-        #drop unused columns, get the currect datetime and store it in imported_at
+        # drop unused columns, get the currect datetime and store it in imported_at
         annotations.drop(columns=['right_annotation_filename', 'left_annotation_filename'], inplace=True)
         annotations["imported_at"] = datetime.datetime.now().strftime(
             "%Y-%m-%d %H:%M:%S"
         )
 
-        
-
         output_segments.fillna("NA", inplace=True)
 
-        #create the new converted files from the merged annotation segments
+        # create the new converted files from the merged annotation segments
         for annotation in annotations.to_dict(orient="records"):
             interval = annotation["interval"]
             annotation_filename = annotation["annotation_filename"]
             annotation_set = annotation["set"]
 
-            os.makedirs(
-                os.path.dirname(
-                    os.path.join(
-                        self.project.path,
-                        "annotations",
-                        annotation_set,
-                        "converted",
-                        annotation_filename,
-                    )
-                ),
-                exist_ok=True,
-            )
+            os.makedirs((self.project.path / ANNOTATIONS / annotation_set / CONVERTED / annotation_filename).parent,
+                        exist_ok=True,
+                        )
 
             segments = output_segments[output_segments["interval"] == interval]
             segments.drop(
@@ -1308,16 +1265,9 @@ class AnnotationManager:
                 ),
                 inplace=True,
             )
-            segments.to_csv(
-                os.path.join(
-                    self.project.path,
-                    "annotations",
-                    annotation_set,
-                    "converted",
-                    annotation_filename,
-                ),
-                index=False,
-            )
+            segments.to_csv(self.project.path / ANNOTATIONS / annotation_set / CONVERTED / annotation_filename,
+                            index=False,
+                            )
 
         return annotations
 
@@ -1474,15 +1424,7 @@ class AnnotationManager:
         segments = []
         for index, _annotations in annotations.groupby(["set", "annotation_filename"]):
             s, annotation_filename = index
-            df = pd.read_csv(
-                os.path.join(
-                    self.project.path,
-                    "annotations",
-                    s,
-                    "converted",
-                    annotation_filename,
-                )
-            )
+            df = pd.read_csv(self.project.path / ANNOTATIONS / s / CONVERTED / annotation_filename)
 
             for annotation in _annotations.to_dict(orient="records"):
                 segs = df.copy()
@@ -1940,18 +1882,20 @@ class AnnotationManager:
         return pd.concat(stack) if len(stack) else pd.DataFrame()
 
     def set_from_path(self, path: str) -> str:
-        annotations_path = os.path.join(self.project.path, "annotations")
-
-        if not path_is_parent(annotations_path, path):
+        path = Path(path)
+        annotations_path = self.project.path / ANNOTATIONS
+        try:
+            annotation_set = path.relative_to(annotations_path)
+        except ValueError as e:
+            # ValueError is raised when path is not a subpath of annotations (i.e. rec does not exist)
             return None
 
-        annotation_set = os.path.relpath(path, annotations_path)
-
-        basename = os.path.basename(annotation_set)
+        basename = annotation_set.name
         if basename == "raw" or basename == "converted":
-            annotation_set = os.path.dirname(annotation_set)
+            annotation_set = annotation_set.parent
 
-        return annotation_set.replace("\\","/")
+        # everything is stored on std posix, even if converted to others paths when in use
+        return str(annotation_set.as_posix())
 
     @staticmethod
     def clip_segments(segments: pd.DataFrame, start: int, stop: int) -> pd.DataFrame:

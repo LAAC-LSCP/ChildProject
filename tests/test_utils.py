@@ -6,6 +6,7 @@ Created on Wed Jul 27 11:23:05 2022
 @author: lpeurey
 """
 import pytest
+from pathlib import Path
 
 from ChildProject.projects import ChildProject
 from ChildProject.utils import series_to_datetime, time_intervals_intersect, intersect_ranges, TimeInterval, get_audio_duration, calculate_shift, find_lines_involved_in_overlap
@@ -68,7 +69,7 @@ AUDIOS = os.path.join('examples','valid_raw_data','recordings','raw')
     ]) 
 def test_get_audio_duration(file, result):
     
-    assert result == get_audio_duration(file)
+    assert result == get_audio_duration(Path(file))
 
 AUDIOS_VALID = os.path.join('examples','valid_raw_data','recordings','raw')
 AUDIOS_INVALID = os.path.join('examples','invalid_raw_data','recordings','raw')
