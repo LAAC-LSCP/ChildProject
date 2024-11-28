@@ -456,9 +456,9 @@ class AudioStandard(AudioProcessor):
         if recording["recording_filename"] == "NA":
             return pd.DataFrame()
 
-        original_file = self.project.get_recording_path(
+        original_file = str(self.project.get_recording_path(
             recording["recording_filename"], self.input_profile
-        )
+        ))
         converted_filename = os.path.splitext(recording["recording_filename"])[0] + "." + self.format
 
         destination_file = os.path.join(
