@@ -4,7 +4,6 @@ import numpy as np
 import os
 import pandas as pd
 import re
-import subprocess
 from typing import Union
 from pathlib import Path
 
@@ -510,12 +509,12 @@ class ChildProject:
 
                     if path.exists():
                         if not profile:
-                            info = mediainfo(path)
+                            info = mediainfo(str(path))
                             if 'sample_rate' not in info or int(info['sample_rate']) != STANDARD_SAMPLE_RATE:
                                 try:
                                     std_path = self.get_recording_path(raw_filename, STANDARD_PROFILE)
                                     if std_path.exists():
-                                        std_info = mediainfo(std_path)
+                                        std_info = mediainfo(str(std_path))
                                         if 'sample_rate' not in std_info:
                                             self.warnings.append(
                                                 f"Could not read the sample rate of converted version of recording '{raw_filename}' at '{std_path}'. {STANDARD_SAMPLE_RATE}Hz is expected for profile {STANDARD_PROFILE}")
@@ -535,7 +534,7 @@ class ChildProject:
                                     else:
                                         self.warnings.append(f"Could not read the sample rate of recording '{raw_filename}' at '{path}' and no standard conversion in profile {STANDARD_PROFILE} was found. Does the standard profile exist? Does {profile_metadata} exist? you can create the standard profile with 'child-project process {self.path} {STANDARD_PROFILE} basic --format=wav --sampling={STANDARD_SAMPLE_RATE} --codec=pcm_s16le --skip-existing'")
                         elif profile == STANDARD_PROFILE:
-                            info = mediainfo(path)
+                            info = mediainfo(str(path))
                             if 'sample_rate' in info and int(info['sample_rate']) != STANDARD_SAMPLE_RATE:
                                 self.warnings.append(f"recording '{raw_filename}' at '{path}' has unexpected sampling rate {info['sample_rate']}Hz when {STANDARD_SAMPLE_RATE}Hz is expected for profile {STANDARD_PROFILE}")
                     
