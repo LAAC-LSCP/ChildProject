@@ -6,6 +6,7 @@ from functools import partial
 import pandas as pd
 import numpy as np
 import datetime
+import re
 import os
 import pytest
 import shutil
@@ -16,6 +17,10 @@ import time
 def standardize_dataframe(df, columns):
     df = df[list(columns)]
     return df.sort_index(axis=1).sort_values(list(columns)).reset_index(drop=True)
+
+def adapt_path(message):
+    path_pattern = r"(?:[a-zA-Z]:)?(?:[\\/][^:\s]+)+"
+    return re.sub(path_pattern, lambda x: str(Path(x.group())), message)
 
 
 DATA = Path('tests', 'data')
@@ -252,6 +257,8 @@ def test_multiple_imports(project, am, input_file, ow, rimported, rerrors, excep
             rerrors = os.path.join(TRUTH, rerrors)
             # errors.to_csv(rerrors, index=False)
             rerrors = pd.read_csv(rerrors)
+            # adapt path inside errors to system
+            rerrors['error'] = rerrors['error'].apply(adapt_path)
             pd.testing.assert_frame_equal(rerrors.reset_index(drop=True),
                                           errors.drop(['imported_at', 'package_version'], axis=1).reset_index(
                                               drop=True),
