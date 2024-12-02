@@ -279,6 +279,42 @@ class AnnotationManager:
         IndexColumn(name="utterances", description="LENA utterances details (json)"),
         IndexColumn(name="cries", description="cries (json)"),
         IndexColumn(name="vfxs", description="Vfx (json)"),
+
+    ]
+
+    SETS_COLUMNS = [
+        IndexColumn(name="segmentation", description="source of the segmentation. `self` if produces its own, name of \
+        another set if using an other's set segmentation", dtype="str"),
+        IndexColumn(name="method", description="Method used for the annotations, automated, human or a mix of both",
+                    choices=['automated', 'human', 'mixed']),
+        IndexColumn(name="annotator_name", description="unique name for human annotators"),
+        IndexColumn(name="annotator_experience", description="Estimation of annotator's experience from 1 to 5. \
+        1 being 'new to annotation' and 5 'Expert'.", dtype="int", choices=[1, 2, 3, 4, 5]),
+        IndexColumn(name="annotation_algorithm_name", description="name of the algorithm", dtype="str",
+                    choices=['VTC', 'ALICE', 'VCM', 'ITS']),
+        IndexColumn(name="annotation_algorithm_publication", description="scientific publication citation for the \
+        algorithm used", dtype="str"),
+        IndexColumn(name="annotation_algorithm_version", description="¨version of the algorithm"),
+        IndexColumn(name="annotation_algorithm_repo", description="link to repository where the algorithm is stored. \
+        Ideally along with a commit hash for more reproducibility.", dtype="str"),
+        IndexColumn(name="date_annotation", description="date when the annotation was produced, best practice is to \
+        give the day the annotation was finished. This is meant to be a broad time label and does not need to be very \
+        precise", datetime="%Y-%m-%d"),
+
+        IndexColumn(name="has_speaker_type", description="Does the set contain the type of speakers. Yes(Y) / \
+        No(N or empty)", choices=['Y', 'N', '']),
+        IndexColumn(name="has_trancription", description="Does the set contain transcriptions. Yes(Y) / No(N or empty)",
+                    choices=['Y', 'N', '']),
+        IndexColumn(name="has_interactions", description="Does the set contain information about interactions between \
+        speakers. Yes(Y) / No(N or empty)", choices=['Y', 'N', '']),
+        IndexColumn(name="has_acoustics", description="Does the set contain information about acoustic features of \
+        speakers. Yes(Y) / No(N or empty)", choices=['Y', 'N', '']),
+        IndexColumn(name="has_addressee", description="Does the set contain the information of who the vocalization is \
+        addressed to. Yes(Y) / No(N or empty)", choices=['Y', 'N', '']),
+        IndexColumn(name="has_vcm", description="Does the set contain information about vocal maturity of vocalizations \
+            . Yes(Y) / No(N or empty)", choices=['Y', 'N', '']),
+        IndexColumn(name="has_words", description="Does the set contain information about number of words contained \
+            . Yes(Y) / No(N or empty)", choices=['Y', 'N', '']),
     ]
 
     def __init__(self, project: ChildProject):
@@ -366,6 +402,39 @@ class AnnotationManager:
 
         return errors, warnings
 
+
+    def read_sets_metadata(self):
+        """
+        Read the metadata of sets detected inside annotations, will not read anything if the attribute
+        self.annotations is empty (so do `read()` first)
+
+        @return:
+        """
+        sets = self.annotations['set'].unique()
+        known_fields = [c.name for c in self.SETS_COLUMNS]
+
+        sets_metadata = []
+        for set in sets:
+            expected_path = self.project.path / ANNOTATIONS / set / METANNOTS
+
+            if expected_path.exists():
+                with open(expected_path, 'r') as meta_stream:
+                    sets_metadata.append(yaml.load(meta_stream))
+            elif os.path.lexists(expected_path):
+                # warnings should probably be grouped for all sets that don't have their metadata file
+                warnings.append(f"Metadata file content for set {set} at {expected_path} could not be found, it may \
+                be downloaded from a remote with the command `datalad get {expected_path}`")
+            else:
+                warnings.append(f"Metadata file for set {set} at {expected_path} could not be found, it should \
+                be created")
+                # warning metadata file for the set does not exist (this should produce 1 warning for all probably)
+
+        sets_metadata = pd.DataFrame(sets_metadata)
+
+
+        self.sets = sets_metadata
+
+        return errors, warnings
 
     def validate_annotation(self, annotation: dict) -> Tuple[List[str], List[str]]:
         logger_annotations.info("Validating %s from %s...", annotation["annotation_filename"], annotation["set"])
