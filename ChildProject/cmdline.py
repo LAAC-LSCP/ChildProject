@@ -183,7 +183,7 @@ def validate(args):
         annotations = am.annotations
 
         if all(map(lambda x: os.path.exists(x) or os.path.islink(x), args.annotations)):
-            args.annotations = {am.set_from_path(set) for set in args.annotations} - {
+            args.annotations = {am.set_from_path(curr_set) for curr_set in args.annotations} - {
                 None
             }
 
@@ -227,8 +227,8 @@ def validate(args):
         arg("source", help="project_path"),
         arg("--format",
             help="format to output to",
-            default="txt",
-            choices=['txt', 'csv']),
+            default="literal",
+            choices=['literal', 'csv']),
     ]
 )
 def sets_metadata(args):
@@ -237,15 +237,33 @@ def sets_metadata(args):
     am = AnnotationManager(project)
 
     sets = am.get_sets_metadata()
+    if 'method' not in sets:
+        sets['method'] = 'Undefined'
+    else:
+        sets['method'] = sets['method'].fillna('Undefined').replace('', 'Undefined')
 
-    if args.format == 'txt':
+    if args.format == 'literal':
         output = ""
-        for row in sets.to_dict(orient='records') :
-            output += "\033[94m%s\033[0m: %.2f hours, %s\n" % (
-                row['set'], row['duration'] / (3600 * 1000), row)
+        methods = sets['method'].unique
+        for g, gdf in sets.groupby('method') :
+            output += "\n\033[1m{} ({:.2f} hours)\033[0m:\n".format(g, gdf['duration'].sum() / (3600 * 1000))
+            for row in gdf.to_dict(orient='records'):
+                if g == 'automated':
+                    output += "\033[94m%s\033[0m: %s %.2f hours, algorithm:%s v%s (%s)\n" % (
+                        row['set'], row['date_annotation'], row['duration'] / (3600 * 1000),
+                        row['annotation_algorithm_name'], row['annotation_algorithm_version'],
+                        row['annotation_algorithm_publication'])
+                elif g == 'human':
+                    output += "\033[94m%s\033[0m: %s %.2f hours, algorithm:%s (experience %d/5)\n" % (
+                        row['set'], row['date_annotation'], row['duration'] / (3600 * 1000),
+                        row['annotator_name'], row['annotator_experience'])
+                else:
+                    output += "\033[94m%s\033[0m: %.2f hours, %s\n" % (
+                        row['set'], row['duration'] / (3600 * 1000), row)
         logger.info(output)
     if args.format == 'csv':
         print(sets.to_csv(None, index=False))
+
 
 @subcommand(
     [
