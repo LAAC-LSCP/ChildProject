@@ -10,6 +10,7 @@ import traceback
 from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
 import logging
 from pathlib import Path
+import yaml
 
 from . import __version__
 from .pipelines.derivations import DERIVATIONS, conversations
@@ -369,7 +370,7 @@ class AnnotationManager:
                     for dup in duplicates.to_dict(orient="records")
                 ]
             )
-                
+
         #check the index for overlaps, produces errors as the same set should not have overlaps in annotations
         ovl_ranges = find_lines_involved_in_overlap(self.annotations, labels=['recording_filename', 'set'])
         if ovl_ranges[ovl_ranges == True].shape[0] > 0:
@@ -379,15 +380,15 @@ class AnnotationManager:
                     f"overlaps in the annotation index for the following [set, annotation_filename] list: {ovl_ranges}"
                 ]
             )
-            
+
         #check the index for bad range_onset range_offset
         ranges_invalid = self.annotations[(self.annotations['range_offset'] <= self.annotations['range_onset']) | (self.annotations['range_onset'] < 0)]
         if ranges_invalid.shape[0] > 0:
             errors.extend(
                 [f"annotation index does not verify range_offset > range_onset >= 0 for set <{line['set']}>, annotation filename <{line['annotation_filename']}>"
-                  for line in ranges_invalid.to_dict(orient="records")]        
+                  for line in ranges_invalid.to_dict(orient="records")]
             )
-            
+
         #if duration is in recordings.csv, check index for annotation segments overflowing recording duration
         if self.project.recordings is not None and 'duration' in self.project.recordings.columns:
             df = self.annotations.merge(self.project.recordings, how='left', on='recording_filename')
@@ -395,46 +396,81 @@ class AnnotationManager:
             if ranges_invalid.shape[0] > 0:
                 errors.extend(
                     [f"annotation index has an offset higher than recorded duration of the audio <{line['set']}>, annotation filename <{line['annotation_filename']}>"
-                      for line in ranges_invalid.to_dict(orient="records")]        
+                      for line in ranges_invalid.to_dict(orient="records")]
                 )
-        
+
         warnings += self._check_for_outdated_merged_sets()
+        warnings += self._read_sets_metadata(warning='return')[1]
 
         return errors, warnings
 
 
-    def read_sets_metadata(self):
+    def _read_sets_metadata(self, warning: str = 'ignore'):
         """
         Read the metadata of sets detected inside annotations, will not read anything if the attribute
         self.annotations is empty (so do `read()` first)
 
-        @return:
+        :param warning: what to do with the warnings produced: "log","ignore"(default),"return"
+        :type warning: str
+        :return: pd.DataFrame | (pd.DataFrame, list[str])
         """
         sets = self.annotations['set'].unique()
         known_fields = [c.name for c in self.SETS_COLUMNS]
+        known_fields.append('set')
 
+        missing_files = []
+        missing_content = []
+        unknown_fields = []
         sets_metadata = []
-        for set in sets:
-            expected_path = self.project.path / ANNOTATIONS / set / METANNOTS
+        for curr_set in sets:
+            expected_path = self.project.path / ANNOTATIONS / curr_set / METANNOTS
 
             if expected_path.exists():
                 with open(expected_path, 'r') as meta_stream:
-                    sets_metadata.append(yaml.load(meta_stream))
-            elif os.path.lexists(expected_path):
-                # warnings should probably be grouped for all sets that don't have their metadata file
-                warnings.append(f"Metadata file content for set {set} at {expected_path} could not be found, it may \
-                be downloaded from a remote with the command `datalad get {expected_path}`")
+                    sets_metadata.append({**yaml.safe_load(meta_stream), **{'set': curr_set}})
+                    if not set(sets_metadata[-1].keys()).issubset(set(known_fields)):
+                        unknown_fields.append(curr_set)
             else:
-                warnings.append(f"Metadata file for set {set} at {expected_path} could not be found, it should \
-                be created")
-                # warning metadata file for the set does not exist (this should produce 1 warning for all probably)
+                sets_metadata.append({'set':curr_set})
+                if os.path.lexists(expected_path):
+                    missing_content.append(curr_set)
+                else:
+                    missing_files.append(curr_set)
 
         sets_metadata = pd.DataFrame(sets_metadata)
-
-
         self.sets = sets_metadata
 
-        return errors, warnings
+        warnings = []
+        if len(missing_files):
+            warnings.append(f"Metadata files for sets {missing_files} could not be found, they should be created as "
+            f"{ANNOTATIONS / '<set>' / METANNOTS}")
+        if len(missing_content):
+            warnings.append(f"Metadata file content for sets {missing_content} could not be found, it may be downloaded"
+            f" from a remote with the command `datalad get {ANNOTATIONS / '**/{}'.format(METANNOTS)}`")
+        if len(unknown_fields):
+            warnings.append(f"Metadata files for sets contain the following unknown fields "
+            f"{[name for name in self.sets.columns if name not in known_fields]} which can be found "
+            f"in the metadata for sets {unknown_fields}")
+
+        if warning == 'log':
+            for w in warnings:
+                logger_annotations.warning(w)
+            return sets_metadata
+        elif warning == 'return':
+            return sets_metadata, warnings
+        elif warning == 'ignore':
+            return sets_metadata
+        else:
+            raise ValueError(f"warning argument must be in ['log','return','ignore']")
+
+    def get_sets_metadata(self):
+        """return metadata about the sets"""
+        sets = self._read_sets_metadata()
+        annots = self.annotations.copy().set_index('set')
+        durations = (annots['range_offset'] - annots['range_onset']).groupby('set').sum()
+        sets = sets.merge(durations.rename('duration'), how='left', on='set')
+
+        return sets
 
     def validate_annotation(self, annotation: dict) -> Tuple[List[str], List[str]]:
         logger_annotations.info("Validating %s from %s...", annotation["annotation_filename"], annotation["set"])
@@ -498,7 +534,7 @@ class AnnotationManager:
         ] = self.annotations[["time_seek", "range_onset", "range_offset"]].astype(np.int64)
         self.annotations = self.annotations.sort_values(['imported_at','set', 'annotation_filename'])
         self.annotations.to_csv(self.project.path / METADATA_FOLDER / ANNOTATIONS_CSV, index=False)
-        
+
     def _check_for_outdated_merged_sets(self, sets: set = None):
         """Checks the annotations dataframe for sets that were used in merged sets and modified afterwards.
         This method produces warnings and suggestions to update the considered merged sets.
@@ -509,18 +545,18 @@ class AnnotationManager:
         :rtype: List[str]
         """
         warnings = []
-        
+
         #make a copy of annotation index, keep only the last modification date for each set (will not detect specific cases like partial merge)
         df = self.annotations.copy().sort_values(['set','imported_at']).groupby(['set']).last()
-        
+
         #build a dictionary capturing the last modification date for each set.
-        last_modif = {} 
+        last_modif = {}
         for i, row in df.iterrows():
             last_modif[i] = row['imported_at']
-        
+
         #iterate through sets that were built from a merge and compare their last modification date to the one of their original set.
         if 'merged_from' in df.columns:
-            merged_sets = df.dropna(subset=['merged_from'])[['merged_from', 'imported_at']]      
+            merged_sets = df.dropna(subset=['merged_from'])[['merged_from', 'imported_at']]
             for i, row in merged_sets.iterrows():
                 for j in row['merged_from'].split(','):
                     #if a list of sets was given and the set is not in that list, skip it
@@ -532,7 +568,7 @@ class AnnotationManager:
                             if row['imported_at'] < last_modif[j]:
                                 warnings.append("set {} is outdated because the {} set it is merged from was modified.\
                                  Consider updating or rerunning the creation of the {} set.".format(i,j,i))
-                        
+
         return warnings
 
     def _import_annotation(
@@ -560,26 +596,26 @@ class AnnotationManager:
             source_recording, annotation["range_onset"], annotation["range_offset"]
         )
         output_filename = ANNOTATIONS / annotation["set"] / CONVERTED / annotation_filename
-        
+
         #check if the annotation file already exists in dataset (same filename and same set)
         if self.annotations[(self.annotations['set'] == annotation['set']) &
                             (self.annotations['annotation_filename'] == annotation_filename)].shape[0] > 0:
             if overwrite_existing:
                 logger_annotations.warning("Annotation file %s will be overwritten", output_filename)
-               
+
             else:
                 annotation["error"] = f"annotation file {output_filename} already exists, to reimport it, use the overwrite_existing flag"
                 logger_annotations.error("Error: %s", annotation['error'])
                 annotation["imported_at"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 return annotation
-        
+
         #find if there are annotation indexes in the same set that overlap the new annotation
         #as it is not possible to annotate multiple times the same audio stretch in the same set
         ovl_annots = self.annotations[(self.annotations['set'] == annotation['set']) &
                             (self.annotations['annotation_filename'] != annotation_filename) & #this condition avoid matching a line that should be overwritten (so has the same annotation_filename), it is dependent on the previous block!!!
                             (self.annotations['recording_filename'] == annotation['recording_filename']) &
                             (self.annotations['range_onset'] < annotation['range_offset']) &
-                            (self.annotations['range_offset'] > annotation['range_onset']) 
+                            (self.annotations['range_offset'] > annotation['range_onset'])
                             ]
         if ovl_annots.shape[0] > 0:
             array_tup = list(ovl_annots[['set','recording_filename','range_onset', 'range_offset']].itertuples(index=False, name=None))
@@ -588,7 +624,7 @@ class AnnotationManager:
             #(f"Error: {annotation['error']}")
             annotation["imported_at"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             return annotation
-            
+
         path = self.project.path / ANNOTATIONS / annotation["set"] / RAW / annotation["raw_filename"]
         annotation_format = annotation["format"]
 
@@ -682,7 +718,7 @@ class AnnotationManager:
         :rtype: pd.DataFrame
         """
         input_processed= input.copy().reset_index()
-        
+
         required_columns = {
             c.name
             for c in AnnotationManager.INDEX_COLUMNS
@@ -691,10 +727,10 @@ class AnnotationManager:
 
         assert_dataframe("input", input_processed)
         assert_columns_presence("input", input_processed, required_columns)
-        
+
         input_processed["range_onset"] = input_processed["range_onset"].astype(np.int64)
         input_processed["range_offset"] = input_processed["range_offset"].astype(np.int64)
-        
+
         assert (input_processed["range_offset"] > input_processed["range_onset"]).all(), "range_offset must be greater than range_onset"
         assert (input_processed["range_onset"] >= 0).all(), "range_onset must be greater or equal to 0"
         if "duration" in self.project.recordings.columns:
@@ -719,12 +755,12 @@ class AnnotationManager:
                     "\n".join(missing_recordings)
                 )
             )
-      
+
         builtin = input_processed[input_processed["format"].isin(converters.keys())]
         if not builtin["format"].map(lambda f: converters[f].THREAD_SAFE).all():
             logger_annotations.warning("warning: some of the converters do not support multithread importation; running on 1 thread")
             threads = 1
-            
+
         #if the input to import has overlaps in it, raise an error immediately, nothing will be imported
         ovl_ranges = find_lines_involved_in_overlap(input_processed, labels=['recording_filename','set'])
         if ovl_ranges[ovl_ranges == True].shape[0] > 0:
@@ -757,12 +793,12 @@ class AnnotationManager:
 
         if 'error' in imported.columns:
             errors = imported[~imported["error"].isnull()]
-            imported = imported[imported["error"].isnull()] 
+            imported = imported[imported["error"].isnull()]
             #when errors occur, separate them in a different csv in extra
             if errors.shape[0] > 0:
                 output = self.project.path / "extra" / "errors_import_{}.csv".format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
                 errors.to_csv(output, index=False)
-                logger_annotations.info("Errors summary exported to %s", output)              
+                logger_annotations.info("Errors summary exported to %s", output)
         else:
             errors = None
 
@@ -771,12 +807,13 @@ class AnnotationManager:
         #at this point, 2 lines with same set and annotation_filename can happen if specified overwrite,
         # dropping duplicates remove the first importation and keeps the more recent one
         self.annotations = self.annotations.sort_values('imported_at').drop_duplicates(subset=["set","recording_filename","range_onset","range_offset"], keep='last')
+        self._read_sets_metadata()
         self.write()
-        
+
         sets = set(input_processed['set'].unique())
         outdated_sets = self._check_for_outdated_merged_sets(sets= sets)
         for warning in outdated_sets:
-            logger_annotations.warning("warning: %s", warning)          
+            logger_annotations.warning("warning: %s", warning)
 
         return (imported, errors)
 
@@ -1007,6 +1044,7 @@ class AnnotationManager:
         # dropping duplicates remove the first importation and keeps the more recent one
         self.annotations = self.annotations.sort_values('imported_at').drop_duplicates(
             subset=["set", "recording_filename", "range_onset", "range_offset"], keep='last')
+        self._read_sets_metadata()
         self.write()
 
         sets = set(input_processed['set'].unique())
@@ -1073,8 +1111,9 @@ class AnnotationManager:
             pass
 
         self.annotations = self.annotations[self.annotations["set"] != annotation_set]
+        self._read_sets_metadata()
         self.write()
-      
+
         outdated_sets = self._check_for_outdated_merged_sets(sets= {annotation_set})
         for warning in outdated_sets:
             logger_annotations.warning("warning: %s", warning)
@@ -1114,7 +1153,7 @@ class AnnotationManager:
                 raise Exception("raw folder '{}' already exists, aborting".format(new_path / RAW))
             if (new_path / CONVERTED).exists():
                 raise Exception("converted folder '{}' already exists, aborting".format(new_path / CONVERTED))
-                
+
         if self.annotations[self.annotations["set"] == new_set].shape[0] > 0:
             raise Exception("'{}' set already exists in the index".format(new_set))
 
@@ -1154,18 +1193,18 @@ class AnnotationManager:
         self.annotations.loc[
             (self.annotations["set"] == annotation_set), "set"
         ] = new_set
-                
+
         # find the merged from lines that should be updated and update them
         if 'merged_from' in self.annotations.columns:
             merged_from = self.annotations['merged_from'].astype(str).str.split(',')
             matches = [False if not isinstance(s, list) else annotation_set in s for s in merged_from.values.tolist()]
-            
+
             def update_mf(old_list, old, new):
                 res = set(old_list)
                 res.discard(old)
                 res.add(new)
                 return ','.join(res)
-            
+
             self.annotations.loc[matches, 'merged_from'] = merged_from[matches].apply(partial(update_mf, old=annotation_set,new=new_set))
         self.write()
 
@@ -1195,7 +1234,7 @@ class AnnotationManager:
         # get the left and right annotation dataframes
         left_annotations = input["left_annotations"]
         right_annotations = input["right_annotations"]
-        
+
         # start the new annotations from a copy of the left set
         annotations = left_annotations.copy()
         # store the annotation filenames used to keep a reference to those existing files
@@ -1205,7 +1244,7 @@ class AnnotationManager:
         annotations['raw_filename'] = left_annotations['raw_filename'] + ',' + right_annotations['raw_filename']
         # package version is the version used by the merge, not the one used in the merged sets
         annotations["package_version"] = __version__
-        
+
         # format of a merged set is undefined
         annotations["format"] = "NA"
         # compute the names of the new annotation filenames that will be created
@@ -1221,7 +1260,7 @@ class AnnotationManager:
         annotations['merged_from'] = ','.join(np.concatenate([left_annotations['set'].unique() , right_annotations['set'].unique()]))
         # the timestamps will be recomputed from the start of the file, so time_seek is always 0 on a merged set
         annotations['time_seek'] = 0
-        
+
         # if skip existing, only keep the line where the resulting converted file does not already exist (even as a broken symlink)
         if skip_existing:
             annotations = annotations[~annotations['annotation_filename'].map(lambda x:
@@ -1230,7 +1269,7 @@ class AnnotationManager:
                 annotations['left_annotation_filename'].to_list())]
             right_annotations = right_annotations[right_annotations['annotation_filename'].isin(
                 annotations['right_annotation_filename'].to_list())]
-        
+
         for key in columns:
             annotations[key] = columns[key]
 
@@ -1298,10 +1337,10 @@ class AnnotationManager:
         output_segments["segment_offset"] = (
             output_segments["segment_offset"].fillna(0).astype(np.int64)
         )
-        
+
         output_segments["raw_filename"] = (
             output_segments["raw_filename_x"].fillna("")
-            + "," 
+            + ","
             + output_segments["raw_filename_y"].fillna("")
         )
         output_segments["raw_filename"] = output_segments["raw_filename"].str.strip(',')
@@ -1412,7 +1451,7 @@ class AnnotationManager:
             self.annotations["set"].isin([left_set, right_set])
         ]
         annotations = annotations[annotations["error"].isnull()]
-        
+
         if recording_filter:
             annotations = annotations[annotations['recording_filename'].isin(recording_filter)]
 
@@ -1464,6 +1503,7 @@ class AnnotationManager:
         self.read()
         # if annotations.csv can have duplicate entries with same converted filename and is normal, check this https://stackoverflow.com/a/45927402 and change the code
         self.annotations = pd.concat([self.annotations, annotations], sort=False).drop_duplicates(subset=['set','recording_filename','annotation_filename'], keep='last')
+        self._read_sets_metadata()
         self.write()
 
     def get_segments(self, annotations: pd.DataFrame) -> pd.DataFrame:
@@ -1714,7 +1754,7 @@ class AnnotationManager:
         :rtype: pd.DataFrame
         """
         assert interval is not None or (start_time and end_time), "you must pass an interval or a start_time and end_time"
-        
+
         if interval is None:
             try:
                 start_dt = datetime.datetime.strptime(start_time, "%H:%M")
@@ -1722,7 +1762,7 @@ class AnnotationManager:
                 raise ValueError(
                     f"invalid value for start_time ('{start_time}'); should have HH:MM format instead"
                 )
-    
+
             try:
                 end_dt = datetime.datetime.strptime(end_time, "%H:%M")
             except:
@@ -1751,7 +1791,7 @@ class AnnotationManager:
         annotations = annotations.merge(
             self.project.recordings[["recording_filename", "start_time"]], how="left"
         )
-        
+
         annotations['start_time'] = series_to_datetime(
                 annotations['start_time'], ChildProject.RECORDINGS_COLUMNS, 'start_time'
         )
@@ -1777,7 +1817,7 @@ class AnnotationManager:
         for annotation in annotations.to_dict(orient="records"):
             #onsets = np.arange(start_ts, annotation["range_offset_ts"], 86400 * 1000)
             #offsets = onsets + (end_ts - start_ts)
-            
+
             onsets = np.arange(start_ts, annotation["range_offset_ts"], 86400 * 1000)
             offsets = np.arange(end_ts, annotation["range_offset_ts"], 86400 * 1000)
             #treat edge cases when the offset is after the end of annotation, onset before start etc
