@@ -254,7 +254,7 @@ def sets_metadata(args):
                         row['annotation_algorithm_name'], row['annotation_algorithm_version'],
                         row['annotation_algorithm_publication'])
                 elif g == 'human':
-                    output += "\033[94m%s\033[0m: %s %.2f hours, algorithm:%s (experience %d/5)\n" % (
+                    output += "\033[94m%s\033[0m: %s %.2f hours, annotator:%s (level %s)\n" % (
                         row['set'], row['date_annotation'], row['duration'] / (3600 * 1000),
                         row['annotator_name'], row['annotator_experience'])
                 else:
