@@ -224,6 +224,31 @@ def validate(args):
 
 @subcommand(
     [
+        arg("source", help="project_path"),
+        arg("--format",
+            help="format to output to",
+            default="txt",
+            choices=['txt', 'csv']),
+    ]
+)
+def sets_metadata(args):
+    """get the metadata on all the annotation sets in the dataset"""
+    project = ChildProject(args.source)
+    am = AnnotationManager(project)
+
+    sets = am.get_sets_metadata()
+
+    if args.format == 'txt':
+        output = ""
+        for row in sets.to_dict(orient='records') :
+            output += "\033[94m%s\033[0m: %.2f hours, %s\n" % (
+                row['set'], row['duration'] / (3600 * 1000), row)
+        logger.info(output)
+    if args.format == 'csv':
+        print(sets.to_csv(None, index=False))
+
+@subcommand(
+    [
         arg("source", help="project path"),
         arg(
             "--annotations",
@@ -271,7 +296,7 @@ def import_annotations(args):
     imported, errors_imp = am.import_annotations(annotations, args.threads, overwrite_existing=args.overwrite_existing)
     
     if errors_imp is not None and errors_imp.shape[0] > 0:
-        logger.error('The importation failed for %d entry/ies',errors_imp.shape[0])
+        logger.error('The importation failed for %d entry/ies', errors_imp.shape[0])
         logger.debug(errors_imp)
 
     if imported is not None and imported.shape[0] > 0:
