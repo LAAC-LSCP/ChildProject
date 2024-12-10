@@ -11,6 +11,7 @@ from .pipelines.metrics import MetricsPipeline
 from .pipelines.metrics import MetricsSpecificationPipeline
 from .pipelines.processors import AudioProcessingPipeline
 from .pipelines.anonymize import AnonymizationPipeline
+from .pipelines.reliability import ReliabilityPipeline
 from .utils import read_wav, calculate_shift, get_audio_duration
 from . import __version__
 
@@ -748,6 +749,7 @@ def main():
     register_pipeline("metrics-specification", MetricsSpecificationPipeline)
     register_pipeline("conversations-summary", ConversationsPipeline)
     register_pipeline("conversations-specification", ConversationsSpecificationPipeline)
+    register_pipeline("reliability-analysis", ReliabilityPipeline)
 
     args = parser.parse_args()
     args.func(args)

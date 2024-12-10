@@ -1,14 +1,14 @@
 import os
+import argparse
 import pandas as pd
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
-from itertools import chain
-from sklearn.metrics import multilabel_confusion_matrix, precision_recall_fscore_support, classification_report, confusion_matrix
-
+from sklearn.metrics import confusion_matrix, precision_recall_fscore_support
 from ChildProject.projects import ChildProject
 from ChildProject.annotations import AnnotationManager
-from ChildProject.metrics import segments_to_grid, conf_matrix, segments_to_annotation
+from ChildProject.pipelines.pipeline import Pipeline
+
 
 class ReliabilityAnalysis:
     def __init__(self, project: ChildProject, reference_set: str, hypothesis_set: str, speakers=None, granularity=10):
@@ -166,7 +166,7 @@ class ReliabilityAnalysis:
         report_df.to_csv(os.path.join(output_directory, f"classification_report_{ref_set_safe}_vs_{hyp_set_safe}.csv"), index=False)
 
 
-    def run(self, output_directory: str):
+    def extract(self, output_directory: str):
         """
         Runs the multilabel reliability analysis and saves the results.
 
@@ -189,3 +189,38 @@ class ReliabilityAnalysis:
         self.compute_classification_report(ref_grid, hyp_grid, output_directory)
 
         print(f"The reliability analysis results have been saved in {output_directory}.")
+
+
+class ReliabilityPipeline(Pipeline):
+    """
+    Pipeline wrapper for the ReliabilityAnalysis class.
+    """
+
+    def __init__(self):
+        self.project = None
+
+    def run(self, path, destination, reference_set, hypothesis_set, speakers=None, granularity=10, func=None):
+        """
+        Execute the pipeline.
+        """
+        self.project = ChildProject(path)
+        self.project.read()
+
+        analysis = ReliabilityAnalysis(
+            self.project,
+            reference_set=reference_set,
+            hypothesis_set=hypothesis_set,
+            speakers=speakers.split(',') if speakers else None,
+            granularity=granularity
+        )
+        analysis.extract(destination)
+
+    @staticmethod
+    def setup_parser(parser):
+        parser.add_argument("path", help="Path to the dataset.")
+        parser.add_argument("destination", help="Path to save the results.")
+        parser.add_argument("--reference-set", "-r", required=True, help="Reference annotation set.")
+        parser.add_argument("--hypothesis-set", "-y", required=True, help="Hypothesis annotation set.")
+        parser.add_argument("--speakers", default="CHI,OCH,FEM,MAL", help="Comma-separated list of speakers.")
+        parser.add_argument("--granularity", type=int, default=10, help="Grid granularity in milliseconds.")
+
