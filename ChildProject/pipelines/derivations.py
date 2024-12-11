@@ -60,7 +60,7 @@ def get_pitch(audio_time_series, sampling_rate, func=None):
 
 def acoustics(project,
               metadata: dict,
-              annotations: pd.DataFrame,
+              segments: pd.DataFrame,
               profile=STANDARD_PROFILE,
               target_sr=STANDARD_SAMPLE_RATE,
               ):
@@ -78,13 +78,13 @@ def acoustics(project,
     audio_time_series, sampling_rate = librosa.load(recording, mono=True, sr=target_sr)
 
     # Computes the start frame and end frame of the given segments given is on/offset in seconds
-    annotations['frame_onset'] = annotations['segment_onset'].apply(
+    segments['frame_onset'] = segments['segment_onset'].apply(
         lambda onset: floor(onset / 1000 * sampling_rate))
-    annotations['frame_offset'] = annotations['segment_offset'].apply(
+    segments['frame_offset'] = segments['segment_offset'].apply(
         lambda offset: ceil(offset / 1000 * sampling_rate))
 
     # Find better solution if more acoustic annotations are added in the future (concat dfs)
-    pitch = pd.DataFrame.from_records(annotations.apply(lambda row:
+    pitch = pd.DataFrame.from_records(segments.apply(lambda row:
                                                get_pitch(
                                                    audio_time_series[row['frame_onset']:row['frame_offset']],
                                                    target_sr,
@@ -94,8 +94,8 @@ def acoustics(project,
     # Drop raw pitch values
     pitch.drop(list(pitch.filter(regex='raw_')), axis=1, inplace=True)
 
-    pitch.index = annotations.index
-    audio_segments = pd.concat([annotations, pitch], axis=1)
+    pitch.index = segments.index
+    audio_segments = pd.concat([segments, pitch], axis=1)
 
     audio_segments.drop(columns=['frame_onset',
                               'frame_offset'],
@@ -114,19 +114,19 @@ INTERACTIONS = {
 # Work in progress, method and parameters may evolve
 def conversations(project,
                   metadata: dict,
-                  annotations: pd.DataFrame,
+                  segments: pd.DataFrame,
                   interactions=INTERACTIONS,
                   max_interval=5000,
                   min_delay=0):
 
-    """ The function takes a dataframe of annotations as an input and based on the given interval and delay, classifies
-    whether each annotation is a part of the conversation. Then adds a column grouping vocalisations which belong to
-    the same conversation
+    """ The function takes a dataframe of annotation segments as an input and based on the given interval and delay,
+    classifies whether each annotation is a part of the conversation. Then adds a column grouping vocalisations which
+    belong to the same conversation
 
     :param metadata: series mapping all the metadata available
     :type metadata: pd.Series
-    :param annotations: dataframe of annotations
-    :type annotations: DataFrame
+    :param segments: dataframe of annotation segments
+    :type segments: DataFrame
     :param interactions: dictionary mapping each speaker_type to the speaker_types it can interact with
     :type interactions: dict
     :param max_interval: maximum interval in ms for it to be considered a turn transition, default = 5000
@@ -140,38 +140,38 @@ def conversations(project,
     """
     speakers = set(interactions.keys())
 
-    annotations = annotations[annotations["speaker_type"].isin(speakers)].copy()
+    segments = segments[segments["speaker_type"].isin(speakers)].copy()
 
-    if annotations.shape[0]:
+    if segments.shape[0]:
 
         # store the duration between vocalizations
-        annotations["iti"] = annotations["segment_onset"] - annotations["segment_offset"].shift(1)
+        segments["iti"] = segments["segment_onset"] - segments["segment_offset"].shift(1)
         # store the previous speaker
-        annotations["prev_speaker_type"] = annotations["speaker_type"].shift(1)
+        segments["prev_speaker_type"] = segments["speaker_type"].shift(1)
 
-        annotations["delay"] = annotations["segment_onset"] - annotations["segment_onset"].shift(1)
-        annotations = annotations.reset_index(drop=True)
+        segments["delay"] = segments["segment_onset"] - segments["segment_onset"].shift(1)
+        segments = segments.reset_index(drop=True)
 
         # each row is a turn transition if: 1) the speaker can interact with previous speaker, 2) it did not start
         # further than <max_interval> after the previous speaker stopped talking, 3) it did not begin earlier than
         # <delay> ms after the previous speaker started speaking
         # note that we allow iti to be negative, which means that a turn transition can exist when speaking before
         # the previous speaker finished talking
-        annotations["is_CT"] = (
-                (annotations.apply(lambda row: row["prev_speaker_type"] in interactions[row['speaker_type']], axis=1))
+        segments["is_CT"] = (
+                (segments.apply(lambda row: row["prev_speaker_type"] in interactions[row['speaker_type']], axis=1))
                 &
-                (annotations['iti'] < max_interval)
+                (segments['iti'] < max_interval)
                 &
-                (annotations['delay'] >= min_delay)
+                (segments['delay'] >= min_delay)
         )
 
         # find places where the sequence of turn transitions changes status to find beginning and ends of conversations
-        diff = np.diff(annotations['is_CT'].to_list() + [0])
-        annotations['diff'] = pd.Series(diff)
-        annotations['conv_number'] = annotations['diff'][annotations['diff'] == 1].cumsum().astype('Int64')
-        annotations['conv_count'] = annotations[(annotations['is_CT']) | (annotations['diff'])][
+        diff = np.diff(segments['is_CT'].to_list() + [0])
+        segments['diff'] = pd.Series(diff)
+        segments['conv_number'] = segments['diff'][segments['diff'] == 1].cumsum().astype('Int64')
+        segments['conv_count'] = segments[(segments['is_CT']) | (segments['diff'])][
             'conv_number'].interpolate(method='pad', limit_direction='forward')
-        df = annotations.drop(columns=['diff', 'conv_number'])
+        df = segments.drop(columns=['diff', 'conv_number'])
 
         return df
     else:
@@ -180,15 +180,15 @@ def conversations(project,
 
 def remove_overlaps(project,
                     metadata: dict,
-                    annotations,
+                    segments,
                     speakers=['CHI', 'OCH', 'FEM', 'MAL'],
                     ):
-    """takes a pandas dataframe of annotations containing at least the columns
+    """takes a pandas dataframe of annotation segments containing at least the columns
     speaker_type segment_onset and segment_offset.
     Cuts the vocalizations to discard any part that has overlapping speech
-    return the new dataframe of annotations
+    return the new dataframe of annotation segments
 
-    :param df: Dataframe of annotations with speaker_type, segment_onset and
+    :param df: Dataframe of annotation segments with speaker_type, segment_onset and
     segment_offset
     :type df: pd.DataFrame
     :param speakers: list of speakers to consider in speaker_type column,
@@ -197,8 +197,8 @@ def remove_overlaps(project,
     :type speakers: list[str]
     """
     # restrict to wanted speakers  (remove SPEECH)
-    annotations = annotations[annotations['speaker_type'].isin(speakers)]
-    segments = annotations.sort_values(['segment_onset', 'segment_offset'])
+    segments = segments[segments['speaker_type'].isin(speakers)]
+    segments = segments.sort_values(['segment_onset', 'segment_offset'])
 
     # initiate a new dataframe to concat into
     new_segments = pd.DataFrame(columns=segments.columns)
@@ -263,9 +263,10 @@ def remove_overlaps(project,
 
     return new_segments
 
-
+# listing the possible derivations available by default, gives a callable as well as some metadata keys to store
+# the derived set will inherit the metadata key from the set it originates from except for date and keys put here
 DERIVATIONS = {
-    "acoustics": acoustics,
-    "conversations": conversations,
-    "remove-overlaps": remove_overlaps,
+    "acoustics": (acoustics, {'has_acoustics': True}),
+    "conversations": (conversations, {'has_interactions': True}),
+    "remove-overlaps": (remove_overlaps, {'segmentation_type': 'restrictive'}),
 }
