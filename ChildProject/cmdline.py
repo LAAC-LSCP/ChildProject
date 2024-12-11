@@ -183,7 +183,7 @@ def validate(args):
         annotations = am.annotations
 
         if all(map(lambda x: os.path.exists(x) or os.path.islink(x), args.annotations)):
-            args.annotations = {am.set_from_path(set) for set in args.annotations} - {
+            args.annotations = {am.set_from_path(curr_set) for curr_set in args.annotations} - {
                 None
             }
 
@@ -220,6 +220,49 @@ def validate(args):
         sys.exit(1)
 
     logger.info('validation successfully completed with %d warning(s).', len(warnings))
+
+
+@subcommand(
+    [
+        arg("source", help="project_path"),
+        arg("--format",
+            help="format to output to",
+            default="literal",
+            choices=['literal', 'csv']),
+    ]
+)
+def sets_metadata(args):
+    """get the metadata on all the annotation sets in the dataset"""
+    project = ChildProject(args.source)
+    am = AnnotationManager(project)
+
+    sets = am.get_sets_metadata()
+    if 'method' not in sets:
+        sets['method'] = 'Undefined'
+    else:
+        sets['method'] = sets['method'].fillna('Undefined').replace('', 'Undefined')
+
+    if args.format == 'literal':
+        output = ""
+        methods = sets['method'].unique
+        for g, gdf in sets.groupby('method') :
+            output += "\n\033[1m{} ({:.2f} hours)\033[0m:\n".format(g, gdf['duration'].sum() / (3600 * 1000))
+            for row in gdf.to_dict(orient='records'):
+                if g == 'automated':
+                    output += "\033[94m%s\033[0m: %s %.2f hours, algorithm:%s v%s (%s)\n" % (
+                        row['set'], row['date_annotation'], row['duration'] / (3600 * 1000),
+                        row['annotation_algorithm_name'], row['annotation_algorithm_version'],
+                        row['annotation_algorithm_publication'])
+                elif g == 'human':
+                    output += "\033[94m%s\033[0m: %s %.2f hours, annotator:%s (level %s)\n" % (
+                        row['set'], row['date_annotation'], row['duration'] / (3600 * 1000),
+                        row['annotator_name'], row['annotator_experience'])
+                else:
+                    output += "\033[94m%s\033[0m: %.2f hours, %s\n" % (
+                        row['set'], row['duration'] / (3600 * 1000), row)
+        logger.info(output)
+    if args.format == 'csv':
+        print(sets.to_csv(None, index=False))
 
 
 @subcommand(
@@ -271,7 +314,7 @@ def import_annotations(args):
     imported, errors_imp = am.import_annotations(annotations, args.threads, overwrite_existing=args.overwrite_existing)
     
     if errors_imp is not None and errors_imp.shape[0] > 0:
-        logger.error('The importation failed for %d entry/ies',errors_imp.shape[0])
+        logger.error('The importation failed for %d entry/ies', errors_imp.shape[0])
         logger.debug(errors_imp)
 
     if imported is not None and imported.shape[0] > 0:

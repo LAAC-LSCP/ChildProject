@@ -139,7 +139,7 @@ def test_standard(project, am, segments):
     std.extract()
 
     # std.conversations.to_csv("tests/truth/standard_conversations.csv", index=False)
-    truth = pd.read_csv("tests/truth/standard_conversations.csv")
+    truth = pd.read_csv("tests/truth/standard_conversations.csv", dtype={'child_id': str})
 
     pd.testing.assert_frame_equal(std.conversations, truth, check_like=True)
 

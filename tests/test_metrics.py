@@ -108,7 +108,7 @@ def test_metrics(project, am, error, col_change, new_value):
         import_function=partial(fake_vocs, data),
     )
         
-    parameters=pd.read_csv("tests/data/list_metrics.csv")
+    parameters= pd.read_csv("tests/data/list_metrics.csv")
     
     if error:
         with pytest.raises(error):
@@ -118,7 +118,7 @@ def test_metrics(project, am, error, col_change, new_value):
         mm = Metrics(project, parameters)
         mm.extract()
     
-        truth = pd.read_csv("tests/truth/custom_metrics.csv")
+        truth = pd.read_csv("tests/truth/custom_metrics.csv", dtype={'child_id': str})
     
         pd.testing.assert_frame_equal(mm.metrics, truth, check_like=True)
 
@@ -147,7 +147,7 @@ def test_aclew(project, am):
     aclew = AclewMetrics(project, by="child_id", rec_cols='date_iso', child_cols='experiment,child_dob',vtc='aclew_vtc',alice='aclew_alice',vcm='aclew_vcm')
     aclew.extract()
 
-    truth = pd.read_csv("tests/truth/aclew_metrics.csv")
+    truth = pd.read_csv("tests/truth/aclew_metrics.csv", dtype={'child_id': str})
 
     pd.testing.assert_frame_equal(aclew.metrics, truth, check_like=True)
 
@@ -174,7 +174,7 @@ def test_lena(project, am):
     lena = LenaMetrics(project, set="lena_its", period='1h', from_time='10:00:00' , to_time= '16:00:00')
     lena.extract()
 
-    truth = pd.read_csv("tests/truth/lena_metrics.csv")
+    truth = pd.read_csv("tests/truth/lena_metrics.csv", dtype={'child_id': str})
 
     pd.testing.assert_frame_equal(lena.metrics, truth, check_like=True)
 
@@ -204,7 +204,7 @@ def test_custom(project, am):
     cmm = CustomMetrics(project, parameters)
     cmm.extract()
 
-    truth = pd.read_csv("tests/truth/custom_metrics.csv")
+    truth = pd.read_csv("tests/truth/custom_metrics.csv", dtype={'child_id': str})
 
     pd.testing.assert_frame_equal(cmm.metrics, truth, check_like=True)
     
@@ -240,7 +240,7 @@ def test_metrics_segments(project, am):
     metrics = Metrics(project, metrics_list=lm, by="segments", rec_cols='date_iso', child_cols='experiment,child_dob',segments='tests/data/segments.csv')
     metrics.extract()
 
-    truth = pd.read_csv("tests/truth/segments_metrics.csv")
+    truth = pd.read_csv("tests/truth/segments_metrics.csv", dtype={'child_id': str})
 
     pd.testing.assert_frame_equal(metrics.metrics, truth, check_like=True)
 
@@ -269,15 +269,15 @@ def test_specs(project, am):
     parameters = "tests/data/parameters_metrics.yml"
     msp.run(parameters)
     
-    output = pd.read_csv(msp.destination)
-    truth = pd.read_csv("tests/truth/specs_metrics.csv")
+    output = pd.read_csv(msp.destination, dtype={'child_id': str})
+    truth = pd.read_csv("tests/truth/specs_metrics.csv", dtype={'child_id': str})
 
     pd.testing.assert_frame_equal(output, truth, check_like=True)
     
     new_params = msp.parameters_path
     msp.run(new_params)
     
-    output = pd.read_csv(msp.destination)
+    output = pd.read_csv(msp.destination, dtype={'child_id': str})
     
     pd.testing.assert_frame_equal(output, truth, check_like=True)
 
@@ -316,7 +316,7 @@ def test_metrics_peaks(project, am):
     metrics = Metrics(project, metrics_list=lm)
     metrics.extract()
 
-    truth = pd.read_csv("tests/truth/peak_metrics.csv")
+    truth = pd.read_csv("tests/truth/peak_metrics.csv", dtype={'child_id': str})
 
     #metrics.metrics.to_csv("tests/truth/peak_metrics.csv",index=False)
 

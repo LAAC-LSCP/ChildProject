@@ -2,16 +2,7 @@ import os
 from datetime import datetime
 import numpy as np
 import pandas as pd
-
-def path_is_parent(parent_path: str, child_path: str):
-    # Smooth out relative path names, note: if you are concerned about symbolic links, you should use os.path.realpath too
-    parent_path = os.path.abspath(parent_path)
-    child_path = os.path.abspath(child_path)
-
-    # Compare the common path of the parent and child path with the common path of just the parent path. Using the commonpath method on just the parent path will regularise the path name in the same way as the comparison that deals with both paths, removing any trailing path separator
-    return os.path.commonpath([parent_path]) == os.path.commonpath(
-        [parent_path, child_path]
-    )
+from pathlib import Path
 
 
 class Segment:
@@ -111,10 +102,10 @@ def time_intervals_intersect(ti1 : TimeInterval, ti2 : TimeInterval):
         else : i += 1
     return r
 
-def get_audio_duration(filename):
+def get_audio_duration(filename: Path):
     from soundfile import info
 
-    if not os.path.exists(filename):
+    if not filename.exists():
         print('Warning: could not find file {}, setting duration to 0'.format(filename))
         return 0
 
