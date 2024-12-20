@@ -510,13 +510,17 @@ class EafConverter(AnnotationConverter):
                     "segment_offset": int(round(end_t)),
                     "speaker_id": tier_name,
                     "speaker_type": AnnotationConverter.SPEAKER_ID_TO_TYPE[tier_name],
-                    "vcm_type": "NA",
-                    "lex_type": "NA",
-                    "mwu_type": "NA",
-                    "addressee": "NA",
-                    "transcription": value if value != "0" else "0.",
-                    "words": "NA",
+                # recent change, not include all columns by default, this can be useful to use column presence
+                # to determine what info is annotated
+                    # "vcm_type": "NA",
+                    # "lex_type": "NA",
+                    # "mwu_type": "NA",
+                    # "addressee": "NA",
+                    # "transcription": value if value != "0" else "0.",
+                    # "words": "NA",
                 }
+                if value:
+                    segment['transcription'] = value
 
                 segments[aid] = segment
 
@@ -567,7 +571,7 @@ class EafConverter(AnnotationConverter):
                 elif label in kwargs["new_tiers"]:
                     segment[label] = value
 
-        return pd.DataFrame(segments.values())
+        return pd.DataFrame(segments.values()).fillna('NA')
 
 
 class ChatConverter(AnnotationConverter):
