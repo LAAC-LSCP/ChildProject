@@ -578,7 +578,7 @@ class AnnotationManager:
         :type annotations: pd.DataFrame, optional
         :param threads: how many threads to run the tests with, defaults to 0. If <= 0, all available CPU cores will be used.
         :type threads: int, optional
-        :return: a tuple containg the list of errors and the list of warnings detected
+        :return: a tuple containing the list of errors and the list of warnings detected
         :rtype: Tuple[List[str], List[str]]
         """
         if annotations is None:
@@ -800,7 +800,7 @@ class AnnotationManager:
         :return: dataframe of imported annotations, as in :ref:`format-annotations`.
         :rtype: pd.DataFrame
         """
-        input_processed= input.copy().reset_index()
+        input_processed = input.copy().reset_index()
 
         required_columns = {
             c.name

@@ -65,6 +65,7 @@ class Metrics(ABC):
         to_time: str = None,
         rec_cols: str = None,
         child_cols: str = None,
+        set_cols: str = None,
         period: str = None,
         segments: Union[str, pd.DataFrame] = None,
         threads: int = 1,
@@ -155,6 +156,19 @@ class Metrics(ABC):
             )
         else:
             self.child_cols = None
+
+        # get existing columns of the dataset for sets
+        correct_cols = set(self.am.sets)
+        if set_cols:
+            #when user requests recording columns, build the list and verify they exist (warn otherwise)
+            set_cols=set(set_cols.split(","))
+            for i in set_cols:
+                if i not in correct_cols:
+                    print("Warning, requested column <{}> does not exist in the set metadata, ignoring this column. existing columns are : {}".format(i,correct_cols))
+            set_cols &= correct_cols
+            #add wanted columns to the one we already get
+            join_columns.update(set_cols)
+        self.set_cols = set_cols
         
         self.by = by
         self.period = period
@@ -386,10 +400,15 @@ class Metrics(ABC):
             else:
                 return np.nan
         
-        #get and add to dataframe recordings.csv columns asked
+        # get and add to dataframe recordings.csv columns asked
         if self.rec_cols:
             for label in self.rec_cols:
-                self.metrics[label] = self.metrics.apply(lambda row : check_unicity(row,label),axis=1)
+                self.metrics[label] = self.metrics.apply(lambda row: check_unicity(row, label), axis=1)
+
+        # add the sets metadata columns
+        if self.set_cols:
+            for label in self.set_cols:
+                self.metrics[label] = self.metrics.apply(lambda row:  self.am.sets.loc[row['set'], label], axis=1)
                 
 class CustomMetrics(Metrics):
     """metrics extraction from a csv file. 
@@ -777,6 +796,12 @@ class MetricsPipeline(Pipeline):
         parser.add_argument(
             "--child-cols",
             help="comma separated columns from children.csv to include in the outputted metrics (optional), NA if ambiguous",
+            default=None,
+        )
+
+        parser.add_argument(
+            "--set-cols",
+            help="comma separated columns from the set metadata to include in the outputted metrics (optional), NA if ambiguous",
             default=None,
         )
         
