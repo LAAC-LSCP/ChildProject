@@ -65,6 +65,7 @@ class Conversations(ABC):
             to_time: str = None,
             rec_cols: str = None, #metadata
             child_cols: str = None, #metadata
+            set_cols: str = None,
             threads: int = 1,
     ):
 
@@ -170,6 +171,21 @@ class Conversations(ABC):
             )
         else:
             self.child_cols = None
+
+        # get existing columns of the dataset for sets
+        correct_cols = set(self.am.sets)
+        if set_cols:
+            # when user requests recording columns, build the list and verify they exist (warn otherwise)
+            set_cols = set(set_cols.split(","))
+            for i in set_cols:
+                if i not in correct_cols:
+                    print(
+                        "Warning, requested column <{}> does not exist in the set metadata, ignoring this column. existing columns are : {}".format(
+                            i, correct_cols))
+            set_cols &= correct_cols
+            # add wanted columns to the one we already get
+            join_columns.update(set_cols)
+        self.set_cols = set_cols
 
         if recordings is None:
             self.recordings = self.project.recordings['recording_filename'].to_list()
@@ -304,6 +320,9 @@ class Conversations(ABC):
             self.conversations = self.conversations.merge(meta, how='left', on='recording_filename')
             if 'child_id' not in self.child_cols:
                 self.conversations.drop(columns=['child_id'])
+        if self.set_cols:
+            sets = self.am.sets[list(self.set_cols) + 'set']
+            self.conversations = self.conversations.merge(sets, how='left', left_on='set', right_index=True)
 
         if not self.conversations.shape[0]:
             logger_conversations.warning("The extraction did not find any conversation")
@@ -574,6 +593,12 @@ class ConversationsPipeline(Pipeline):
             "--child-cols",
             help=("comma separated columns from children.csv to include in the outputted conversations (optional),"
                   " NA if ambiguous"),
+            default=None,
+        )
+
+        parser.add_argument(
+            "--set-cols",
+            help="comma separated columns from the set metadata to include in the outputted conversations (optional)",
             default=None,
         )
 
