@@ -106,8 +106,8 @@ def perform_validation(project: ChildProject, require_success: bool = True, **ar
     [
         arg("source", help="project path"),
         arg(
-            "--force","-f",
-            help="ignore existing files and create strcture anyway",
+            "--force", "-f",
+            help="ignore existing files and create structure anyway",
             action="store_true",
         ),
     ]
@@ -116,7 +116,7 @@ def init(args):
     path = Path(args.source)
 
     files = glob.glob(str(path / '*'))
-    if len(files) != 0 :
+    if len(files) != 0 and not args.force:
         raise ValueError("Directory {} not empty, cannot create a project".format(path))
 
     os.makedirs(path / RAW_RECORDINGS, exist_ok=args.force)
@@ -247,19 +247,20 @@ def sets_metadata(args):
         methods = sets['method'].unique
         for g, gdf in sets.groupby('method') :
             output += "\n\033[1m{} ({:.2f} hours)\033[0m:\n".format(g, gdf['duration'].sum() / (3600 * 1000))
-            for row in gdf.to_dict(orient='records'):
+            meta = gdf.to_dict(orient='index')
+            for row in meta:
                 if g == 'automated':
                     output += "\033[94m%s\033[0m: %s %.2f hours, algorithm:%s v%s (%s)\n" % (
-                        row['set'], row['date_annotation'], row['duration'] / (3600 * 1000),
-                        row['annotation_algorithm_name'], row['annotation_algorithm_version'],
-                        row['annotation_algorithm_publication'])
+                        row, meta[row]['date_annotation'], meta[row]['duration'] / (3600 * 1000),
+                        meta[row]['annotation_algorithm_name'], row['annotation_algorithm_version'],
+                        meta[row]['annotation_algorithm_publication'])
                 elif g == 'human':
                     output += "\033[94m%s\033[0m: %s %.2f hours, annotator:%s (level %s)\n" % (
-                        row['set'], row['date_annotation'], row['duration'] / (3600 * 1000),
-                        row['annotator_name'], row['annotator_experience'])
+                        row, meta[row]['date_annotation'], meta[row]['duration'] / (3600 * 1000),
+                        meta[row]['annotator_name'], meta[row]['annotator_experience'])
                 else:
                     output += "\033[94m%s\033[0m: %.2f hours, %s\n" % (
-                        row['set'], row['duration'] / (3600 * 1000), row)
+                        row, meta[row]['duration'] / (3600 * 1000), meta[row])
         logger.info(output)
     if args.format == 'csv':
         print(sets.to_csv(None, index=False))

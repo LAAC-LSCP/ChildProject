@@ -59,6 +59,7 @@ class IndexColumn:
         dtype=None,
         unique=False,
         generated=False,
+        annotation_columns=None,
     ):
         self.name = name
         self.description = description
@@ -71,6 +72,7 @@ class IndexColumn:
         self.unique = unique
         self.generated = generated
         self.dtype = dtype
+        self.annotation_columns = annotation_columns
 
     def __str__(self):
         return "IndexColumn(name = {})".format(self.name)

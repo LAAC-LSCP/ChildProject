@@ -146,7 +146,7 @@ class AnnotationManager:
         IndexColumn(
             name="vcm_type",
             description="vocal maturity defined as: C (canonical), N (non-canonical), Y (crying) L (laughing), J (junk), U (uncertain)",
-            choices=["C", "N", "Y", "L", "J", "U","NA"],
+            choices=["C", "N", "Y", "L", "J", "U", "NA"],
         ),
         IndexColumn(
             name="lex_type",
@@ -283,40 +283,115 @@ class AnnotationManager:
 
     ]
 
+    # The annotation_columns describes what set of columns must be present in the annotation
+    # for the package to automatically deem that this category is True (it can be manually edited later)
+    # the structure is a list of lists of strings, describing combinations of columns that would validate
+    # e.g. [['speaker_type'],['words','phonemes']] validates if the columns (speaker_type OR (words AND phonemes)) exist
     SETS_COLUMNS = [
-        IndexColumn(name="segmentation", description="source of the segmentation. `self` if produces its own, name of \
-        another set if using an other's set segmentation", dtype="str"),
-        IndexColumn(name="method", description="Method used for the annotations, automated, human or a mix of both",
-                    choices=['automated', 'human', 'mixed']),
-        IndexColumn(name="annotator_name", description="unique name for human annotators"),
-        IndexColumn(name="annotator_experience", description="Estimation of annotator's experience from 1 to 5. \
-        1 being 'new to annotation' and 5 'Expert'.", dtype="int", choices=[1, 2, 3, 4, 5]),
-        IndexColumn(name="annotation_algorithm_name", description="name of the algorithm", dtype="str",
-                    choices=['VTC', 'ALICE', 'VCM', 'ITS']),
-        IndexColumn(name="annotation_algorithm_publication", description="scientific publication citation for the \
-        algorithm used", dtype="str"),
-        IndexColumn(name="annotation_algorithm_version", description="¨version of the algorithm"),
-        IndexColumn(name="annotation_algorithm_repo", description="link to repository where the algorithm is stored. \
-        Ideally along with a commit hash for more reproducibility.", dtype="str"),
-        IndexColumn(name="date_annotation", description="date when the annotation was produced, best practice is to \
-        give the day the annotation was finished. This is meant to be a broad time label and does not need to be very \
-        precise", datetime="%Y-%m-%d"),
-
-        IndexColumn(name="has_speaker_type", description="Does the set contain the type of speakers. Yes(Y) / \
-        No(N or empty)", choices=['Y', 'N', '']),
-        IndexColumn(name="has_trancription", description="Does the set contain transcriptions. Yes(Y) / No(N or empty)",
-                    choices=['Y', 'N', '']),
-        IndexColumn(name="has_interactions", description="Does the set contain information about interactions between \
-        speakers. Yes(Y) / No(N or empty)", choices=['Y', 'N', '']),
-        IndexColumn(name="has_acoustics", description="Does the set contain information about acoustic features of \
-        speakers. Yes(Y) / No(N or empty)", choices=['Y', 'N', '']),
-        IndexColumn(name="has_addressee", description="Does the set contain the information of who the vocalization is \
-        addressed to. Yes(Y) / No(N or empty)", choices=['Y', 'N', '']),
-        IndexColumn(name="has_vcm", description="Does the set contain information about vocal maturity of vocalizations \
-            . Yes(Y) / No(N or empty)", choices=['Y', 'N', '']),
-        IndexColumn(name="has_words", description="Does the set contain information about number of words contained \
-            . Yes(Y) / No(N or empty)", choices=['Y', 'N', '']),
+        IndexColumn(
+            name="segmentation",
+            description="source of the segmentation. repeat the set name if uses its own, \
+            name(s) (comma separated) of other set(s) if using other set(s) segmentation(s)",
+            dtype="str"
+        ),
+        IndexColumn(
+            name="segmentation_type",
+            description="permissivity of the segmentation. permissive if allows for \
+            annotation segments overlapping each other, restrictive if only one speaker allowed at a time",
+            dtype="str",
+            choices=['permissive', 'restrictive']
+        ),
+        IndexColumn(
+            name="method",
+            description="Method used for the annotations, automated, human or a mix of both",
+            choices=['automated', 'manual', 'mixed', 'derivation', 'citizen-scientists']
+        ),
+        IndexColumn(
+            name="annotator_name",
+            description="unique name for human annotators"
+        ),
+        IndexColumn(
+            name="annotator_experience",
+            description="Estimation of annotator's experience from 1 to 5. 1 being 'new to annotation' and 5 'Expert'.",
+            dtype="int",
+            choices=[1, 2, 3, 4, 5]
+        ),
+        IndexColumn(
+            name="annotation_algorithm_name",
+            description="name of the algorithm",
+            dtype="str",
+            choices=['VTC', 'ALICE', 'VCM', 'ITS']
+        ),
+        IndexColumn(
+            name="annotation_algorithm_publication",
+            description="scientific publication citation for the algorithm used",
+            dtype="str"
+        ),
+        IndexColumn(
+            name="annotation_algorithm_version",
+            description="¨version of the algorithm"
+        ),
+        IndexColumn(
+            name="annotation_algorithm_repo",
+            description="link to repository where the algorithm is stored. \
+            Ideally along with a commit hash for more reproducibility.",
+            dtype="str"
+        ),
+        IndexColumn(
+            name="date_annotation",
+            description="date when the annotation was produced, best practice is to give the day the \
+            annotation was finished. This is meant to be a broad time label and does not need to be very precise",
+            datetime="%Y-%m-%d"
+        ),
+        IndexColumn(
+            name="has_speaker_type",
+            description="Does the set contain the type of speakers. Yes(Y) / No(N or empty)",
+            choices=['Y', 'N', ''],
+            annotation_columns=[['speaker_type']],
+        ),
+        IndexColumn(
+            name="has_trancription",
+            description="Does the set contain transcriptions. Yes(Y) / No(N or empty)",
+            choices=['Y', 'N', ''],
+            annotation_columns=[['transcription']],
+        ),
+        IndexColumn(
+            name="has_interactions",
+            description="Does the set contain information about interactions between speakers. Yes(Y) / No(N or empty)",
+            choices=['Y', 'N', ''],
+            annotation_columns=[['is_CT','conv_count'],['lena_conv_turn_type']],
+        ),
+        IndexColumn(
+            name="has_acoustics",
+            description="Does the set contain information about acoustic features of speakers. Yes(Y) / No(N or empty)",
+            choices=['Y', 'N', ''],
+            annotation_columns=[['mean_pitch_semitone'],['median_pitch_semitone'],['p5_pitch_semitone'],['p95_pitch_semitone'],['pitch_range_semitone']],
+        ),
+        IndexColumn(
+            name="has_addressee",
+            description="Does the set contain the information of who the vocalization is \
+            addressed to. Yes(Y) / No(N or empty)",
+            choices=['Y', 'N', ''],
+            annotation_columns=[['addressee']],
+        ),
+        IndexColumn(
+            name="has_vcm_type",
+            description="Does the set contain information about vocal maturity of vocalizations \
+            . Yes(Y) / No(N or empty)",
+            choices=['Y', 'N', ''],
+            annotation_columns=[['vcm_type']],
+        ),
+        IndexColumn(
+            name="has_words",
+            description="Does the set contain information about number of words contained \
+            . Yes(Y) / No(N or empty)",
+            choices=['Y', 'N', ''],
+            annotation_columns=[['words']],
+        ),
     ]
+
+    # this describes which column infers
+    SETS_CONTENT_COLUMNS = {}
 
     def __init__(self, project: ChildProject):
         """AnnotationManager constructor
@@ -421,23 +496,26 @@ class AnnotationManager:
         missing_files = []
         missing_content = []
         unknown_fields = []
-        sets_metadata = []
+        sets_metadata = {}
         for curr_set in sets:
             expected_path = self.project.path / ANNOTATIONS / curr_set / METANNOTS
 
             if expected_path.exists():
                 with open(expected_path, 'r') as meta_stream:
-                    sets_metadata.append({**yaml.safe_load(meta_stream), **{'set': curr_set}})
-                    if not set(sets_metadata[-1].keys()).issubset(set(known_fields)):
+                    sets_metadata[curr_set] = yaml.safe_load(meta_stream)
+                    if not set(sets_metadata[curr_set].keys()).issubset(set(known_fields)):
                         unknown_fields.append(curr_set)
             else:
-                sets_metadata.append({'set':curr_set})
+                sets_metadata[curr_set] = {}
                 if os.path.lexists(expected_path):
                     missing_content.append(curr_set)
                 else:
                     missing_files.append(curr_set)
 
-        sets_metadata = pd.DataFrame(sets_metadata)
+        # pd.DataFrame version of sets
+        sets_metadata = pd.DataFrame(sets_metadata).T
+        sets_metadata.index.rename('set', inplace=True)
+        # sets_metadata = sets_metadata.reset_index() # this would not keep the set has index
         self.sets = sets_metadata
 
         warnings = []
@@ -535,6 +613,11 @@ class AnnotationManager:
         self.annotations = self.annotations.sort_values(['imported_at','set', 'annotation_filename'])
         self.annotations.to_csv(self.project.path / METADATA_FOLDER / ANNOTATIONS_CSV, index=False)
 
+    def _write_set_metadata(self, setname, metadata):
+        assert setname in self.annotations['set'].unique(), f"set must exist"
+        with open(self.project.path / ANNOTATIONS / setname / METANNOTS, 'w') as stream:
+            yaml.dump(metadata, stream)
+
     def _check_for_outdated_merged_sets(self, sets: set = None):
         """Checks the annotations dataframe for sets that were used in merged sets and modified afterwards.
         This method produces warnings and suggestions to update the considered merged sets.
@@ -546,15 +629,15 @@ class AnnotationManager:
         """
         warnings = []
 
-        #make a copy of annotation index, keep only the last modification date for each set (will not detect specific cases like partial merge)
-        df = self.annotations.copy().sort_values(['set','imported_at']).groupby(['set']).last()
+        # make a copy of annotation index, keep only the last modification date for each set (will not detect specific cases like partial merge)
+        df = self.annotations.copy().sort_values(['set', 'imported_at']).groupby(['set']).last()
 
-        #build a dictionary capturing the last modification date for each set.
+        # build a dictionary capturing the last modification date for each set.
         last_modif = {}
         for i, row in df.iterrows():
             last_modif[i] = row['imported_at']
 
-        #iterate through sets that were built from a merge and compare their last modification date to the one of their original set.
+        # iterate through sets that were built from a merge and compare their last modification date to the one of their original set.
         if 'merged_from' in df.columns:
             merged_sets = df.dropna(subset=['merged_from'])[['merged_from', 'imported_at']]
             for i, row in merged_sets.iterrows():
@@ -597,7 +680,7 @@ class AnnotationManager:
         )
         output_filename = ANNOTATIONS / annotation["set"] / CONVERTED / annotation_filename
 
-        #check if the annotation file already exists in dataset (same filename and same set)
+        # check if the annotation file already exists in dataset (same filename and same set)
         if self.annotations[(self.annotations['set'] == annotation['set']) &
                             (self.annotations['annotation_filename'] == annotation_filename)].shape[0] > 0:
             if overwrite_existing:
@@ -609,8 +692,8 @@ class AnnotationManager:
                 annotation["imported_at"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 return annotation
 
-        #find if there are annotation indexes in the same set that overlap the new annotation
-        #as it is not possible to annotate multiple times the same audio stretch in the same set
+        # find if there are annotation indexes in the same set that overlap the new annotation
+        # as it is not possible to annotate multiple times the same audio stretch in the same set
         ovl_annots = self.annotations[(self.annotations['set'] == annotation['set']) &
                             (self.annotations['annotation_filename'] != annotation_filename) & #this condition avoid matching a line that should be overwritten (so has the same annotation_filename), it is dependent on the previous block!!!
                             (self.annotations['recording_filename'] == annotation['recording_filename']) &
@@ -897,7 +980,8 @@ class AnnotationManager:
             self.project.recordings['recording_filename'] == annotation['recording_filename']].iloc[0].to_dict()
         chi_dict = self.project.children[
             self.project.children['child_id'] == rec_dict['child_id']].iloc[0].to_dict()
-        metadata = {**chi_dict, **rec_dict, **annotation}
+        set_dict = self.sets[self.sets.index == annotation['set']].iloc[0].to_dict()
+        metadata = {**chi_dict, **rec_dict, **set_dict, **annotation}
 
         # apply the derivation to the annotation dataframe
         # if the derivation raises an exception stop the processing there and return the line
@@ -959,6 +1043,7 @@ class AnnotationManager:
                            input_set: str,
                            output_set: str,
                            derivation_function: Union[str, Callable],
+                           derivation_metadata=None,
                            threads: int = -1,
                            overwrite_existing: bool = False,
                            ) -> (pd.DataFrame, pd.DataFrame):
@@ -971,6 +1056,9 @@ class AnnotationManager:
         :rtype: str
         :param derivation_function: name of the derivation type to be performed
         :rtype: Union[str, Callable]
+        :param derivation_metadata: metadata to be used for the set created by the derivation, if none and derivation
+        is internal to the package (using str label), use the internally stored metadata
+        :rtype: dict
         :param threads: If > 1, conversions will be run on ``threads`` threads, defaults to -1
         :type threads: int, optional
         :param overwrite_existing: choice if lines with the same set and annotation_filename should be overwritten
@@ -988,7 +1076,9 @@ class AnnotationManager:
         # check the existence of the derivation function and that it is callable or predefined
         if not callable(derivation_function):
             if derivation_function in DERIVATIONS.keys():
-                derivation_function = DERIVATIONS[derivation_function]
+                derivation_function = DERIVATIONS[derivation_function][0]
+                if derivation_metadata is None:
+                    derivation_metadata = DERIVATIONS[derivation_function[1]]
             else:
                 raise ValueError(
                     "derivation value '{}' unknown, use one of {}".format(derivation_function, DERIVATIONS.keys())
@@ -1037,6 +1127,14 @@ class AnnotationManager:
         else:
             errors = None
 
+        # metadata for the set is inherited from the set it derives from, some fields are automatically updated
+        set_metadata = self.sets.loc[input_set].to_dict()
+        set_metadata = self.sets.loc[input_set].to_dict()
+        set_metadata.update({'method': 'derivation',
+                             'date_annotation': datetime.datetime.now().strftime("%Y%m%d")})
+        if derivation_metadata is not None:
+            set_metadata.update(derivation_metadata)
+
         # here we add the new lines of imported annotations to the annotations.csv file
         self.read()
         self.annotations = pd.concat([self.annotations, imported], sort=False)
@@ -1044,6 +1142,9 @@ class AnnotationManager:
         # dropping duplicates remove the first importation and keeps the more recent one
         self.annotations = self.annotations.sort_values('imported_at').drop_duplicates(
             subset=["set", "recording_filename", "range_onset", "range_offset"], keep='last')
+        # write the derived set metadata only if some lines were correctly imported
+        if imported.shape[0]:
+            self._write_set_metadata(output_set, set_metadata)
         self._read_sets_metadata()
         self.write()
 
@@ -1189,6 +1290,9 @@ class AnnotationManager:
 
         if (current_path / CONVERTED).exists():
             move(current_path / CONVERTED, new_path / CONVERTED)
+
+        if (current_path / METANNOTS).exists():
+            move(current_path / METANNOTS, new_path / METANNOTS)
 
         self.annotations.loc[
             (self.annotations["set"] == annotation_set), "set"
@@ -1348,7 +1452,7 @@ class AnnotationManager:
             columns=["raw_filename_x", "raw_filename_y", "time_seek"], inplace=True
         )
 
-        # drop unused columns, get the currect datetime and store it in imported_at
+        # drop unused columns, get the correct datetime and store it in imported_at
         annotations.drop(columns=['right_annotation_filename', 'left_annotation_filename'], inplace=True)
         annotations["imported_at"] = datetime.datetime.now().strftime(
             "%Y-%m-%d %H:%M:%S"
@@ -1390,6 +1494,7 @@ class AnnotationManager:
         skip_existing: bool = False,
         columns: dict = {},
         recording_filter: str = None,
+        metadata: str = None,
         threads=-1,
     ):
         """Merge columns from ``left_set`` and ``right_set`` annotations, 
@@ -1415,6 +1520,8 @@ class AnnotationManager:
         :type columns: dict
         :param recording_filter: set of recording_filenames to merge.
         :type recording_filter: set[str]
+        :param metadata: set metadata to keep in the merged set, 'right' or 'left' to keep metadata of left or right set (except for content fields), None for no metadata kept, default is None
+        :type metadata: None | str
         :param threads: number of threads
         :type threads: int
         :return: [description]
@@ -1424,6 +1531,7 @@ class AnnotationManager:
         if full_set_merge: assert output_set not in existing_sets, "output_set <{}> already exists, remove the existing set or another name.".format(output_set)
         assert left_set in existing_sets, "left_set <{}> was not found, check the spelling.".format(left_set)
         assert right_set in existing_sets, "right_set <{}> was not found, check the spelling.".format(right_set)
+        assert metadata in [None, 'right','left'], "metadata parameter unrecognized"
         assert left_set != right_set, "sets must differ"
         assert not (
             set(left_columns) & set(right_columns)
@@ -1503,8 +1611,22 @@ class AnnotationManager:
         self.read()
         # if annotations.csv can have duplicate entries with same converted filename and is normal, check this https://stackoverflow.com/a/45927402 and change the code
         self.annotations = pd.concat([self.annotations, annotations], sort=False).drop_duplicates(subset=['set','recording_filename','annotation_filename'], keep='last')
-        self._read_sets_metadata()
+
+        # This block infers as much metadata as possible from the 2 merge sets, unknown fields are left unset
+        assert self.sets.index.is_unique, "Found duplicated set metadata"
+        dict_sets = self.sets.T.to_dict()
+        if metadata == 'right':
+            new_set_meta = dict_sets[right_set]
+        elif metadata == 'left':
+            new_set_meta = dict_sets[left_set]
+        else:
+            new_set_meta = {}
+        # infer set content based on the column names that were merged
+        new_set_meta.update(AnnotationManager.infer_set_content_based_on_column_names(union))
+
         self.write()
+        self._write_set_metadata(output_set, new_set_meta)
+        self._read_sets_metadata()
 
     def get_segments(self, annotations: pd.DataFrame) -> pd.DataFrame:
         """get all segments associated to the annotations referenced in ``annotations``.
@@ -2034,3 +2156,23 @@ class AnnotationManager:
         segments = segments[segments["segment_offset"] > segments["segment_onset"]]
 
         return segments
+
+    @staticmethod
+    def infer_set_content_based_on_column_names(columns) -> dict:
+        """From a list of columns present in annotations, makes a prediction of what content will be present
+        for metadata of set. It takes the defined field of metadata and determines based on their annotation_columns
+        field if a combination of the right columns id present
+
+        :param columns: list of columns in the annotation
+        :type columns: List[str]
+        :return: dictionary with inferred metadata to add to the set
+        :rtype: dict
+        """
+        meta_content = {}
+        for metadata_field in AnnotationManager.SETS_COLUMNS:
+            if metadata_field.annotation_columns is not None:
+                for combination in metadata_field.annotation_columns:
+                    if all([column in columns for column in combination]):
+                        meta_content[metadata_field.name] = 'Y'
+                    break
+        return meta_content
