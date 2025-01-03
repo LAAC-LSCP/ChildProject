@@ -1,6 +1,7 @@
 from ChildProject.projects import ChildProject
 from ChildProject.annotations import AnnotationManager
 from ChildProject.converters import *
+from ChildProject.annotations import METANNOTS
 from functools import partial
 
 import pandas as pd
@@ -763,6 +764,50 @@ def test_set_from_path(project, am):
             am.set_from_path(os.path.join(project.path, "annotations/set/subset/raw"))
             == "set/subset"
     )
+
+sets_metadata_default = pd.DataFrame()
+@pytest.mark.parametrize("metadata_exists,warning,return_value,error",
+                             [(True, 'not set', None, ValueError),
+                              (True, 'ignore', sets_metadata_default, None),
+                              (True, 'return', (sets_metadata_default, []), None),
+                              (True, 'log', sets_metadata_default, None),
+                              (False, 'not set', None, ValueError),
+                              (False, 'ignore', sets_metadata_default, None),
+                              (False, 'return', (sets_metadata_default, []), None),
+                              (False, 'log', sets_metadata_default, None),
+                              ])
+def test_read_sets_metadata(project, am, metadata_exists, warning, return_value, error):
+    if not metadata_exists:
+        for set in am.annotations['set'].unique():
+            if os.path.exists(project.path / set / METANNOTS):
+                os.remove(project.path / set / METANNOTS)
+    if error is not None:
+        with pytest.raises(error):
+            am._read_sets_metadata(warning)
+    else:
+        result = am._read_sets_metadata(warning)
+        if type(return_value) == tuple:
+            print(result[0])
+            assert return_value[1] == result[1]
+            pd.testing.assert_frame_equal(return_value[0], result[0])
+        else:
+            print(result)
+            pd.testing.assert_frame_equal(return_value, result)
+
+
+@pytest.mark.parametrize("metadata_exists,return_value",
+                             [(True, pd.DataFrame()),
+                              (False, pd.DataFrame()),
+                              ])
+def test_get_sets_metadata(project, am, metadata_exists, return_value):
+    if not metadata_exists:
+        for set in am.annotations['set'].unique():
+            if os.path.exists(project.path / set / METANNOTS):
+                os.remove(project.path / set / METANNOTS)
+
+    result = am.get_sets_metadata()
+    print(result)
+    pd.testing.assert_frame_equal(return_value, result)
 
 
 # its
