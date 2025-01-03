@@ -307,6 +307,38 @@ class AnnotationManager:
             choices=['automated', 'manual', 'mixed', 'derivation', 'citizen-scientists']
         ),
         IndexColumn(
+            name="sampling_method",
+            description="Method used for sampling annotated parts (none is all recording)",
+            choices=['none', 'manual', 'periodic', 'random', 'high-volubility', 'high-energy']
+        ),
+        IndexColumn(
+            name="sampling_target",
+            description="targeted speaker type in the sampling",
+            choices=['chi', 'fem', 'mal', 'och']
+        ),
+        IndexColumn(
+            name="sampling_count",
+            description="total count of sampled segments for this set. Other metrics like "
+                        "amount per child or recording can be derived from this number and the annotations dataframe.",
+            dtype='int',
+        ),
+        IndexColumn(
+            name="sampling_unit_duration",
+            description="Target duration of each sampled segment in milliseconds. this does not mean that all segments"
+                        " are exactly this long",
+            dtype='int',
+        ),
+        IndexColumn(
+            name="recording_selection",
+            description="How were the recording used for sampling selected, or excluded. be exhaustive.",
+            dtype='str',
+        ),
+        IndexColumn(
+            name="participant_selection",
+            description="How were the participants used for sampling selected, or excluded. be exhaustive.",
+            dtype='str',
+        ),
+        IndexColumn(
             name="annotator_name",
             description="unique name for human annotators"
         ),
