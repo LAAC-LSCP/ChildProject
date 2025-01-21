@@ -287,24 +287,26 @@ class AnnotationManager:
     # for the package to automatically deem that this category is True (it can be manually edited later)
     # the structure is a list of lists of strings, describing combinations of columns that would validate
     # e.g. [['speaker_type'],['words','phonemes']] validates if the columns (speaker_type OR (words AND phonemes)) exist
+    # PLEASE USE pandas dtypes here that accept Null values to avoid converting them to str ('nan') / int (failing)
     SETS_COLUMNS = [
         IndexColumn(
             name="segmentation",
             description="source of the segmentation. repeat the set name if uses its own, \
             name(s) (comma separated) of other set(s) if using other set(s) segmentation(s)",
-            dtype="str"
+            dtype="string"
         ),
         IndexColumn(
             name="segmentation_type",
             description="permissivity of the segmentation. permissive if allows for \
             annotation segments overlapping each other, restrictive if only one speaker allowed at a time",
-            dtype="str",
+            dtype="string",
             choices=['permissive', 'restrictive']
         ),
         IndexColumn(
             name="method",
             description="Method used for the annotations, automated, human or a mix of both",
-            choices=['automated', 'manual', 'mixed', 'derivation', 'citizen-scientists']
+            choices=['automated', 'manual', 'mixed', 'derivation', 'citizen-scientists'],
+            dtype='string'
         ),
         IndexColumn(
             name="sampling_method",
@@ -320,54 +322,56 @@ class AnnotationManager:
             name="sampling_count",
             description="total count of sampled segments for this set. Other metrics like "
                         "amount per child or recording can be derived from this number and the annotations dataframe.",
-            dtype='int',
+            dtype='Int64',
         ),
         IndexColumn(
             name="sampling_unit_duration",
             description="Target duration of each sampled segment in milliseconds. this does not mean that all segments"
                         " are exactly this long",
-            dtype='int',
+            dtype='Int64',
         ),
         IndexColumn(
             name="recording_selection",
             description="How were the recording used for sampling selected, or excluded. be exhaustive.",
-            dtype='str',
+            dtype='string',
         ),
         IndexColumn(
             name="participant_selection",
             description="How were the participants used for sampling selected, or excluded. be exhaustive.",
-            dtype='str',
+            dtype='string',
         ),
         IndexColumn(
             name="annotator_name",
-            description="unique name for human annotators"
+            description="unique name for human annotators",
+            dtype='string'
         ),
         IndexColumn(
             name="annotator_experience",
             description="Estimation of annotator's experience from 1 to 5. 1 being 'new to annotation' and 5 'Expert'.",
-            dtype="int",
+            dtype="Int64",
             choices=[1, 2, 3, 4, 5]
         ),
         IndexColumn(
             name="annotation_algorithm_name",
             description="name of the algorithm",
-            dtype="str",
+            dtype="string",
             choices=['VTC', 'ALICE', 'VCM', 'ITS']
         ),
         IndexColumn(
             name="annotation_algorithm_publication",
             description="scientific publication citation for the algorithm used",
-            dtype="str"
+            dtype="string"
         ),
         IndexColumn(
             name="annotation_algorithm_version",
-            description="¨version of the algorithm"
+            description="¨version of the algorithm",
+            dtype="string"
         ),
         IndexColumn(
             name="annotation_algorithm_repo",
             description="link to repository where the algorithm is stored. \
             Ideally along with a commit hash for more reproducibility.",
-            dtype="str"
+            dtype="string"
         ),
         IndexColumn(
             name="date_annotation",
@@ -521,6 +525,7 @@ class AnnotationManager:
         :type warning: str
         :return: pd.DataFrame | (pd.DataFrame, list[str])
         """
+        warnings = []
         sets = self.annotations['set'].unique()
         known_fields = [c.name for c in self.SETS_COLUMNS]
         known_fields.append('set')
@@ -546,11 +551,16 @@ class AnnotationManager:
 
         # pd.DataFrame version of sets
         sets_metadata = pd.DataFrame(sets_metadata).T
+        try:
+            sets_metadata = sets_metadata.astype({f.name: (f.dtype if f.dtype is not None else 'string') for f in AnnotationManager.SETS_COLUMNS if f.name in sets_metadata.columns})
+        except ValueError as e:
+            warnings.append(f"Could not convert metadata to expected types :{e}")
+
+        print(sets_metadata)
         sets_metadata.index.rename('set', inplace=True)
         # sets_metadata = sets_metadata.reset_index() # this would not keep the set has index
         self.sets = sets_metadata
 
-        warnings = []
         if len(missing_files):
             warnings.append(f"Metadata files for sets {missing_files} could not be found, they should be created as "
             f"{ANNOTATIONS / '<set>' / METANNOTS}")
