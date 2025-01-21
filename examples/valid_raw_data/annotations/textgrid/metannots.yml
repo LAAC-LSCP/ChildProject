@@ -1,1 +1,15 @@
-'method': 'human'
+segmentation: 'textgrid'
+segmentation_type: 'permissive'
+method: 'manual'
+sampling_method: 'random'
+sampling_target: 'chi'
+sampling_count: 10
+sampling_unit_duration: 120000
+recording_selection: 'daytime recordings'
+participant_selection: 'have siblings'
+annotator_name: 'Gabin Fournier'
+annotator_experience: 5
+date_annotation: '2019-04-05'
+has_speaker_type: 'Y'
+has_vcm_type: 'Y'
+has_addressee: 'Y'

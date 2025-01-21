@@ -1,1 +1,5 @@
-'method': 'automated'
+segmentation: 'vtc'
+segmentation_type: 'permissive'
+method: 'derivation'
+date_annotation: '2024-06-23'
+has_speaker_type: 'Y'

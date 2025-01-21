@@ -1,1 +1,15 @@
-'method': 'human'
+segmentation: 'eaf_basic'
+segmentation_type: 'permissive'
+method: 'manual'
+sampling_method: 'high-volubility'
+sampling_count: 20
+sampling_unit_duration: 60000
+recording_selection: 'all the recordings'
+participant_selection: 'all the participants'
+annotator_name: 'Marie Littelamb'
+annotator_experience: 5
+date_annotation: '2023-10-02'
+has_speaker_type: 'Y'
+has_vcm_type: 'Y'
+has_acoustics: 'Y'
+has_addressee: 'Y'
