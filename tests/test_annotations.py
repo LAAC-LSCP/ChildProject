@@ -1,7 +1,7 @@
 from ChildProject.projects import ChildProject
 from ChildProject.annotations import AnnotationManager
 from ChildProject.converters import *
-from ChildProject.annotations import METANNOTS
+from ChildProject.annotations import METANNOTS, ANNOTATIONS
 from functools import partial
 
 import pandas as pd
@@ -796,18 +796,29 @@ def test_read_sets_metadata(project, am, metadata_exists, warning, return_value,
 
 
 @pytest.mark.parametrize("metadata_exists,return_value",
-                             [(True, pd.DataFrame()),
-                              (False, pd.DataFrame()),
+                             [(True, TRUTH / 'sets_metadata.csv'),
+                              (False, TRUTH / 'sets_empty_metadata.csv'),
                               ])
 def test_get_sets_metadata(project, am, metadata_exists, return_value):
+    # rather than importing the annotation sets (which relies on having the importation work correctly
+    # just create a fake annotation record that can be used to load metadata
+    sets = [n if n != 'alice' else 'alice/output' for n in os.listdir(project.path / ANNOTATIONS) if
+            os.path.isdir(project.path / ANNOTATIONS / n)]
+    zeros = [0 for i in range(len(sets))]
+    fields = ['' for i in range(len(sets))]
+
+    am.annotations = pd.DataFrame({'set': sets, 'range_onset': zeros, 'range_offset': zeros,
+                                   'annotation_filename': fields, 'raw_filename': fields})
+
     if not metadata_exists:
         for set in am.annotations['set'].unique():
-            if os.path.exists(project.path / set / METANNOTS):
-                os.remove(project.path / set / METANNOTS)
+            if os.path.exists(project.path / ANNOTATIONS / set / METANNOTS):
+                os.remove(project.path / ANNOTATIONS / set / METANNOTS)
 
     result = am.get_sets_metadata()
-    print(result)
-    pd.testing.assert_frame_equal(return_value, result)
+    # result.to_csv(return_value, index_label='set')
+    dtypes = {f.name: f.dtype if f.dtype is not None else 'string' for f in AnnotationManager.SETS_COLUMNS}
+    pd.testing.assert_frame_equal(pd.read_csv(return_value, index_col='set', dtype=dtypes), result, check_like=True)
 
 
 # its
