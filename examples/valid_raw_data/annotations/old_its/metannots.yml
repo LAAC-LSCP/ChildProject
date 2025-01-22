@@ -1,9 +1,1 @@
-segmentation: 'its'
-segmentation_type: 'restrictive'
-method: 'automated'
-annotation_algorithm_name: 'ITS'
-annotation_algorithm_publication: 'Xu, D., Yapanel, U., & Gray, S. ( 2009). Reliability of the LENA Language Environment Analysis System in young children’s natural home environment. Boulder, CO: LENA Foundation. Retrieved March 26, 2009, from http://www.lenafoundation.org/Research/TechnicalReports.aspx'
-annotation_algorithm_version: '1'
-date_annotation: '2024-05-07'
-has_speaker_type: 'Y'
-has_words: 'Y'
+doesntexist

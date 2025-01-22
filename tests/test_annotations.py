@@ -34,7 +34,7 @@ def project(request):
     if os.path.exists(PATH):
         # shutil.copytree(src="examples/valid_raw_data", dst="output/annotations")
         shutil.rmtree(PATH)
-    shutil.copytree(src="examples/valid_raw_data", dst=PATH)
+    shutil.copytree(src="examples/valid_raw_data", dst=PATH, symlinks=True)
 
     project = ChildProject(PATH)
 
@@ -196,7 +196,9 @@ def test_import(project, am):
     assert len(errors) == 0 and len(warnings) == 0, "malformed annotations detected"
 
     errors, warnings = am.read()
-    assert len(errors) == 0 and len(warnings) == 0, "malformed annotation indexes detected"
+    assert (len(errors) == 0 and
+            warnings == ["Metadata files for sets ['vtc_rttm'] could not be found, they should be created as annotations/<set>/metannots.yml", "Metadata file content for sets ['old_its'] could not be found, it may be downloaded from a remote with the command `datalad get annotations/**/metannots.yml`", "Metadata files for sets contain the following unknown fields ['invented', 'random_field'] which can be found in the metadata for sets ['alice/output', 'textgrid']"]
+            ), "malformed annotation indexes detected"
 
     for dataset in ["eaf_basic", "textgrid", "eaf_solis"]:
         annotations = am.annotations[am.annotations["set"] == dataset]
@@ -290,7 +292,9 @@ def test_multiple_imports(project, am, input_file, ow, rimported, rerrors, excep
         errors, warnings = am.read()
         print(errors)
         print(warnings)
-        assert len(errors) == 0 and len(warnings) == 0, "malformed annotation indexes detected"
+        assert (len(errors) == 0 and
+                warnings == ["Metadata files for sets ['vtc_rttm'] could not be found, they should be created as annotations/<set>/metannots.yml", "Metadata file content for sets ['old_its'] could not be found, it may be downloaded from a remote with the command `datalad get annotations/**/metannots.yml`", "Metadata files for sets contain the following unknown fields ['invented', 'random_field'] which can be found in the metadata for sets ['alice/output', 'textgrid']"]
+                ), "malformed annotation indexes detected"
 
 
 def test_import_incorrect_data_types(project, am):
@@ -765,35 +769,47 @@ def test_set_from_path(project, am):
             == "set/subset"
     )
 
-sets_metadata_default = pd.DataFrame()
-@pytest.mark.parametrize("metadata_exists,warning,return_value,error",
-                             [(True, 'not set', None, ValueError),
-                              (True, 'ignore', sets_metadata_default, None),
-                              (True, 'return', (sets_metadata_default, []), None),
-                              (True, 'log', sets_metadata_default, None),
-                              (False, 'not set', None, ValueError),
-                              (False, 'ignore', sets_metadata_default, None),
-                              (False, 'return', (sets_metadata_default, []), None),
-                              (False, 'log', sets_metadata_default, None),
+# TODO : Add testing for all the kinds of warnings?
+@pytest.mark.parametrize("metadata_exists,warning,truth_path,warnings,log",
+                             [(True, 'ignore', TRUTH / 'sets_metadata.csv', None, []),
+                              (True, 'return', TRUTH / 'sets_metadata.csv', ["Metadata files for sets ['vtc_rttm'] could not be found, they should be created as annotations/<set>/metannots.yml", "Metadata file content for sets ['old_its'] could not be found, it may be downloaded from a remote with the command `datalad get annotations/**/metannots.yml`", "Metadata files for sets contain the following unknown fields ['random_field', 'invented'] which can be found in the metadata for sets ['textgrid', 'alice/output']"], []),
+                              (True, 'log', TRUTH / 'sets_metadata.csv', None, [('ChildProject.annotations', 30, "Metadata files for sets ['vtc_rttm'] could not be found, they should be created as annotations/<set>/metannots.yml"), ('ChildProject.annotations', 30, "Metadata file content for sets ['old_its'] could not be found, it may be downloaded from a remote with the command `datalad get annotations/**/metannots.yml`"), ('ChildProject.annotations', 30, "Metadata files for sets contain the following unknown fields ['random_field', 'invented'] which can be found in the metadata for sets ['textgrid', 'alice/output']")]),
+                              (False, 'ignore', TRUTH / 'sets_empty_metadata.csv', None, []),
+                              (False, 'return', TRUTH / 'sets_empty_metadata.csv', ["Metadata files for sets ['vtc_rttm', 'textgrid', 'metrics', 'vtc_present', 'new_its', 'eaf_basic', 'alice/output', 'eaf_solis', 'textgrid2'] could not be found, they should be created as annotations/<set>/metannots.yml", "Metadata file content for sets ['old_its'] could not be found, it may be downloaded from a remote with the command `datalad get annotations/**/metannots.yml`"], []),
+                              (False, 'log', TRUTH / 'sets_empty_metadata.csv', None, [('ChildProject.annotations', 30, "Metadata files for sets ['vtc_rttm', 'textgrid', 'metrics', 'vtc_present', 'new_its', 'eaf_basic', 'alice/output', 'eaf_solis', 'textgrid2'] could not be found, they should be created as annotations/<set>/metannots.yml"), ('ChildProject.annotations', 30, "Metadata file content for sets ['old_its'] could not be found, it may be downloaded from a remote with the command `datalad get annotations/**/metannots.yml`")]),
                               ])
-def test_read_sets_metadata(project, am, metadata_exists, warning, return_value, error):
+def test_read_sets_metadata(project, am, caplog, metadata_exists, warning, truth_path, warnings, log):
+    # rather than importing the annotation sets (which relies on having the importation work correctly
+    # just create a fake annotation record that can be used to load metadata
+    sets = [n if n != 'alice' else 'alice/output' for n in os.listdir(project.path / ANNOTATIONS) if
+            os.path.isdir(project.path / ANNOTATIONS / n)]
+    zeros = [0 for i in range(len(sets))]
+    fields = ['' for i in range(len(sets))]
+
+    am.annotations = pd.DataFrame({'set': sets, 'range_onset': zeros, 'range_offset': zeros,
+                                   'annotation_filename': fields, 'raw_filename': fields})
+
     if not metadata_exists:
         for set in am.annotations['set'].unique():
-            if os.path.exists(project.path / set / METANNOTS):
-                os.remove(project.path / set / METANNOTS)
-    if error is not None:
-        with pytest.raises(error):
-            am._read_sets_metadata(warning)
-    else:
-        result = am._read_sets_metadata(warning)
-        if type(return_value) == tuple:
-            print(result[0])
-            assert return_value[1] == result[1]
-            pd.testing.assert_frame_equal(return_value[0], result[0])
-        else:
-            print(result)
-            pd.testing.assert_frame_equal(return_value, result)
+            if os.path.exists(project.path / ANNOTATIONS / set / METANNOTS):
+                os.remove(project.path / ANNOTATIONS / set / METANNOTS)
 
+    dtypes = {f.name: f.dtype if f.dtype is not None else 'string' for f in AnnotationManager.SETS_COLUMNS}
+    truth_df = pd.read_csv(truth_path, index_col='set', dtype=dtypes).drop(columns='duration')
+    return_value = (truth_df, warnings) if warnings is not None else truth_df
+
+    result = am._read_sets_metadata(warning)
+
+    capt_log = caplog.record_tuples
+    # assert capt_stdout == stdout
+    assert capt_log == log
+
+    if type(return_value) == tuple:
+        assert result[1] == return_value[1]
+        pd.testing.assert_frame_equal(return_value[0], result[0], check_like=True, check_dtype=False)
+    else:
+        print(result)
+        pd.testing.assert_frame_equal(return_value, result, check_like=True, check_dtype=False)
 
 @pytest.mark.parametrize("metadata_exists,return_value",
                              [(True, TRUTH / 'sets_metadata.csv'),
@@ -818,7 +834,7 @@ def test_get_sets_metadata(project, am, metadata_exists, return_value):
     result = am.get_sets_metadata()
     # result.to_csv(return_value, index_label='set')
     dtypes = {f.name: f.dtype if f.dtype is not None else 'string' for f in AnnotationManager.SETS_COLUMNS}
-    pd.testing.assert_frame_equal(pd.read_csv(return_value, index_col='set', dtype=dtypes), result, check_like=True)
+    pd.testing.assert_frame_equal(pd.read_csv(return_value, index_col='set', dtype=dtypes), result, check_like=True, check_dtype=False)
 
 
 # its

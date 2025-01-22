@@ -8,3 +8,4 @@ annotation_algorithm_repo: 'https://github.com/LoannPeurey/ALICE/tree/cae98d47a1
 date_annotation: '2024-04-07'
 has_speaker_type: 'Y'
 has_words: 'Y'
+invented: "made up field to trigger warning"
