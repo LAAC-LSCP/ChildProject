@@ -386,7 +386,7 @@ class AnnotationManager:
             annotation_columns=[['speaker_type']],
         ),
         IndexColumn(
-            name="has_trancription",
+            name="has_transcription",
             description="Does the set contain transcriptions. Yes(Y) / No(N or empty)",
             choices=['Y', 'N', ''],
             annotation_columns=[['transcription']],
@@ -556,7 +556,6 @@ class AnnotationManager:
         except ValueError as e:
             warnings.append(f"Could not convert metadata to expected types :{e}")
 
-        print(sets_metadata)
         sets_metadata.index.rename('set', inplace=True)
         # sets_metadata = sets_metadata.reset_index() # this would not keep the set has index
         self.sets = sets_metadata
