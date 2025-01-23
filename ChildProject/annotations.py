@@ -561,15 +561,15 @@ class AnnotationManager:
         self.sets = sets_metadata
 
         if len(missing_files):
-            warnings.append(f"Metadata files for sets {missing_files} could not be found, they should be created as "
+            warnings.append(f"Metadata files for sets {sorted(missing_files)} could not be found, they should be created as "
             f"{ANNOTATIONS / '<set>' / METANNOTS}")
         if len(missing_content):
-            warnings.append(f"Metadata file content for sets {missing_content} could not be found, it may be downloaded"
+            warnings.append(f"Metadata file content for sets {sorted(missing_content)} could not be found, it may be downloaded"
             f" from a remote with the command `datalad get {ANNOTATIONS / '**/{}'.format(METANNOTS)}`")
         if len(unknown_fields):
             warnings.append(f"Metadata files for sets contain the following unknown fields "
-            f"{[name for name in self.sets.columns if name not in known_fields]} which can be found "
-            f"in the metadata for sets {unknown_fields}")
+            f"{[name for name in sorted(self.sets.columns) if name not in known_fields]} which can be found "
+            f"in the metadata for sets {sorted(unknown_fields)}")
 
         if warning == 'log':
             for w in warnings:
