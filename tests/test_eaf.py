@@ -21,7 +21,7 @@ def fake_vocs(data, filename):
 def project(request):
     if os.path.exists(PATH):
         shutil.rmtree(PATH)
-    shutil.copytree(src="examples/valid_raw_data", dst=PATH)
+    shutil.copytree(src="examples/valid_raw_data", dst=PATH, symlinks=True)
 
     project = ChildProject(PATH)
     project.read()

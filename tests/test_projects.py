@@ -11,7 +11,7 @@ def project(request):
     if os.path.exists(TEST_DIR):
 #        shutil.copytree(src="examples/valid_raw_data", dst="output/annotations")
         shutil.rmtree(TEST_DIR)
-    shutil.copytree(src="examples/valid_raw_data", dst=TEST_DIR)
+    shutil.copytree(src="examples/valid_raw_data", dst=TEST_DIR, symlinks=True)
     
     project = ChildProject(TEST_DIR)
     yield project
