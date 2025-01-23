@@ -160,7 +160,8 @@ def test_rejected_imports(project, nline, column, value, exception, error):
 
     input_annotations.iloc[nline, input_annotations.columns.get_loc(column)] = value
 
-    print(input_annotations[['range_onset', 'range_offset']])
+    # print(input_annotations[['range_onset', 'range_offset']])
+
 
     with pytest.raises(exception, match=error):
         am.import_annotations(input_annotations)
@@ -206,8 +207,8 @@ def test_import(project, am):
         segments.drop(columns=set(annotations.columns) - {"raw_filename"}, inplace=True)
         truth = pd.read_csv("tests/truth/{}.csv".format(dataset))
 
-        print(segments)
-        print(truth)
+        # print(segments)
+        # print(truth)
 
         pd.testing.assert_frame_equal(
             standardize_dataframe(segments, set(truth.columns.tolist())),
@@ -285,13 +286,13 @@ def test_multiple_imports(project, am, input_file, ow, rimported, rerrors, excep
         ), "some annotations are missing"
 
         errors, warnings = am.validate()
-        print(errors)
-        print(warnings)
+        # print(errors)
+        # print(warnings)
         assert len(errors) == 0 and len(warnings) == 0, "malformed annotations detected"
 
         errors, warnings = am.read()
-        print(errors)
-        print(warnings)
+        # print(errors)
+        # print(warnings)
         assert (len(errors) == 0 and
                 warnings == ["Metadata files for sets ['vtc_rttm'] could not be found, they should be created as annotations/<set>/metannots.yml", "Metadata file content for sets ['old_its'] could not be found, it may be downloaded from a remote with the command `datalad get annotations/**/metannots.yml`", "Metadata files for sets contain the following unknown fields ['invented', 'random_field'] which can be found in the metadata for sets ['alice/output', 'textgrid']"]
                 ), "malformed annotation indexes detected"
@@ -480,11 +481,11 @@ def test_merge(project, am):
     input_annotations = input_annotations[
         input_annotations["set"].isin(["vtc_rttm", "alice/output"])
     ]
-    print(input_annotations)
+    # print(input_annotations)
     am.import_annotations(input_annotations)
     am.read()
 
-    print(am.annotations)
+    # print(am.annotations)
     am.read()
     am.merge_sets(
         left_set="vtc_rttm",
@@ -681,8 +682,7 @@ def test_rename(project, am, old, new, error, mf, index):
             result = am.annotations.sort_values(['set', 'recording_filename', 'range_onset', 'range_offset'])[
                 'merged_from'].astype(str).str.split(',').values.tolist()
             i = 0
-            print(wanted_list)
-            print(result)
+
             while i < len(wanted_list):
                 assert sorted(wanted_list[i]) == sorted(result[i])
                 i += 1
@@ -808,7 +808,6 @@ def test_read_sets_metadata(project, am, caplog, metadata_exists, warning, truth
         assert result[1] == return_value[1]
         pd.testing.assert_frame_equal(return_value[0], result[0], check_like=True, check_dtype=False)
     else:
-        print(result)
         pd.testing.assert_frame_equal(return_value, result, check_like=True, check_dtype=False)
 
 @pytest.mark.parametrize("metadata_exists,return_value",
