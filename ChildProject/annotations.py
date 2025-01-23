@@ -562,7 +562,7 @@ class AnnotationManager:
 
         if len(missing_files):
             warnings.append(f"Metadata files for sets {sorted(missing_files)} could not be found, they should be created as "
-            f"{ANNOTATIONS / '<set>' / METANNOTS}")
+            f"{(ANNOTATIONS / '<set>' / METANNOTS).as_posix()}")
         if len(missing_content):
             warnings.append(f"Metadata file content for sets {sorted(missing_content)} could not be found, it may be downloaded"
             f" from a remote with the command `datalad get {ANNOTATIONS / '**/{}'.format(METANNOTS)}`")
