@@ -50,6 +50,7 @@ jobs:
       - name: Setup package
         run: |
           pip install -r requirements.txt
+          pip install -U importlib_metadata
           pip install . --upgrade
           python -m pip install --user pytest
       - name: Run pytest
