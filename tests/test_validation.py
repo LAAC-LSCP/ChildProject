@@ -36,7 +36,7 @@ def test_invalid_project():
                        ]
 
     expected_warnings = [
-        os.path.normpath("Metadata files for sets ['alice', 'ranges', 'textgrid', 'vtc_rttm'] could not be found, they should be created as annotations/<set>/metannots.yml"),
+        "Metadata files for sets ['alice', 'ranges', 'textgrid', 'vtc_rttm'] could not be found, they should be created as annotations/<set>/metannots.yml",
         os.path.normpath("examples/invalid_raw_data/metadata/recordings.csv")+ ": '2' does not pass callable test for column 'noisy_setting' on line 2",
         "file '"+ os.path.normpath("examples/invalid_raw_data/recordings/raw/test_1_2020091.mp3")+"' not indexed.",
         "the data content of recording 'test_1_is_broken.mp3' at path " + os.path.normpath("'examples/invalid_raw_data/recordings/raw/test_1_is_broken.mp3'") + " is absent. See 'broken symlinks'"

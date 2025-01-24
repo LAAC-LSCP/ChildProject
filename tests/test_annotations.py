@@ -795,7 +795,7 @@ def test_read_sets_metadata(project, am, caplog, metadata_exists, warning, truth
                 os.remove(project.path / ANNOTATIONS / set / METANNOTS)
 
     dtypes = {f.name: f.dtype if f.dtype is not None else 'string' for f in AnnotationManager.SETS_COLUMNS}
-    truth_df = pd.read_csv(truth_path, index_col='set', dtype=dtypes).drop(columns='duration')
+    truth_df = pd.read_csv(truth_path, index_col='set', dtype=dtypes, encoding='utf8').drop(columns='duration')
     return_value = (truth_df, warnings) if warnings is not None else truth_df
 
     result = am._read_sets_metadata(warning)
@@ -833,7 +833,7 @@ def test_get_sets_metadata(project, am, metadata_exists, return_value):
     result = am.get_sets_metadata()
     # result.to_csv(return_value, index_label='set')
     dtypes = {f.name: f.dtype if f.dtype is not None else 'string' for f in AnnotationManager.SETS_COLUMNS}
-    pd.testing.assert_frame_equal(pd.read_csv(return_value, index_col='set', dtype=dtypes), result, check_like=True, check_dtype=False)
+    pd.testing.assert_frame_equal(pd.read_csv(return_value, index_col='set', dtype=dtypes, encoding='utf-8'), result, check_like=True, check_dtype=False)
 
 
 # its
