@@ -538,7 +538,8 @@ class AnnotationManager:
             expected_path = self.project.path / ANNOTATIONS / curr_set / METANNOTS
 
             if expected_path.exists():
-                with open(expected_path, 'r') as meta_stream:
+                # encoding utf-8 to support some special characters, ! be careful about enforcing it
+                with open(expected_path, 'r', encoding='utf-8') as meta_stream:
                     sets_metadata[curr_set] = yaml.safe_load(meta_stream)
                     if not set(sets_metadata[curr_set].keys()).issubset(set(known_fields)):
                         unknown_fields.append(curr_set)
