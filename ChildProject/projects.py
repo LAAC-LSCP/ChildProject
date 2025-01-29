@@ -282,6 +282,9 @@ class ChildProject:
         self.children = None
         self.recordings = None
 
+        self.discarded_children = None
+        self.discarded_recordings = None
+
         self.children_metadata_origin = None
         self.recordings_metadata_origin = None
 
@@ -382,6 +385,8 @@ class ChildProject:
 
         self.children = self.ct.read()
         self.recordings = self.rt.read()
+        self.discarded_recordings = pd.DataFrame(columns=[col.name for col in self.RECORDINGS_COLUMNS if col.required])
+        self.discarded_children = pd.DataFrame(columns=[col.name for col in self.CHILDREN_COLUMNS if col.required])
 
         # accumulate additional metadata (optional)
         if accumulate:
@@ -399,10 +404,12 @@ class ChildProject:
         if self.ignore_discarded and "discard" in self.ct.df:
             self.ct.df['discard'] = self.ct.df["discard"].apply(np.nan_to_num).astype(int, errors='ignore')
             self.ct.df = self.ct.df[self.ct.df["discard"].astype(str) != "1"]
+            self.discarded_children = self.ct.df[self.ct.df["discard"].astype(str) == "1"]
 
         if self.ignore_discarded and "discard" in self.rt.df:
             self.rt.df['discard'] = self.rt.df["discard"].apply(np.nan_to_num).astype(int, errors='ignore')
             self.rt.df = self.rt.df[self.rt.df["discard"].astype(str) != "1"]
+            self.discarded_recordings = self.rt.df[self.rt.df['discard'].astype(str) == '1']
 
         self.children = self.ct.df
         self.recordings = self.rt.df
@@ -412,6 +419,45 @@ class ChildProject:
         if len(exp_values) > 1:
             raise ValueError(f"Column <experiment> must be unique across the dataset, in both children.csv and recordings.csv , {len(exp_values)} different values were found: {exp_values}")
         self.experiment = exp
+
+    def dict_summary(self):
+        if self.recordings is None:
+            self.read()
+        ages = self.compute_ages()
+        languages = (set(self.children['languages'].apply(
+                            lambda x: [name.split(' ')[0] for name in x.split(';')]).explode()) if 'languages' in self.children.columns else set() +
+                     set(self.children['language'].apply(lambda x: name.split(' ')[0])) if 'language' in self.children.columns else set())
+
+        record = {
+            'recordings': {
+              'count': self.recordings.shape[0],
+              'duration': self.recordings['duration'].sum() if 'duration' in self.recordings.columns else None,
+              'first_date': self.recordings['date_iso'].min(),
+              'last_date': self.recordings['date_iso'].max(),
+              'discarded': self.discarded_recordings.shape[0],
+              'devices': {
+                  device: {
+                      'count': self.recordings[self.recordings['recording_device_type'] == device].shape[0],
+                      'duration': self.recordings[self.recordings['recording_device_type'] == device]['duration'].sum(),
+                  } for device in self.recordings['recording_device_type'].unique()}
+              },
+            'children': {
+                'count': self.children.shape[0],
+                'min_age': ages.min(),
+                'max_age': ages.max(),
+                'M': self.children[self.children['child_sex'].str.upper() == 'M'].shape[0] if 'child_sex' in self.children.columns else None,
+                'F': self.children[self.children['child_sex'].str.upper() == 'F'].shape[0] if 'child_sex' in self.children.columns else None,
+                'languages': {
+                    language: self.children[(self.children['languages'].str.contains(language) if 'languages' in self.children.columns else False) |
+                                            (self.children['language'].str.contains(language) if 'language' in self.children.columns else False)].shape[0]
+                for language in languages},
+                'monolingual': self.children[self.children['monoling'] == 'Y'].shape[0] if 'monoling' in self.children.columns else None,
+                'multilingual': self.children[self.children['monoling'] == 'N'].shape[0] if 'monoling' in self.children.columns else None,
+                'normative': self.children[self.children['normative'] == 'Y'].shape[0] if 'normative' in self.children.columns else None,
+                'non-normative': self.children[self.children['normative'] == 'N'].shape[0] if 'normative' in self.children.columns else None,
+            }
+        }
+        return record
         
     def write_recordings(self, keep_discarded: bool = True, keep_original_columns: bool = True):
         """
