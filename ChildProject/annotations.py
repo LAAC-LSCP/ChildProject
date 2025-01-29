@@ -17,7 +17,8 @@ from .pipelines.derivations import DERIVATIONS, conversations
 from .projects import ChildProject, METADATA_FOLDER, EXTRA
 from .converters import *
 from .tables import IndexTable, IndexColumn, assert_dataframe, assert_columns_presence
-from .utils import Segment, intersect_ranges, TimeInterval, series_to_datetime, find_lines_involved_in_overlap
+from .utils import (Segment, intersect_ranges, TimeInterval, series_to_datetime, find_lines_involved_in_overlap,
+                    df_to_printable, printable_unit_duration)
 
 ANNOTATIONS = Path("annotations")
 ANNOTATIONS_CSV = Path('annotations.csv')
@@ -557,6 +558,10 @@ class AnnotationManager:
         except ValueError as e:
             warnings.append(f"Could not convert metadata to expected types :{e}")
 
+        # ! exploratory, any field that starts with 'has_' should be a Yes or No (Y or N) any Na is assumed NO
+        # perhaps the startswith has_ check is not very robust, issue is that there is disparity between sets that have metadata files and others
+        # for col in [col for col in sets_metadata.columns if col.startswith('has_')]:
+        #     sets_metadata[col] = sets_metadata[col].fillna('N')
         sets_metadata.index.rename('set', inplace=True)
         # sets_metadata = sets_metadata.reset_index() # this would not keep the set has index
         self.sets = sets_metadata
@@ -583,14 +588,37 @@ class AnnotationManager:
         else:
             raise ValueError(f"warning argument must be in ['log','return','ignore']")
 
-    def get_sets_metadata(self):
+    def get_sets_metadata(self, format: str = 'dataframe', delimiter=None, escape_char='"', header=True, human=False):
         """return metadata about the sets"""
         sets = self._read_sets_metadata()
         annots = self.annotations.copy().set_index('set')
         durations = (annots['range_offset'] - annots['range_onset']).groupby('set').sum()
         sets = sets.merge(durations.rename('duration'), how='left', on='set')
 
-        return sets
+        if format == 'dataframe':
+            return sets
+        elif format == 'lslike':
+            return self.get_printable_sets_metadata(sets, delimiter if delimiter is not None else " ", header, human)
+        elif format == 'csv':
+            return df.to_csv(None, index=True, delimiter=delimiter if delimiter is not None else ',',
+                             escape_char=escape_char, header=header)
+        else:
+            raise ValueError(f"format <{format}> is unknown please use one the documented formats")
+
+    @staticmethod
+    def get_printable_sets_metadata(sets, delimiter, header=True, human_readable: bool = False,):
+        # only keep a subset of fields, create empty columns when do not exist in the dataframe
+        cols = {'duration': 'duration', 'method': 'method', 'annotation_algorithm_name': 'algo',
+                'annotation_algorithm_version': 'version', 'date_annotation': 'date', 'has_transcription': 'transcr'}
+        sets = sets.assign(**{col: '' for col in cols.keys() if col not in sets.columns})
+        sets = sets[cols.keys()].copy()
+        sets = sets.rename(columns=cols)
+
+        # make changes for readability (ms to s, min or hours)
+        if human_readable:
+            sets['duration'] = sets['duration'].apply(printable_unit_duration)
+        sets = sets.fillna('')
+        return df_to_printable(sets, delimiter, header=header)
 
     def validate_annotation(self, annotation: dict) -> Tuple[List[str], List[str]]:
         logger_annotations.info("Validating %s from %s...", annotation["annotation_filename"], annotation["set"])

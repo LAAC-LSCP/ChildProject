@@ -15,7 +15,69 @@ class Segment:
 
     def __repr__(self):
         return "Segment([{}, {}])".format(self.start, self.stop)
-                
+
+def df_to_printable(df : pd.DataFrame, delimiter:str=' ' , header:bool=False) -> str:
+    """Takes a DataFrame and create a terminal printable string representing the output within a reasonable window
+    options to have an aligned (like ls -l) output or parsable (with defined delimiter) in the order given
+
+    :param df: pandas DataFrame containing the data to print
+    :type df: pd.DataFrame
+    :param delimiter: Character delimiting fields, when char is in the fields, escape those with the escape char
+    :type delimiter: str
+    :param visual: Whether to align the columns of the output and ignores escaping characters (output is not parsable)
+    :type visual: bool
+    :param escape_char: Character escaping fields when those contain the delimiting char
+    :type escape_char: str
+    :param header: First line of the output is the header, containing the name of the columns
+    :type header: bool
+    :return: representation of the dataframe
+    :rtype: str
+    """
+    df = df.fillna('').astype(str)
+    result = f""
+    colsizes = {col: max(df[col].astype(str).str.len().max(), len(col)) for col in df.columns}
+    if header:
+        first_col = True
+        for col in colsizes.keys():
+            # add a delimiter if not in te first column
+            result += delimiter if not first_col else ""
+            first_col = False
+            result += col.rjust(colsizes[col])
+        result += "\n"
+    record = df.to_dict(orient='index')
+    for row in record:
+        first_col = True
+        for col in colsizes.keys():
+            # add a delimiter if not in te first column
+            result += delimiter if not first_col else ""
+            first_col = False
+            result += record[row][col].rjust(colsizes[col])
+        result += f"{delimiter}\033[94m{row}\033[0m\n"
+    return result
+
+def printable_unit_duration(duration):
+    """from a duration in milliseconds, returns a string with an appropriate unit between ms, seconds, minutes and hours
+
+    :param duration: duration in milliseconds
+    :type duration: int
+    :return: converted duration with unit letter
+    :rtype: str
+    """
+    # start big, most recs are long so this will often reduce te number of tests
+    # shorter than 1 hour
+    if duration < (1000 * 60 * 60):
+        # shorter than a minute
+        if duration < (1000 * 60):
+            # shorter than a second
+            if duration < (1000):
+                return f"{duration}ms"
+            else:
+                return f"{round(duration / 1000, 1)}s"
+        else:
+            return f"{round(duration / (1000 * 60),1)}m"
+    else:
+        return f"{round(duration / (1000 * 60 * 60), 1)}h"
+
 def retry_func( func : callable , excep: Exception, tries : int = 3, **kwargs):
     for i in range(tries):
         try:
