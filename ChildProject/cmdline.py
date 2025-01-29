@@ -47,9 +47,25 @@ stream_handler = logging.StreamHandler()
 stream_handler.setFormatter(color_formatter)
 #stream_handler.formatter._fmt = '%(log_color)s%(levelname)-8s%(reset)s  <%(name)s>: %(message)s'
 
+# CLI setup, create a second handler that only handles INFO messages, and with a different format
+# the first one filters out the info messages
+class InfoFilter(logging.Filter):
+    def filter(self, record):
+        return record.levelno == logging.INFO
+class NoInfoFilter(logging.Filter):
+    def filter(self, record):
+        return record.levelno != logging.INFO
+
+clicall_handler = logging.StreamHandler()
+clicall_handler.addFilter(InfoFilter())
+stream_handler.addFilter(NoInfoFilter())
+
 # Create a logger and add the handlers for CLI calls
 logger = logging.getLogger(__name__)
 logger.addHandler(stream_handler)
+logger.addHandler(clicall_handler)
+
+#config to print to stdout the results from CLI
 logger.setLevel(logging.INFO)
 
 # Setting up the parse of arguments
@@ -68,7 +84,7 @@ def get_doc_summary(doc):
 def subcommand(args=[], parent=subparsers):
     def decorator(func):
         parser = parent.add_parser(
-            func.__name__.replace("_", "-"), description=func.__doc__
+            func.__name__.replace("_", "-"), description=func.__doc__, conflict_handler="resolve"
         )
         for arg in args:
             parser.add_argument(*arg[0], **arg[1])
@@ -224,46 +240,37 @@ def validate(args):
 
 @subcommand(
     [
-        arg("source", help="project_path"),
+        arg("source", help="project_path", nargs='+'),
         arg("--format",
             help="format to output to",
-            default="literal",
-            choices=['literal', 'csv']),
+            default="snapshot",
+            choices=['snapshot', 'csv']),
+        arg("--human-readable", "-h",
+            help="convert units to be more human readable",
+            action='store_true',
+            ),
     ]
 )
 def sets_metadata(args):
     """get the metadata on all the annotation sets in the dataset"""
-    project = ChildProject(args.source)
-    am = AnnotationManager(project)
+    for source in args.source:
+        project = ChildProject(source)
+        am = AnnotationManager(project)
 
-    sets = am.get_sets_metadata()
-    if 'method' not in sets:
-        sets['method'] = 'Undefined'
-    else:
-        sets['method'] = sets['method'].fillna('Undefined').replace('', 'Undefined')
+        if len(args.source) > 1:
+            logger.info(f"\033[94m{project.recordings['experiment'].iloc[0]}\033[0m ({source}):")
 
-    if args.format == 'literal':
-        output = ""
-        methods = sets['method'].unique
-        for g, gdf in sets.groupby('method') :
-            output += "\n\033[1m{} ({:.2f} hours)\033[0m:\n".format(g, gdf['duration'].sum() / (3600 * 1000))
-            meta = gdf.to_dict(orient='index')
-            for row in meta:
-                if g == 'automated':
-                    output += "\033[94m%s\033[0m: %s %.2f hours, algorithm:%s v%s (%s)\n" % (
-                        row, meta[row]['date_annotation'], meta[row]['duration'] / (3600 * 1000),
-                        meta[row]['annotation_algorithm_name'], row['annotation_algorithm_version'],
-                        meta[row]['annotation_algorithm_publication'])
-                elif g == 'human':
-                    output += "\033[94m%s\033[0m: %s %.2f hours, annotator:%s (level %s)\n" % (
-                        row, meta[row]['date_annotation'], meta[row]['duration'] / (3600 * 1000),
-                        meta[row]['annotator_name'], meta[row]['annotator_experience'])
-                else:
-                    output += "\033[94m%s\033[0m: %.2f hours, %s\n" % (
-                        row, meta[row]['duration'] / (3600 * 1000), meta[row])
-        logger.info(output)
-    if args.format == 'csv':
-        print(sets.to_csv(None, index=False))
+        sets = am.get_sets_metadata()
+        if 'method' not in sets:
+            sets['method'] = 'Undefined'
+        else:
+            sets['method'] = sets['method'].fillna('Undefined').replace('', 'Undefined')
+
+        if args.format == 'csv':
+            logger.info(sets.to_csv(None, index=True))
+        if args.format == 'snapshot':
+            logger.info(am.get_sets_metadata('lslike', human=args.human_readable))
+
 
 
 @subcommand(
@@ -546,85 +553,78 @@ def rename_annotations(args):
     )
 
 
-@subcommand([arg("source", help="source data path")])
+@subcommand([arg("source", help="source data path", nargs='+')])
 def overview(args):
     """prints an overview of the contents of a given dataset"""
+    for source in args.source:
 
-    project = ChildProject(args.source)
+        project = ChildProject(source)
 
-    perform_validation(project, require_success=True, ignore_recordings=True)
+        perform_validation(project, require_success=True, ignore_recordings=True)
 
-    am = AnnotationManager(project)
-    project.read()
+        am = AnnotationManager(project)
+        project.read()
 
-    output = "\n\033[1mrecordings ({:.2f} hours)\033[0m:\n".format(
-        project.recordings.dropna(subset=["recording_filename"])["duration"].sum() / (3600 * 1000)
-    )
+        if len(args.source) > 1:
+            logger.info(f"\033[1m\033[35m### {project.recordings['experiment'].iloc[0]} ({source}) ###\033[0m")
 
-    _recordings = (
-        project.recordings.dropna(subset=["recording_filename"])
-        .sort_values(["recording_device_type", "date_iso"])
-        .groupby("recording_device_type")
-    )
+        record = project.dict_summary()
 
-    for recording_device_type, recordings in _recordings:
-        if "duration" in recordings.columns:
-            duration = "{:.2f} hours".format(
-                recordings["duration"].sum() / (3600 * 1000)
-            )
-        else:
-            duration = "unknown duration"
+        available = project.recordings['recording_filename'].apply(lambda recording_filename: 1
+                        if project.get_recording_path(recording_filename).exists() else 0).sum()
 
-        available = (
-            recordings["recording_filename"]
-            .apply(
-                lambda recording_filename: 1
-                if os.path.exists(
-                    os.path.join(project.path, "recordings", "raw", recording_filename)
-                )
-                else 0
-            )
-            .sum()
-        )
+        # recordings count and total duration
+        output = "\n\033[1m{} recordings with {:.2f} hours {} locally ({} discarded)\033[0m:\n".format(
+            record['recordings']['count'], record['recordings']["duration"] / 3600000, available, record['recordings']["discarded"])
 
-        output += "\033[94m%s\033[0m: %s, %d/%d files locally available\n" % (
-                    recording_device_type, duration, available, len(recordings))
+        output += "\033[94mdate range :\033[0m {} to {}\n".format(
+            record['recordings']['first_date'], record['recordings']["last_date"])
+
+        output += "\033[94mdevices :\033[0m"
+        for device in record['recordings']['devices']:
+            available = (project.recordings[project.recordings["recording_device_type"] == device]
+                        )['recording_filename'].apply(lambda recording_filename: 1
+                        if project.get_recording_path(recording_filename).exists() else 0).sum()
+            info = record['recordings']['devices'][device]
+            output += " {} ({:.2f}h {}/{} locally);".format(
+                device, info['duration'] / 3600000, available, info['count'])
+        output += "\n"
+
+        output += "\n\033[1m{} participants\033[0m:\n".format(
+            record['children']['count'],)
+
+        # switch to age in years old if age > 2 years old
+        min_age = "{:.1f}mo".format(record['children']['min_age']) if record['children'][
+                                                'min_age'] < 24 else "{:1f}yo".format(record['children']['min_age'] / 12)
+        max_age = "{:.1f}mo".format(record['children']['max_age']) if record['children'][
+                                                'max_age'] < 24 else "{:1f}yo".format(record['children']['max_age'] / 12)
+        output += "\033[94mage range :\033[0m {} to {}\n".format(
+            min_age, max_age)
+
+        if record['children']['M'] is not None:
+            output += "\033[94msex distribution :\033[0m {}M {}F\n".format(
+                record['children']['M'], record['children']["F"])
+
+        output += "\033[94mlanguages :\033[0m"
+        for language in record['children']['languages']:
+            output += " {} {};".format(
+                language, record['children']['languages'][language])
+        output += "\n"
+
+        if record['children']['monolingual'] is not None:
+            output += "\033[94mmonolinguality :\033[0m {}mono {}multi\n".format(
+                record['children']['monolingual'], record['children']["multilingual"])
+
+        if record['children']['normative'] is not None:
+            output += "\033[94mnormativity :\033[0m {}norm {}non-norm\n".format(
+                record['children']['normative'], record['children']["non-normative"])
+
+        output += "\n\033[1mannotations:\033[0m\n"
+        output += am.get_sets_metadata('lslike', human=True)
 
 
-    output += "\n\033[1mannotations\033[0m:\n"
-    _annotations = (
-        am.annotations.dropna(subset=["annotation_filename"])
-        .sort_values(["set", "imported_at"])
-        .drop_duplicates(["set", "annotation_filename"], keep="last")
-        .groupby("set")
-    )
 
-    for annotation_set, annotations in _annotations:
-        duration_covered = (
-            annotations["range_offset"].sum() - annotations["range_onset"].sum()
-        )
-        available = (
-            annotations["annotation_filename"]
-            .apply(
-                lambda annotation_filename: 1
-                if os.path.exists(
-                    os.path.join(
-                        project.path,
-                        "annotations",
-                        annotation_set,
-                        "converted",
-                        annotation_filename,
-                    )
-                )
-                else 0
-            )
-            .sum()
-        )
-
-        output += "\033[94m%s\033[0m: %.2f hours, %s/%s files locally available\n" % (
-                    annotation_set, duration_covered / (3600 * 1000), available, len(annotations))
-
-    logger.info(output)
+        logger.info(output)
 
 
 @subcommand(
