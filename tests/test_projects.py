@@ -69,7 +69,7 @@ def test_projects_read(project, error, chi_lines, rec_lines):
             for l in chi_lines:
                 f.write(str(l) + '\n')
     if rec_lines:
-        rec_path = os.path.join(TEST_DIR, "metadata","recordings.csv")
+        rec_path = os.path.join(TEST_DIR, "metadata", "recordings.csv")
         with open(rec_path, "a") as f:
             for l in chi_lines:
                 f.write(str(l) + '\n')
@@ -78,3 +78,8 @@ def test_projects_read(project, error, chi_lines, rec_lines):
             project.read()
     else:
         project.read()
+
+def test_dict_summary(project):
+    project.read()
+    summary = project.dict_summary()
+    assert summary == {'recordings': {'count': 2, 'duration': 8000, 'first_date': '2020-04-20', 'last_date': '2020-04-21', 'discarded': 0, 'devices': {'usb': {'count': 2, 'duration': 8000}}}, 'children': {'count': 1, 'min_age': 3.6139630390143735, 'max_age': 3.646817248459959, 'M': None, 'F': None, 'languages': {}, 'monolingual': None, 'multilingual': None, 'normative': None, 'non-normative': None}}

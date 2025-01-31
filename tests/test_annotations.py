@@ -836,6 +836,30 @@ def test_get_sets_metadata(project, am, metadata_exists, return_value):
     pd.testing.assert_frame_equal(pd.read_csv(return_value, index_col='set', dtype=dtypes, encoding='utf-8'), result, check_like=True, check_dtype=False)
 
 
+@pytest.mark.parametrize("sets,delimiter,header,human_readable,error,truth_file",
+             [(pd.read_csv(TRUTH / 'sets_metadata.csv', index_col='set'), " ", True, False, None, TRUTH / 'printable' / 'printable_meta_default.txt'),
+              (pd.read_csv(TRUTH / 'sets_metadata.csv', index_col='set'), "=", True, False, None, TRUTH / 'printable' / 'printable_meta_eq.txt'),
+              (pd.read_csv(TRUTH / 'sets_metadata.csv', index_col='set'), " ", False, False, None, TRUTH / 'printable' / 'printable_meta_no-header.txt'),
+              (pd.read_csv(TRUTH / 'sets_metadata.csv', index_col='set'), " ", True, True, None, TRUTH / 'printable' / 'printable_meta_hr.txt'),
+              (pd.read_csv(TRUTH / 'sets_metadata.csv', index_col='set'), "=", False, False, None, TRUTH / 'printable' / 'printable_meta_eq_no-header.txt'),
+              (pd.read_csv(TRUTH / 'sets_metadata.csv', index_col='set'), " ", False, True, None, TRUTH / 'printable' / 'printable_meta_hr_no-header.txt'),
+              (pd.read_csv(TRUTH / 'sets_metadata.csv', index_col='set'), "=", False, True, None, TRUTH / 'printable' / 'printable_meta_eq_hr_no-header.txt'),
+              (pd.read_csv(TRUTH / 'sets_metadata.csv', index_col='set'), "=", True, True, None, TRUTH / 'printable' / 'printable_meta_eq_hr.txt'),
+              (pd.read_csv(TRUTH / 'sets_metadata.csv', index_col='set'), "xx", True, True, ValueError, None),
+              (pd.DataFrame(), " ", True, False, None, TRUTH / 'printable' / 'printable_meta_empty.txt'),
+              ('notadataframe', " ", True, False, AssertionError, None),
+              ])
+def test_get_printable_sets_metadata(project, am, sets, delimiter, header, human_readable, error, truth_file):
+    if error is not None:
+        with pytest.raises(error):
+            AnnotationManager.get_printable_sets_metadata(sets, delimiter, header, human_readable)
+    else:
+        result = AnnotationManager.get_printable_sets_metadata(sets, delimiter, header, human_readable)
+        print(result)
+        with open(truth_file, 'r') as f: s = f.read().encode('utf-8').decode('unicode_escape')
+        assert result == s
+        # breakpoint()
+
 # its
 def gather_columns_to_dict(start_col, end_col, row):
     n = 1
