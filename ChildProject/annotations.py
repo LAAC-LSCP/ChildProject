@@ -1129,7 +1129,7 @@ class AnnotationManager:
         :rtype: Union[str, Callable]
         :param derivation_metadata: metadata to be used for the set created by the derivation, if none and derivation
         is internal to the package (using str label), use the internally stored metadata
-        :rtype: dict
+        :type derivation_metadata: dict
         :param threads: If > 1, conversions will be run on ``threads`` threads, defaults to -1
         :type threads: int, optional
         :param overwrite_existing: choice if lines with the same set and annotation_filename should be overwritten
@@ -1200,9 +1200,8 @@ class AnnotationManager:
 
         # metadata for the set is inherited from the set it derives from, some fields are automatically updated
         set_metadata = self.sets.loc[input_set].to_dict()
-        set_metadata = self.sets.loc[input_set].to_dict()
         set_metadata.update({'method': 'derivation',
-                             'date_annotation': datetime.datetime.now().strftime("%Y%m%d")})
+                             'date_annotation': datetime.datetime.now().strftime("%Y-%m-%d")})
         if derivation_metadata is not None:
             set_metadata.update(derivation_metadata)
 
@@ -1683,20 +1682,22 @@ class AnnotationManager:
         # if annotations.csv can have duplicate entries with same converted filename and is normal, check this https://stackoverflow.com/a/45927402 and change the code
         self.annotations = pd.concat([self.annotations, annotations], sort=False).drop_duplicates(subset=['set','recording_filename','annotation_filename'], keep='last')
 
-        # This block infers as much metadata as possible from the 2 merge sets, unknown fields are left unset
+        # This block takes metadata in the left, right set or uses empty metadata for the merged set
         assert self.sets.index.is_unique, "Found duplicated set metadata"
-        dict_sets = self.sets.T.to_dict()
         if metadata == 'right':
-            new_set_meta = dict_sets[right_set]
+            new_set_meta = self.sets.loc[right_set].dropna().to_dict()
         elif metadata == 'left':
-            new_set_meta = dict_sets[left_set]
+            new_set_meta = self.sets.loc[left_set].dropna().to_dict()
         else:
             new_set_meta = {}
+        new_set_meta['date_annotation'] = datetime.datetime.now().strftime("%Y-%m-%d")
         # infer set content based on the column names that were merged
         new_set_meta.update(AnnotationManager.infer_set_content_based_on_column_names(union))
 
         self.write()
-        self._write_set_metadata(output_set, new_set_meta)
+        # if the set's metadata exists already, do not write new metadata
+        if not (self.project.path / ANNOTATIONS / output_set / METANNOTS).exists():
+            self._write_set_metadata(output_set, new_set_meta)
         self._read_sets_metadata()
 
     def get_segments(self, annotations: pd.DataFrame) -> pd.DataFrame:
