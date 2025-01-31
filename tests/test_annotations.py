@@ -352,7 +352,8 @@ def test_derive(project, am, exists, ow):
         additions['set'] = output_set
         am.annotations = pd.concat([am.annotations, additions])
 
-    imported, errors = am.derive_annotations(input_set, output_set, function, overwrite_existing=ow)
+    imported, errors = am.derive_annotations(input_set, output_set, function, overwrite_existing=ow,
+                                             derivation_metadata={'segmentation_type':'restrictive', 'has_words':'Y'})
     assert imported.shape[0] == am.annotations[am.annotations['set'] == input_set].shape[0]
     assert errors.shape[0] == 0
 
@@ -363,6 +364,15 @@ def test_derive(project, am, exists, ow):
     cols = ['imported_at', 'package_version']
     pd.testing.assert_frame_equal(truth.drop(columns=cols).reset_index(drop=True),
                                   imported.drop(columns=cols).reset_index(drop=True))
+    # check metadata
+    current_meta = am.get_sets_metadata()
+    comparison = current_meta.loc[input_set]
+    comparison['segmentation_type'] = 'restrictive'
+    comparison['has_words'] = 'Y'
+    comparison['method'] = 'derivation'
+    comparison['date_annotation'] = datetime.datetime.today().strftime('%Y-%m-%d')
+    comparison = comparison.rename(output_set)
+    pd.testing.assert_series_equal(current_meta.loc[output_set], comparison)
 
 
 # function used for derivation but does not hav correct signature
@@ -494,7 +504,8 @@ def test_merge(project, am):
         right_columns=["phonemes", "syllables", "words"],
         output_set="alice_vtc",
         full_set_merge=False,
-        recording_filter={'sound.wav'}
+        recording_filter={'sound.wav'},
+        metadata='left',
     )
     am.read()
 
@@ -541,6 +552,14 @@ def test_merge(project, am):
         adult_segments[["phonemes", "syllables", "words"]],
         alice[["phonemes", "syllables", "words"]],
     )
+    # check metadata of set
+    current_meta = am.get_sets_metadata()
+    comparison = current_meta.loc['vtc_rttm'].copy().rename('alice_vtc')
+    comparison['has_speaker_type'] = 'Y'
+    comparison['has_words'] = 'Y'
+    comparison['date_annotation'] = datetime.datetime.today().strftime('%Y-%m-%d')
+
+    pd.testing.assert_series_equal(comparison, current_meta.loc['alice_vtc'])
 
 
 def test_clipping(project, am):
