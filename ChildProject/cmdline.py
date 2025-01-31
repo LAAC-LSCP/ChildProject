@@ -56,7 +56,7 @@ class NoInfoFilter(logging.Filter):
     def filter(self, record):
         return record.levelno != logging.INFO
 
-clicall_handler = logging.StreamHandler()
+clicall_handler = logging.StreamHandler(sys.stdout)
 clicall_handler.addFilter(InfoFilter())
 stream_handler.addFilter(NoInfoFilter())
 
@@ -106,11 +106,7 @@ def perform_validation(project: ChildProject, require_success: bool = True, **ar
 
     if len(errors) > 0:
         if require_success:
-            logger.error(
-                "dataset validation failed, %d error(s) occurred. Cannot continue. Please run the validation procedure to list and correct all errors.",
-                len(errors),
-            )
-            sys.exit(1)
+            raise ValueError(f"dataset validation failed")
         else:
             logger.warning(
                 "dataset validation failed, %d error(s) occurred. Proceeding despite errors; expect failures.",
@@ -254,11 +250,17 @@ def validate(args):
 def sets_metadata(args):
     """get the metadata on all the annotation sets in the dataset"""
     for source in args.source:
-        project = ChildProject(source)
-        am = AnnotationManager(project)
+        try:
+            project = ChildProject(source)
+            perform_validation(project, require_success=True, ignore_recordings=True)
+            am = AnnotationManager(project)
+            am.read()
+        except Exception as e:
+            logger.error(f"{source}: [%s] %s", type(e).__name__, e)
+            continue
 
         if len(args.source) > 1:
-            logger.info(f"\033[94m{project.recordings['experiment'].iloc[0]}\033[0m ({source}):")
+            logger.info(f"\033[1m\033[35m### {project.recordings['experiment'].iloc[0]} ({source}) ###\033[0m")
 
         sets = am.get_sets_metadata()
         if 'method' not in sets:
@@ -558,12 +560,16 @@ def overview(args):
     """prints an overview of the contents of a given dataset"""
     for source in args.source:
 
-        project = ChildProject(source)
+        try:
+            project = ChildProject(source)
 
-        perform_validation(project, require_success=True, ignore_recordings=True)
+            perform_validation(project, require_success=True, ignore_recordings=True)
 
-        am = AnnotationManager(project)
-        project.read()
+            am = AnnotationManager(project)
+            project.read()
+        except Exception as e:
+            logger.error(f"{source}: [%s] %s", type(e).__name__, e)
+            continue
 
         if len(args.source) > 1:
             logger.info(f"\033[1m\033[35m### {project.recordings['experiment'].iloc[0]} ({source}) ###\033[0m")

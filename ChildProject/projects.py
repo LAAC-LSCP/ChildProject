@@ -1,5 +1,6 @@
 import datetime
 from functools import partial
+import logging
 import numpy as np
 import os
 import pandas as pd
@@ -27,6 +28,10 @@ METADATA_FOLDER = Path('metadata')
 CHILDREN_CSV = Path('children.csv')
 RECORDINGS_CSV = Path('recordings.csv')
 
+# Create a logger for the module (file)
+logger_project = logging.getLogger(__name__)
+# messages are propagated to the higher level logger (ChildProject), used in cmdline.py
+logger_project.propagate = True
 
 class ChildProject:
     """ChildProject instance
@@ -345,7 +350,7 @@ class ChildProject:
                 merge_column
             }
             if verbose and len(replaced_columns):
-                print(
+                logger_project.warning(
                     "column(s) {} overwritten by {}".format(
                         ",".join(replaced_columns), md
                     )
@@ -432,8 +437,8 @@ class ChildProject:
             'recordings': {
               'count': self.recordings.shape[0],
               'duration': self.recordings['duration'].sum() if 'duration' in self.recordings.columns else None,
-              'first_date': self.recordings['date_iso'].min(),
-              'last_date': self.recordings['date_iso'].max(),
+              'first_date': self.recordings[self.recordings['date_iso'] != 'NA']['date_iso'].min(),
+              'last_date': self.recordings[self.recordings['date_iso'] != 'NA']['date_iso'].max(),
               'discarded': self.discarded_recordings.shape[0],
               'devices': {
                   device: {

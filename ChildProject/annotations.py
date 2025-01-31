@@ -607,6 +607,7 @@ class AnnotationManager:
 
     @staticmethod
     def get_printable_sets_metadata(sets, delimiter, header=True, human_readable: bool = False,):
+        assert isinstance(sets,pd.DataFrame), "'sets' should be a pandas DataFrame"
         # only keep a subset of fields, create empty columns when do not exist in the dataframe
         cols = {'duration': 'duration', 'method': 'method', 'annotation_algorithm_name': 'algo',
                 'annotation_algorithm_version': 'version', 'date_annotation': 'date', 'has_transcription': 'transcr'}

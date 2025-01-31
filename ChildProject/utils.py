@@ -33,9 +33,12 @@ def df_to_printable(df : pd.DataFrame, delimiter:str=' ' , header:bool=False) ->
     :return: representation of the dataframe
     :rtype: str
     """
+    if len(delimiter) != 1: raise ValueError(f"Invalid Delimiter {delimiter}, should be 1 character")
     df = df.fillna('').astype(str)
     result = f""
-    colsizes = {col: max(df[col].astype(str).str.len().max(), len(col)) for col in df.columns}
+    colsizes = {}
+    for col in df.columns:
+        colsizes[col] = df[col].astype(str).str.len().max() if df[col].astype(str).str.len().max() > len(col) else len(col)
     if header:
         first_col = True
         for col in colsizes.keys():
