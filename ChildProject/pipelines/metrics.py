@@ -65,7 +65,6 @@ class Metrics(ABC):
         to_time: str = None,
         rec_cols: str = None,
         child_cols: str = None,
-        set_cols: str = None,
         period: str = None,
         segments: Union[str, pd.DataFrame] = None,
         threads: int = 1,
@@ -156,19 +155,6 @@ class Metrics(ABC):
             )
         else:
             self.child_cols = None
-
-        # get existing columns of the dataset for sets
-        correct_cols = set(self.am.sets)
-        if set_cols:
-            #when user requests recording columns, build the list and verify they exist (warn otherwise)
-            set_cols=set(set_cols.split(","))
-            for i in set_cols:
-                if i not in correct_cols:
-                    print("Warning, requested column <{}> does not exist in the set metadata, ignoring this column. existing columns are : {}".format(i,correct_cols))
-            set_cols &= correct_cols
-            #add wanted columns to the one we already get
-            join_columns.update(set_cols)
-        self.set_cols = set_cols
         
         self.by = by
         self.period = period
@@ -230,7 +216,7 @@ class Metrics(ABC):
         super().__init_subclass__(**kwargs)
         pipelines[cls.SUBCOMMAND] = cls
 
-    def _process_unit(self,row):
+    def _process_unit(self, row):
         """for one unit (i.e. 1 {recording|session|child} [period]) compute the list of required metrics and store the results in the current row of self.metrics
         
         :param row: index and Series of the unit to process, to be modified with the results
@@ -405,10 +391,6 @@ class Metrics(ABC):
             for label in self.rec_cols:
                 self.metrics[label] = self.metrics.apply(lambda row: check_unicity(row, label), axis=1)
 
-        # add the sets metadata columns
-        if self.set_cols:
-            for label in self.set_cols:
-                self.metrics[label] = self.metrics.apply(lambda row:  self.am.sets.loc[row['set'], label], axis=1)
                 
 class CustomMetrics(Metrics):
     """metrics extraction from a csv file. 
