@@ -19,6 +19,7 @@ from ChildProject import __name__
 from .pipelines.derivations import DERIVATIONS
 
 import argparse
+import warnings
 import os
 from pathlib import Path
 import glob
@@ -72,6 +73,8 @@ logger.setLevel(logging.INFO)
 parser = argparse.ArgumentParser()
 subparsers = parser.add_subparsers()
 parser.add_argument('--version', action='version', version="{} {}".format(__name__, __version__), help='displays the current version of the package')
+
+parser.add_argument('--verbose', '-v', action='store_true', help='displays future warnings (eg for pandas, numpy)')
 
 def arg(*name_or_flags, **kwargs):
     return (list(name_or_flags), kwargs)
@@ -800,4 +803,9 @@ def main():
     register_pipeline("conversations-specification", ConversationsSpecificationPipeline)
 
     args = parser.parse_args()
-    args.func(args)
+    if not args.verbose:
+        with warnings.catch_warnings():
+            warnings.simplefilter(action='ignore', category=FutureWarning)
+            args.func(args)
+    else:
+        args.func(args)
