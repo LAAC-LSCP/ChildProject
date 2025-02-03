@@ -144,7 +144,8 @@ def test_aclew(project, am):
         import_function=partial(fake_vocs, data),
     )
 
-    aclew = AclewMetrics(project, by="child_id", rec_cols='date_iso', child_cols='experiment,child_dob',vtc='aclew_vtc',alice='aclew_alice',vcm='aclew_vcm')
+    aclew = AclewMetrics(project, by="child_id", rec_cols='date_iso', child_cols='experiment,child_dob',
+                         vtc='aclew_vtc', alice='aclew_alice', vcm='aclew_vcm')
     aclew.extract()
 
     truth = pd.read_csv("tests/truth/aclew_metrics.csv", dtype={'child_id': str})
@@ -171,7 +172,7 @@ def test_lena(project, am):
         import_function=partial(fake_vocs, data),
     )
 
-    lena = LenaMetrics(project, set="lena_its", period='1h', from_time='10:00:00' , to_time= '16:00:00')
+    lena = LenaMetrics(project, set="lena_its", period='1h', from_time='10:00:00', to_time='16:00:00')
     lena.extract()
 
     truth = pd.read_csv("tests/truth/lena_metrics.csv", dtype={'child_id': str})

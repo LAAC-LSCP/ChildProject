@@ -321,8 +321,11 @@ class Conversations(ABC):
             if 'child_id' not in self.child_cols:
                 self.conversations.drop(columns=['child_id'])
         if self.set_cols:
-            sets = self.am.sets[list(self.set_cols) + 'set']
-            self.conversations = self.conversations.merge(sets, how='left', left_on='set', right_index=True)
+            for col in self.set_cols:
+                if col not in self.conversations.columns:
+                    self.conversations[col] = self.am.sets.loc[self.set, col]
+                else:
+                    logger_conversations.warning(f"Ignoring required column {col} has it already exists in the result")
 
         if not self.conversations.shape[0]:
             logger_conversations.warning("The extraction did not find any conversation")
@@ -399,6 +402,7 @@ class CustomConversations(Conversations):
             from_time: str = None,
             to_time: str = None,
             rec_cols: str = None,
+            set_cols: str = None,
             child_cols: str = None,
             threads: int = 1,
     ):
@@ -406,7 +410,7 @@ class CustomConversations(Conversations):
 
         super().__init__(project, setname, features_df, recordings=recordings,
                          from_time=from_time, to_time=to_time, rec_cols=rec_cols,
-                         child_cols=child_cols, threads=threads)
+                         child_cols=child_cols, set_cols=set_cols, threads=threads)
 
     @staticmethod
     def add_parser(subparsers, subcommand):
@@ -457,6 +461,7 @@ class StandardConversations(Conversations):
             to_time: str = None,
             rec_cols: str = None,
             child_cols: str = None,
+            set_cols: str = None,
             threads: int = 1,
     ):
 
@@ -479,7 +484,7 @@ class StandardConversations(Conversations):
         super().__init__(project, setname, features, recordings=recordings,
                          from_time=from_time, to_time=to_time,
                          rec_cols=rec_cols, child_cols=child_cols,
-                         threads=threads)
+                         set_cols=set_cols, threads=threads)
 
     @staticmethod
     def add_parser(subparsers, subcommand):
