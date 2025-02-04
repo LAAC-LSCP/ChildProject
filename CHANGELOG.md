@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Adding support for sets metadata, in the form of a yaml file stored in the root folder of the set. the package reads this file and computes metadata for each set
+- CLI calls for getting that metadata as well
+
+### Changed
+
+- Use pathlib across the package (except a few cases where justified usage) instead of os.path
+- the overview CLI call has a very different output, giving more information about more things
+
 ## [0.2.3] 2024-11-21
 
 ### Added
