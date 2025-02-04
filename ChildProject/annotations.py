@@ -350,7 +350,7 @@ class AnnotationManager:
             name="annotator_experience",
             description="Estimation of annotator's experience from 1 to 5. 1 being 'new to annotation' and 5 'Expert'.",
             dtype="Int64",
-            choices=[1, 2, 3, 4, 5]
+            choices=['1', '2', '3', '4', '5']
         ),
         IndexColumn(
             name="annotation_algorithm_name",
@@ -378,7 +378,7 @@ class AnnotationManager:
             name="date_annotation",
             description="date when the annotation was produced, best practice is to give the day the \
             annotation was finished. This is meant to be a broad time label and does not need to be very precise",
-            datetime="%Y-%m-%d"
+            datetime={"%Y-%m-%d"}
         ),
         IndexColumn(
             name="has_speaker_type",
@@ -424,6 +424,11 @@ class AnnotationManager:
             . Yes(Y) / No(N or empty)",
             choices=['Y', 'N', ''],
             annotation_columns=[['words']],
+        ),
+        IndexColumn(
+            name="notes",
+            description="Various notes about the set of annotations",
+            dtype="string",
         ),
     ]
 
@@ -1122,20 +1127,19 @@ class AnnotationManager:
         the original set
 
         :param input_set: name of the set of annotations to be derived
-        :rtype: str
+        :type input_set: str
         :param output_set: name of the new set of derived annotations
-        :rtype: str
+        :type output_set: str
         :param derivation_function: name of the derivation type to be performed
-        :rtype: Union[str, Callable]
-        :param derivation_metadata: metadata to be used for the set created by the derivation, if none and derivation
-        is internal to the package (using str label), use the internally stored metadata
+        :type derivation_function: Union[str, Callable]
+        :param derivation_metadata: metadata to be used for the set created by the derivation, if none and derivation is internal to the package (using str label), use the internally stored metadata
         :type derivation_metadata: dict
         :param threads: If > 1, conversions will be run on ``threads`` threads, defaults to -1
         :type threads: int, optional
         :param overwrite_existing: choice if lines with the same set and annotation_filename should be overwritten
         :type overwrite_existing: bool, optional
         :return: tuple of dataframe of derived annotations, as in :ref:`format-annotations` and dataframe of errors
-        :rtype: tuple (pd.DataFrame, pd.DataFrame)
+        :rtype: tuple(pd.DataFrame, pd.DataFrame)
         """
         input_processed = self.annotations[self.annotations['set'] == input_set].copy()
         assert not input_processed.empty, "Input set {0} does not exist,\
