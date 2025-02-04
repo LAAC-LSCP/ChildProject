@@ -49,9 +49,11 @@ organize your files into this structure):
    │
    └───annotations
    │   └───vtc
+   │   │   │   metannots.yml
    │   │   └───raw
    │   │   │   │   child1.rttm
    │   └───annotator1
+   │   │   │   metannots.yml
    │   │   └───raw
    │   │   │   │   child1_3600.TextGrid
    │
@@ -144,6 +146,58 @@ that has been annotated for each annotator.
 This allows a number of functionalities
 such as the quick computation of the intersection of the
 portions of audio covered by a given set of annotators.
+
+.. _format-annotation-sets-metadata:
+
+Annotation sets metadata
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Additionally, information about a set of annotations (an ensemble grouping annotations from the same source)
+must be stored inside the set folder in a file named `metannots.yml`. This is a yaml formatted text file with
+a combination of key => values fields defined in it. This file is not mandatory to have but it is veery
+strongly encouraged to create it whenever adding a set of annotations.
+
+Here is an example of the content of `metannots.yml` for the annotations from an automated tool (VTC):
+
+.. code-block:: YAML
+
+    segmentation: 'vtc'
+    segmentation_type: 'permissive'
+    method: 'automated'
+    annotation_algorithm_name: 'VTC'
+    annotation_algorithm_publication: 'Lavechin, M., Bousbib, R., Bredin, H., Dupoux, E., & Cristia, A. (2020). An open-source voice type classifier for child-centered daylong recordings. Interspeech. Online open access: https://www.isca-archive.org/interspeech_2020/lavechin20_interspeech.pdf'
+    annotation_algorithm_version: '1'
+    annotation_algorithm_repo: 'https://github.com/MarvinLvn/voice-type-classifier/tree/e443d8cfc40f7076eea903958d9344d4aa427cc2'
+    date_annotation: '2024-04-07'
+    has_speaker_type: 'Y'
+
+
+And another example for a human annotated set of annotations:
+
+.. code-block:: YAML
+
+    segmentation: 'textgrid2'
+    segmentation_type: 'permissive'
+    method: 'manual'
+    sampling_method: 'high-volubility'
+    sampling_target: 'fem'
+    sampling_count: 17
+    sampling_unit_duration: 50000
+    recording_selection: 'all recordings'
+    participant_selection: '1 to 2 yo'
+    annotator_name: 'Ivan Cliao'
+    annotator_experience: 5
+    date_annotation: '2019-07-16'
+    has_speaker_type: 'Y'
+    has_transcription: 'Y'
+    has_vcm_type: 'Y'
+    has_addressee: 'N'
+
+
+All the supported fields are listed below with their description. Custom fields may be used but won't be checked.
+
+.. index-table:: Metadata fields supported for annotation sets
+    :header: sets-metadata
 
 .. _format-annotations-segments:
 

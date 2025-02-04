@@ -15,6 +15,16 @@ Managing annotations
 Importation
 ~~~~~~~~~~~
 
+Importing annotations to a dataset is taking annotations files in various format, storing them in an annotation
+set `raw` folder in the dataset (inside of `annotations/<setname>/raw`) and providing the metadata of the set
+inside of the `metannots.yml` file (at `annotations/<setname>/metannots.yml`). Then the importation links those
+annotation files to stretches of the recordings of the dataset and creates a standardized csv of the annotations
+inside of the converted folder (in `annotations/<setname>/converted`).
+
+For more information on the annotation sets metadata, read its the :ref:`format-annotation-sets-metadata` description.
+The annotation set metadata file `metannots.yml` can be created afterwards and does not require new importations
+to be taken into account.
+
 Single annotation importation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

@@ -43,7 +43,7 @@ Values provided to this option should be existing ``recording_filename`` values 
 The ``--skip-existing`` switch can be used to skip previously processed files.
 
 Standard audio conversion
-~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Same as the basic processor but using standard parameters for the conversion:
 - single-channel (first channel is kept)

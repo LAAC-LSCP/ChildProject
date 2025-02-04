@@ -35,6 +35,14 @@ from ``metadata/annotations.csv`` and stores into its
     >>> am = AnnotationManager(project)
     >>> am.read()
     ([], ["vandam-data/metadata/annotations.csv: 'chat' is not a permitted value for column 'format' on line 4, should be any of [csv,vtc_rttm,vcm_rttm,alice,its,TextGrid,eaf,cha,NA]"])
+    >>> am.get_sets_metadata()
+                       method segmentation annotation_algorithm_name  annotation_algorithm_publication annotation_algorithm_version                          annotation_algorithm_repo date_annotation has_speaker_type                                  notes    annotator_name  annotator_experience    duration
+    set
+    its                  <NA>         <NA>                      <NA>                              <NA>                         <NA>                                               <NA>            <NA>             <NA>                                   <NA>              <NA>                  <NA>  2739073787
+    vtc             automated         self                       VTC  https://arxiv.org/abs/2005.12656                          1.0  https://github.com/MarvinLvn/voice-type-classi...      2024-05-10                Y  these are notes about the annotations              <NA>                  <NA>  2739073787
+    eaf                  <NA>         <NA>                      <NA>                              <NA>                         <NA>                                               <NA>            <NA>             <NA>                                   <NA>              <NA>                  <NA>     2400000
+    cha                 human         <NA>                      <NA>                              <NA>                         <NA>                                               <NA>      2022-01-01             <NA>                                   <NA>  Georgia Loukatou                     4    96990000
+    cha/aligned          <NA>         <NA>                      <NA>                              <NA>                         <NA>                                               <NA>            <NA>             <NA>                                   <NA>              <NA>                  <NA>     3793248
     >>> am.annotations
                 set recording_filename  time_seek  range_onset  range_offset             raw_filename    format  filter                annotation_filename          imported_at  error package_version
     2           its    BN32_010007.mp3          0            0      50464512          BN32_010007.its       its     NaN                BN32_010007_0_0.csv  2021-03-06 22:55:06    NaN           0.0.1
