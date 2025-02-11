@@ -196,6 +196,7 @@ class ChildProject:
             name="duration",
             description="duration of the audio, in milliseconds",
             regex=r"([0-9]+)",
+            dtype='Int64',
         ),
         IndexColumn(
             name="session_id",
