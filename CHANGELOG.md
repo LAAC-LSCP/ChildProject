@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 
 - Use pathlib across the package (except a few cases where justified usage) instead of os.path
 - the overview CLI call has a very different output, giving more information about more things
+- discarded items (recordings and children) are now stored in the ChildProject object
 
 ## [0.2.3] 2024-11-21
 
