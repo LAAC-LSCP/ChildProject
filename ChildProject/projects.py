@@ -408,13 +408,13 @@ class ChildProject:
 
         if self.ignore_discarded and "discard" in self.ct.df:
             self.ct.df['discard'] = self.ct.df["discard"].apply(np.nan_to_num).astype(int, errors='ignore')
-            self.ct.df = self.ct.df[self.ct.df["discard"].astype(str) != "1"]
             self.discarded_children = self.ct.df[self.ct.df["discard"].astype(str) == "1"]
+            self.ct.df = self.ct.df[self.ct.df["discard"].astype(str) != "1"]
 
         if self.ignore_discarded and "discard" in self.rt.df:
             self.rt.df['discard'] = self.rt.df["discard"].apply(np.nan_to_num).astype(int, errors='ignore')
-            self.rt.df = self.rt.df[self.rt.df["discard"].astype(str) != "1"]
             self.discarded_recordings = self.rt.df[self.rt.df['discard'].astype(str) == '1']
+            self.rt.df = self.rt.df[self.rt.df["discard"].astype(str) != "1"]
 
         self.children = self.ct.df
         self.recordings = self.rt.df
@@ -633,6 +633,17 @@ class ChildProject:
             for f in pd.core.common.flatten(files)
         ]
 
+        discarded_files = [
+            self.discarded_recordings[c.name].tolist()
+            for c in self.RECORDINGS_COLUMNS
+            if c.filename and c.name in self.recordings.columns
+        ]
+
+        indexed_discarded_files = [
+            (self.path / RAW_RECORDINGS / str(f)).absolute()
+            for f in pd.core.common.flatten(discarded_files)
+        ]
+
         recordings_files = (self.path / RAW_RECORDINGS).rglob("*.*")
 
         for rf in recordings_files:
@@ -644,7 +655,7 @@ class ChildProject:
                 continue
 
             ap = rf.absolute()
-            if ap not in indexed_files:
+            if ap not in indexed_files and ap not in indexed_discarded_files:
                 self.warnings.append("file '{}' not indexed.".format(rf))
 
         return self.errors, self.warnings
