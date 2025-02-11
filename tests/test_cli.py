@@ -112,6 +112,21 @@ def test_explain(project):
         ]
     )
     assert exit_code == 0
+
+def test_process(project):
+    stdout, stderr, exit_code = cli(
+        [
+            "child-project",
+            "process",
+            PATH,
+            "basic",
+            "standard",
+            "--format=wav",
+            "--sampling=16000",
+            "--codec==pcm_s16le",
+        ]
+    )
+    assert exit_code == 0
     
 def test_compare_recordings(project):
     stdout, stderr, exit_code = cli(
