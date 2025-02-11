@@ -42,7 +42,7 @@ def test_overview(project):
         ["child-project", "overview", PATH]
     )
     assert exit_code == 0
-    assert stdout == f"\n\x1b[1m2 recordings with 0.00 hours 2 locally (0 discarded)\x1b[0m:\n\x1b[94mdate range :\x1b[0m 2020-04-20 to 2020-04-21\n\x1b[94mdevices :\x1b[0m usb (0.00h 2/2 locally);\n\n\x1b[1m1 participants\x1b[0m:\n\x1b[94mage range :\x1b[0m 3.6mo to 3.6mo\n\x1b[94mlanguages :\x1b[0m\n\n\x1b[1mannotations:\x1b[0m\nduration    method algo version       date transcr\n    8.0s automated  VTC       1 2024-04-07         \x1b[94mvtc_present\x1b[0m\n\n"
+    assert stdout == f"\n\x1b[1m2 recordings with 0.00 hours 2 locally (1 discarded)\x1b[0m:\n\x1b[94mdate range :\x1b[0m 2020-04-20 to 2020-04-21\n\x1b[94mdevices :\x1b[0m usb (0.00h 2/2 locally);\n\n\x1b[1m1 participants\x1b[0m:\n\x1b[94mage range :\x1b[0m 3.6mo to 3.6mo\n\x1b[94mlanguages :\x1b[0m\n\n\x1b[1mannotations:\x1b[0m\nduration    method algo version       date transcr\n    8.0s automated  VTC       1 2024-04-07         \x1b[94mvtc_present\x1b[0m\n\n"
     assert stderr == f"\x1b[33mWARNING \x1b[0m column(s) child_dob overwritten by {Path('output/cli/metadata/children/0_test.csv')} \x1b[35m[ChildProject.projects]\x1b[0m\n\x1b[33mWARNING \x1b[0m column(s) notes overwritten by {Path('output/cli/metadata/recordings/1_very_confidential.csv')} \x1b[35m[ChildProject.projects]\x1b[0m\n\x1b[33mWARNING \x1b[0m column(s) date_iso overwritten by {Path('output/cli/metadata/recordings/0_confidential.csv')} \x1b[35m[ChildProject.projects]\x1b[0m\n"
 
 
