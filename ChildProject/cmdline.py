@@ -726,12 +726,12 @@ def compute_durations(args):
 
     durations = project.compute_recordings_duration(profile=args.profile).dropna()
 
-    recordings = project.recordings.merge(
+    recordings = project.recordings.reset_index().merge(
         durations[durations["recording_filename"] != "NA"],
         how="left",
         left_on="recording_filename",
         right_on="recording_filename",
-    )
+    ).set_index('index')
     recordings["duration"].fillna(0, inplace=True)
     recordings["duration"] = recordings["duration"].astype("Int64")
     
