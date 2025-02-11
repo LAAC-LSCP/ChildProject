@@ -176,8 +176,8 @@ def get_audio_duration(filename: Path):
 
     duration = 0
     try:
-        duration = info(filename).duration
-    except:
+        duration = info(str(filename)).duration
+    except Exception as e:
         print('Warning: could not read duration for {}, setting duration to 0'.format(filename))
         pass
 

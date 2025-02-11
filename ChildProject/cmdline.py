@@ -731,7 +731,7 @@ def compute_durations(args):
         how="left",
         left_on="recording_filename",
         right_on="recording_filename",
-    ).set_index('index')
+    ).set_index('index').sort_index()
     recordings["duration"].fillna(0, inplace=True)
     recordings["duration"] = recordings["duration"].astype("Int64")
     

@@ -480,27 +480,14 @@ class ChildProject:
         if self.recordings is None:
             #logger to add (can not write recordings file as recordings is not initialized)
             return None
-        #get the file as reference point
-        current_csv = pd.read_csv(self.path / METADATA_FOLDER /RECORDINGS_CSV)
         
-        if 'discard' in current_csv.columns and keep_discarded:
-            # put the discard column into a usable form
-            current_csv['discard'] = current_csv['discard'].apply(np.nan_to_num).astype(int, errors='ignore')
-            # keep the discarded lines somewhere
-            discarded_recs = current_csv[current_csv['discard'].astype(str) == "1"]
-            
-            recs_to_write = pd.concat([self.recordings, discarded_recs])
+        if keep_discarded:
+            recs_to_write = pd.concat([self.recordings, self.discarded_recordings])
             recs_to_write = recs_to_write.astype(self.recordings.dtypes.to_dict())
         else:
             recs_to_write = self.recordings
-            
-        if keep_original_columns:
-            columns = current_csv.columns
-            for new in self.recordings.columns:
-                if new not in columns:
-                    columns = columns.append(pd.Index([new]))
-        else:
-            columns = self.recordings.columns
+
+        columns = self.recordings.columns
             
         recs_to_write.sort_index().to_csv(self.path / METADATA_FOLDER / RECORDINGS_CSV,columns = columns,index=False)
         return recs_to_write
