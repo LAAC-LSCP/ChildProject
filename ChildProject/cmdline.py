@@ -803,7 +803,9 @@ def main():
     register_pipeline("conversations-specification", ConversationsSpecificationPipeline)
 
     args = parser.parse_args()
-    if not args.verbose:
+    verbose = args.verbose
+    delattr(args, 'verbose')
+    if not verbose:
         with warnings.catch_warnings():
             warnings.simplefilter(action='ignore', category=FutureWarning)
             args.func(args)
