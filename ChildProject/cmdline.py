@@ -570,14 +570,14 @@ def overview(args):
 
             am = AnnotationManager(project)
             project.read()
+
+            record = project.dict_summary()
         except Exception as e:
             logger.error(f"{source}: [%s] %s", type(e).__name__, e)
             continue
 
         if len(args.source) > 1:
             logger.info(f"\033[1m\033[35m### {project.recordings['experiment'].iloc[0]} ({source}) ###\033[0m")
-
-        record = project.dict_summary()
 
         available = project.recordings['recording_filename'].apply(lambda recording_filename: 1
                         if project.get_recording_path(recording_filename).exists() else 0).sum()
