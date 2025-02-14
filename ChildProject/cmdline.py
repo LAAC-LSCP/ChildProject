@@ -583,8 +583,9 @@ def overview(args):
                         if project.get_recording_path(recording_filename).exists() else 0).sum()
 
         # recordings count and total duration
-        output = "\n\033[1m{} recordings with {:.2f} hours {} locally ({} discarded)\033[0m:\n".format(
-            record['recordings']['count'], record['recordings']["duration"] / 3600000, available, record['recordings']["discarded"])
+        output = "\n\033[1m{} recordings with {} hours {} locally ({} discarded)\033[0m:\n".format(
+            record['recordings']['count'], format(record['recordings']["duration"] / 3600000, '.2f') if record['recordings']["duration"] is not None else '?',
+            available, record['recordings']["discarded"])
 
         output += "\033[94mdate range :\033[0m {} to {}\n".format(
             record['recordings']['first_date'], record['recordings']["last_date"])
@@ -595,8 +596,8 @@ def overview(args):
                         )['recording_filename'].apply(lambda recording_filename: 1
                         if project.get_recording_path(recording_filename).exists() else 0).sum()
             info = record['recordings']['devices'][device]
-            output += " {} ({:.2f}h {}/{} locally);".format(
-                device, info['duration'] / 3600000, available, info['count'])
+            output += " {} ({}h {}/{} locally);".format(
+                device, format(info['duration'] / 3600000, '.2f') if info['duration'] is not None else '?', available, info['count'])
         output += "\n"
 
         output += "\n\033[1m{} participants\033[0m:\n".format(
@@ -604,9 +605,9 @@ def overview(args):
 
         # switch to age in years old if age > 2 years old
         min_age = "{:.1f}mo".format(record['children']['min_age']) if record['children'][
-                                                'min_age'] < 24 else "{:1f}yo".format(record['children']['min_age'] / 12)
+                                                'min_age'] < 24 else "{:.1f}yo".format(record['children']['min_age'] / 12)
         max_age = "{:.1f}mo".format(record['children']['max_age']) if record['children'][
-                                                'max_age'] < 24 else "{:1f}yo".format(record['children']['max_age'] / 12)
+                                                'max_age'] < 24 else "{:.1f}yo".format(record['children']['max_age'] / 12)
         output += "\033[94mage range :\033[0m {} to {}\n".format(
             min_age, max_age)
 
