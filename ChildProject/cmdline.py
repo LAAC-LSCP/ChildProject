@@ -263,7 +263,7 @@ def sets_metadata(args):
             continue
 
         if len(args.source) > 1:
-            logger.info(f"\033[1m\033[35m### {project.recordings['experiment'].iloc[0]} ({source}) ###\033[0m")
+            logger.info(f"\033[1m\033[35m### {project.recordings['experiment'].iloc[0] if project.recordings.shape[0] else source} ({source}) ###\033[0m")
 
         sets = am.get_sets_metadata()
         if 'method' not in sets:
@@ -577,7 +577,7 @@ def overview(args):
             continue
 
         if len(args.source) > 1:
-            logger.info(f"\033[1m\033[35m### {project.recordings['experiment'].iloc[0]} ({source}) ###\033[0m")
+            logger.info(f"\033[1m\033[35m### {project.recordings['experiment'].iloc[0] if project.recordings.shape[0] else source} ({source}) ###\033[0m")
 
         available = project.recordings['recording_filename'].apply(lambda recording_filename: 1
                         if project.get_recording_path(recording_filename).exists() else 0).sum()

@@ -419,8 +419,9 @@ class ChildProject:
 
         self.children = self.ct.df
         self.recordings = self.rt.df
-        
-        exp = self.children.iloc[0]['experiment']
+
+        # not sure what to use if no row in children, let's just put the folder name as a replacement?
+        exp = self.children.iloc[0]['experiment'] if self.children.shape[0] else self.path.name
         exp_values = set(self.children['experiment'].unique()).union(set(self.recordings['experiment'].unique()))
         if len(exp_values) > 1:
             raise ValueError(f"Column <experiment> must be unique across the dataset, in both children.csv and recordings.csv , {len(exp_values)} different values were found: {exp_values}")
@@ -444,7 +445,7 @@ class ChildProject:
               'devices': {
                   device: {
                       'count': self.recordings[self.recordings['recording_device_type'] == device].shape[0],
-                      'duration': self.recordings[self.recordings['recording_device_type'] == device]['duration'].sum(),
+                      'duration': self.recordings[self.recordings['recording_device_type'] == device]['duration'].sum() if 'duration' in self.recordings.columns else None,
                   } for device in self.recordings['recording_device_type'].unique()}
               },
             'children': {
