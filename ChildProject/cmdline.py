@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-from .projects import ChildProject, RAW_RECORDINGS, METADATA_FOLDER, RECORDINGS_CSV, CHILDREN_CSV
+from .projects import (
+    ChildProject,
+    RAW_RECORDINGS,
+    METADATA_FOLDER,
+    RECORDINGS_CSV,
+    CHILDREN_CSV,
+)
 from .annotations import AnnotationManager
 from .pipelines.conversations import ConversationsPipeline
 from .pipelines.conversations import ConversationsSpecificationPipeline
@@ -33,20 +39,20 @@ import colorlog
 
 # Create a ColorFormatter with desired color settings
 color_formatter = colorlog.ColoredFormatter(
-    '%(log_color)s%(levelname)-8s%(reset)s %(message)s %(purple)s[%(name)s]%(reset)s',
+    "%(log_color)s%(levelname)-8s%(reset)s %(message)s %(purple)s[%(name)s]%(reset)s",
     log_colors={
-        'DEBUG': 'cyan',
-        'INFO': 'green',
-        'WARNING': 'yellow',
-        'ERROR': 'red',
-        'CRITICAL': 'bold_red',
-    }
+        "DEBUG": "cyan",
+        "INFO": "green",
+        "WARNING": "yellow",
+        "ERROR": "red",
+        "CRITICAL": "bold_red",
+    },
 )
 
 # Create a StreamHandler and set the formatter
 stream_handler = logging.StreamHandler()
 stream_handler.setFormatter(color_formatter)
-#stream_handler.formatter._fmt = '%(log_color)s%(levelname)-8s%(reset)s  <%(name)s>: %(message)s'
+# stream_handler.formatter._fmt = '%(log_color)s%(levelname)-8s%(reset)s  <%(name)s>: %(message)s'
 
 # Create a logger and add the handlers for CLI calls
 logger = logging.getLogger(__name__)
@@ -56,7 +62,13 @@ logger.setLevel(logging.INFO)
 # Setting up the parse of arguments
 parser = argparse.ArgumentParser()
 subparsers = parser.add_subparsers()
-parser.add_argument('--version', action='version', version="{} {}".format(__name__, __version__), help='displays the current version of the package')
+parser.add_argument(
+    "--version",
+    action="version",
+    version="{} {}".format(__name__, __version__),
+    help="displays the current version of the package",
+)
+
 
 def arg(*name_or_flags, **kwargs):
     return (list(name_or_flags), kwargs)
@@ -107,7 +119,8 @@ def perform_validation(project: ChildProject, require_success: bool = True, **ar
     [
         arg("source", help="project path"),
         arg(
-            "--force","-f",
+            "--force",
+            "-f",
             help="ignore existing files and create strcture anyway",
             action="store_true",
         ),
@@ -116,22 +129,22 @@ def perform_validation(project: ChildProject, require_success: bool = True, **ar
 def init(args):
     path = Path(args.source)
 
-    files = glob.glob(str(path / '*'))
-    if len(files) != 0 :
+    files = glob.glob(str(path / "*"))
+    if len(files) != 0:
         raise ValueError("Directory {} not empty, cannot create a project".format(path))
 
     os.makedirs(path / RAW_RECORDINGS, exist_ok=args.force)
     os.makedirs(path / METADATA_FOLDER, exist_ok=args.force)
-    os.makedirs(path / 'extra', exist_ok=args.force)
-    os.makedirs(path / 'scripts', exist_ok=args.force)
-    os.makedirs(path / 'annotations', exist_ok=args.force)
-    open(path / 'README.md', 'a').close()
-    pd.DataFrame(columns = [col.name for col in ChildProject.RECORDINGS_COLUMNS if col.required]).to_csv(
-        path / METADATA_FOLDER / RECORDINGS_CSV, index=False
-    )
-    pd.DataFrame(columns=[col.name for col in ChildProject.CHILDREN_COLUMNS if col.required]).to_csv(
-        path / METADATA_FOLDER / CHILDREN_CSV, index=False
-    )
+    os.makedirs(path / "extra", exist_ok=args.force)
+    os.makedirs(path / "scripts", exist_ok=args.force)
+    os.makedirs(path / "annotations", exist_ok=args.force)
+    open(path / "README.md", "a").close()
+    pd.DataFrame(
+        columns=[col.name for col in ChildProject.RECORDINGS_COLUMNS if col.required]
+    ).to_csv(path / METADATA_FOLDER / RECORDINGS_CSV, index=False)
+    pd.DataFrame(
+        columns=[col.name for col in ChildProject.CHILDREN_COLUMNS if col.required]
+    ).to_csv(path / METADATA_FOLDER / CHILDREN_CSV, index=False)
 
 
 @subcommand(
@@ -173,14 +186,14 @@ def validate(args):
 
     project = ChildProject(args.source)
     errors, warnings = project.validate(args.ignore_recordings, args.profile)
-    
+
     am = AnnotationManager(project)
 
     errors.extend(am.errors)
     warnings.extend(am.warnings)
 
     if args.annotations:
-        
+
         annotations = am.annotations
 
         if all(map(lambda x: os.path.exists(x) or os.path.islink(x), args.annotations)):
@@ -211,16 +224,16 @@ def validate(args):
 
     for error in errors:
         pass
-        logger.error('%s',error)
+        logger.error("%s", error)
 
     for warning in warnings:
         pass
-        logger.warning('%s',warning )
+        logger.warning("%s", warning)
     if len(errors) > 0:
-        logger.warning('validation failed, %s error(s) occured', len(errors))
+        logger.warning("validation failed, %s error(s) occured", len(errors))
         sys.exit(1)
 
-    logger.info('validation successfully completed with %d warning(s).', len(warnings))
+    logger.info("validation successfully completed with %d warning(s).", len(warnings))
 
 
 @subcommand(
@@ -230,7 +243,7 @@ def validate(args):
             "--annotations",
             help="path to input annotations dataframe (csv) [only for bulk importation]",
             default="",
-        ),       
+        ),
     ]
     + [
         arg(
@@ -242,11 +255,16 @@ def validate(args):
         )
         for col in AnnotationManager.INDEX_COLUMNS
         if not col.generated
-    ] +
-    [
-     arg("--threads", help="amount of threads to run on", type=int, default=0),
-     arg("--overwrite-existing","--ow", help="overwrites existing annotation file if should generate the same output file (useful when reimporting", action='store_true'),
-     ]
+    ]
+    + [
+        arg("--threads", help="amount of threads to run on", type=int, default=0),
+        arg(
+            "--overwrite-existing",
+            "--ow",
+            help="overwrites existing annotation file if should generate the same output file (useful when reimporting",
+            action="store_true",
+        ),
+    ]
 )
 def import_annotations(args):
     """convert and import a set of annotations"""
@@ -269,15 +287,17 @@ def import_annotations(args):
         )
 
     am = AnnotationManager(project)
-    imported, errors_imp = am.import_annotations(annotations, args.threads, overwrite_existing=args.overwrite_existing)
-    
+    imported, errors_imp = am.import_annotations(
+        annotations, args.threads, overwrite_existing=args.overwrite_existing
+    )
+
     if errors_imp is not None and errors_imp.shape[0] > 0:
-        logger.error('The importation failed for %d entry/ies',errors_imp.shape[0])
+        logger.error("The importation failed for %d entry/ies", errors_imp.shape[0])
         logger.debug(errors_imp)
 
     if imported is not None and imported.shape[0] > 0:
         errors, warnings = am.validate(imported, threads=args.threads)
- 
+
         if len(errors) > 0:
             logger.error(
                 "in the resulting annotations %s errors were found:\n%s",
@@ -302,9 +322,12 @@ def import_annotations(args):
             choices=AnnotationManager.INDEX_COLUMNS[6].choices,
         ),
         arg("--threads", help="amount of threads to run on", type=int, default=0),
-        arg("--overwrite-existing", "--ow",
+        arg(
+            "--overwrite-existing",
+            "--ow",
             help="overwrites existing annotation file if should generate the same output file (useful when reimporting",
-            action='store_true'),
+            action="store_true",
+        ),
     ]
 )
 def automated_import(args):
@@ -315,25 +338,29 @@ def automated_import(args):
 
     perform_validation(project, require_success=True, ignore_recordings=True)
 
-    if 'duration' not in project.recordings.columns:
-        raise ValueError("Column <duration> is needed for automated importation."
-                         " Try running <child-project compute-durations .>")
+    if "duration" not in project.recordings.columns:
+        raise ValueError(
+            "Column <duration> is needed for automated importation."
+            " Try running <child-project compute-durations .>"
+        )
 
-    annotations = project.recordings[['recording_filename', 'duration']]
-    annotations['raw_filename'] = annotations['recording_filename'].apply(
-        lambda x: str(Path(x).with_suffix('.' + extensions[args.format]))
+    annotations = project.recordings[["recording_filename", "duration"]]
+    annotations["raw_filename"] = annotations["recording_filename"].apply(
+        lambda x: str(Path(x).with_suffix("." + extensions[args.format]))
     )
-    annotations['format'] = args.format
-    annotations['range_onset'] = 0
-    annotations['time_seek'] = 0
-    annotations['set'] = args.set
-    annotations.rename(columns={'duration': 'range_offset'}, inplace=True)
+    annotations["format"] = args.format
+    annotations["range_onset"] = 0
+    annotations["time_seek"] = 0
+    annotations["set"] = args.set
+    annotations.rename(columns={"duration": "range_offset"}, inplace=True)
 
     am = AnnotationManager(project)
-    imported, errors_imp = am.import_annotations(annotations, args.threads, overwrite_existing=args.overwrite_existing)
+    imported, errors_imp = am.import_annotations(
+        annotations, args.threads, overwrite_existing=args.overwrite_existing
+    )
 
     if errors_imp is not None and errors_imp.shape[0] > 0:
-        logger.error('The importation failed for %d entry/ies', errors_imp.shape[0])
+        logger.error("The importation failed for %d entry/ies", errors_imp.shape[0])
         logger.debug(errors_imp)
 
     if imported is not None and imported.shape[0] > 0:
@@ -350,13 +377,21 @@ def automated_import(args):
 @subcommand(
     [
         arg("source", help="project path"),
-        arg("derivation", help="Type of derivation", type=str, choices=DERIVATIONS.keys()),
+        arg(
+            "derivation",
+            help="Type of derivation",
+            type=str,
+            choices=DERIVATIONS.keys(),
+        ),
         arg("--input-set", "-i", help="input set", required=True, type=str),
         arg("--output-set", "-o", help="output set", required=True, type=str),
         arg("--threads", help="amount of threads to run on", type=int, default=0),
-        arg("--overwrite-existing", "--ow",
+        arg(
+            "--overwrite-existing",
+            "--ow",
             help="overwrites existing annotation file when deriving (useful when reimporting), False by default",
-            action='store_true'),
+            action="store_true",
+        ),
     ]
 )
 def derive_annotations(args):
@@ -367,10 +402,16 @@ def derive_annotations(args):
     perform_validation(project, require_success=True, ignore_recordings=True)
 
     am = AnnotationManager(project)
-    imported, errors_der = am.derive_annotations(args.input_set, args.output_set, args.derivation, args.threads, overwrite_existing=args.overwrite_existing)
+    imported, errors_der = am.derive_annotations(
+        args.input_set,
+        args.output_set,
+        args.derivation,
+        args.threads,
+        overwrite_existing=args.overwrite_existing,
+    )
 
     if errors_der is not None and errors_der.shape[0] > 0:
-        logger.error('The derivation failed for %d entry/ies', errors_der.shape[0])
+        logger.error("The derivation failed for %d entry/ies", errors_der.shape[0])
         logger.debug(errors_der)
 
     if imported is not None and imported.shape[0] > 0:
@@ -515,7 +556,8 @@ def overview(args):
     project.read()
 
     output = "\n\033[1mrecordings ({:.2f} hours)\033[0m:\n".format(
-        project.recordings.dropna(subset=["recording_filename"])["duration"].sum() / (3600 * 1000)
+        project.recordings.dropna(subset=["recording_filename"])["duration"].sum()
+        / (3600 * 1000)
     )
 
     _recordings = (
@@ -535,18 +577,25 @@ def overview(args):
         available = (
             recordings["recording_filename"]
             .apply(
-                lambda recording_filename: 1
-                if os.path.exists(
-                    os.path.join(project.path, "recordings", "raw", recording_filename)
+                lambda recording_filename: (
+                    1
+                    if os.path.exists(
+                        os.path.join(
+                            project.path, "recordings", "raw", recording_filename
+                        )
+                    )
+                    else 0
                 )
-                else 0
             )
             .sum()
         )
 
         output += "\033[94m%s\033[0m: %s, %d/%d files locally available\n" % (
-                    recording_device_type, duration, available, len(recordings))
-
+            recording_device_type,
+            duration,
+            available,
+            len(recordings),
+        )
 
     output += "\n\033[1mannotations\033[0m:\n"
     _annotations = (
@@ -563,29 +612,38 @@ def overview(args):
         available = (
             annotations["annotation_filename"]
             .apply(
-                lambda annotation_filename: 1
-                if os.path.exists(
-                    os.path.join(
-                        project.path,
-                        "annotations",
-                        annotation_set,
-                        "converted",
-                        annotation_filename,
+                lambda annotation_filename: (
+                    1
+                    if os.path.exists(
+                        os.path.join(
+                            project.path,
+                            "annotations",
+                            annotation_set,
+                            "converted",
+                            annotation_filename,
+                        )
                     )
+                    else 0
                 )
-                else 0
             )
             .sum()
         )
 
         output += "\033[94m%s\033[0m: %.2f hours, %s/%s files locally available\n" % (
-                    annotation_set, duration_covered / (3600 * 1000), available, len(annotations))
+            annotation_set,
+            duration_covered / (3600 * 1000),
+            available,
+            len(annotations),
+        )
 
     logger.info(output)
 
 
 @subcommand(
-    [arg("source", help="source data path"), arg("variable", help="name of the variable")]
+    [
+        arg("source", help="source data path"),
+        arg("variable", help="name of the variable"),
+    ]
 )
 def explain(args):
     """prints information about a certain metadata variable"""
@@ -601,30 +659,30 @@ def explain(args):
     if not len(documentation):
         documentation = [
             {
-                'variable': col.name,
-                'description': col.description,
-                'table': 'recordings',
-                'scope': 'unknown' 
+                "variable": col.name,
+                "description": col.description,
+                "table": "recordings",
+                "scope": "unknown",
             }
             for col in project.RECORDINGS_COLUMNS
         ]
 
         documentation += [
             {
-                'variable': col.name,
-                'description': col.description,
-                'table': 'children',
-                'scope': 'unknown' 
+                "variable": col.name,
+                "description": col.description,
+                "table": "children",
+                "scope": "unknown",
             }
             for col in project.CHILDREN_COLUMNS
         ]
 
         documentation += [
             {
-                'variable': col.name,
-                'description': col.description,
-                'table': 'annotations',
-                'scope': 'unknown' 
+                "variable": col.name,
+                "description": col.description,
+                "table": "annotations",
+                "scope": "unknown",
             }
             for col in AnnotationManager.SEGMENTS_COLUMNS
         ]
@@ -632,24 +690,24 @@ def explain(args):
         documentation = pd.DataFrame(documentation)
         documentation = documentation[documentation["variable"].str.lower() == variable]
 
-
     if not len(documentation):
         logger.info("Could not find any documentation for variable '%s'", variable)
         return
-    
+
     logger.info("Matching documentation for '%s':", variable)
-    for doc in documentation.to_dict(orient = 'records'):
-        logger.info("\n\033[94mtable\033[0m: %s", doc['table'])
-        logger.info("\033[94mdescription\033[0m: %s", {doc['description']})
+    for doc in documentation.to_dict(orient="records"):
+        logger.info("\n\033[94mtable\033[0m: %s", doc["table"])
+        logger.info("\033[94mdescription\033[0m: %s", {doc["description"]})
 
-        if 'values' in doc and not pd.isnull(doc['values']):
-            logger.info("\033[94mvalues\033[0m: %s", {doc['values']})
+        if "values" in doc and not pd.isnull(doc["values"]):
+            logger.info("\033[94mvalues\033[0m: %s", {doc["values"]})
 
-        if 'annotation_set' in doc and not pd.isnull(doc['annotation_set']):
-            logger.info("\033[94mannotation set(s)\033[0m: %s", doc['annotation_set'])
+        if "annotation_set" in doc and not pd.isnull(doc["annotation_set"]):
+            logger.info("\033[94mannotation set(s)\033[0m: %s", doc["annotation_set"])
 
-        if 'scope' in doc and not pd.isnull(doc['scope']):
-            logger.info("\033[94mscope\033[0m: %s", doc['scope'])
+        if "scope" in doc and not pd.isnull(doc["scope"]):
+            logger.info("\033[94mscope\033[0m: %s", doc["scope"])
+
 
 @subcommand(
     [
@@ -662,8 +720,10 @@ def compute_durations(args):
     """creates a 'duration' column into metadata/recordings. duration is in ms"""
     project = ChildProject(args.source)
 
-    #accumulate to false b/c we don't want to write confidential info into recordings.csv
-    perform_validation(project, require_success=True, ignore_recordings=True, accumulate=False)
+    # accumulate to false b/c we don't want to write confidential info into recordings.csv
+    perform_validation(
+        project, require_success=True, ignore_recordings=True, accumulate=False
+    )
 
     if "duration" in project.recordings.columns:
         if not args.force:
@@ -682,62 +742,112 @@ def compute_durations(args):
     )
     recordings["duration"].fillna(0, inplace=True)
     recordings["duration"] = recordings["duration"].astype("Int64")
-    
+
     project.recordings = recordings.copy()
     project.write_recordings()
-    
+
+
 @subcommand(
     [
         arg("source", help="project path"),
-        arg("audio1", help="name of the first audio file as it is indexed in recordings.csv in column <recording_filename>"),
-        arg("audio2", help="name of the second audio file as it is indexed in recordings.csv in column <recording_filename>"),
+        arg(
+            "audio1",
+            help="name of the first audio file as it is indexed in recordings.csv in column <recording_filename>",
+        ),
+        arg(
+            "audio2",
+            help="name of the second audio file as it is indexed in recordings.csv in column <recording_filename>",
+        ),
         arg("--profile", help="which audio profile to use", default=""),
-        arg("--interval", help="duration in minutes of the window used to build the correlation score", default=5, type=int),
+        arg(
+            "--interval",
+            help="duration in minutes of the window used to build the correlation score",
+            default=5,
+            type=int,
+        ),
     ]
 )
 def compare_recordings(args):
     """computes the difference between 2 given audio files of the dataset. A divergence score is outputted, it is the average difference of audio signal over the considered sample (random point in the audio, fixed duration). Divergence scores lower than 0.1 indicate a strong proximity"""
-    
+
     project = ChildProject(args.source)
     project.read()
-    
-    rec1 = project.recordings[project.recordings['recording_filename'] == args.audio1]
-    if rec1.empty or rec1.shape[0] > 1: raise ValueError("{} was not found in the indexed recordings in metadata/recordings.csv or has multiple occurences".format(args.audio1))
-    
-    rec2 = project.recordings[project.recordings['recording_filename'] == args.audio2]
-    if rec2.empty or rec2.shape[0] > 1: raise ValueError("{} was not found in the indexed recordings in metadata/recordings.csv or has multiple occurences".format(args.audio2))
-    
-    if 'duration' not in rec1.columns: 
-        logger.warning("WARNING : duration was not found for audio %s. We attempt to compute it...", args.audio1)
-        rec1["duration"].iloc[0] = get_audio_duration(project.get_recording_path(args.audio1, args.profile))
-    if 'duration' not in rec2.columns: 
-        logger.watning("WARNING : duration was not found for audio %s. We attempt to compute it...", args.audio2)
-        rec2["duration"].iloc[0] = get_audio_duration(project.get_recording_path(args.audio2, args.profile))
-        
-    if rec1['duration'].iloc[0] != rec2['duration'].iloc[0]:
-        logger.warning('WARNING : the 2 audio files have different durations, it is unlikely they are the same recording:\n%s : %dms\n%s : %dms', args.audio1, rec1['duration'].iloc[0], args.audio2, rec2['duration'].iloc[0])
- 
+
+    rec1 = project.recordings[project.recordings["recording_filename"] == args.audio1]
+    if rec1.empty or rec1.shape[0] > 1:
+        raise ValueError(
+            "{} was not found in the indexed recordings in metadata/recordings.csv or has multiple occurences".format(
+                args.audio1
+            )
+        )
+
+    rec2 = project.recordings[project.recordings["recording_filename"] == args.audio2]
+    if rec2.empty or rec2.shape[0] > 1:
+        raise ValueError(
+            "{} was not found in the indexed recordings in metadata/recordings.csv or has multiple occurences".format(
+                args.audio2
+            )
+        )
+
+    if "duration" not in rec1.columns:
+        logger.warning(
+            "WARNING : duration was not found for audio %s. We attempt to compute it...",
+            args.audio1,
+        )
+        rec1["duration"].iloc[0] = get_audio_duration(
+            project.get_recording_path(args.audio1, args.profile)
+        )
+    if "duration" not in rec2.columns:
+        logger.watning(
+            "WARNING : duration was not found for audio %s. We attempt to compute it...",
+            args.audio2,
+        )
+        rec2["duration"].iloc[0] = get_audio_duration(
+            project.get_recording_path(args.audio2, args.profile)
+        )
+
+    if rec1["duration"].iloc[0] != rec2["duration"].iloc[0]:
+        logger.warning(
+            "WARNING : the 2 audio files have different durations, it is unlikely they are the same recording:\n%s : %dms\n%s : %dms",
+            args.audio1,
+            rec1["duration"].iloc[0],
+            args.audio2,
+            rec2["duration"].iloc[0],
+        )
+
     interval = args.interval * 60 * 1000
-    
-    dur = min(rec1['duration'].iloc[0],rec2['duration'].iloc[0])
-    if dur < interval :
-        logger.warning("WARNING : the duration of the audio is too short for an interval %dms :\nnew interval is set to %dms, this will cover the entire duration.", interval, dur)
+
+    dur = min(rec1["duration"].iloc[0], rec2["duration"].iloc[0])
+    if dur < interval:
+        logger.warning(
+            "WARNING : the duration of the audio is too short for an interval %dms :\nnew interval is set to %dms, this will cover the entire duration.",
+            interval,
+            dur,
+        )
         interval = dur
         offset = 0
     else:
-        offset = random.uniform(0, dur - interval)/1000
-    
-    avg,size = calculate_shift(
-        project.get_recording_path(rec1['recording_filename'].iloc[0],args.profile),
-        project.get_recording_path(rec2['recording_filename'].iloc[0],args.profile),
+        offset = random.uniform(0, dur - interval) / 1000
+
+    avg, size = calculate_shift(
+        project.get_recording_path(rec1["recording_filename"].iloc[0], args.profile),
+        project.get_recording_path(rec2["recording_filename"].iloc[0], args.profile),
         offset,
         offset,
-        interval/1000
+        interval / 1000,
     )
-    
-    if size < 48000 : 
-        logger.warning('WARNING : the number of values (%d) in the sample is low, raise the interval value, if possible, for a more reliable analysis', size)
-    logger.info("RESULTS :\ndivergence score = %d over a sample of %d values\nREFERENCE :\ndivergence score < 0.1 => the 2 files seem very similar\ndivergence score > 1   => sizable difference", avg, size)
+
+    if size < 48000:
+        logger.warning(
+            "WARNING : the number of values (%d) in the sample is low, raise the interval value, if possible, for a more reliable analysis",
+            size,
+        )
+    logger.info(
+        "RESULTS :\ndivergence score = %d over a sample of %d values\nREFERENCE :\ndivergence score < 0.1 => the 2 files seem very similar\ndivergence score > 1   => sizable difference",
+        avg,
+        size,
+    )
+
 
 def main():
     register_pipeline("process", AudioProcessingPipeline)
