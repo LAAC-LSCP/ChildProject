@@ -16,8 +16,8 @@ pillow<10.4.0 # this is constrained as matplotlib versions used fail on pillow >
 praat-parselmouth==0.4.3
 pyannote.core==5.0.0
 pydub==0.25.1
-pygamma-agreement==0.5.6; python_version <= '3.7'
-pygamma-agreement==0.5.9; python_version > '3.7'
+pygamma-agreement==0.5.6; python_version < '3.8'
+pygamma-agreement==0.5.9; python_version >= '3.8'
 pylangacq==0.17.0
 pympi-ling==1.70.2
 pytest==7.4.4
@@ -29,4 +29,3 @@ soundfile==0.12.1
 Sphinx==5.3.0
 sphinx-rtd-theme==2.0.0
 sphinx-tabs==3.4.5
-seaborn==0.12.2
