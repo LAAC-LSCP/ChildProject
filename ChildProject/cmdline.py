@@ -27,6 +27,7 @@ import pandas as pd
 import sys
 import random
 import logging
+import json
 
 # add this to setup,py in the requires section and in requirements.txt
 import colorlog
@@ -248,6 +249,15 @@ def validate(args):
             help="convert units to be more human readable",
             action='store_true',
             ),
+        arg("--sort-by",
+            help="sort the table by the given column name(s)",
+            default="set",
+            nargs='+',
+            choices=['set', 'duration'] + [f.name for f in AnnotationManager.SETS_COLUMNS]),
+        arg("--sort-descending",
+            help="sort the table descending instead of ascending",
+            action='store_true',
+            ),
     ]
 )
 def sets_metadata(args):
@@ -265,16 +275,17 @@ def sets_metadata(args):
         if len(args.source) > 1:
             logger.info(f"\033[1m\033[35m### {project.recordings['experiment'].iloc[0] if project.recordings.shape[0] else source} ({source}) ###\033[0m")
 
-        sets = am.get_sets_metadata()
-        if 'method' not in sets:
-            sets['method'] = 'Undefined'
-        else:
-            sets['method'] = sets['method'].fillna('Undefined').replace('', 'Undefined')
+        # sets = am.get_sets_metadata()
+        # if 'method' not in sets:
+        #     sets['method'] = 'Undefined'
+        # else:
+        #     sets['method'] = sets['method'].fillna('Undefined').replace('', 'Undefined')
 
         if args.format == 'csv':
-            logger.info(sets.to_csv(None, index=True))
-        if args.format == 'snapshot':
-            logger.info(am.get_sets_metadata('lslike', human=args.human_readable))
+            logger.info(am.get_sets_metadata('csv', sort_by=args.sort_by, sort_ascending=not args.sort_descending))
+        elif args.format == 'snapshot':
+            logger.info(am.get_sets_metadata('lslike', human=args.human_readable, sort_by=args.sort_by,
+                                             sort_ascending=not args.sort_descending))
 
 
 
@@ -558,9 +569,20 @@ def rename_annotations(args):
     )
 
 
-@subcommand([arg("source", help="source data path", nargs='+')])
+@subcommand(
+    [
+        arg("source",
+            help="source data path",
+            nargs='+'),
+        arg("--format",
+            help="format to output to",
+            default="snapshot",
+            choices=['snapshot', 'json']),
+    ]
+)
 def overview(args):
     """prints an overview of the contents of a given dataset"""
+    dict = {}
     for source in args.source:
 
         try:
@@ -576,66 +598,71 @@ def overview(args):
             logger.error(f"{source}: [%s] %s", type(e).__name__, e)
             continue
 
-        if len(args.source) > 1:
-            logger.info(f"\033[1m\033[35m### {project.recordings['experiment'].iloc[0] if project.recordings.shape[0] else source} ({source}) ###\033[0m")
+        if args.format == 'json':
+            record['annotations'] = am.get_sets_metadata('dataframe').to_dict('index')
+            dict[project.recordings['experiment'].iloc[0] if project.recordings.shape[0] else source] = record
 
-        available = project.recordings['recording_filename'].apply(lambda recording_filename: 1
-                        if project.get_recording_path(recording_filename).exists() else 0).sum()
+        elif args.format == 'snapshot':
+            if len(args.source) > 1:
+                logger.info(f"\033[1m\033[35m### {project.recordings['experiment'].iloc[0] if project.recordings.shape[0] else source} ({source}) ###\033[0m")
 
-        # recordings count and total duration
-        output = "\n\033[1m{} recordings with {} hours {} locally ({} discarded)\033[0m:\n".format(
-            record['recordings']['count'], format(record['recordings']["duration"] / 3600000, '.2f') if record['recordings']["duration"] is not None else '?',
-            available, record['recordings']["discarded"])
+            available = project.recordings['recording_filename'].apply(lambda recording_filename: 1
+                            if project.get_recording_path(recording_filename).exists() else 0).sum()
 
-        output += "\033[94mdate range :\033[0m {} to {}\n".format(
-            record['recordings']['first_date'], record['recordings']["last_date"])
+            # recordings count and total duration
+            output = "\n\033[1m{} recordings with {} hours {} locally ({} discarded)\033[0m:\n".format(
+                record['recordings']['count'], format(record['recordings']["duration"] / 3600000, '.2f') if record['recordings']["duration"] is not None else '?',
+                available, record['recordings']["discarded"])
 
-        output += "\033[94mdevices :\033[0m"
-        for device in record['recordings']['devices']:
-            available = (project.recordings[project.recordings["recording_device_type"] == device]
-                        )['recording_filename'].apply(lambda recording_filename: 1
-                        if project.get_recording_path(recording_filename).exists() else 0).sum()
-            info = record['recordings']['devices'][device]
-            output += " {} ({}h {}/{} locally);".format(
-                device, format(info['duration'] / 3600000, '.2f') if info['duration'] is not None else '?', available, info['count'])
-        output += "\n"
+            output += "\033[94mdate range :\033[0m {} to {}\n".format(
+                record['recordings']['first_date'], record['recordings']["last_date"])
 
-        output += "\n\033[1m{} participants\033[0m:\n".format(
-            record['children']['count'],)
+            output += "\033[94mdevices :\033[0m"
+            for device in record['recordings']['devices']:
+                available = (project.recordings[project.recordings["recording_device_type"] == device]
+                            )['recording_filename'].apply(lambda recording_filename: 1
+                            if project.get_recording_path(recording_filename).exists() else 0).sum()
+                info = record['recordings']['devices'][device]
+                output += " {} ({}h {}/{} locally);".format(
+                    device, format(info['duration'] / 3600000, '.2f') if info['duration'] is not None else '?', available, info['count'])
+            output += "\n"
 
-        # switch to age in years old if age > 2 years old
-        min_age = "{:.1f}mo".format(record['children']['min_age']) if record['children'][
-                                                'min_age'] < 24 else "{:.1f}yo".format(record['children']['min_age'] / 12)
-        max_age = "{:.1f}mo".format(record['children']['max_age']) if record['children'][
-                                                'max_age'] < 24 else "{:.1f}yo".format(record['children']['max_age'] / 12)
-        output += "\033[94mage range :\033[0m {} to {}\n".format(
-            min_age, max_age)
+            output += "\n\033[1m{} participants\033[0m:\n".format(
+                record['children']['count'],)
 
-        if record['children']['M'] is not None:
-            output += "\033[94msex distribution :\033[0m {}M {}F\n".format(
-                record['children']['M'], record['children']["F"])
+            # switch to age in years old if age > 2 years old
+            min_age = "{:.1f}mo".format(record['children']['min_age']) if record['children'][
+                                                    'min_age'] < 24 else "{:.1f}yo".format(record['children']['min_age'] / 12)
+            max_age = "{:.1f}mo".format(record['children']['max_age']) if record['children'][
+                                                    'max_age'] < 24 else "{:.1f}yo".format(record['children']['max_age'] / 12)
+            output += "\033[94mage range :\033[0m {} to {}\n".format(
+                min_age, max_age)
 
-        output += "\033[94mlanguages :\033[0m"
-        for language in record['children']['languages']:
-            output += " {} {};".format(
-                language, record['children']['languages'][language])
-        output += "\n"
+            if record['children']['M'] is not None:
+                output += "\033[94msex distribution :\033[0m {}M {}F\n".format(
+                    record['children']['M'], record['children']["F"])
 
-        if record['children']['monolingual'] is not None:
-            output += "\033[94mmonolinguality :\033[0m {}mono {}multi\n".format(
-                record['children']['monolingual'], record['children']["multilingual"])
+            output += "\033[94mlanguages :\033[0m"
+            for language in record['children']['languages']:
+                output += " {} {};".format(
+                    language, record['children']['languages'][language])
+            output += "\n"
 
-        if record['children']['normative'] is not None:
-            output += "\033[94mnormativity :\033[0m {}norm {}non-norm\n".format(
-                record['children']['normative'], record['children']["non-normative"])
+            if record['children']['monolingual'] is not None:
+                output += "\033[94mmonolinguality :\033[0m {}mono {}multi\n".format(
+                    record['children']['monolingual'], record['children']["multilingual"])
 
-        output += "\n\033[1mannotations:\033[0m\n"
-        output += am.get_sets_metadata('lslike', human=True)
+            if record['children']['normative'] is not None:
+                output += "\033[94mnormativity :\033[0m {}norm {}non-norm\n".format(
+                    record['children']['normative'], record['children']["non-normative"])
 
+            output += "\n\033[1mannotations:\033[0m\n"
+            output += am.get_sets_metadata('lslike', human=True)
 
+            logger.info(output)
 
-        logger.info(output)
-
+    if args.format == 'json':
+        logger.info(json.dumps(dict))
 
 @subcommand(
     [arg("source", help="source data path"), arg("variable", help="name of the variable")]

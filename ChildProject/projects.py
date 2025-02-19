@@ -438,14 +438,14 @@ class ChildProject:
         record = {
             'recordings': {
               'count': self.recordings.shape[0],
-              'duration': self.recordings['duration'].sum() if 'duration' in self.recordings.columns else None,
+              'duration': int(self.recordings['duration'].sum()) if 'duration' in self.recordings.columns else None,
               'first_date': self.recordings[self.recordings['date_iso'] != 'NA']['date_iso'].min(),
               'last_date': self.recordings[self.recordings['date_iso'] != 'NA']['date_iso'].max(),
               'discarded': self.discarded_recordings.shape[0],
               'devices': {
                   device: {
                       'count': self.recordings[self.recordings['recording_device_type'] == device].shape[0],
-                      'duration': self.recordings[self.recordings['recording_device_type'] == device]['duration'].sum() if 'duration' in self.recordings.columns else None,
+                      'duration': int(self.recordings[self.recordings['recording_device_type'] == device]['duration'].sum()) if 'duration' in self.recordings.columns else None,
                   } for device in self.recordings['recording_device_type'].unique()}
               },
             'children': {

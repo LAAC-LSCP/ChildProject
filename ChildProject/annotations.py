@@ -593,20 +593,22 @@ class AnnotationManager:
         else:
             raise ValueError(f"warning argument must be in ['log','return','ignore']")
 
-    def get_sets_metadata(self, format: str = 'dataframe', delimiter=None, escape_char='"', header=True, human=False):
+    def get_sets_metadata(self, format: str = 'dataframe', delimiter=None, escapechar='"', header=True, human=False,
+                          sort_by='set', sort_ascending=True):
         """return metadata about the sets"""
         sets = self._read_sets_metadata()
         annots = self.annotations.copy().set_index('set')
         durations = (annots['range_offset'] - annots['range_onset']).groupby('set').sum()
         sets = sets.merge(durations.rename('duration'), how='left', on='set')
+        sets = sets.sort_values(sort_by, ascending=sort_ascending)
 
         if format == 'dataframe':
             return sets
         elif format == 'lslike':
             return self.get_printable_sets_metadata(sets, delimiter if delimiter is not None else " ", header, human)
         elif format == 'csv':
-            return df.to_csv(None, index=True, delimiter=delimiter if delimiter is not None else ',',
-                             escape_char=escape_char, header=header)
+            return sets.to_csv(None, index=True, sep=delimiter if delimiter is not None else ',',
+                             escapechar=escapechar, header=header)
         else:
             raise ValueError(f"format <{format}> is unknown please use one the documented formats")
 
