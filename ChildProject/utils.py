@@ -2,16 +2,7 @@ import os
 from datetime import datetime
 import numpy as np
 import pandas as pd
-
-def path_is_parent(parent_path: str, child_path: str):
-    # Smooth out relative path names, note: if you are concerned about symbolic links, you should use os.path.realpath too
-    parent_path = os.path.abspath(parent_path)
-    child_path = os.path.abspath(child_path)
-
-    # Compare the common path of the parent and child path with the common path of just the parent path. Using the commonpath method on just the parent path will regularise the path name in the same way as the comparison that deals with both paths, removing any trailing path separator
-    return os.path.commonpath([parent_path]) == os.path.commonpath(
-        [parent_path, child_path]
-    )
+from pathlib import Path
 
 
 class Segment:
@@ -24,7 +15,72 @@ class Segment:
 
     def __repr__(self):
         return "Segment([{}, {}])".format(self.start, self.stop)
-                
+
+def df_to_printable(df : pd.DataFrame, delimiter:str=' ' , header:bool=False) -> str:
+    """Takes a DataFrame and create a terminal printable string representing the output within a reasonable window
+    options to have an aligned (like ls -l) output or parsable (with defined delimiter) in the order given
+
+    :param df: pandas DataFrame containing the data to print
+    :type df: pd.DataFrame
+    :param delimiter: Character delimiting fields, when char is in the fields, escape those with the escape char
+    :type delimiter: str
+    :param visual: Whether to align the columns of the output and ignores escaping characters (output is not parsable)
+    :type visual: bool
+    :param escape_char: Character escaping fields when those contain the delimiting char
+    :type escape_char: str
+    :param header: First line of the output is the header, containing the name of the columns
+    :type header: bool
+    :return: representation of the dataframe
+    :rtype: str
+    """
+    if len(delimiter) != 1: raise ValueError(f"Invalid Delimiter {delimiter}, should be 1 character")
+    df = df.fillna('').astype(str)
+    result = f""
+    colsizes = {}
+    for col in df.columns:
+        colsizes[col] = df[col].astype(str).str.len().max() if df[col].astype(str).str.len().max() > len(col) else len(col)
+    if header:
+        first_col = True
+        for col in colsizes.keys():
+            # add a delimiter if not in te first column
+            result += delimiter if not first_col else ""
+            first_col = False
+            result += col.rjust(colsizes[col])
+        result += "\n"
+    record = df.to_dict(orient='index')
+    for row in record:
+        first_col = True
+        for col in colsizes.keys():
+            # add a delimiter if not in te first column
+            result += delimiter if not first_col else ""
+            first_col = False
+            result += record[row][col].rjust(colsizes[col])
+        result += f"{delimiter}\033[94m{row}\033[0m\n"
+    return result
+
+def printable_unit_duration(duration):
+    """from a duration in milliseconds, returns a string with an appropriate unit between ms, seconds, minutes and hours
+
+    :param duration: duration in milliseconds
+    :type duration: int
+    :return: converted duration with unit letter
+    :rtype: str
+    """
+    # start big, most recs are long so this will often reduce te number of tests
+    # shorter than 1 hour
+    if duration < (1000 * 60 * 60):
+        # shorter than a minute
+        if duration < (1000 * 60):
+            # shorter than a second
+            if duration < (1000):
+                return f"{duration}ms"
+            else:
+                return f"{round(duration / 1000, 1)}s"
+        else:
+            return f"{round(duration / (1000 * 60),1)}m"
+    else:
+        return f"{round(duration / (1000 * 60 * 60), 1)}h"
+
 def retry_func( func : callable , excep: Exception, tries : int = 3, **kwargs):
     for i in range(tries):
         try:
@@ -111,17 +167,17 @@ def time_intervals_intersect(ti1 : TimeInterval, ti2 : TimeInterval):
         else : i += 1
     return r
 
-def get_audio_duration(filename):
+def get_audio_duration(filename: Path):
     from soundfile import info
 
-    if not os.path.exists(filename):
+    if not filename.exists():
         print('Warning: could not find file {}, setting duration to 0'.format(filename))
         return 0
 
     duration = 0
     try:
-        duration = info(filename).duration
-    except:
+        duration = info(str(filename)).duration
+    except Exception as e:
         print('Warning: could not read duration for {}, setting duration to 0'.format(filename))
         pass
 
@@ -267,4 +323,5 @@ def series_to_datetime(time_series, time_index_list, time_column_name:str, date_
         for frmt in time_formats:
             series = series.fillna(pd.to_datetime(time_sr, format=frmt, errors="coerce"))
     return series
-    
+
+

@@ -216,7 +216,7 @@ class Metrics(ABC):
         super().__init_subclass__(**kwargs)
         pipelines[cls.SUBCOMMAND] = cls
 
-    def _process_unit(self,row):
+    def _process_unit(self, row):
         """for one unit (i.e. 1 {recording|session|child} [period]) compute the list of required metrics and store the results in the current row of self.metrics
         
         :param row: index and Series of the unit to process, to be modified with the results
@@ -386,10 +386,11 @@ class Metrics(ABC):
             else:
                 return np.nan
         
-        #get and add to dataframe recordings.csv columns asked
+        # get and add to dataframe recordings.csv columns asked
         if self.rec_cols:
             for label in self.rec_cols:
-                self.metrics[label] = self.metrics.apply(lambda row : check_unicity(row,label),axis=1)
+                self.metrics[label] = self.metrics.apply(lambda row: check_unicity(row, label), axis=1)
+
                 
 class CustomMetrics(Metrics):
     """metrics extraction from a csv file. 
@@ -777,6 +778,12 @@ class MetricsPipeline(Pipeline):
         parser.add_argument(
             "--child-cols",
             help="comma separated columns from children.csv to include in the outputted metrics (optional), NA if ambiguous",
+            default=None,
+        )
+
+        parser.add_argument(
+            "--set-cols",
+            help="comma separated columns from the set metadata to include in the outputted metrics (optional), NA if ambiguous",
             default=None,
         )
         

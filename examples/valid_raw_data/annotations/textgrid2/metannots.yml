@@ -1,0 +1,16 @@
+segmentation: 'textgrid2'
+segmentation_type: 'permissive'
+method: 'manual'
+sampling_method: 'high-volubility'
+sampling_target: 'fem'
+sampling_count: 17
+sampling_unit_duration: 50000
+recording_selection: 'all recordings'
+participant_selection: '1 to 2 yo'
+annotator_name: 'Ivan Ciao'
+annotator_experience: 5
+date_annotation: '2019-07-16'
+has_speaker_type: 'Y'
+has_transcription: 'Y'
+has_vcm_type: 'Y'
+has_addressee: 'N'

@@ -1,0 +1,16 @@
+segmentation: 'eaf_basic'
+segmentation_type: 'permissive'
+method: 'manual'
+sampling_method: 'periodic'
+sampling_count: 15
+sampling_unit_duration: 3000
+recording_selection: 'all the recordings'
+participant_selection: 'all the participants'
+annotator_name: 'Valentino Mayer'
+annotator_experience: 2
+date_annotation: '2022-03-17'
+has_speaker_type: 'Y'
+has_transcription: 'Y'
+has_interactions: 'N'
+has_vcm_type: 'Y'
+

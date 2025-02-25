@@ -1,11 +1,12 @@
 import datetime
 from functools import partial
-import glob
+import logging
 import numpy as np
 import os
 import pandas as pd
 import re
-import subprocess
+from typing import Union
+from pathlib import Path
 
 from .tables import (
     IndexTable,
@@ -14,19 +15,23 @@ from .tables import (
     assert_dataframe,
     assert_columns_presence,
 )
-from .utils import get_audio_duration, path_is_parent
+from .utils import get_audio_duration
 
-RAW_RECORDINGS = os.path.normpath("recordings/raw")
-CONVERTED_RECORDINGS = os.path.normpath("recordings/converted")
+RAW_RECORDINGS = Path("recordings/raw")
+CONVERTED_RECORDINGS = Path("recordings/converted")
 STANDARD_SAMPLE_RATE = 16000
-STANDARD_PROFILE = 'standard' # profile that is expected to contain the standardized audios (16kHz). The existence and sampling rates of this profile are checked when <validating this profile> or <validating without profile and the raw recordings are not 16kHz>.
+STANDARD_PROFILE = Path('standard') # profile that is expected to contain the standardized audios (16kHz). The existence and sampling rates of this profile are checked when <validating this profile> or <validating without profile and the raw recordings are not 16kHz>.
+DOCUMENTATION = Path('docs')
+EXTRA = Path('extra')
 
-METADATA_FOLDER = 'metadata'
-CHILDREN_CSV = 'children.csv'
-RECORDINGS_CSV = 'recordings.csv'
+METADATA_FOLDER = Path('metadata')
+CHILDREN_CSV = Path('children.csv')
+RECORDINGS_CSV = Path('recordings.csv')
 
-PROJECT_FOLDERS = ["recordings", "annotations", "metadata", "doc", "scripts"]
-
+# Create a logger for the module (file)
+logger_project = logging.getLogger(__name__)
+# messages are propagated to the higher level logger (ChildProject), used in cmdline.py
+logger_project.propagate = True
 
 class ChildProject:
     """ChildProject instance
@@ -49,8 +54,6 @@ class ChildProject:
     :param children: pandas dataframe representation of this dataset metadata/children.csv 
     :type children: class:`pd.DataFrame`
     """
-
-    REQUIRED_DIRECTORIES = ["recordings", "extra"]
 
     CHILDREN_COLUMNS = [
         IndexColumn(
@@ -193,6 +196,7 @@ class ChildProject:
             name="duration",
             description="duration of the audio, in milliseconds",
             regex=r"([0-9]+)",
+            dtype='Int64',
         ),
         IndexColumn(
             name="session_id",
@@ -272,9 +276,9 @@ class ChildProject:
     REC_COL_REF = {c.name: c for c in RECORDINGS_COLUMNS}
 
     def __init__(
-        self, path: str, enforce_dtypes: bool = False, ignore_discarded: bool = True
+        self, path: Union[Path, str], enforce_dtypes: bool = True, ignore_discarded: bool = True
     ):
-        self.path = path
+        self.path = Path(path)
         self.experiment = None
         self.enforce_dtypes = enforce_dtypes
         self.ignore_discarded = ignore_discarded
@@ -283,6 +287,9 @@ class ChildProject:
         self.warnings = []
         self.children = None
         self.recordings = None
+
+        self.discarded_children = None
+        self.discarded_recordings = None
 
         self.children_metadata_origin = None
         self.recordings_metadata_origin = None
@@ -297,15 +304,15 @@ class ChildProject:
         merge_column: str,
         verbose=False,
     ) -> pd.DataFrame:
-        md_path = os.path.join(self.path, METADATA_FOLDER, table)
+        md_path = self.path / METADATA_FOLDER / table
 
-        if not os.path.exists(md_path):
+        if not md_path.exists():
             return df
 
         md = pd.DataFrame(
             [
-                {"path": f, "basename": os.path.basename(f)}
-                for f in glob.glob(os.path.join(md_path, "**/*.csv"), recursive=True)
+                {"path": f, "basename": f.name}
+                for f in md_path.rglob("*.csv")
             ]
         )
 
@@ -325,7 +332,7 @@ class ChildProject:
                     "\n".join(
                         duplicates.apply(
                             lambda d: "{} found as {}".format(
-                                ",".join(d["basename"]), d["paths"]
+                                ",".join(d["basename"]), d["path"]
                             ),
                             axis=1,
                         ).tolist()
@@ -334,7 +341,7 @@ class ChildProject:
             )
 
         for md in md["path"].tolist():
-            if not os.path.exists(md):
+            if not md.exists():
                 continue
 
             table = IndexTable(table, md, columns, enforce_dtypes=self.enforce_dtypes)
@@ -344,7 +351,7 @@ class ChildProject:
                 merge_column
             }
             if verbose and len(replaced_columns):
-                print(
+                logger_project.warning(
                     "column(s) {} overwritten by {}".format(
                         ",".join(replaced_columns), md
                     )
@@ -371,19 +378,21 @@ class ChildProject:
         """
         self.ct = IndexTable(
             "children",
-            os.path.join(self.path, METADATA_FOLDER,CHILDREN_CSV),
+            self.path / METADATA_FOLDER / CHILDREN_CSV,
             self.CHILDREN_COLUMNS,
             enforce_dtypes=self.enforce_dtypes,
         )
         self.rt = IndexTable(
             "recordings",
-            os.path.join(self.path, METADATA_FOLDER,RECORDINGS_CSV),
+            self.path / METADATA_FOLDER / RECORDINGS_CSV,
             self.RECORDINGS_COLUMNS,
             enforce_dtypes=self.enforce_dtypes,
         )
 
         self.children = self.ct.read()
         self.recordings = self.rt.read()
+        self.discarded_recordings = pd.DataFrame(columns=[col.name for col in self.RECORDINGS_COLUMNS if col.required])
+        self.discarded_children = pd.DataFrame(columns=[col.name for col in self.CHILDREN_COLUMNS if col.required])
 
         # accumulate additional metadata (optional)
         if accumulate:
@@ -400,20 +409,62 @@ class ChildProject:
 
         if self.ignore_discarded and "discard" in self.ct.df:
             self.ct.df['discard'] = self.ct.df["discard"].apply(np.nan_to_num).astype(int, errors='ignore')
+            self.discarded_children = self.ct.df[self.ct.df["discard"].astype(str) == "1"]
             self.ct.df = self.ct.df[self.ct.df["discard"].astype(str) != "1"]
 
         if self.ignore_discarded and "discard" in self.rt.df:
             self.rt.df['discard'] = self.rt.df["discard"].apply(np.nan_to_num).astype(int, errors='ignore')
+            self.discarded_recordings = self.rt.df[self.rt.df['discard'].astype(str) == '1']
             self.rt.df = self.rt.df[self.rt.df["discard"].astype(str) != "1"]
 
         self.children = self.ct.df
         self.recordings = self.rt.df
-        
-        exp = self.children.iloc[0]['experiment']
+
+        # not sure what to use if no row in children, let's just put the folder name as a replacement?
+        exp = self.children.iloc[0]['experiment'] if self.children.shape[0] else self.path.name
         exp_values = set(self.children['experiment'].unique()).union(set(self.recordings['experiment'].unique()))
         if len(exp_values) > 1:
             raise ValueError(f"Column <experiment> must be unique across the dataset, in both children.csv and recordings.csv , {len(exp_values)} different values were found: {exp_values}")
         self.experiment = exp
+
+    def dict_summary(self):
+        if self.recordings is None:
+            self.read()
+        ages = self.compute_ages()
+        languages = (set(self.children['languages'].apply(
+                            lambda x: [name.split(' ')[0] for name in x.split(';')]).explode()) if 'languages' in self.children.columns else
+                     set(self.children['language'].apply(lambda x: x.split(' ')[0])) if 'language' in self.children.columns else set())
+
+        record = {
+            'recordings': {
+              'count': self.recordings.shape[0],
+              'duration': int(self.recordings['duration'].sum()) if 'duration' in self.recordings.columns else None,
+              'first_date': self.recordings[self.recordings['date_iso'] != 'NA']['date_iso'].min(),
+              'last_date': self.recordings[self.recordings['date_iso'] != 'NA']['date_iso'].max(),
+              'discarded': self.discarded_recordings.shape[0],
+              'devices': {
+                  device: {
+                      'count': self.recordings[self.recordings['recording_device_type'] == device].shape[0],
+                      'duration': int(self.recordings[self.recordings['recording_device_type'] == device]['duration'].sum()) if 'duration' in self.recordings.columns else None,
+                  } for device in self.recordings['recording_device_type'].unique()}
+              },
+            'children': {
+                'count': self.children.shape[0],
+                'min_age': ages.min(),
+                'max_age': ages.max(),
+                'M': self.children[self.children['child_sex'].str.upper() == 'M'].shape[0] if 'child_sex' in self.children.columns else None,
+                'F': self.children[self.children['child_sex'].str.upper() == 'F'].shape[0] if 'child_sex' in self.children.columns else None,
+                'languages': {
+                    language: self.children[(self.children['languages'].str.contains(language) if 'languages' in self.children.columns else False) |
+                                            (self.children['language'].str.contains(language) if 'language' in self.children.columns else False)].shape[0]
+                for language in languages},
+                'monolingual': self.children[self.children['monoling'] == 'Y'].shape[0] if 'monoling' in self.children.columns else None,
+                'multilingual': self.children[self.children['monoling'] == 'N'].shape[0] if 'monoling' in self.children.columns else None,
+                'normative': self.children[self.children['normative'] == 'Y'].shape[0] if 'normative' in self.children.columns else None,
+                'non-normative': self.children[self.children['normative'] == 'N'].shape[0] if 'normative' in self.children.columns else None,
+            }
+        }
+        return record
         
     def write_recordings(self, keep_discarded: bool = True, keep_original_columns: bool = True):
         """
@@ -430,28 +481,16 @@ class ChildProject:
         if self.recordings is None:
             #logger to add (can not write recordings file as recordings is not initialized)
             return None
-        #get the file as reference point
-        current_csv = pd.read_csv(os.path.join(self.path, METADATA_FOLDER,RECORDINGS_CSV))
         
-        if 'discard' in current_csv.columns and keep_discarded:
-            # put the discard column into a usable form
-            current_csv['discard'] = current_csv['discard'].apply(np.nan_to_num).astype(int, errors='ignore')
-            # keep the discarded lines somewhere
-            discarded_recs = current_csv[current_csv['discard'].astype(str) == "1"]
-            
-            recs_to_write = pd.concat([self.recordings,discarded_recs])
+        if keep_discarded:
+            recs_to_write = pd.concat([self.recordings, self.discarded_recordings])
             recs_to_write = recs_to_write.astype(self.recordings.dtypes.to_dict())
         else:
             recs_to_write = self.recordings
+
+        columns = self.recordings.columns
             
-        if keep_original_columns:
-            columns = current_csv.columns
-            for new in self.recordings.columns:
-                if new not in columns : columns = columns.append(pd.Index([new]))
-        else:
-            columns = self.recordings.columns
-            
-        recs_to_write.sort_index().to_csv(os.path.join(self.path, METADATA_FOLDER, RECORDINGS_CSV),columns = columns,index=False)
+        recs_to_write.sort_index().to_csv(self.path / METADATA_FOLDER / RECORDINGS_CSV,columns = columns,index=False)
         return recs_to_write
 
     def validate(self, ignore_recordings: bool = False, profile: str = None, accumulate: bool = True) -> tuple:
@@ -468,12 +507,6 @@ class ChildProject:
         """
         self.errors = []
         self.warnings = []
-
-        directories = [d for d in os.listdir(self.path) if os.path.isdir(self.path)]
-
-        for rd in self.REQUIRED_DIRECTORIES:
-            if rd not in directories:
-                self.errors.append("missing directory {}.".format(rd))
 
         # check tables
         self.read(verbose=True, accumulate=accumulate)
@@ -508,25 +541,20 @@ class ChildProject:
                         path = self.get_recording_path(raw_filename, profile)
                     except:
                         if profile:
-                            profile_metadata = os.path.join(
-                                self.path,
-                                CONVERTED_RECORDINGS,
-                                profile,
-                                RECORDINGS_CSV,
-                            )
+                            profile_metadata = self.path / CONVERTED_RECORDINGS / profile / RECORDINGS_CSV
                             self.errors.append(
                                 f"failed to recover the path for recording '{raw_filename}' and profile '{profile}'. Does the profile exist? Does {profile_metadata} exist?"
                             )
                         continue
 
-                    if os.path.exists(path):
+                    if path.exists():
                         if not profile:
-                            info = mediainfo(path)
+                            info = mediainfo(str(path))
                             if 'sample_rate' not in info or int(info['sample_rate']) != STANDARD_SAMPLE_RATE:
                                 try:
                                     std_path = self.get_recording_path(raw_filename, STANDARD_PROFILE)
-                                    if os.path.exists(std_path):
-                                        std_info = mediainfo(std_path)
+                                    if std_path.exists():
+                                        std_info = mediainfo(str(std_path))
                                         if 'sample_rate' not in std_info:
                                             self.warnings.append(
                                                 f"Could not read the sample rate of converted version of recording '{raw_filename}' at '{std_path}'. {STANDARD_SAMPLE_RATE}Hz is expected for profile {STANDARD_PROFILE}")
@@ -540,17 +568,17 @@ class ChildProject:
                                             self.warnings.append(
                                                 f"Could not read the sample rate of recording '{raw_filename}' at '{path}' and no standard conversion in profile {STANDARD_PROFILE} was found. Does the standard profile exist? Does {profile_metadata} exist? you can create the standard profile with 'child-project process {self.path} {STANDARD_PROFILE} basic --format=wav --sampling={STANDARD_SAMPLE_RATE} --codec=pcm_s16le --skip-existing'")
                                 except:
-                                    profile_metadata = os.path.join(self.path,CONVERTED_RECORDINGS,STANDARD_PROFILE,RECORDINGS_CSV,)
+                                    profile_metadata = self.path / CONVERTED_RECORDINGS / STANDARD_PROFILE / RECORDINGS_CSV
                                     if 'sample_rate' in info:
                                         self.warnings.append(f"recording '{raw_filename}' at '{path}' has a non standard sampling rate of {info['sample_rate']}Hz and no standard conversion in profile {STANDARD_PROFILE} was found. Does the standard profile exist? Does {profile_metadata} exist? you can create the standard profile with 'child-project process {self.path} {STANDARD_PROFILE} basic --format=wav --sampling={STANDARD_SAMPLE_RATE} --codec=pcm_s16le --skip-existing'")
                                     else:
                                         self.warnings.append(f"Could not read the sample rate of recording '{raw_filename}' at '{path}' and no standard conversion in profile {STANDARD_PROFILE} was found. Does the standard profile exist? Does {profile_metadata} exist? you can create the standard profile with 'child-project process {self.path} {STANDARD_PROFILE} basic --format=wav --sampling={STANDARD_SAMPLE_RATE} --codec=pcm_s16le --skip-existing'")
                         elif profile == STANDARD_PROFILE:
-                            info = mediainfo(path)
+                            info = mediainfo(str(path))
                             if 'sample_rate' in info and int(info['sample_rate']) != STANDARD_SAMPLE_RATE:
                                 self.warnings.append(f"recording '{raw_filename}' at '{path}' has unexpected sampling rate {info['sample_rate']}Hz when {STANDARD_SAMPLE_RATE}Hz is expected for profile {STANDARD_PROFILE}")
                     
-                    elif os.path.islink(path):
+                    elif path.is_symlink():
                         message = self.warnings.append(f"the data content of recording '{raw_filename}' at path '{path}' is absent. See 'broken symlinks'") #The path is valid but there's no content. See broken symlinks (try 'Datalad get $filename')
                     else:    
                         message = f"cannot find recording '{raw_filename}' at '{path}'"
@@ -590,29 +618,38 @@ class ChildProject:
         ]
 
         indexed_files = [
-            os.path.abspath(os.path.join(self.path, RAW_RECORDINGS, str(f)))
+            (self.path / RAW_RECORDINGS / str(f)).absolute()
             for f in pd.core.common.flatten(files)
         ]
 
-        recordings_files = glob.glob(
-            os.path.join(os.path.normcase(self.path), RAW_RECORDINGS, "**/*.*"), recursive=True
-        )
+        discarded_files = [
+            self.discarded_recordings[c.name].tolist()
+            for c in self.RECORDINGS_COLUMNS
+            if c.filename and c.name in self.recordings.columns
+        ]
+
+        indexed_discarded_files = [
+            (self.path / RAW_RECORDINGS / str(f)).absolute()
+            for f in pd.core.common.flatten(discarded_files)
+        ]
+
+        recordings_files = (self.path / RAW_RECORDINGS).rglob("*.*")
 
         for rf in recordings_files:
-            if len(os.path.splitext(rf)) > 1 and os.path.splitext(rf)[1] in [
+            if rf.suffix in [
                 ".csv",
                 ".xls",
                 ".xlsx",
             ]:
                 continue
 
-            ap = os.path.abspath(rf)
-            if ap not in indexed_files:
+            ap = rf.absolute()
+            if ap not in indexed_files and ap not in indexed_discarded_files:
                 self.warnings.append("file '{}' not indexed.".format(rf))
 
         return self.errors, self.warnings
 
-    def get_recording_path(self, recording_filename: str, profile: str = None) -> str:
+    def get_recording_path(self, recording_filename: str, profile: str = None) -> Path:
         """return the path to a recording
 
         :param recording_filename: recording filename, as in the metadata
@@ -631,11 +668,9 @@ class ChildProject:
             if converted_filename is None:
                 return None
 
-            return os.path.join(
-                os.path.normcase(self.path), CONVERTED_RECORDINGS, profile, os.path.normpath(converted_filename),
-            )
+            return self.path / CONVERTED_RECORDINGS / profile / converted_filename
         else:
-            return os.path.join(os.path.normcase(self.path), RAW_RECORDINGS, os.path.normpath(recording_filename))
+            return self.path / RAW_RECORDINGS / recording_filename
 
     def get_converted_recording_filename(
         self, profile: str, recording_filename: str
@@ -657,9 +692,7 @@ class ChildProject:
             return self.converted_recordings_hashtable[key]
 
         converted_recordings = pd.read_csv(
-            os.path.join(
-                self.path, CONVERTED_RECORDINGS, profile, RECORDINGS_CSV
-            )
+            self.path / CONVERTED_RECORDINGS / profile / RECORDINGS_CSV
         )
         converted_recordings.dropna(subset=["converted_filename"], inplace=True)
 
@@ -678,21 +711,22 @@ class ChildProject:
             self.converted_recordings_hashtable[key] = None
             return None
 
-    def recording_from_path(self, path: str, profile: str = None) -> str:
+    def recording_from_path(self, path: Path, profile: str = None) -> str:
+        path = Path(path)
         if profile:
             raise NotImplementedError(
                 "cannot recover recording from the path to a converted media yet"
             )
-            # media_path = os.path.join(self.path, CONVERTED_RECORDINGS, profile)
+            # media_path = self.path / CONVERTED_RECORDINGS /profile
         else:
-            media_path = os.path.join(self.path, RAW_RECORDINGS)
+            media_path = self.path / RAW_RECORDINGS
 
-        if not path_is_parent(media_path, path):
+        try:
+            return str(path.relative_to(media_path))
+        except ValueError as e:
+            # ValueError is raised when path is not a subpath of media_folder (i.e. rec does not exist)
             return None
 
-        recording = os.path.relpath(path, media_path)
-
-        return recording
 
     def get_recordings_from_list(
         self, recordings: list, profile: str = None
@@ -728,7 +762,8 @@ class ChildProject:
                 recs = pd.Series(recordings)
                 missing_recs = recs[~recs.isin(self.recordings['recording_filename'])].tolist()
                 #self.recordings[~self.recordings['recording_filename'].isin(recordings)]['recording_filename'].tolist()
-                raise ValueError("recordings {} were not found in the dataset index. Check the names and make sure they exist in '{}'".format(missing_recs,os.path.join(METADATA_FOLDER,RECORDINGS_CSV)))
+                raise ValueError("recordings {} were not found in the dataset index. Check the names and make sure\
+                 they exist in '{}'".format(missing_recs, METADATA_FOLDER/RECORDINGS_CSV))
                 
 
         return _recordings
@@ -850,9 +885,9 @@ class ChildProject:
         documentation = []
 
         for doc in docs:
-            path = os.path.join(self.path, "docs", f"{doc}.csv")
+            path = self.path / DOCUMENTATION / f"{doc}.csv"
 
-            if not os.path.exists(path):
+            if not path.exists():
                 continue
 
             table = IndexTable(f"{doc}-documentation", path, self.DOCUMENTATION_COLUMNS)

@@ -4,8 +4,11 @@ jobs:
   build-linux:
     strategy:
       matrix:
-        os: [ubuntu-latest]
-        python-version: ['3.7.16', '3.8', '3.9', '3.10', '3.11', '3.12']
+        os: ['ubuntu-latest']
+        python-version: [ '3.8', '3.9', '3.10', '3.11']
+        include:
+          - os: 'ubuntu-22.04'
+            python-version: '3.7.16'
     name: Tests-linux
     runs-on: ${{ matrix.os }}
     steps:

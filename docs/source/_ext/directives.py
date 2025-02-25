@@ -3,6 +3,8 @@ from docutils.parsers.rst import Directive
 from docutils.parsers.rst.directives.tables import CSVTable
 from docutils import Component
 
+import re
+
 from inspect import getmembers, isfunction, cleandoc
 
 from sphinx.directives.code import CodeBlock
@@ -30,7 +32,9 @@ class CliDoc(CodeBlock):
         if not self.arguments:
             self.arguments = ['bash']
 
-        self.content = ["\n$ {}\n{}".format(command_string, out.decode("utf-8"))]
+        ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+        self.content = "\n$ {}\n{}".format(command_string, out.decode("utf-8"))
+        self.content = [ansi_escape.sub('', self.content)]
 
 from functools import reduce
 import os
@@ -61,7 +65,9 @@ class IndexTable(CSVTable):
         elif array == 'annotations':
             table = [c for c in AnnotationManager.INDEX_COLUMNS if (c.generated or c.required)]
         elif array == 'documentation':
-            table = ChildProject.DOCUMENTATION_COLUMNS                
+            table = ChildProject.DOCUMENTATION_COLUMNS
+        elif array == 'sets-metadata':
+            table = AnnotationManager.SETS_COLUMNS
 
         if not table:
             raise Exception("invalid table '{}'".format(array))

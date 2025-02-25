@@ -1,11 +1,13 @@
 from ChildProject.projects import ChildProject
 from ChildProject.annotations import AnnotationManager
 from ChildProject.converters import *
+from ChildProject.annotations import METANNOTS, ANNOTATIONS
 from functools import partial
 
 import pandas as pd
 import numpy as np
 import datetime
+import re
 import os
 import pytest
 import shutil
@@ -16,6 +18,10 @@ import time
 def standardize_dataframe(df, columns):
     df = df[list(columns)]
     return df.sort_index(axis=1).sort_values(list(columns)).reset_index(drop=True)
+
+def adapt_path(message):
+    path_pattern = r"(?:[a-zA-Z]:)?(?:[\\/][^:\s]+)+"
+    return re.sub(path_pattern, lambda x: str(Path(x.group())), message)
 
 
 DATA = Path('tests', 'data')
@@ -28,7 +34,7 @@ def project(request):
     if os.path.exists(PATH):
         # shutil.copytree(src="examples/valid_raw_data", dst="output/annotations")
         shutil.rmtree(PATH)
-    shutil.copytree(src="examples/valid_raw_data", dst=PATH)
+    shutil.copytree(src="examples/valid_raw_data", dst=PATH, symlinks=True)
 
     project = ChildProject(PATH)
 
@@ -154,7 +160,8 @@ def test_rejected_imports(project, nline, column, value, exception, error):
 
     input_annotations.iloc[nline, input_annotations.columns.get_loc(column)] = value
 
-    print(input_annotations[['range_onset', 'range_offset']])
+    # print(input_annotations[['range_onset', 'range_offset']])
+
 
     with pytest.raises(exception, match=error):
         am.import_annotations(input_annotations)
@@ -190,7 +197,9 @@ def test_import(project, am):
     assert len(errors) == 0 and len(warnings) == 0, "malformed annotations detected"
 
     errors, warnings = am.read()
-    assert len(errors) == 0 and len(warnings) == 0, "malformed annotation indexes detected"
+    assert (len(errors) == 0 and
+            warnings == [f"Metadata files for sets ['vtc_rttm'] could not be found, they should be created as annotations/<set>/metannots.yml", f"Metadata file content for sets ['old_its'] could not be found, it may be downloaded from a remote with the command `datalad get {Path('annotations/**/metannots.yml')}`", "Metadata files for sets contain the following unknown fields ['invented', 'random_field'] which can be found in the metadata for sets ['alice/output', 'textgrid']"]
+            ), "malformed annotation indexes detected"
 
     for dataset in ["eaf_basic", "textgrid", "eaf_solis"]:
         annotations = am.annotations[am.annotations["set"] == dataset]
@@ -198,8 +207,8 @@ def test_import(project, am):
         segments.drop(columns=set(annotations.columns) - {"raw_filename"}, inplace=True)
         truth = pd.read_csv("tests/truth/{}.csv".format(dataset))
 
-        print(segments)
-        print(truth)
+        # print(segments)
+        # print(truth)
 
         pd.testing.assert_frame_equal(
             standardize_dataframe(segments, set(truth.columns.tolist())),
@@ -252,6 +261,8 @@ def test_multiple_imports(project, am, input_file, ow, rimported, rerrors, excep
             rerrors = os.path.join(TRUTH, rerrors)
             # errors.to_csv(rerrors, index=False)
             rerrors = pd.read_csv(rerrors)
+            # adapt path inside errors to system
+            rerrors['error'] = rerrors['error'].apply(adapt_path)
             pd.testing.assert_frame_equal(rerrors.reset_index(drop=True),
                                           errors.drop(['imported_at', 'package_version'], axis=1).reset_index(
                                               drop=True),
@@ -275,14 +286,16 @@ def test_multiple_imports(project, am, input_file, ow, rimported, rerrors, excep
         ), "some annotations are missing"
 
         errors, warnings = am.validate()
-        print(errors)
-        print(warnings)
+        # print(errors)
+        # print(warnings)
         assert len(errors) == 0 and len(warnings) == 0, "malformed annotations detected"
 
         errors, warnings = am.read()
-        print(errors)
-        print(warnings)
-        assert len(errors) == 0 and len(warnings) == 0, "malformed annotation indexes detected"
+        # print(errors)
+        # print(warnings)
+        assert (len(errors) == 0 and
+                warnings == ["Metadata files for sets ['vtc_rttm'] could not be found, they should be created as annotations/<set>/metannots.yml", f"Metadata file content for sets ['old_its'] could not be found, it may be downloaded from a remote with the command `datalad get {Path('annotations/**/metannots.yml')}`", "Metadata files for sets contain the following unknown fields ['invented', 'random_field'] which can be found in the metadata for sets ['alice/output', 'textgrid']"]
+                ), "malformed annotation indexes detected"
 
 
 def test_import_incorrect_data_types(project, am):
@@ -339,7 +352,8 @@ def test_derive(project, am, exists, ow):
         additions['set'] = output_set
         am.annotations = pd.concat([am.annotations, additions])
 
-    imported, errors = am.derive_annotations(input_set, output_set, function, overwrite_existing=ow)
+    imported, errors = am.derive_annotations(input_set, output_set, function, overwrite_existing=ow,
+                                             derivation_metadata={'segmentation_type':'restrictive', 'has_words':'Y'})
     assert imported.shape[0] == am.annotations[am.annotations['set'] == input_set].shape[0]
     assert errors.shape[0] == 0
 
@@ -350,6 +364,15 @@ def test_derive(project, am, exists, ow):
     cols = ['imported_at', 'package_version']
     pd.testing.assert_frame_equal(truth.drop(columns=cols).reset_index(drop=True),
                                   imported.drop(columns=cols).reset_index(drop=True))
+    # check metadata
+    current_meta = am.get_sets_metadata()
+    comparison = current_meta.loc[input_set]
+    comparison['segmentation_type'] = 'restrictive'
+    comparison['has_words'] = 'Y'
+    comparison['method'] = 'derivation'
+    comparison['date_annotation'] = datetime.datetime.today().strftime('%Y-%m-%d')
+    comparison = comparison.rename(output_set)
+    pd.testing.assert_series_equal(current_meta.loc[output_set], comparison)
 
 
 # function used for derivation but does not hav correct signature
@@ -468,11 +491,11 @@ def test_merge(project, am):
     input_annotations = input_annotations[
         input_annotations["set"].isin(["vtc_rttm", "alice/output"])
     ]
-    print(input_annotations)
+    # print(input_annotations)
     am.import_annotations(input_annotations)
     am.read()
 
-    print(am.annotations)
+    # print(am.annotations)
     am.read()
     am.merge_sets(
         left_set="vtc_rttm",
@@ -481,7 +504,8 @@ def test_merge(project, am):
         right_columns=["phonemes", "syllables", "words"],
         output_set="alice_vtc",
         full_set_merge=False,
-        recording_filter={'sound.wav'}
+        recording_filter={'sound.wav'},
+        metadata='left',
     )
     am.read()
 
@@ -528,6 +552,14 @@ def test_merge(project, am):
         adult_segments[["phonemes", "syllables", "words"]],
         alice[["phonemes", "syllables", "words"]],
     )
+    # check metadata of set
+    current_meta = am.get_sets_metadata()
+    comparison = current_meta.loc['vtc_rttm'].copy().rename('alice_vtc')
+    comparison['has_speaker_type'] = 'Y'
+    comparison['has_words'] = 'Y'
+    comparison['date_annotation'] = datetime.datetime.today().strftime('%Y-%m-%d')
+
+    pd.testing.assert_series_equal(comparison, current_meta.loc['alice_vtc'])
 
 
 def test_clipping(project, am):
@@ -669,8 +701,7 @@ def test_rename(project, am, old, new, error, mf, index):
             result = am.annotations.sort_values(['set', 'recording_filename', 'range_onset', 'range_offset'])[
                 'merged_from'].astype(str).str.split(',').values.tolist()
             i = 0
-            print(wanted_list)
-            print(result)
+
             while i < len(wanted_list):
                 assert sorted(wanted_list[i]) == sorted(result[i])
                 i += 1
@@ -757,6 +788,96 @@ def test_set_from_path(project, am):
             == "set/subset"
     )
 
+# TODO : Add testing for all the kinds of warnings?
+@pytest.mark.parametrize("metadata_exists,warning,truth_path,warnings,log",
+                             [(True, 'ignore', TRUTH / 'sets_metadata.csv', None, []),
+                              (True, 'return', TRUTH / 'sets_metadata.csv', ["Metadata files for sets ['vtc_rttm'] could not be found, they should be created as annotations/<set>/metannots.yml", f"Metadata file content for sets ['old_its'] could not be found, it may be downloaded from a remote with the command `datalad get {Path('annotations/**/metannots.yml')}`", "Metadata files for sets contain the following unknown fields ['invented', 'random_field'] which can be found in the metadata for sets ['alice/output', 'textgrid']"], []),
+                              (True, 'log', TRUTH / 'sets_metadata.csv', None, [('ChildProject.annotations', 30, "Metadata files for sets ['vtc_rttm'] could not be found, they should be created as annotations/<set>/metannots.yml"), ('ChildProject.annotations', 30, f"Metadata file content for sets ['old_its'] could not be found, it may be downloaded from a remote with the command `datalad get {Path('annotations/**/metannots.yml')}`"), ('ChildProject.annotations', 30, "Metadata files for sets contain the following unknown fields ['invented', 'random_field'] which can be found in the metadata for sets ['alice/output', 'textgrid']")]),
+                              (False, 'ignore', TRUTH / 'sets_empty_metadata.csv', None, []),
+                              (False, 'return', TRUTH / 'sets_empty_metadata.csv', ["Metadata files for sets ['alice/output', 'eaf_basic', 'eaf_solis', 'metrics', 'new_its', 'textgrid', 'textgrid2', 'vtc_present', 'vtc_rttm'] could not be found, they should be created as annotations/<set>/metannots.yml", f"Metadata file content for sets ['old_its'] could not be found, it may be downloaded from a remote with the command `datalad get {Path('annotations/**/metannots.yml')}`"], []),
+                              (False, 'log', TRUTH / 'sets_empty_metadata.csv', None, [('ChildProject.annotations', 30, "Metadata files for sets ['alice/output', 'eaf_basic', 'eaf_solis', 'metrics', 'new_its', 'textgrid', 'textgrid2', 'vtc_present', 'vtc_rttm'] could not be found, they should be created as annotations/<set>/metannots.yml"), ('ChildProject.annotations', 30, f"Metadata file content for sets ['old_its'] could not be found, it may be downloaded from a remote with the command `datalad get {Path('annotations/**/metannots.yml')}`")]),
+                              ])
+def test_read_sets_metadata(project, am, caplog, metadata_exists, warning, truth_path, warnings, log):
+    # rather than importing the annotation sets (which relies on having the importation work correctly
+    # just create a fake annotation record that can be used to load metadata
+    sets = [n if n != 'alice' else 'alice/output' for n in os.listdir(project.path / ANNOTATIONS) if
+            os.path.isdir(project.path / ANNOTATIONS / n)]
+    zeros = [0 for i in range(len(sets))]
+    fields = ['' for i in range(len(sets))]
+
+    am.annotations = pd.DataFrame({'set': sets, 'range_onset': zeros, 'range_offset': zeros,
+                                   'annotation_filename': fields, 'raw_filename': fields})
+
+    if not metadata_exists:
+        for set in am.annotations['set'].unique():
+            if os.path.exists(project.path / ANNOTATIONS / set / METANNOTS):
+                os.remove(project.path / ANNOTATIONS / set / METANNOTS)
+
+    dtypes = {f.name: f.dtype if f.dtype is not None else 'string' for f in AnnotationManager.SETS_COLUMNS}
+    truth_df = pd.read_csv(truth_path, index_col='set', dtype=dtypes, encoding='utf8').drop(columns='duration')
+    return_value = (truth_df, warnings) if warnings is not None else truth_df
+
+    result = am._read_sets_metadata(warning)
+
+    capt_log = caplog.record_tuples
+    # assert capt_stdout == stdout
+    assert capt_log == log
+
+    if type(return_value) == tuple:
+        assert result[1] == return_value[1]
+        pd.testing.assert_frame_equal(return_value[0], result[0], check_like=True, check_dtype=False)
+    else:
+        pd.testing.assert_frame_equal(return_value, result, check_like=True, check_dtype=False)
+
+@pytest.mark.parametrize("metadata_exists,return_value",
+                             [(True, TRUTH / 'sets_metadata.csv'),
+                              (False, TRUTH / 'sets_empty_metadata.csv'),
+                              ])
+def test_get_sets_metadata(project, am, metadata_exists, return_value):
+    # rather than importing the annotation sets (which relies on having the importation work correctly
+    # just create a fake annotation record that can be used to load metadata
+    sets = [n if n != 'alice' else 'alice/output' for n in os.listdir(project.path / ANNOTATIONS) if
+            os.path.isdir(project.path / ANNOTATIONS / n)]
+    zeros = [0 for i in range(len(sets))]
+    fields = ['' for i in range(len(sets))]
+
+    am.annotations = pd.DataFrame({'set': sets, 'range_onset': zeros, 'range_offset': zeros,
+                                   'annotation_filename': fields, 'raw_filename': fields})
+
+    if not metadata_exists:
+        for set in am.annotations['set'].unique():
+            if os.path.exists(project.path / ANNOTATIONS / set / METANNOTS):
+                os.remove(project.path / ANNOTATIONS / set / METANNOTS)
+
+    result = am.get_sets_metadata()
+    # result.to_csv(return_value, index_label='set')
+    dtypes = {f.name: f.dtype if f.dtype is not None else 'string' for f in AnnotationManager.SETS_COLUMNS}
+    pd.testing.assert_frame_equal(pd.read_csv(return_value, index_col='set', dtype=dtypes, encoding='utf-8'), result, check_like=True, check_dtype=False)
+
+
+@pytest.mark.parametrize("sets,delimiter,header,human_readable,error,truth_file",
+             [(pd.read_csv(TRUTH / 'sets_metadata.csv', index_col='set'), " ", True, False, None, TRUTH / 'printable' / 'printable_meta_default.txt'),
+              (pd.read_csv(TRUTH / 'sets_metadata.csv', index_col='set'), "=", True, False, None, TRUTH / 'printable' / 'printable_meta_eq.txt'),
+              (pd.read_csv(TRUTH / 'sets_metadata.csv', index_col='set'), " ", False, False, None, TRUTH / 'printable' / 'printable_meta_no-header.txt'),
+              (pd.read_csv(TRUTH / 'sets_metadata.csv', index_col='set'), " ", True, True, None, TRUTH / 'printable' / 'printable_meta_hr.txt'),
+              (pd.read_csv(TRUTH / 'sets_metadata.csv', index_col='set'), "=", False, False, None, TRUTH / 'printable' / 'printable_meta_eq_no-header.txt'),
+              (pd.read_csv(TRUTH / 'sets_metadata.csv', index_col='set'), " ", False, True, None, TRUTH / 'printable' / 'printable_meta_hr_no-header.txt'),
+              (pd.read_csv(TRUTH / 'sets_metadata.csv', index_col='set'), "=", False, True, None, TRUTH / 'printable' / 'printable_meta_eq_hr_no-header.txt'),
+              (pd.read_csv(TRUTH / 'sets_metadata.csv', index_col='set'), "=", True, True, None, TRUTH / 'printable' / 'printable_meta_eq_hr.txt'),
+              (pd.read_csv(TRUTH / 'sets_metadata.csv', index_col='set'), "xx", True, True, ValueError, None),
+              (pd.DataFrame(), " ", True, False, None, TRUTH / 'printable' / 'printable_meta_empty.txt'),
+              ('notadataframe', " ", True, False, AssertionError, None),
+              ])
+def test_get_printable_sets_metadata(project, am, sets, delimiter, header, human_readable, error, truth_file):
+    if error is not None:
+        with pytest.raises(error):
+            AnnotationManager.get_printable_sets_metadata(sets, delimiter, header, human_readable)
+    else:
+        result = AnnotationManager.get_printable_sets_metadata(sets, delimiter, header, human_readable)
+        print(result)
+        with open(truth_file, 'r') as f: s = f.read().encode('utf-8').decode('unicode_escape')
+        assert result == s
+        # breakpoint()
 
 # its
 def gather_columns_to_dict(start_col, end_col, row):

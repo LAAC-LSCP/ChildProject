@@ -10,6 +10,9 @@ def cli(cmd):
     process = subprocess.Popen(cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
     stdout, stderr = process.communicate()
     exit_code = process.wait()
+    # replace Windows line feeds with posix ones for testing purposes
+    stdout = stdout.replace(b'\r\n', b'\n').decode()
+    stderr = stderr.replace(b'\r\n', b'\n').decode()
     return stdout, stderr, exit_code
 
 
@@ -18,7 +21,7 @@ def project(request):
     if os.path.exists(PATH):
         # shutil.copytree(src="examples/valid_raw_data", dst=PATH)
         shutil.rmtree(PATH)
-    shutil.copytree(src="examples/valid_raw_data", dst=PATH)
+    shutil.copytree(src="examples/valid_raw_data", dst=PATH, symlinks=True)
 
     project = 1
 
@@ -39,6 +42,8 @@ def test_overview(project):
         ["child-project", "overview", PATH]
     )
     assert exit_code == 0
+    assert stdout == f"\n\x1b[1m2 recordings with 0.00 hours 2 locally (1 discarded)\x1b[0m:\n\x1b[94mdate range :\x1b[0m 2020-04-20 to 2020-04-21\n\x1b[94mdevices :\x1b[0m usb (0.00h 2/2 locally);\n\n\x1b[1m1 participants\x1b[0m:\n\x1b[94mage range :\x1b[0m 3.6mo to 3.6mo\n\x1b[94mlanguages :\x1b[0m\n\n\x1b[1mannotations:\x1b[0m\nduration    method algo version       date transcr\n    8.0s automated  VTC       1 2024-04-07         \x1b[94mvtc_present\x1b[0m\n\n"
+    assert stderr == f"\x1b[33mWARNING \x1b[0m column(s) child_dob overwritten by {Path('output/cli/metadata/children/0_test.csv')} \x1b[35m[ChildProject.projects]\x1b[0m\n\x1b[33mWARNING \x1b[0m column(s) notes overwritten by {Path('output/cli/metadata/recordings/1_very_confidential.csv')} \x1b[35m[ChildProject.projects]\x1b[0m\n\x1b[33mWARNING \x1b[0m column(s) date_iso overwritten by {Path('output/cli/metadata/recordings/0_confidential.csv')} \x1b[35m[ChildProject.projects]\x1b[0m\n"
 
 
 def test_init():
@@ -107,6 +112,21 @@ def test_explain(project):
         ]
     )
     assert exit_code == 0
+
+def test_process(project):
+    stdout, stderr, exit_code = cli(
+        [
+            "child-project",
+            "process",
+            PATH,
+            "basic",
+            "standard",
+            "--format=wav",
+            "--sampling=16000",
+            "--codec==pcm_s16le",
+        ]
+    )
+    assert exit_code == 0
     
 def test_compare_recordings(project):
     stdout, stderr, exit_code = cli(
@@ -121,3 +141,15 @@ def test_compare_recordings(project):
         ]
     )
     assert exit_code == 0
+
+def test_sets_metadata(project):
+    stdout, stderr, exit_code = cli(
+        [
+            "child-project",
+            "sets-metadata",
+            PATH,
+        ]
+    )
+    assert exit_code == 0
+    assert stdout == f"duration    method algo version       date transcr\n    8000 automated  VTC       1 2024-04-07         \x1b[94mvtc_present\x1b[0m\n\n"
+    assert stderr == f"\x1b[33mWARNING \x1b[0m column(s) child_dob overwritten by {Path('output/cli/metadata/children/0_test.csv')} \x1b[35m[ChildProject.projects]\x1b[0m\n\x1b[33mWARNING \x1b[0m column(s) notes overwritten by {Path('output/cli/metadata/recordings/1_very_confidential.csv')} \x1b[35m[ChildProject.projects]\x1b[0m\n\x1b[33mWARNING \x1b[0m column(s) date_iso overwritten by {Path('output/cli/metadata/recordings/0_confidential.csv')} \x1b[35m[ChildProject.projects]\x1b[0m\n"

@@ -65,6 +65,7 @@ class Conversations(ABC):
             to_time: str = None,
             rec_cols: str = None, #metadata
             child_cols: str = None, #metadata
+            set_cols: str = None,
             threads: int = 1,
     ):
 
@@ -170,6 +171,21 @@ class Conversations(ABC):
             )
         else:
             self.child_cols = None
+
+        # get existing columns of the dataset for sets
+        correct_cols = set(self.am.sets)
+        if set_cols:
+            # when user requests recording columns, build the list and verify they exist (warn otherwise)
+            set_cols = set(set_cols.split(","))
+            for i in set_cols:
+                if i not in correct_cols:
+                    print(
+                        "Warning, requested column <{}> does not exist in the set metadata, ignoring this column. existing columns are : {}".format(
+                            i, correct_cols))
+            set_cols &= correct_cols
+            # add wanted columns to the one we already get
+            join_columns.update(set_cols)
+        self.set_cols = set_cols
 
         if recordings is None:
             self.recordings = self.project.recordings['recording_filename'].to_list()
@@ -304,6 +320,12 @@ class Conversations(ABC):
             self.conversations = self.conversations.merge(meta, how='left', on='recording_filename')
             if 'child_id' not in self.child_cols:
                 self.conversations.drop(columns=['child_id'])
+        if self.set_cols:
+            for col in self.set_cols:
+                if col not in self.conversations.columns:
+                    self.conversations[col] = self.am.sets.loc[self.set, col]
+                else:
+                    logger_conversations.warning(f"Ignoring required column {col} has it already exists in the result")
 
         if not self.conversations.shape[0]:
             logger_conversations.warning("The extraction did not find any conversation")
@@ -380,6 +402,7 @@ class CustomConversations(Conversations):
             from_time: str = None,
             to_time: str = None,
             rec_cols: str = None,
+            set_cols: str = None,
             child_cols: str = None,
             threads: int = 1,
     ):
@@ -387,7 +410,7 @@ class CustomConversations(Conversations):
 
         super().__init__(project, setname, features_df, recordings=recordings,
                          from_time=from_time, to_time=to_time, rec_cols=rec_cols,
-                         child_cols=child_cols, threads=threads)
+                         child_cols=child_cols, set_cols=set_cols, threads=threads)
 
     @staticmethod
     def add_parser(subparsers, subcommand):
@@ -438,6 +461,7 @@ class StandardConversations(Conversations):
             to_time: str = None,
             rec_cols: str = None,
             child_cols: str = None,
+            set_cols: str = None,
             threads: int = 1,
     ):
 
@@ -460,7 +484,7 @@ class StandardConversations(Conversations):
         super().__init__(project, setname, features, recordings=recordings,
                          from_time=from_time, to_time=to_time,
                          rec_cols=rec_cols, child_cols=child_cols,
-                         threads=threads)
+                         set_cols=set_cols, threads=threads)
 
     @staticmethod
     def add_parser(subparsers, subcommand):
@@ -574,6 +598,12 @@ class ConversationsPipeline(Pipeline):
             "--child-cols",
             help=("comma separated columns from children.csv to include in the outputted conversations (optional),"
                   " NA if ambiguous"),
+            default=None,
+        )
+
+        parser.add_argument(
+            "--set-cols",
+            help="comma separated columns from the set metadata to include in the outputted conversations (optional)",
             default=None,
         )
 

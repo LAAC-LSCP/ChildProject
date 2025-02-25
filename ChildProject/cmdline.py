@@ -19,6 +19,7 @@ from ChildProject import __name__
 from .pipelines.derivations import DERIVATIONS
 
 import argparse
+import warnings
 import os
 from pathlib import Path
 import glob
@@ -26,6 +27,7 @@ import pandas as pd
 import sys
 import random
 import logging
+import json
 
 # add this to setup,py in the requires section and in requirements.txt
 import colorlog
@@ -47,15 +49,33 @@ stream_handler = logging.StreamHandler()
 stream_handler.setFormatter(color_formatter)
 #stream_handler.formatter._fmt = '%(log_color)s%(levelname)-8s%(reset)s  <%(name)s>: %(message)s'
 
+# CLI setup, create a second handler that only handles INFO messages, and with a different format
+# the first one filters out the info messages
+class InfoFilter(logging.Filter):
+    def filter(self, record):
+        return record.levelno == logging.INFO
+class NoInfoFilter(logging.Filter):
+    def filter(self, record):
+        return record.levelno != logging.INFO
+
+clicall_handler = logging.StreamHandler(sys.stdout)
+clicall_handler.addFilter(InfoFilter())
+stream_handler.addFilter(NoInfoFilter())
+
 # Create a logger and add the handlers for CLI calls
 logger = logging.getLogger(__name__)
 logger.addHandler(stream_handler)
+logger.addHandler(clicall_handler)
+
+#config to print to stdout the results from CLI
 logger.setLevel(logging.INFO)
 
 # Setting up the parse of arguments
 parser = argparse.ArgumentParser()
 subparsers = parser.add_subparsers()
 parser.add_argument('--version', action='version', version="{} {}".format(__name__, __version__), help='displays the current version of the package')
+
+parser.add_argument('--verbose', '-v', action='store_true', help='displays future warnings (eg for pandas, numpy)')
 
 def arg(*name_or_flags, **kwargs):
     return (list(name_or_flags), kwargs)
@@ -68,7 +88,7 @@ def get_doc_summary(doc):
 def subcommand(args=[], parent=subparsers):
     def decorator(func):
         parser = parent.add_parser(
-            func.__name__.replace("_", "-"), description=func.__doc__
+            func.__name__.replace("_", "-"), description=func.__doc__, conflict_handler="resolve"
         )
         for arg in args:
             parser.add_argument(*arg[0], **arg[1])
@@ -90,11 +110,7 @@ def perform_validation(project: ChildProject, require_success: bool = True, **ar
 
     if len(errors) > 0:
         if require_success:
-            logger.error(
-                "dataset validation failed, %d error(s) occurred. Cannot continue. Please run the validation procedure to list and correct all errors.",
-                len(errors),
-            )
-            sys.exit(1)
+            raise ValueError(f"dataset validation failed")
         else:
             logger.warning(
                 "dataset validation failed, %d error(s) occurred. Proceeding despite errors; expect failures.",
@@ -106,8 +122,8 @@ def perform_validation(project: ChildProject, require_success: bool = True, **ar
     [
         arg("source", help="project path"),
         arg(
-            "--force","-f",
-            help="ignore existing files and create strcture anyway",
+            "--force", "-f",
+            help="ignore existing files and create structure anyway",
             action="store_true",
         ),
     ]
@@ -116,7 +132,7 @@ def init(args):
     path = Path(args.source)
 
     files = glob.glob(str(path / '*'))
-    if len(files) != 0 :
+    if len(files) != 0 and not args.force:
         raise ValueError("Directory {} not empty, cannot create a project".format(path))
 
     os.makedirs(path / RAW_RECORDINGS, exist_ok=args.force)
@@ -183,7 +199,7 @@ def validate(args):
         annotations = am.annotations
 
         if all(map(lambda x: os.path.exists(x) or os.path.islink(x), args.annotations)):
-            args.annotations = {am.set_from_path(set) for set in args.annotations} - {
+            args.annotations = {am.set_from_path(curr_set) for curr_set in args.annotations} - {
                 None
             }
 
@@ -220,6 +236,57 @@ def validate(args):
         sys.exit(1)
 
     logger.info('validation successfully completed with %d warning(s).', len(warnings))
+
+
+@subcommand(
+    [
+        arg("source", help="project_path", nargs='+'),
+        arg("--format",
+            help="format to output to",
+            default="snapshot",
+            choices=['snapshot', 'csv']),
+        arg("--human-readable", "-h",
+            help="convert units to be more human readable",
+            action='store_true',
+            ),
+        arg("--sort-by",
+            help="sort the table by the given column name(s)",
+            default="set",
+            nargs='+',
+            choices=['set', 'duration'] + [f.name for f in AnnotationManager.SETS_COLUMNS]),
+        arg("--sort-descending",
+            help="sort the table descending instead of ascending",
+            action='store_true',
+            ),
+    ]
+)
+def sets_metadata(args):
+    """get the metadata on all the annotation sets in the dataset"""
+    for source in args.source:
+        try:
+            project = ChildProject(source)
+            perform_validation(project, require_success=True, ignore_recordings=True)
+            am = AnnotationManager(project)
+            am.read()
+        except Exception as e:
+            logger.error(f"{source}: [%s] %s", type(e).__name__, e)
+            continue
+
+        if len(args.source) > 1:
+            logger.info(f"\033[1m\033[35m### {project.recordings['experiment'].iloc[0] if project.recordings.shape[0] else source} ({source}) ###\033[0m")
+
+        # sets = am.get_sets_metadata()
+        # if 'method' not in sets:
+        #     sets['method'] = 'Undefined'
+        # else:
+        #     sets['method'] = sets['method'].fillna('Undefined').replace('', 'Undefined')
+
+        if args.format == 'csv':
+            logger.info(am.get_sets_metadata('csv', sort_by=args.sort_by, sort_ascending=not args.sort_descending))
+        elif args.format == 'snapshot':
+            logger.info(am.get_sets_metadata('lslike', human=args.human_readable, sort_by=args.sort_by,
+                                             sort_ascending=not args.sort_descending))
+
 
 
 @subcommand(
@@ -271,7 +338,7 @@ def import_annotations(args):
     imported, errors_imp = am.import_annotations(annotations, args.threads, overwrite_existing=args.overwrite_existing)
     
     if errors_imp is not None and errors_imp.shape[0] > 0:
-        logger.error('The importation failed for %d entry/ies',errors_imp.shape[0])
+        logger.error('The importation failed for %d entry/ies', errors_imp.shape[0])
         logger.debug(errors_imp)
 
     if imported is not None and imported.shape[0] > 0:
@@ -502,86 +569,100 @@ def rename_annotations(args):
     )
 
 
-@subcommand([arg("source", help="source data path")])
+@subcommand(
+    [
+        arg("source",
+            help="source data path",
+            nargs='+'),
+        arg("--format",
+            help="format to output to",
+            default="snapshot",
+            choices=['snapshot', 'json']),
+    ]
+)
 def overview(args):
     """prints an overview of the contents of a given dataset"""
+    dict = {}
+    for source in args.source:
 
-    project = ChildProject(args.source)
+        try:
+            project = ChildProject(source)
 
-    perform_validation(project, require_success=True, ignore_recordings=True)
+            perform_validation(project, require_success=True, ignore_recordings=True)
 
-    am = AnnotationManager(project)
-    project.read()
+            am = AnnotationManager(project)
+            project.read()
 
-    output = "\n\033[1mrecordings ({:.2f} hours)\033[0m:\n".format(
-        project.recordings.dropna(subset=["recording_filename"])["duration"].sum() / (3600 * 1000)
-    )
+            record = project.dict_summary()
+        except Exception as e:
+            logger.error(f"{source}: [%s] %s", type(e).__name__, e)
+            continue
 
-    _recordings = (
-        project.recordings.dropna(subset=["recording_filename"])
-        .sort_values(["recording_device_type", "date_iso"])
-        .groupby("recording_device_type")
-    )
+        if args.format == 'json':
+            record['annotations'] = am.get_sets_metadata('dataframe').to_dict('index')
+            dict[project.recordings['experiment'].iloc[0] if project.recordings.shape[0] else source] = record
 
-    for recording_device_type, recordings in _recordings:
-        if "duration" in recordings.columns:
-            duration = "{:.2f} hours".format(
-                recordings["duration"].sum() / (3600 * 1000)
-            )
-        else:
-            duration = "unknown duration"
+        elif args.format == 'snapshot':
+            if len(args.source) > 1:
+                logger.info(f"\033[1m\033[35m### {project.recordings['experiment'].iloc[0] if project.recordings.shape[0] else source} ({source}) ###\033[0m")
 
-        available = (
-            recordings["recording_filename"]
-            .apply(
-                lambda recording_filename: 1
-                if os.path.exists(
-                    os.path.join(project.path, "recordings", "raw", recording_filename)
-                )
-                else 0
-            )
-            .sum()
-        )
+            available = project.recordings['recording_filename'].apply(lambda recording_filename: 1
+                            if project.get_recording_path(recording_filename).exists() else 0).sum()
 
-        output += "\033[94m%s\033[0m: %s, %d/%d files locally available\n" % (
-                    recording_device_type, duration, available, len(recordings))
+            # recordings count and total duration
+            output = "\n\033[1m{} recordings with {} hours {} locally ({} discarded)\033[0m:\n".format(
+                record['recordings']['count'], format(record['recordings']["duration"] / 3600000, '.2f') if record['recordings']["duration"] is not None else '?',
+                available, record['recordings']["discarded"])
 
+            output += "\033[94mdate range :\033[0m {} to {}\n".format(
+                record['recordings']['first_date'], record['recordings']["last_date"])
 
-    output += "\n\033[1mannotations\033[0m:\n"
-    _annotations = (
-        am.annotations.dropna(subset=["annotation_filename"])
-        .sort_values(["set", "imported_at"])
-        .drop_duplicates(["set", "annotation_filename"], keep="last")
-        .groupby("set")
-    )
+            output += "\033[94mdevices :\033[0m"
+            for device in record['recordings']['devices']:
+                available = (project.recordings[project.recordings["recording_device_type"] == device]
+                            )['recording_filename'].apply(lambda recording_filename: 1
+                            if project.get_recording_path(recording_filename).exists() else 0).sum()
+                info = record['recordings']['devices'][device]
+                output += " {} ({}h {}/{} locally);".format(
+                    device, format(info['duration'] / 3600000, '.2f') if info['duration'] is not None else '?', available, info['count'])
+            output += "\n"
 
-    for annotation_set, annotations in _annotations:
-        duration_covered = (
-            annotations["range_offset"].sum() - annotations["range_onset"].sum()
-        )
-        available = (
-            annotations["annotation_filename"]
-            .apply(
-                lambda annotation_filename: 1
-                if os.path.exists(
-                    os.path.join(
-                        project.path,
-                        "annotations",
-                        annotation_set,
-                        "converted",
-                        annotation_filename,
-                    )
-                )
-                else 0
-            )
-            .sum()
-        )
+            output += "\n\033[1m{} participants\033[0m:\n".format(
+                record['children']['count'],)
 
-        output += "\033[94m%s\033[0m: %.2f hours, %s/%s files locally available\n" % (
-                    annotation_set, duration_covered / (3600 * 1000), available, len(annotations))
+            # switch to age in years old if age > 2 years old
+            min_age = "{:.1f}mo".format(record['children']['min_age']) if record['children'][
+                                                    'min_age'] < 24 else "{:.1f}yo".format(record['children']['min_age'] / 12)
+            max_age = "{:.1f}mo".format(record['children']['max_age']) if record['children'][
+                                                    'max_age'] < 24 else "{:.1f}yo".format(record['children']['max_age'] / 12)
+            output += "\033[94mage range :\033[0m {} to {}\n".format(
+                min_age, max_age)
 
-    logger.info(output)
+            if record['children']['M'] is not None:
+                output += "\033[94msex distribution :\033[0m {}M {}F\n".format(
+                    record['children']['M'], record['children']["F"])
 
+            output += "\033[94mlanguages :\033[0m"
+            for language in record['children']['languages']:
+                output += " {} {};".format(
+                    language, record['children']['languages'][language])
+            output += "\n"
+
+            if record['children']['monolingual'] is not None:
+                output += "\033[94mmonolinguality :\033[0m {}mono {}multi\n".format(
+                    record['children']['monolingual'], record['children']["multilingual"])
+
+            if record['children']['normative'] is not None:
+                output += "\033[94mnormativity :\033[0m {}norm {}non-norm\n".format(
+                    record['children']['normative'], record['children']["non-normative"])
+
+            output += "\n\033[1mannotations:\033[0m\n"
+            output += am.get_sets_metadata('lslike', human=True)
+
+            logger.info(output)
+
+    if args.format == 'json':
+        logger.info(json.dumps(dict))
 
 @subcommand(
     [arg("source", help="source data path"), arg("variable", help="name of the variable")]
@@ -673,12 +754,12 @@ def compute_durations(args):
 
     durations = project.compute_recordings_duration(profile=args.profile).dropna()
 
-    recordings = project.recordings.merge(
+    recordings = project.recordings.reset_index().merge(
         durations[durations["recording_filename"] != "NA"],
         how="left",
         left_on="recording_filename",
         right_on="recording_filename",
-    )
+    ).set_index('index').sort_index()
     recordings["duration"].fillna(0, inplace=True)
     recordings["duration"] = recordings["duration"].astype("Int64")
     
@@ -750,4 +831,11 @@ def main():
     register_pipeline("conversations-specification", ConversationsSpecificationPipeline)
 
     args = parser.parse_args()
-    args.func(args)
+    verbose = args.verbose
+    delattr(args, 'verbose')
+    if not verbose:
+        with warnings.catch_warnings():
+            warnings.simplefilter(action='ignore', category=FutureWarning)
+            args.func(args)
+    else:
+        args.func(args)

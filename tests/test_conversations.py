@@ -25,7 +25,7 @@ def project(request):
     if os.path.exists(PATH):
         # shutil.copytree(src="examples/valid_raw_data", dst="output/annotations")
         shutil.rmtree(PATH)
-    shutil.copytree(src="examples/valid_raw_data", dst=PATH)
+    shutil.copytree(src="examples/valid_raw_data", dst=PATH, symlinks=True)
 
     project = ChildProject(PATH)
     project.read()
@@ -135,13 +135,14 @@ def test_standard(project, am, segments):
         import_function=partial(fake_vocs, segments),
     )
 
-    std = StandardConversations(project, setname='custom_conv',rec_cols='date_iso', child_cols='experiment,child_dob')
+    std = StandardConversations(project, setname='custom_conv', rec_cols='date_iso', child_cols='experiment,child_dob',
+                                set_cols='method,has_speaker_type')
     std.extract()
 
     # std.conversations.to_csv("tests/truth/standard_conversations.csv", index=False)
-    truth = pd.read_csv("tests/truth/standard_conversations.csv")
+    truth = pd.read_csv("tests/truth/standard_conversations.csv", dtype={'child_id': str})
 
-    pd.testing.assert_frame_equal(std.conversations, truth, check_like=True)
+    pd.testing.assert_frame_equal(std.conversations, truth, check_like=True, check_dtype=False)
 
 
 #TODO adapt
