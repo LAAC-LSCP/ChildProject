@@ -493,6 +493,33 @@ class ChildProject:
         recs_to_write.sort_index().to_csv(self.path / METADATA_FOLDER / RECORDINGS_CSV,columns = columns,index=False)
         return recs_to_write
 
+    def write_children(self, keep_discarded: bool = True, keep_original_columns: bool = True):
+        """
+        Write self.children to the children csv file of the dataset.
+        !! if `read()` was done with `accumulate` , you may write confidential information in recordings.csv !!
+
+        :param keep_discarded: if True, the lines in the csv that are discarded by the dataset are kept when writing. defaults to True (when False, discarded lines disappear from the dataset)
+        :type keep_discarded: bool, optional
+        :param keep_original_columns: if True, deleting columns in the recordings dataframe will not result in them disappearing from the csv file (if false, only the current columns are kept)
+        :type keep_original_columns: bool, optional
+        :return: dataframe that was written to the csv file
+        :rtype: pandas.DataFrame
+        """
+        if self.children is None:
+            # logger to add (can not write recordings file as recordings is not initialized)
+            return None
+
+        if keep_discarded:
+            chis_to_write = pd.concat([self.children, self.discarded_children])
+            chis_to_write = chis_to_write.astype(self.children.dtypes.to_dict())
+        else:
+            chis_to_write = self.children
+
+        columns = self.children.columns
+
+        chis_to_write.sort_index().to_csv(self.path / METADATA_FOLDER / CHILDREN_CSV, columns=columns, index=False)
+        return chis_to_write
+
     def validate(self, ignore_recordings: bool = False, profile: str = None, accumulate: bool = True) -> tuple:
         """Validate a dataset, returning all errors and warnings.
 
