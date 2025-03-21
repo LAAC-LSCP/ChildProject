@@ -205,7 +205,7 @@ def test_import(project, am):
         annotations = am.annotations[am.annotations["set"] == dataset]
         segments = am.get_segments(annotations)
         segments.drop(columns=set(annotations.columns) - {"raw_filename"}, inplace=True)
-        truth = pd.read_csv("tests/truth/{}.csv".format(dataset))
+        truth = pd.read_csv("tests/truth/{}.csv".format(dataset), dtype_backend='numpy_nullable')
 
         # print(segments)
         # print(truth)
@@ -662,7 +662,7 @@ def test_rename(project, am, old, new, error, mf, index):
     am.read()
 
     if mf:
-        mdf = pd.read_csv("examples/valid_raw_data/annotations/merged_from.csv")
+        mdf = pd.read_csv("examples/valid_raw_data/annotations/merged_from.csv", dtype_backend='numpy_nullable')
         am.annotations['merged_from'] = mdf['merged_from']
         am.write()
 

@@ -12,7 +12,7 @@ def test_read():
     project.read()
 
     doc = project.read_documentation()
-    truth = pd.read_csv("tests/truth/docs.csv")
+    truth = pd.read_csv("tests/truth/docs.csv", dtype_backend='numpy_nullable')
 
     pd.testing.assert_frame_equal(
         standardize_dataframe(doc, columns=truth.columns),

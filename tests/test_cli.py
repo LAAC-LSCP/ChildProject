@@ -142,6 +142,21 @@ def test_compare_recordings(project):
     )
     assert exit_code == 0
 
+def test_derive_annotations(project):
+    stdout, stderr, exit_code = cli(
+        [
+            "child-project",
+            "derive-annotations",
+            PATH,
+            "-i",
+            "vtc_present",
+            "-o",
+            "vtc/conversations",
+            "conversations",
+        ]
+    )
+    assert exit_code == 0
+
 def test_sets_metadata(project):
     stdout, stderr, exit_code = cli(
         [
