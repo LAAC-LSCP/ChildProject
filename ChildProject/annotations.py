@@ -1044,7 +1044,7 @@ class AnnotationManager:
         path = self.project.path / ANNOTATIONS / annotation["set"] / CONVERTED / annotation["annotation_filename"]
 
         #TODO CHECK FOR DTYPES, enforcing dtypes of converted annotation files will become standard in a future update
-        df_input = pd.read_csv(path)
+        df_input = pd.read_csv(path, dtype_backend='numpy_nullable')
         df = None
 
         def bad_derivation(annotation_dict, msg_err, error, path_file):
@@ -1153,9 +1153,9 @@ class AnnotationManager:
         # check the existence of the derivation function and that it is callable or predefined
         if not callable(derivation_function):
             if derivation_function in DERIVATIONS.keys():
-                derivation_function = DERIVATIONS[derivation_function][0]
                 if derivation_metadata is None:
-                    derivation_metadata = DERIVATIONS[derivation_function[1]]
+                    derivation_metadata = DERIVATIONS[derivation_function][1]
+                derivation_function = DERIVATIONS[derivation_function][0]
             else:
                 raise ValueError(
                     "derivation value '{}' unknown, use one of {}".format(derivation_function, DERIVATIONS.keys())
@@ -1534,8 +1534,6 @@ class AnnotationManager:
             "%Y-%m-%d %H:%M:%S"
         )
 
-        output_segments.fillna("NA", inplace=True)
-
         # create the new converted files from the merged annotation segments
         for annotation in annotations.to_dict(orient="records"):
             interval = annotation["interval"]
@@ -1733,7 +1731,7 @@ class AnnotationManager:
         segments = []
         for index, _annotations in annotations.groupby(["set", "annotation_filename"]):
             s, annotation_filename = index
-            df = pd.read_csv(self.project.path / ANNOTATIONS / s / CONVERTED / annotation_filename)
+            df = pd.read_csv(self.project.path / ANNOTATIONS / s / CONVERTED / annotation_filename, dtype_backend='numpy_nullable')
 
             for annotation in _annotations.to_dict(orient="records"):
                 segs = df.copy()
