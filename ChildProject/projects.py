@@ -406,13 +406,14 @@ class ChildProject:
                 verbose,
             )
 
+        # breakpoint()
         if self.ignore_discarded and "discard" in self.ct.df:
-            self.ct.df['discard'] = pd.to_numeric(self.ct.df["discard"], errors='coerce').apply(np.nan_to_num).astype('Int64').astype('string')
+            self.ct.df['discard'] = pd.to_numeric(self.ct.df["discard"], errors='coerce').fillna(0).astype('Int64').astype('string')
             self.discarded_children = self.ct.df[self.ct.df["discard"] == '1']
             self.ct.df = self.ct.df[self.ct.df["discard"] != '1']
 
         if self.ignore_discarded and "discard" in self.rt.df:
-            self.rt.df['discard'] = pd.to_numeric(self.rt.df["discard"], errors='coerce').apply(np.nan_to_num).astype('Int64').astype('string')
+            self.rt.df['discard'] = pd.to_numeric(self.rt.df["discard"], errors='coerce').fillna(0).astype('Int64').astype('string')
             self.discarded_recordings = self.rt.df[self.rt.df['discard'] == '1']
             self.rt.df = self.rt.df[self.rt.df["discard"] != '1']
 
