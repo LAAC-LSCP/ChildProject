@@ -251,7 +251,7 @@ class ChildProject:
         IndexColumn(
             name="discard",
             description="set to 1 if item should be discarded in analyses",
-            # choices=["0", "1"],
+            choices=["0", "1"],
             required=False,
             dtype='string',
         ),
