@@ -1,3 +1,4 @@
+audioop-lts; python_version>='3.13'
 colorlog==6.9.0
 datalad==0.19.6
 GitPython==3.1.44
