@@ -44,7 +44,6 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-reliability = ["pygamma-agreement"]
 tests = ["pytest"]
 docs = [
     "sphinx",

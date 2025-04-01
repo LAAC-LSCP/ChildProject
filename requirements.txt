@@ -18,7 +18,6 @@ praat-parselmouth==0.4.5
 pyannote.core==5.0.0
 pyannote.database==5.0.1
 pydub==0.25.1
-pygamma-agreement==0.5.9
 pylangacq==0.17.0
 pympi-ling==1.70.2
 pytest==7.4.4
