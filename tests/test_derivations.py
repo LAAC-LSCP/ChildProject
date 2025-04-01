@@ -31,9 +31,6 @@ def test_acoustics():
     # res.to_csv(TRUTH / 'acoustics.csv', index=False)
     truth = pd.read_csv(TRUTH / 'acoustics.csv')
 
-    print(truth.to_string())
-    print(res.to_string())
-
     pd.testing.assert_frame_equal(res, truth)
 
 

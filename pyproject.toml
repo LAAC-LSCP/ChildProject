@@ -8,7 +8,7 @@ version = '0.2.3'
 dependencies = [
   "colorlog",
   "GitPython",
-  "librosa",
+  "librosa>=0.11.0",
   "lxml",
   "matplotlib",
   "nltk",
