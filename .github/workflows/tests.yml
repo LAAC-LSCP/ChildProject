@@ -71,30 +71,7 @@ jobs:
         with:
           python-version: "${{ matrix.python-version }}"
       - name: ffmpeg
-        id: try1
-        continue-on-error: true
-        uses: FedericoCarboni/setup-ffmpeg@v3
-        with:
-          ffmpeg-version: release
-          architecture: ''
-          github-token: ${{ secrets.GITHUB }}
-      - name: ffmpeg (retry 1)
-        if: ${{ steps.try1.outcome == 'failure' }}
-        id: try2
-        continue-on-error: true
-        uses: FedericoCarboni/setup-ffmpeg@v3
-        with:
-          ffmpeg-version: release
-          architecture: ''
-          github-token: ${{ secrets.GITHUB }}
-      - name: ffmpeg (retry 2)
-        if: ${{ steps.try2.outcome == 'failure' }}
-        id: try3
-        uses: FedericoCarboni/setup-ffmpeg@v3
-        with:
-          ffmpeg-version: release
-          architecture: ''
-          github-token: ${{ secrets.GITHUB }}
+        uses: AnimMouse/setup-ffmpeg@v1
       - name: Setup package
         run: |
           pip install --upgrade setuptools
@@ -165,6 +142,10 @@ jobs:
           environment-file: env_linux.yml
           init-shell: >-
             bash
+      - name: test ffmpeg/ffprobe
+        run: |
+          ffprobe -version
+          ffmpeg -version
       - name: use ChildProject dev version
         run: |
           pip install .[tests,docs] -U
@@ -181,6 +162,10 @@ jobs:
           environment-file: env_macos.yml
           init-shell: >-
             cmd.exe
+      - name: test ffmpeg/ffprobe
+        run: |
+          ffprobe -version
+          ffmpeg -version
       - name: use ChildProject dev version
         run: |
           pip install .[tests,docs] -U
