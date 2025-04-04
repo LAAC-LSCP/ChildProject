@@ -146,11 +146,13 @@ jobs:
         run: |
           ffprobe -version
           ffmpeg -version
+        shell: micromamba-shell {0}
       - name: use ChildProject dev version
-        run: |
-          pip install .[tests,docs] -U
+        run: pip install .[tests,docs] -U
+        shell: micromamba-shell {0}
       - name: run pytest
         run: pytest
+        shell: micromamba-shell {0}
   build-environment-windows:
     runs-on: windows-latest
     steps:
@@ -166,8 +168,10 @@ jobs:
         run: |
           ffprobe -version
           ffmpeg -version
+        shell: micromamba-shell {0}
       - name: use ChildProject dev version
-        run: |
-          pip install .[tests,docs] -U
+        run: pip install .[tests,docs] -U
+        shell: micromamba-shell {0}
       - name: run pytest
         run: pytest
+        shell: micromamba-shell {0}
