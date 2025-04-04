@@ -59,7 +59,7 @@ jobs:
   build-macos:
     strategy:
       matrix:
-        os: [macos-13]
+        os: [macos-13, macos-latest]
         python-version: ['3.8', '3.9', '3.10', '3.11', '3.12','3.13']
     name: Tests-macos
     runs-on: ${{ matrix.os }}
@@ -154,3 +154,35 @@ jobs:
         run: |
           mkdir output
           python -m pytest
+  build-environment-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v3
+      - name: build virtual environment
+        uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-file: env_linux.yml
+          init-shell: >-
+            bash
+      - name: use ChildProject dev version
+        run: |
+          pip install .[tests,docs] -U
+      - name: run pytest
+        run: pytest
+  build-environment-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v3
+      - name: build virtual environment
+        uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-file: env_macos.yml
+          init-shell: >-
+            cmd.exe
+      - name: use ChildProject dev version
+        run: |
+          pip install .[tests,docs] -U
+      - name: run pytest
+        run: pytest
