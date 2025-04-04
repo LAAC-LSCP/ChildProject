@@ -75,6 +75,13 @@ jobs:
       - name: run pytest
         run: pytest
         shell: micromamba-shell {0}
+      - name: make docs
+        run: |
+          cd docs
+          make clean
+          make html
+          touch build/html/.nojekyll
+        shell: micromamba-shell {0}
   build-environment-windows:
     runs-on: windows-latest
     steps:
