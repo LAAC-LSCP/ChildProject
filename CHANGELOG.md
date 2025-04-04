@@ -8,6 +8,9 @@ All notable changes to this project will be documented in this file.
 
 - Adding support for sets metadata, in the form of a yaml file stored in the root folder of the set. the package reads this file and computes metadata for each set
 - CLI calls for getting that metadata as well
+- support for python 3.13 (and testing)
+- constraint fro librosa>=0.11.0 (calculation of pitch was modified there)
+- testing for virtual env building
 
 ### Changed
 
