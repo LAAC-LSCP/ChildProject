@@ -161,7 +161,10 @@ jobs:
             cmd.exe
       - name: activate cli for env
         run: micromamba activate childproject
+        shell: cmd /C CALL {0}
       - name: use ChildProject dev version
         run: pip install .[tests,docs] -U
+        shell: cmd /C CALL {0}
       - name: run pytest
         run: pytest
+        shell: cmd /C CALL {0}
