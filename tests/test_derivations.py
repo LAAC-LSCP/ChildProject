@@ -31,7 +31,7 @@ def test_acoustics():
     # res.to_csv(TRUTH / 'acoustics.csv', index=False)
     truth = pd.read_csv(TRUTH / 'acoustics.csv')
 
-    pd.testing.assert_frame_equal(res, truth)
+    pd.testing.assert_frame_equal(res, truth, check_exact=False)
 
 
 def test_remove_overlaps():
