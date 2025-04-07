@@ -3,6 +3,15 @@ import pytest
 import os
 import shutil
 from pathlib import Path
+from functools import partial
+from test_metrics import fake_vocs
+
+import pandas as pd
+
+from ChildProject.projects import ChildProject
+from ChildProject.annotations import AnnotationManager
+
+from test_conversations import segments
 
 PATH = os.path.join("output", "cli")
 
@@ -18,26 +27,37 @@ def cli(cmd):
 
 @pytest.fixture(scope="function")
 def project(request):
+
+    project = ChildProject(PATH)
+
+    yield project
+
+
+@pytest.fixture(scope="function")
+def am(request, project):
+    am = AnnotationManager(project)
+    # force longer durations to allow for imports
+    project.recordings['duration'] = [100000000, 2000000]
+    yield am
+
+
+@pytest.fixture(scope="function")
+def dataset_setup(request):
     if os.path.exists(PATH):
         # shutil.copytree(src="examples/valid_raw_data", dst=PATH)
         shutil.rmtree(PATH)
     shutil.copytree(src="examples/valid_raw_data", dst=PATH, symlinks=True)
 
-    project = 1
+    yield 1
 
-    yield project
-
-
-def test_validate(project):
+def test_validate(dataset_setup):
     stdout, stderr, exit_code = cli(
         ["child-project", "validate", PATH]
     )
-    print(stdout)
-    print(stderr)
     assert exit_code == 0
 
 
-def test_overview(project):
+def test_overview(dataset_setup):
     stdout, stderr, exit_code = cli(
         ["child-project", "overview", PATH]
     )
@@ -54,7 +74,7 @@ def test_init():
     assert exit_code == 0
 
 
-def test_import_annotations(project):
+def test_import_annotations(dataset_setup):
     stdout, stderr, exit_code = cli(
         [
             "child-project",
@@ -67,7 +87,7 @@ def test_import_annotations(project):
     assert exit_code == 0
 
 
-def test_import_automated(project):
+def test_import_automated(dataset_setup):
     stdout, stderr, exit_code = cli(
         [
             "child-project",
@@ -82,7 +102,7 @@ def test_import_automated(project):
     assert exit_code == 0
 
 
-def test_compute_durations(project):
+def test_compute_durations(dataset_setup):
     stdout, stderr, exit_code = cli(
         [
             "child-project",
@@ -92,7 +112,7 @@ def test_compute_durations(project):
     )
     assert exit_code == 0
 
-def test_explain(project):
+def test_explain(dataset_setup):
     stdout, stderr, exit_code = cli(
         [
             "child-project",
@@ -113,7 +133,7 @@ def test_explain(project):
     )
     assert exit_code == 0
 
-def test_process(project):
+def test_process(dataset_setup):
     stdout, stderr, exit_code = cli(
         [
             "child-project",
@@ -128,7 +148,7 @@ def test_process(project):
     )
     assert exit_code == 0
     
-def test_compare_recordings(project):
+def test_compare_recordings(dataset_setup):
     stdout, stderr, exit_code = cli(
         [
             "child-project",
@@ -142,7 +162,7 @@ def test_compare_recordings(project):
     )
     assert exit_code == 0
 
-def test_derive_annotations(project):
+def test_derive_annotations(dataset_setup):
     stdout, stderr, exit_code = cli(
         [
             "child-project",
@@ -157,44 +177,49 @@ def test_derive_annotations(project):
     )
     assert exit_code == 0
 
-def test_merge_annotations(project):
+def test_merge_annotations(dataset_setup, project, am):
+    input_annotations = pd.read_csv("examples/valid_raw_data/annotations/input.csv")
+    input_annotations = input_annotations[
+        input_annotations["set"].isin(["vtc_rttm", "alice/output"])
+    ]
+    am.import_annotations(input_annotations)
+
     stdout, stderr, exit_code = cli(
         [
             "child-project",
             "merge-annotations",
             PATH,
             "--left-set",
-            "vtc_present",
+            "vtc_rttm",
             "--right-set",
-            "vtc_present",
+            "alice/output",
             "--left-columns",
             "speaker_type",
             "--right-columns",
-            "speaker_type",
+            "words,phonemes",
             "--output-set",
-            "vtc/self-merge",
+            "alice",
         ]
     )
-    print(stdout)
-    print(stderr)
     assert exit_code == 0
 
-def test_intersect_annotations(project):
+def test_intersect_annotations(dataset_setup):
     stdout, stderr, exit_code = cli(
         [
             "child-project",
             "intersect-annotations",
             PATH,
             "--destination",
-            str(project.path / "test.csv"),
+            str(Path(PATH) / "test.csv"),
             "--sets",
             "vtc_present",
             "vtc_present",
         ]
     )
+    print(stderr)
     assert exit_code == 0
 
-def test_remove_annotations(project):
+def test_remove_annotations(dataset_setup):
     stdout, stderr, exit_code = cli(
         [
             "child-project",
@@ -206,7 +231,7 @@ def test_remove_annotations(project):
     )
     assert exit_code == 0
 
-def test_rename_annotations(project):
+def test_rename_annotations(dataset_setup):
     stdout, stderr, exit_code = cli(
         [
             "child-project",
@@ -220,14 +245,14 @@ def test_rename_annotations(project):
     )
     assert exit_code == 0
 
-def test_sampler(project):
+def test_sampler(dataset_setup):
     stdout, stderr, exit_code = cli(
         [
             "child-project",
             "sampler",
             PATH,
-            str(project.path / "test.csv"),
-            "periodic"
+            str(Path(PATH) / "test.csv"),
+            "periodic",
             "--length",
             "100",
             "--period",
@@ -239,26 +264,25 @@ def test_sampler(project):
     assert exit_code == 0
 
 # TODO: extend to all zoniverse sub-functions
-def test_zooniverse(project):
+def test_zooniverse(dataset_setup):
     stdout, stderr, exit_code = cli(
         [
             "child-project",
             "zooniverse",
-            PATH,
             "-h",
         ]
     )
     assert exit_code == 0
 
-def test_eaf_builder(project):
+def test_eaf_builder(dataset_setup):
     stdout, stderr, exit_code = cli(
         [
             "child-project",
             "eaf-builder",
             "--destination",
-            "samples",
+            str(Path(PATH) / 'samples'),
             "--segments",
-            "tests/truth/segments_metrics.csv"
+            "tests/truth/segments_metrics.csv",
             "--eaf-type",
             "random",
             "--template",
@@ -267,7 +291,7 @@ def test_eaf_builder(project):
     )
     assert exit_code == 0
 
-def test_anonymize(project):
+def test_anonymize(dataset_setup):
     stdout, stderr, exit_code = cli(
         [
             "child-project",
@@ -282,13 +306,13 @@ def test_anonymize(project):
     assert exit_code == 0
 
 
-def test_metrics(project):
+def test_metrics(dataset_setup):
     stdout, stderr, exit_code = cli(
         [
             "child-project",
             "metrics",
             PATH,
-            "test",
+            str(Path(PATH) / 'metrics.csv'),
             "aclew",
             "--vtc",
             "vtc_present",
@@ -296,7 +320,29 @@ def test_metrics(project):
     )
     assert exit_code == 0
 
-def test_metrics_specification(project):
+def test_metrics_specification(dataset_setup, project, am):
+    data = pd.read_csv("tests/data/lena_its.csv")
+
+    am.import_annotations(
+        pd.DataFrame(
+            [
+                {
+                    "set": "specs_its",
+                    "raw_filename": "file.its",
+                    "time_seek": 0,
+                    "recording_filename": "sound.wav",
+                    "range_onset": 0,
+                    "range_offset": 100000000,
+                    "format": "its",
+                }
+            ]
+        ),
+        import_function=partial(fake_vocs, data),
+    )
+    from test_metrics import PATH as met_path
+    if os.path.exists(met_path):
+        shutil.rmtree(met_path)
+    shutil.copytree(src=PATH, dst=met_path, symlinks=True)
     stdout, stderr, exit_code = cli(
         [
             "child-project",
@@ -306,21 +352,52 @@ def test_metrics_specification(project):
     )
     assert exit_code == 0
 
-def test_conversations_summary(project):
+def test_conversations_summary(dataset_setup, project, am, segments):
+    am.import_annotations(
+        pd.DataFrame(
+            [{"set": "custom_conv",
+              "raw_filename": "file.its",
+              "time_seek": 0,
+              "recording_filename": "sound.wav",
+              "range_onset": 0,
+              "range_offset": 30000000,
+              "format": "csv",
+              }]
+        ),
+        import_function=partial(fake_vocs, segments),
+    )
+
     stdout, stderr, exit_code = cli(
         [
             "child-project",
-            "metrics",
+            "conversations-summary",
             PATH,
-            "test",
-            "standard",
+            str(Path(PATH) / "test.csv"),
             "--set",
-            "vtc_present",
+            "custom_conv",
+            "standard",
         ]
     )
     assert exit_code == 0
 
-def test_conversations_specification(project):
+def test_conversations_specification(dataset_setup, project, am):
+    am.import_annotations(
+        pd.DataFrame(
+            [{"set": "custom_conv",
+              "raw_filename": "file.its",
+              "time_seek": 0,
+              "recording_filename": "sound.wav",
+              "range_onset": 0,
+              "range_offset": 30000000,
+              "format": "csv",
+              }]
+        ),
+        import_function=partial(fake_vocs, segments),
+    )
+    from test_conversations import PATH as conv_path
+    if os.path.exists(conv_path):
+        shutil.rmtree(conv_path)
+    shutil.copytree(src=PATH, dst=conv_path, symlinks=True)
     stdout, stderr, exit_code = cli(
         [
             "child-project",
@@ -330,7 +407,7 @@ def test_conversations_specification(project):
     )
     assert exit_code == 0
 
-def test_sets_metadata(project):
+def test_sets_metadata(dataset_setup):
     stdout, stderr, exit_code = cli(
         [
             "child-project",

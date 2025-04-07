@@ -491,12 +491,8 @@ def test_merge(project, am):
     input_annotations = input_annotations[
         input_annotations["set"].isin(["vtc_rttm", "alice/output"])
     ]
-    # print(input_annotations)
     am.import_annotations(input_annotations)
-    am.read()
 
-    # print(am.annotations)
-    am.read()
     am.merge_sets(
         left_set="vtc_rttm",
         right_set="alice/output",
