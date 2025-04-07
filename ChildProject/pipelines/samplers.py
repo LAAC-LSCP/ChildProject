@@ -1065,8 +1065,8 @@ class SamplerPipeline(Pipeline):
         parameters_path = os.path.join(destination, "parameters_{}.yml".format(date))
 
         self.segments[
-            set(self.segments.columns)
-            & {"recording_filename", "segment_onset", "segment_offset"}
+            list(set(self.segments.columns)
+            & {"recording_filename", "segment_onset", "segment_offset"})
         ].to_csv(segments_path, index=False)
         logger_annotations.info(
                 "exported sampled segments to %s", 
