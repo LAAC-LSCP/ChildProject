@@ -5,6 +5,7 @@ import numpy as np
 import os
 import pandas as pd
 import re
+import shutil
 from typing import Union
 from pathlib import Path
 
@@ -425,26 +426,44 @@ class ChildProject:
         self.experiment = exp
 
 
-    def add_recording(self, file_path, metadata):
+    def add_project_file(self, file_path, target_name, file_type: str, overwrite=False):
         """
         Add a recording to the dataset. This function takes the path to a file, copies that file inside the dataset and
         adds a line in the recordings dataframe (if specified), otherwise, copies the files but does not index it.
-        Options exist to place it in subfolders or directly at the root of the recordings
+        Options exist to place it in subfolders or directly at the root of the recordings. To fully save to the filesystem
+        the changes made by this function, call write_recordings() afterwards.
 
         :param file_path: path to the file to add to the dataset on the system
         :type file_path: Path | str
-        :param metadata: metadata linked to the added recording, in the form of a pandas Series, it must contain the
-        requested values (child_id, date_iso, start_time, recording_device_type), recording_filename and experiment
-        are automatic
-        :type metadata: pandas.Series
-        :param levels: levels to store the file under folders in the dataset. 2 settings exist, using an integer value
-        will keep the existing number of parents folder of the copied file in the resulting dataset (e.g.
-        file_path="/home/user/study1/location1/RA5/rec004.wav", levels=2 ; will store the file in the dataset as
-        "location1/RA5/rec004.wav" under 2 levels of folder). When using a list of labels, the file will be stored 
-        :type levels:
+        :param recording_filename: filename as it will be stored in the dataset, with possible subfolder(s) (e.g.
+        "location1/RA5/rec004.wav will copy the original file as rec004.wav inside folders location1 -> RA5)
+        :type recording_filename: Path | str
+        :param file_type: type of the file to copy in order to know where it should be stored in the dataset, choose any
+        of 'recording','metadata','extra' or 'raw', raw is just copied from the root of the dataset into any folder
+        :type file_type: str
+        :param overwrite: overwrite the existing destination if it already exists
+        :type overwrite: bool, optional
         :return:
         :rtype:
         """
+        file_path = Path(file_path)
+        target_path = Path(target_name)
+        assert not target_path.is_absolute(), "parameter target_name must be a relative path"
+        if file_type == 'recording':
+            destination = self.path / RAW_RECORDINGS / target_path
+        elif file_type == 'extra':
+            destination = self.path / EXTRA / target_path
+        elif file_type == 'metadata':
+            destination = self.path / METADATA_FOLDER / target_path
+        elif file_type == 'raw':
+            destination = self.path / target_path
+        assert not overwrite and destination.exists(), f"target destination {destination} already exists, to overwrite it anyway, put the parameter overwrite as True"
+
+        if file_path.suffixes[-1] != target_name.suffixes[-1]:
+            logger_project.warning(f"origin {file_path} and destination {target_name} have different file extensions, make sure this is intended")
+
+        shutil.copyfile(file_path, destination)
+
 
     def dict_summary(self):
         if self.recordings is None:
@@ -552,7 +571,7 @@ class ChildProject:
         return chis_to_write
 
     def validate(self, ignore_recordings: bool = False, profile: str = None, accumulate: bool = True,
-                 current_metadata = False) -> tuple:
+                 current_metadata = False, custom_metadata=None) -> tuple:
         """Validate a dataset, returning all errors and warnings.
 
         :param ignore_recordings: if True, no errors will be returned for missing recordings.
