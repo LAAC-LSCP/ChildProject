@@ -424,6 +424,28 @@ class ChildProject:
         exp = self.children.iloc[0]['experiment'] if self.children.shape[0] else self.path.name
         self.experiment = exp
 
+
+    def add_recording(self, file_path, metadata):
+        """
+        Add a recording to the dataset. This function takes the path to a file, copies that file inside the dataset and
+        adds a line in the recordings dataframe (if specified), otherwise, copies the files but does not index it.
+        Options exist to place it in subfolders or directly at the root of the recordings
+
+        :param file_path: path to the file to add to the dataset on the system
+        :type file_path: Path | str
+        :param metadata: metadata linked to the added recording, in the form of a pandas Series, it must contain the
+        requested values (child_id, date_iso, start_time, recording_device_type), recording_filename and experiment
+        are automatic
+        :type metadata: pandas.Series
+        :param levels: levels to store the file under folders in the dataset. 2 settings exist, using an integer value
+        will keep the existing number of parents folder of the copied file in the resulting dataset (e.g.
+        file_path="/home/user/study1/location1/RA5/rec004.wav", levels=2 ; will store the file in the dataset as
+        "location1/RA5/rec004.wav" under 2 levels of folder). When using a list of labels, the file will be stored 
+        :type levels:
+        :return:
+        :rtype:
+        """
+
     def dict_summary(self):
         if self.recordings is None:
             self.read()
