@@ -157,6 +157,179 @@ def test_derive_annotations(project):
     )
     assert exit_code == 0
 
+def test_merge_annotations(project):
+    stdout, stderr, exit_code = cli(
+        [
+            "child-project",
+            "merge-annotations",
+            PATH,
+            "--left-set",
+            "vtc_present",
+            "--right-set",
+            "vtc_present",
+            "--left-columns",
+            "speaker_type",
+            "--right-columns",
+            "speaker_type",
+            "--output-set",
+            "vtc/self-merge",
+        ]
+    )
+    print(stdout)
+    print(stderr)
+    assert exit_code == 0
+
+def test_intersect_annotations(project):
+    stdout, stderr, exit_code = cli(
+        [
+            "child-project",
+            "intersect-annotations",
+            PATH,
+            "--destination",
+            str(project.path / "test.csv"),
+            "--sets",
+            "vtc_present",
+            "vtc_present",
+        ]
+    )
+    assert exit_code == 0
+
+def test_remove_annotations(project):
+    stdout, stderr, exit_code = cli(
+        [
+            "child-project",
+            "remove-annotations",
+            PATH,
+            "--set",
+            "vtc_present",
+        ]
+    )
+    assert exit_code == 0
+
+def test_rename_annotations(project):
+    stdout, stderr, exit_code = cli(
+        [
+            "child-project",
+            "rename-annotations",
+            PATH,
+            "--set",
+            "vtc_present",
+            "--new-set",
+            "vtc_renamed",
+        ]
+    )
+    assert exit_code == 0
+
+def test_sampler(project):
+    stdout, stderr, exit_code = cli(
+        [
+            "child-project",
+            "sampler",
+            PATH,
+            str(project.path / "test.csv"),
+            "periodic"
+            "--length",
+            "100",
+            "--period",
+            "400",
+            "--offset",
+            "200"
+        ]
+    )
+    assert exit_code == 0
+
+# TODO: extend to all zoniverse sub-functions
+def test_zooniverse(project):
+    stdout, stderr, exit_code = cli(
+        [
+            "child-project",
+            "zooniverse",
+            PATH,
+            "-h",
+        ]
+    )
+    assert exit_code == 0
+
+def test_eaf_builder(project):
+    stdout, stderr, exit_code = cli(
+        [
+            "child-project",
+            "eaf-builder",
+            "--destination",
+            "samples",
+            "--segments",
+            "tests/truth/segments_metrics.csv"
+            "--eaf-type",
+            "random",
+            "--template",
+            "basic",
+        ]
+    )
+    assert exit_code == 0
+
+def test_anonymize(project):
+    stdout, stderr, exit_code = cli(
+        [
+            "child-project",
+            "anonymize",
+            PATH,
+            "--input-set",
+            "vtc_present",
+            "--output-set",
+            "vtc_anonymized"
+        ]
+    )
+    assert exit_code == 0
+
+
+def test_metrics(project):
+    stdout, stderr, exit_code = cli(
+        [
+            "child-project",
+            "metrics",
+            PATH,
+            "test",
+            "aclew",
+            "--vtc",
+            "vtc_present",
+        ]
+    )
+    assert exit_code == 0
+
+def test_metrics_specification(project):
+    stdout, stderr, exit_code = cli(
+        [
+            "child-project",
+            "metrics-specification",
+            "tests/data/parameters_metrics.yml",
+        ]
+    )
+    assert exit_code == 0
+
+def test_conversations_summary(project):
+    stdout, stderr, exit_code = cli(
+        [
+            "child-project",
+            "metrics",
+            PATH,
+            "test",
+            "standard",
+            "--set",
+            "vtc_present",
+        ]
+    )
+    assert exit_code == 0
+
+def test_conversations_specification(project):
+    stdout, stderr, exit_code = cli(
+        [
+            "child-project",
+            "conversations-specification",
+            "tests/data/conversations_parameters.yml",
+        ]
+    )
+    assert exit_code == 0
+
 def test_sets_metadata(project):
     stdout, stderr, exit_code = cli(
         [
