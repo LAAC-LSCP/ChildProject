@@ -426,29 +426,28 @@ class ChildProject:
         self.experiment = exp
 
 
-    def add_project_file(self, file_path, target_name, file_type: str, overwrite=False):
+    def add_project_file(self, src_path, dst_file, file_type: str, overwrite=False):
         """
-        Add a recording to the dataset. This function takes the path to a file, copies that file inside the dataset and
-        adds a line in the recordings dataframe (if specified), otherwise, copies the files but does not index it.
-        Options exist to place it in subfolders or directly at the root of the recordings. To fully save to the filesystem
-        the changes made by this function, call write_recordings() afterwards.
+        Add a file to the dataset. This function takes the path to a file, copies that file inside the dataset in
+        the correct spot depending on the file type.
+        The destination file can contain parent folders, which will be included in the copied file (e.g. src_path=
+        "/home/user/tmp/myrec.wav", dst_file="loc1/RA5/rec001.wav", file_type='recording' ; will copy the file inside
+         the dataset in a recordings/raw/loc1/RA5 folder, the file will be named rec001.wav.
 
-        :param file_path: path to the file to add to the dataset on the system
-        :type file_path: Path | str
-        :param recording_filename: filename as it will be stored in the dataset, with possible subfolder(s) (e.g.
+        :param src_path: path to the file to add to the dataset on the system
+        :type src_path: Path | str
+        :param dst_file: filename as it will be stored in the dataset, with possible subfolder(s) (e.g.
         "location1/RA5/rec004.wav will copy the original file as rec004.wav inside folders location1 -> RA5)
-        :type recording_filename: Path | str
+        :type dst_file: Path | str
         :param file_type: type of the file to copy in order to know where it should be stored in the dataset, choose any
         of 'recording','metadata','extra' or 'raw', raw is just copied from the root of the dataset into any folder
         :type file_type: str
         :param overwrite: overwrite the existing destination if it already exists
         :type overwrite: bool, optional
-        :return:
-        :rtype:
         """
-        file_path = Path(file_path)
-        target_path = Path(target_name)
-        assert not target_path.is_absolute(), "parameter target_name must be a relative path"
+        file_path = Path(src_path)
+        target_path = Path(dst_file)
+        assert not target_path.is_absolute(), "parameter dst_file must be a relative path"
         if file_type == 'recording':
             destination = self.path / RAW_RECORDINGS / target_path
         elif file_type == 'extra':
@@ -457,11 +456,13 @@ class ChildProject:
             destination = self.path / METADATA_FOLDER / target_path
         elif file_type == 'raw':
             destination = self.path / target_path
-        assert not overwrite and destination.exists(), f"target destination {destination} already exists, to overwrite it anyway, put the parameter overwrite as True"
+        assert overwrite or not destination.exists(), f"target destination {destination} already exists, to overwrite it anyway, put the parameter overwrite as True"
+        assert not destination.is_symlink(), f"target destination {destination} is annexed data in the dataset, please unlock it if you want to change its content"
 
-        if file_path.suffixes[-1] != target_name.suffixes[-1]:
-            logger_project.warning(f"origin {file_path} and destination {target_name} have different file extensions, make sure this is intended")
+        if file_path.suffixes[-1] != target_path.suffixes[-1]:
+            logger_project.warning(f"origin {file_path} and destination {target_path} have different file extensions, make sure this is intended")
 
+        os.makedirs(destination.parent, exist_ok=True)
         shutil.copyfile(file_path, destination)
 
 

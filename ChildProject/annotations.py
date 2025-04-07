@@ -628,6 +628,40 @@ class AnnotationManager:
         sets = sets.fillna('')
         return df_to_printable(sets, delimiter, header=header)
 
+
+    def add_annotation_file(self, src_path, dst_file, set: str, overwrite):
+        """
+        Add an annotation file to the dataset. This function takes the path to a file, copies that file inside the
+        dataset in the correct spot given the set it belongs to.
+        The destination file can contain parent folders, which will be included in the copied file (e.g. src_path=
+        "/home/user/tmp/myrec.rttm", dst_file="loc1/RA5/rec001.rttm", set='vtc' ; will copy the file inside
+         the dataset in a annotations/vtc/raw/loc1/RA5 folder, the file will be named rec001.rttm.
+
+        :param src_path: path on the system to the annotation file to add to the dataset
+        :type src_path: Path | str
+        :param dst_file: filename as it will be stored in the dataset, with possible parent folders (e.g.
+        'location1/RA5/rec004.rttm' will copy the original file as rec004.rttm inside folders location1 -> RA5)
+        :type dst_file: Path | str
+        :param set: annotation set the annotation file belongs to
+        :type set: str
+        :param overwrite: overwrite the existing destination if it already exists
+        :type overwrite: bool, optional
+        """
+        file_path = Path(src_path)
+        target_path = Path(dst_file)
+        assert not target_path.is_absolute(), "parameter dst_file must be a relative path"
+
+        destination = self.path / ANNOTATIONS / set / RAW / target_path
+        assert overwrite or not destination.exists(), f"target destination {destination} already exists, to overwrite it anyway, put the parameter overwrite as True"
+        assert not destination.is_symlink(), f"target destination {destination} is annexed data in the dataset, please unlock it if you want to change its content"
+
+        if file_path.suffixes[-1] != target_path.suffixes[-1]:
+            logger_project.warning(
+                f"origin {file_path} and destination {target_path} have different file extensions, make sure this is intended")
+
+        os.makedirs(destination.parent, exist_ok=True)
+        shutil.copyfile(file_path, destination)
+
     def validate_annotation(self, annotation: dict) -> Tuple[List[str], List[str]]:
         logger_annotations.info("Validating %s from %s...", annotation["annotation_filename"], annotation["set"])
         segments = IndexTable(
@@ -1637,6 +1671,7 @@ class AnnotationManager:
         if recording_filter:
             annotations = annotations[annotations['recording_filename'].isin(recording_filter)]
 
+        # TODO: if no intersection is found, the error is crpytic (keyError), make a clearer error
         intersection = AnnotationManager.intersection(
             annotations, sets=[left_set, right_set]
         )
