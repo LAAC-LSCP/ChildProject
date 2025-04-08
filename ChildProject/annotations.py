@@ -653,6 +653,7 @@ class AnnotationManager:
         assert not target_path.is_absolute(), "parameter dst_file must be a relative path"
 
         destination = self.project.path / ANNOTATIONS / set / RAW / target_path
+        assert (self.path / ANNOTATIONS / set / RAW).resolve() in destination.resolve().parents, f"target destination {destination} is outside the raw annotation set, aborting"
         assert overwrite or not destination.exists(), f"target destination {destination} already exists, to overwrite it anyway, put the parameter overwrite as True"
         assert not destination.is_symlink(), f"target destination {destination} is annexed data in the dataset, please unlock it if you want to change its content"
 
@@ -662,6 +663,30 @@ class AnnotationManager:
 
         os.makedirs(destination.parent, exist_ok=True)
         shutil.copyfile(file_path, destination)
+
+
+    def remove_annotation_file(self, file, set: str):
+        """
+        remove a raw annotation file from the dataset. This function takes the path to a file, and removes it from the
+        dataset annotations at the file system level (not in the index), the file could be under folder, they need to
+        be in the file name as a posix path (i.e. subfolder/file)
+        The set parameter is meant to define what annotation set the raw file is stored in.
+
+        :param file: filename as it is stored in the dataset annotations, in the annotation set raw folder (e.g. set=vtc
+        will be evaluated inside the annotations/vtc/raw folder of the dataset
+        :type file: Path | str
+        :param set: name of the annotation set the file is stored in.
+        :type set: str
+        """
+        file_path = Path(file)
+        assert not file_path.is_absolute(), "parameter file must be a relative path"
+        destination = self.project.path / ANNOTATIONS / set / RAW / file_path
+
+        assert (self.project.path / ANNOTATIONS / set / RAW).resolve() in destination.resolve().parents, f"target file {destination} is outside the raw annotation set, aborting"
+        assert not destination.is_symlink(), f"target file {destination} is annexed data in the dataset, please unlock it if you want to remove it"
+
+        destination.unlink()
+
 
     def validate_annotation(self, annotation: dict) -> Tuple[List[str], List[str]]:
         logger_annotations.info("Validating %s from %s...", annotation["annotation_filename"], annotation["set"])
