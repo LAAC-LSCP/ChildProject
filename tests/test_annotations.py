@@ -999,6 +999,7 @@ def check_its(segments, truth):
     (PATH / 'metadata/children/0_test.csv', 'example.rttm', None, 'vtc_rttm', False, AssertionError),
     (PATH / 'made_up_file.txt', 'rec.rttm', None, 'new_vtc', False, FileNotFoundError),
     (PATH / 'metadata/children/0_test.csv', '/etc/rec1.rttm', None, 'new_vtc', False, AssertionError),
+    (PATH / 'metadata/children/0_test.csv', '../test.rttm', None, 'new_vtc', False, AssertionError),
     (PATH / 'metadata/children/0_test.csv', 'example.rttm', PATH / 'annotations/vtc_rttm/raw/example.rttm', 'vtc_rttm', True, None),
     (PATH / 'metadata/children/0_test.csv', 'example2.rttm', PATH / 'annotations/vtc_rttm/raw/example2.rttm', 'vtc_rttm', False, None),
     (PATH / 'metadata/children/0_test.csv', 'scripts/new_subfolder/any_script.py', PATH / 'annotations/super/long/set/raw/scripts/new_subfolder/any_script.py', 'super/long/set', False, None),
@@ -1010,3 +1011,18 @@ def test_add_annotation_file(project, am, file_path, dst_file, dst_path, set, ov
     else:
         am.add_annotation_file(file_path, dst_file, set, overwrite)
         assert filecmp.cmp(file_path, dst_path)
+
+
+@pytest.mark.parametrize("file,dst,set,error",
+     [('example.rttm', PATH / 'annotations/vtc_rttm/raw/example.rttm', 'vtc_rttm', None),
+    ('example2.rttm', None, 'vtc_rttm', FileNotFoundError),
+    ('/sound.rttm', None, 'vtc', AssertionError),
+    ('../../../../sound.wav', None, 'vtc', AssertionError),
+      ])
+def test_remove_annotation_file(project, am, file, dst, set, error):
+    if error is not None:
+        with pytest.raises(error):
+            am.remove_annotation_file(file, set)
+    else:
+        am.remove_annotation_file(file, set)
+        assert not dst.exists()

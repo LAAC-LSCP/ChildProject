@@ -162,7 +162,7 @@ def test_dict_summary(project):
     (PATH / 'metadata/children/0_test.csv', 'rec008', PATH / 'recordings/raw/rec008', 'recording', False, None),
     (PATH / 'metadata/children/0_test.csv', Path('rec008.wav'), PATH / 'recordings/raw/rec008.wav', 'recording', False, None),
     (PATH / 'metadata/children/0_test.csv', 'metrics.csv', PATH / 'extra/metrics.csv', 'extra', False, None),
-    (PATH / 'metadata/children/0_test.csv', 'sound.wav', None, 'recording', False, AssertionError),
+    (PATH / 'metadata/children/0_test.csv', 'sound.wav', None, 'recording', False, FileExistsError),
     (PATH / 'made_up_file.txt', 'sound5.wav', None, 'recording', False, FileNotFoundError),
     (PATH / 'metadata/children/0_test.csv', '/etc/sound.wav', None, 'recording', False, AssertionError),
     (PATH / 'metadata/children/0_test.csv', 'sound5.wav', None, 'made_up_type', False, ValueError),
@@ -171,6 +171,7 @@ def test_dict_summary(project):
     (PATH / 'metadata/children/0_test.csv', 'README.md', PATH / 'README.md', 'raw', False, None),
     (PATH / 'metadata/children/0_test.csv', 'scripts/any_script.py', PATH / 'scripts/any_script.py', 'raw', True, None),
     (PATH / 'metadata/children/0_test.csv', '../other_place', None, 'raw', False, AssertionError),
+    (PATH / 'metadata/children/0_test.csv', 'fake_readme.md', None, 'raw', True, AssertionError),
     (str(PATH / 'metadata/children/0_test.csv'), 'scripts/new_subfolder/any_script.py', PATH / 'scripts/new_subfolder/any_script.py', 'raw', False, None),
       ])
 def test_add_project_file(project, file_path, dst_file, dst_path, file_type, overwrite, error):
@@ -180,3 +181,19 @@ def test_add_project_file(project, file_path, dst_file, dst_path, file_type, ove
     else:
         project.add_project_file(file_path, dst_file, file_type, overwrite)
         assert filecmp.cmp(file_path, dst_path)
+
+@pytest.mark.parametrize("file,dst,file_type,error",
+     [('sound.wav', PATH / 'recordings/raw/sound.wav', 'recording', None),
+    ('sound6.wav', None, 'recording', FileNotFoundError),
+    ('children.csv', PATH / 'recordings/raw/rec008.wav', 'metadata', None),
+    ('/sound.wav', None, 'recording', AssertionError),
+    ('../../../../sound.wav', None, 'recording', AssertionError),
+    ('fake_readme.md', None, 'raw', AssertionError),
+      ])
+def test_remove_project_file(project, file, dst, file_type, error):
+    if error is not None:
+        with pytest.raises(error):
+            project.remove_project_file(file, file_type)
+    else:
+        project.remove_project_file(file, file_type)
+        assert not dst.exists()
