@@ -653,7 +653,7 @@ class AnnotationManager:
         assert not target_path.is_absolute(), "parameter dst_file must be a relative path"
 
         destination = self.project.path / ANNOTATIONS / set / RAW / target_path
-        assert (self.path / ANNOTATIONS / set / RAW).resolve() in destination.resolve().parents, f"target destination {destination} is outside the raw annotation set, aborting"
+        assert (self.project.path / ANNOTATIONS / set / RAW).resolve() in destination.resolve().parents, f"target destination {destination} is outside the raw annotation set, aborting"
         assert overwrite or not destination.exists(), f"target destination {destination} already exists, to overwrite it anyway, put the parameter overwrite as True"
         assert not destination.is_symlink(), f"target destination {destination} is annexed data in the dataset, please unlock it if you want to change its content"
 
