@@ -13,6 +13,7 @@ from ChildProject.projects import ChildProject
 from ChildProject.annotations import AnnotationManager
 
 from ChildProject.pipelines import metricsFunctions, conversationFunctions
+from ChildProject.pipelines.derivations import DERIVATIONS
 
 import subprocess
 
@@ -112,7 +113,7 @@ class CustomTable(CSVTable):
         
         df = []
         if array == 'list-metrics':
-            ignores = {'metricFunction'}
+            ignores = {'metricFunction', 'per_hour_metric', 'peak_hour_metric'}
             metrics = getmembers(metricsFunctions, isfunction)
             for name, func in metrics:
                 if name in ignores : continue
@@ -125,6 +126,7 @@ class CustomTable(CSVTable):
                     'Required arguments': wrap(arguments,25),
                 }
                 df.append(df_entry)
+            self.options['widths'] = [20, 50, 25]
         elif array == 'list-conversation-metrics':
             ignores = {'conversationFunction'}
             metrics = getmembers(conversationFunctions, isfunction)
@@ -139,10 +141,21 @@ class CustomTable(CSVTable):
                     'Required arguments': wrap(arguments,35),
                 }
                 df.append(df_entry)
+            self.options['widths'] = [20, 50, 25]
+        elif array == 'list-derivations':
+            for name in DERIVATIONS:
+                func, meta = DERIVATIONS[name]
+                doc = cleandoc(func.__doc__.split(':param')[0]) # not great...
+                df_entry = {
+                    'Derivation': name,
+                    'Description': wrap(doc, 80),
+                }
+                df.append(df_entry)
+            self.options['widths'] = [20, 100]
+
                 
         self.options['file'] = '{}.csv'.format(array)
         self.options['header-rows'] = 1
-        self.options['widths'] = [20, 50, 25]
         
         dir_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
         pd.DataFrame(df).to_csv(os.path.join(dir_path, self.options['file']), index = False)
