@@ -3,8 +3,11 @@ import pandas as pd
 import pytest
 import shutil
 import os
+import filecmp
+from pathlib import Path
 
 TEST_DIR = os.path.join("output", "projects")
+PATH = Path(TEST_DIR)
 
 @pytest.fixture(scope="function")
 def project(request):
@@ -153,3 +156,25 @@ def test_dict_summary(project):
     project.read()
     summary = project.dict_summary()
     assert summary == {'recordings': {'count': 2, 'duration': 8000, 'first_date': '2020-04-20', 'last_date': '2020-04-21', 'discarded': 1, 'devices': {'usb': {'count': 2, 'duration': 8000}}}, 'children': {'count': 1, 'min_age': 3.6139630390143735, 'max_age': 3.646817248459959, 'M': None, 'F': None, 'languages': {}, 'monolingual': None, 'multilingual': None, 'normative': None, 'non-normative': None}}
+
+@pytest.mark.parametrize("file_path,dst_file,dst_path,file_type,overwrite,error",
+     [(PATH / 'metadata/children/0_test.csv', 'rec008.wav', PATH / 'recordings/raw/rec008.wav', 'recording', False, None),
+    (PATH / 'metadata/children/0_test.csv', Path('rec008.wav'), PATH / 'recordings/raw/rec008.wav', 'recording', False, None),
+    (PATH / 'metadata/children/0_test.csv', 'metrics.csv', PATH / 'extra/metrics.csv', 'extra', False, None),
+    (PATH / 'metadata/children/0_test.csv', 'sound.wav', None, 'recording', False, AssertionError),
+    (PATH / 'made_up_file.txt', 'sound5.wav', None, 'recording', False, FileNotFoundError),
+    (PATH / 'metadata/children/0_test.csv', '/etc/sound.wav', None, 'recording', False, AssertionError),
+    (PATH / 'metadata/children/0_test.csv', 'sound5.wav', None, 'made_up_type', False, ValueError),
+    (PATH / 'metadata/children/0_test.csv', 'metadata.xlsx', PATH / 'metadata/metadata.xlsx', 'metadata', False, None),
+    (PATH / 'metadata/children/0_test.csv', 'children.csv', PATH / 'metadata/children.csv', 'metadata', True, None),
+    (PATH / 'metadata/children/0_test.csv', 'README.md', PATH / 'README.md', 'raw', False, None),
+    (PATH / 'metadata/children/0_test.csv', 'scripts/any_script.py', PATH / 'scripts/any_script.py', 'raw', True, None),
+    (str(PATH / 'metadata/children/0_test.csv'), 'scripts/new_subfolder/any_script.py', PATH / 'scripts/new_subfolder/any_script.py', 'raw', False, None),
+      ])
+def test_add_project_file(project, file_path, dst_file, dst_path, file_type, overwrite, error):
+    if error is not None:
+        with pytest.raises(error):
+            project.add_project_file(file_path, dst_file, file_type, overwrite)
+    else:
+        project.add_project_file(file_path, dst_file, file_type, overwrite)
+        assert filecmp.cmp(file_path, dst_path)

@@ -13,6 +13,7 @@ import pytest
 import shutil
 from pathlib import Path
 import time
+import filecmp
 
 
 def standardize_dataframe(df, columns):
@@ -991,3 +992,21 @@ def check_its(segments, truth):
         standardize_dataframe(segments, columns),
         check_dtype=False,
     )
+
+@pytest.mark.parametrize("file_path,dst_file,dst_path,set,overwrite,error",
+     [(PATH / 'metadata/children/0_test.csv', 'rec1.rttm', PATH / 'annotations/new_vtc/raw/rec1.rttm', 'new_vtc', False, None),
+    (str(PATH / 'metadata/children/0_test.csv'), Path('rec1.rttm'), PATH / 'annotations/new_vtc/raw/rec1.rttm', 'new_vtc', False, None),
+    (PATH / 'metadata/children/0_test.csv', 'example.rttm', None, 'vtc_rttm', False, AssertionError),
+    (PATH / 'made_up_file.txt', 'rec.rttm', None, 'new_vtc', False, FileNotFoundError),
+    (PATH / 'metadata/children/0_test.csv', '/etc/rec1.rttm', None, 'new_vtc', False, AssertionError),
+    (PATH / 'metadata/children/0_test.csv', 'example.rttm', PATH / 'annotations/vtc_rttm/raw/example.rttm', 'vtc_rttm', True, None),
+    (PATH / 'metadata/children/0_test.csv', 'example2.rttm', PATH / 'annotations/vtc_rttm/raw/example2.rttm', 'vtc_rttm', False, None),
+    (PATH / 'metadata/children/0_test.csv', 'scripts/new_subfolder/any_script.py', PATH / 'annotations/super/long/set/raw/scripts/new_subfolder/any_script.py', 'super/long/set', False, None),
+      ])
+def test_add_annotation_file(project, am, file_path, dst_file, dst_path, set, overwrite, error):
+    if error is not None:
+        with pytest.raises(error):
+            am.add_annotation_file(file_path, dst_file, set, overwrite)
+    else:
+        am.add_annotation_file(file_path, dst_file, set, overwrite)
+        assert filecmp.cmp(file_path, dst_path)
