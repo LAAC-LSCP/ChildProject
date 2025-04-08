@@ -159,6 +159,7 @@ def test_dict_summary(project):
 
 @pytest.mark.parametrize("file_path,dst_file,dst_path,file_type,overwrite,error",
      [(PATH / 'metadata/children/0_test.csv', 'rec008.wav', PATH / 'recordings/raw/rec008.wav', 'recording', False, None),
+    (PATH / 'metadata/children/0_test.csv', 'rec008', PATH / 'recordings/raw/rec008', 'recording', False, None),
     (PATH / 'metadata/children/0_test.csv', Path('rec008.wav'), PATH / 'recordings/raw/rec008.wav', 'recording', False, None),
     (PATH / 'metadata/children/0_test.csv', 'metrics.csv', PATH / 'extra/metrics.csv', 'extra', False, None),
     (PATH / 'metadata/children/0_test.csv', 'sound.wav', None, 'recording', False, AssertionError),
@@ -169,6 +170,7 @@ def test_dict_summary(project):
     (PATH / 'metadata/children/0_test.csv', 'children.csv', PATH / 'metadata/children.csv', 'metadata', True, None),
     (PATH / 'metadata/children/0_test.csv', 'README.md', PATH / 'README.md', 'raw', False, None),
     (PATH / 'metadata/children/0_test.csv', 'scripts/any_script.py', PATH / 'scripts/any_script.py', 'raw', True, None),
+    (PATH / 'metadata/children/0_test.csv', '../other_place', None, 'raw', False, AssertionError),
     (str(PATH / 'metadata/children/0_test.csv'), 'scripts/new_subfolder/any_script.py', PATH / 'scripts/new_subfolder/any_script.py', 'raw', False, None),
       ])
 def test_add_project_file(project, file_path, dst_file, dst_path, file_type, overwrite, error):

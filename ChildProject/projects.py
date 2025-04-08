@@ -458,6 +458,46 @@ class ChildProject:
             destination = self.path / target_path
         else :
             raise ValueError(f"unknown file_type {file_type}")
+        print(type(self.path))
+        print(destination.parents)
+        assert self.path.resolve() in destination.resolve().parents, f"target destination {destination} is outside the dataset, aborting"
+        assert overwrite or not destination.exists(), f"target destination {destination} already exists, to overwrite it anyway, put the parameter overwrite as True"
+        assert not destination.is_symlink(), f"target destination {destination} is annexed data in the dataset, please unlock it if you want to change its content"
+
+        if file_path.suffixes != target_path.suffixes:
+            logger_project.warning(f"origin {file_path} and destination {target_path} have different file extensions, make sure this is intended")
+
+        os.makedirs(destination.parent, exist_ok=True)
+        shutil.copyfile(file_path, destination)
+
+    def remove_project_file(self, file, file_type: str):
+        """
+        remove a file from the dataset. This function takes the path to a file, and removes it from the dataset at
+        the file system level (not in the index), the file could be under folder, they need to be in the file name
+        as a posix path (i.e. dubfolder/file)
+        The file_type is meant to define the type of file in the dataset, and each category corresponds to a subfolder
+        path.
+
+        :param file: filename as it is stored in the dataset, in the tree of its category (e.g. recordings names are
+        evaluated inside the recordings/raw folder of the dataset
+        :type file: Path | str
+        :param file_type: type of the file to copy in order to know where it should be stored in the dataset, choose any
+        of 'recording','metadata','extra' or 'raw', raw is just copied from the root of the dataset into any folder
+        :type file_type: str
+        """
+        file_path = Path(src_path)
+        target_path = Path(dst_file)
+        assert not target_path.is_absolute(), "parameter dst_file must be a relative path"
+        if file_type == 'recording':
+            destination = self.path / RAW_RECORDINGS / target_path
+        elif file_type == 'extra':
+            destination = self.path / EXTRA / target_path
+        elif file_type == 'metadata':
+            destination = self.path / METADATA_FOLDER / target_path
+        elif file_type == 'raw':
+            destination = self.path / target_path
+        else :
+            raise ValueError(f"unknown file_type {file_type}")
         assert overwrite or not destination.exists(), f"target destination {destination} already exists, to overwrite it anyway, put the parameter overwrite as True"
         assert not destination.is_symlink(), f"target destination {destination} is annexed data in the dataset, please unlock it if you want to change its content"
 
