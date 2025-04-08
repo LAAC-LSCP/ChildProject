@@ -1,0 +1,10 @@
+segment_onset,segment_offset,speaker_type,raw_filename,speaker_class,cva
+0,113,CHI,example.rttm,C,NA
+1000,1200,MAL,example.rttm,O,Y
+1656,1821,MAL,example.rttm,O,N
+2111,2324,FEM,example.rttm,O,Y
+2556,2890,CHI,example.rttm,C,NA
+2901,3056,FEM,example.rttm,O,Y
+3205,3301,OCH,example.rttm,O,N
+3457,3654,MAL,example.rttm,O,Y
+3900,3987,CHI,example.rttm,C,NA

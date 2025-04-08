@@ -47,3 +47,16 @@ def test_remove_overlaps():
     truth = pd.read_csv(TRUTH / 'remove-overlaps.csv')
 
     pd.testing.assert_frame_equal(res, truth, check_dtype=False)
+
+def test_cva():
+    df = CSV_DF.copy()
+    meta = {}
+    project = None
+
+    # we use restrictive, so we should remove overlaps first (this is not ideal for independent testing though)
+    df = deriv.remove_overlaps(project, meta, df)
+    res = deriv.kcds_ohs(project, meta, df)
+    # res.to_csv(TRUTH / 'cva.csv', index=False)
+    truth = pd.read_csv(TRUTH / 'cva.csv', keep_default_na=False)
+
+    pd.testing.assert_frame_equal(res, truth, check_dtype=False)
