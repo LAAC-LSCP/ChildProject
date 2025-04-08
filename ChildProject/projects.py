@@ -456,6 +456,8 @@ class ChildProject:
             destination = self.path / METADATA_FOLDER / target_path
         elif file_type == 'raw':
             destination = self.path / target_path
+        else :
+            raise ValueError(f"unknown file_type {file_type}")
         assert overwrite or not destination.exists(), f"target destination {destination} already exists, to overwrite it anyway, put the parameter overwrite as True"
         assert not destination.is_symlink(), f"target destination {destination} is annexed data in the dataset, please unlock it if you want to change its content"
 

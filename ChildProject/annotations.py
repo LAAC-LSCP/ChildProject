@@ -11,6 +11,7 @@ from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
 import logging
 from pathlib import Path
 import yaml
+import shutil
 
 from . import __version__
 from .pipelines.derivations import DERIVATIONS, conversations
@@ -651,12 +652,12 @@ class AnnotationManager:
         target_path = Path(dst_file)
         assert not target_path.is_absolute(), "parameter dst_file must be a relative path"
 
-        destination = self.path / ANNOTATIONS / set / RAW / target_path
+        destination = self.project.path / ANNOTATIONS / set / RAW / target_path
         assert overwrite or not destination.exists(), f"target destination {destination} already exists, to overwrite it anyway, put the parameter overwrite as True"
         assert not destination.is_symlink(), f"target destination {destination} is annexed data in the dataset, please unlock it if you want to change its content"
 
         if file_path.suffixes[-1] != target_path.suffixes[-1]:
-            logger_project.warning(
+            logger_annotations.warning(
                 f"origin {file_path} and destination {target_path} have different file extensions, make sure this is intended")
 
         os.makedirs(destination.parent, exist_ok=True)
@@ -1671,10 +1672,11 @@ class AnnotationManager:
         if recording_filter:
             annotations = annotations[annotations['recording_filename'].isin(recording_filter)]
 
-        # TODO: if no intersection is found, the error is crpytic (keyError), make a clearer error
         intersection = AnnotationManager.intersection(
             annotations, sets=[left_set, right_set]
         )
+        if not intersection.shape[0]:
+            raise ValueError(f"No intersection was found between merged sets")
         left_annotations = intersection[intersection["set"] == left_set]
         right_annotations = intersection[intersection["set"] == right_set]
 
