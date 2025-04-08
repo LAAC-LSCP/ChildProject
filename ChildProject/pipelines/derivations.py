@@ -65,7 +65,9 @@ def acoustics(project,
               target_sr=STANDARD_SAMPLE_RATE,
               ):
     """
-        Read an audio file and returns the audio time series and its sampling rate
+        Based on the existing segmentation, extracts acoustics features of each vocalization identified. In particular,
+        mean pitch semitone, median pitch semitone as well as 5th and 95th percentile of pitch semitone.
+
         :param file_path: path to an audio file
         :type file_path: str
         :return: (audio time series, sampling rate)
@@ -119,9 +121,11 @@ def conversations(project,
                   max_interval=5000,
                   min_delay=0):
 
-    """ The function takes a dataframe of annotation segments as an input and based on the given interval and delay,
-    classifies whether each annotation is a part of the conversation. Then adds a column grouping vocalisations which
-    belong to the same conversation
+    """ Based on the given interval (iti, maximum time elapsed after the end of an utterance for the next one to be
+    considered an interaction) and delay (minimum time elapsed after the start of an utterance for the next
+    one to be considered an interaction),
+    classifies whether each segment is an interaction with the previous (columns is_CT i.e. is conversational turn).
+     Then adds a column grouping vocalisations which belong to the same conversation (conv_count)
 
     :param metadata: series mapping all the metadata available
     :type metadata: pd.Series
@@ -183,10 +187,9 @@ def remove_overlaps(project,
                     segments,
                     speakers=['CHI', 'OCH', 'FEM', 'MAL'],
                     ):
-    """takes a pandas dataframe of annotation segments containing at least the columns
-    speaker_type segment_onset and segment_offset.
-    Cuts the vocalizations to discard any part that has overlapping speech
-    return the new dataframe of annotation segments
+    """
+    Cuts the segments to discard any part that has overlapping speech, resulting in a segmentation with no overlap
+    of speech. Parts that contained overlapping speech therefore appear empty of any speech.
 
     :param df: Dataframe of annotation segments with speaker_type, segment_onset and
     segment_offset
@@ -269,7 +272,8 @@ def kcds_ohs(project,
              iti=5000,
              scenario='R',
              ):
-    """ The function takes a dataframe of annotation segments as an input and based on the given iti and scenario,
+    """ The function takes a dataframe of annotation segments as an input and based on the given iti (inter turn
+    interval) and scenario (permissive or restrictive),
     classifies whether each annotation is targeted to the key child or overheard. Filling in the column cva (child
     vocalization adjacent), Y meaning it is in an interaction with the child, N meaning the vocalization is not in
     direct interaction with the key child.
@@ -280,7 +284,9 @@ def kcds_ohs(project,
     :type segments: DataFrame
     :param iti: maximum interval in ms for it to be considered interaction, default = 5000
     :type iti: int
-    :param scenario: scenario to choose from P for permissive, R for restrictive
+    :param scenario: scenario to choose from P for permissive, R for restrictive. You MUST use annotations that are
+    respectively permissive (allow overlaps between speakers) and restrictive (no overlap allowed between speakers) for
+    those scenarios
     :type scenario: str
     :return: output annotation DataFrame
     :rtype: pd.DataFrame
@@ -370,5 +376,5 @@ DERIVATIONS = {
     "acoustics": (acoustics, {'has_acoustics': 'Y'}),
     "conversations": (conversations, {'has_interactions': 'Y'}),
     "remove-overlaps": (remove_overlaps, {'segmentation_type': 'restrictive'}),
-    "kcds-ohs": (kcds_ohs, {'has_addressee': 'Y'})
+    "cva": (kcds_ohs, {'has_addressee': 'Y'})
 }
