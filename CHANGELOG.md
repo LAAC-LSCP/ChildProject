@@ -11,6 +11,8 @@ All notable changes to this project will be documented in this file.
 - support for python 3.13 (and testing)
 - constraint fro librosa>=0.11.0 (calculation of pitch was modified there)
 - testing for virtual env building
+- tests for all cli calls added (at least piping things)
+- add_project_file and add_annotation_file for copying new files to the dataset tree
 
 ### Changed
 
