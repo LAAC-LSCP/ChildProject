@@ -65,7 +65,9 @@ def acoustics(project,
               target_sr=STANDARD_SAMPLE_RATE,
               ):
     """
-        Read an audio file and returns the audio time series and its sampling rate
+        Based on the existing segmentation, extracts acoustics features of each vocalization identified. In particular,
+        mean pitch semitone, median pitch semitone as well as 5th and 95th percentile of pitch semitone.
+
         :param file_path: path to an audio file
         :type file_path: str
         :return: (audio time series, sampling rate)
@@ -119,9 +121,11 @@ def conversations(project,
                   max_interval=5000,
                   min_delay=0):
 
-    """ The function takes a dataframe of annotation segments as an input and based on the given interval and delay,
-    classifies whether each annotation is a part of the conversation. Then adds a column grouping vocalisations which
-    belong to the same conversation
+    """ Based on the given interval (iti, maximum time elapsed after the end of an utterance for the next one to be
+    considered an interaction) and delay (minimum time elapsed after the start of an utterance for the next
+    one to be considered an interaction),
+    classifies whether each segment is an interaction with the previous (columns is_CT i.e. is conversational turn).
+     Then adds a column grouping vocalisations which belong to the same conversation (conv_count)
 
     :param metadata: series mapping all the metadata available
     :type metadata: pd.Series
@@ -183,10 +187,9 @@ def remove_overlaps(project,
                     segments,
                     speakers=['CHI', 'OCH', 'FEM', 'MAL'],
                     ):
-    """takes a pandas dataframe of annotation segments containing at least the columns
-    speaker_type segment_onset and segment_offset.
-    Cuts the vocalizations to discard any part that has overlapping speech
-    return the new dataframe of annotation segments
+    """
+    Cuts the segments to discard any part that has overlapping speech, resulting in a segmentation with no overlap
+    of speech. Parts that contained overlapping speech therefore appear empty of any speech.
 
     :param df: Dataframe of annotation segments with speaker_type, segment_onset and
     segment_offset
@@ -263,10 +266,115 @@ def remove_overlaps(project,
 
     return new_segments
 
+def kcds_ohs(project,
+             metadata: dict,
+             segments,
+             iti=5000,
+             scenario='R',
+             ):
+    """ The function takes a dataframe of annotation segments as an input and based on the given iti (inter turn
+    interval) and scenario (permissive or restrictive),
+    classifies whether each annotation is targeted to the key child or overheard. Filling in the column cva (child
+    vocalization adjacent), Y meaning it is in an interaction with the child, N meaning the vocalization is not in
+    direct interaction with the key child.
+
+    :param metadata: series mapping all the metadata available
+    :type metadata: pd.Series
+    :param segments: dataframe of annotation segments
+    :type segments: DataFrame
+    :param iti: maximum interval in ms for it to be considered interaction, default = 5000
+    :type iti: int
+    :param scenario: scenario to choose from P for permissive, R for restrictive. You MUST use annotations that are
+    respectively permissive (allow overlaps between speakers) and restrictive (no overlap allowed between speakers) for
+    those scenarios
+    :type scenario: str
+    :return: output annotation DataFrame
+    :rtype: pd.DataFrame
+    """
+    def classify_speaker_type(speaker_type):
+        return 'C' if speaker_type == 'CHI' else 'O'
+
+    segments['speaker_class'] = segments['speaker_type'].apply(classify_speaker_type)
+    segments['cva'] = 'N'
+    debug_data = []
+
+    for idx in range(len(segments)):
+        curr_row = segments.iloc[idx]
+        prev_row = segments.iloc[idx - 1] if idx > 0 else None
+        next_row = segments.iloc[idx + 1] if idx < len(segments) - 1 else None
+
+        prev_gap = curr_row['segment_onset'] - prev_row['segment_offset'] if prev_row is not None else None
+        next_gap = next_row['segment_onset'] - curr_row['segment_offset'] if next_row is not None else None
+
+        # R scenario
+        if scenario == "R":
+            if curr_row["speaker_class"] == "C":
+                segments.at[idx, 'cva'] = 'NA'
+            elif prev_row is not None and prev_row['speaker_class'] == 'C' and prev_gap is not None and prev_gap <= iti:
+                segments.at[idx, 'cva'] = 'Y'
+
+            elif next_row is not None and next_row['speaker_class'] == 'C' and next_gap is not None and next_gap <= iti:
+                segments.at[idx, 'cva'] = 'Y'
+            else:
+                segments.at[idx, 'cva'] = 'N'
+
+        # P scenario
+        else:
+            if curr_row["speaker_class"] == "C":
+                # If the current speaker is a child, classify as CHI
+                segments.at[idx, 'cva'] = 'NA'
+            else:
+                # Check if there is a child (CHI) before or after the current speaker
+                has_child_neighbor = (
+                        (prev_row is not None and prev_row['speaker_class'] == "C") or
+                        (next_row is not None and next_row['speaker_class'] == "C")
+                )
+
+                if has_child_neighbor:
+                    # If there is a child before or after, automatically classify as Y
+                    segments.at[idx, 'cva'] = 'Y'
+                else:
+                    # Otherwise, apply standard rules
+                    prev_is_turn = prev_row is not None and abs(prev_gap) <= iti
+                    next_is_turn = next_row is not None and abs(next_gap) <= iti
+
+                    if prev_is_turn and next_is_turn:
+                        # Choose the smallest gap in absolute value
+                        if abs(prev_gap) < abs(next_gap):
+                            # Use previous row for cva
+                            if prev_row['speaker_class'] != "C" and curr_row["speaker_type"] != prev_row[
+                                'speaker_type']:
+                                segments.at[idx, 'cva'] = 'N'
+                            else:
+                                segments.at[idx, 'cva'] = 'Y'
+                        else:
+                            # Use next row for classification of cvs
+                            if next_row['speaker_class'] != "C" and curr_row["speaker_type"] != next_row[
+                                'speaker_type']:
+                                segments.at[idx, 'cva'] = 'N'
+                            else:
+                                segments.at[idx, 'cva'] = 'Y'
+                    elif prev_is_turn:
+                        if prev_row['speaker_class'] != "C" and curr_row["speaker_type"] != prev_row['speaker_type']:
+                            segments.at[idx, 'cva'] = 'N'
+                        else:
+                            segments.at[idx, 'cva'] = 'Y'
+                    elif next_is_turn:
+                        if next_row['speaker_class'] != "C" and curr_row["speaker_type"] != next_row['speaker_type']:
+                            segments.at[idx, 'cva'] = 'N'
+                        else:
+                            segments.at[idx, 'cva'] = 'Y'
+                    else:
+                        # Default to Y
+                        segments.at[idx, 'cva'] = 'Y'
+
+    return segments
+
 # listing the possible derivations available by default, gives a callable as well as some metadata keys to store
 # the derived set will inherit the metadata key from the set it originates from except for date and keys put here
 DERIVATIONS = {
-    "acoustics": (acoustics, {'has_acoustics': True}),
-    "conversations": (conversations, {'has_interactions': True}),
+    "acoustics": (acoustics, {'has_acoustics': 'Y'}),
+    "conversations": (conversations, {'has_interactions': 'Y'}),
     "remove-overlaps": (remove_overlaps, {'segmentation_type': 'restrictive'}),
+    "cva": (kcds_ohs, {'has_addressee': 'Y'})
 }
