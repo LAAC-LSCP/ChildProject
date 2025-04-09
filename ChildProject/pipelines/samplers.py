@@ -948,7 +948,7 @@ class ConversationSampler(Sampler):
         segments["iti"] = segments["segment_onset"] - segments["segment_offset"].shift(
             1
         )
-        segments["breaks_chain"] = segments["iti"] > self.interval
+        segments["breaks_chain"] = (segments["iti"] > self.interval).fillna(False)
 
         segments["prev_speaker_type"] = segments["speaker_type"].shift(1)
         key_child_environment = set(self.speakers) - {"CHI"}
@@ -1065,8 +1065,8 @@ class SamplerPipeline(Pipeline):
         parameters_path = os.path.join(destination, "parameters_{}.yml".format(date))
 
         self.segments[
-            set(self.segments.columns)
-            & {"recording_filename", "segment_onset", "segment_offset"}
+            list(set(self.segments.columns)
+            & {"recording_filename", "segment_onset", "segment_offset"})
         ].to_csv(segments_path, index=False)
         logger_annotations.info(
                 "exported sampled segments to %s", 

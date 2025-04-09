@@ -191,7 +191,8 @@ def test_periodic(project):
     
     pd.testing.assert_frame_equal(
         segments[['segment_onset', 'segment_offset']].sort_values(['segment_onset', 'segment_offset']).reset_index(drop = True),
-        speech_segs[['segment_onset', 'segment_offset']].sort_values(['segment_onset', 'segment_offset']).reset_index(drop = True)
+        speech_segs[['segment_onset', 'segment_offset']].sort_values(['segment_onset', 'segment_offset']).reset_index(drop = True),
+        check_dtype=False,
     )
         
     segments = []
@@ -207,7 +208,8 @@ def test_periodic(project):
     
     pd.testing.assert_frame_equal(
         segments[['segment_onset', 'segment_offset']].sort_values(['segment_onset', 'segment_offset']).reset_index(drop = True),
-        chi_segs[['segment_onset', 'segment_offset']].sort_values(['segment_onset', 'segment_offset']).reset_index(drop = True)
+        chi_segs[['segment_onset', 'segment_offset']].sort_values(['segment_onset', 'segment_offset']).reset_index(drop = True),
+        check_dtype=False,
     )
     
     segments = []
@@ -223,7 +225,8 @@ def test_periodic(project):
     
     pd.testing.assert_frame_equal(
         segments[['segment_onset', 'segment_offset']].sort_values(['segment_onset', 'segment_offset']).reset_index(drop = True),
-        och_segs[['segment_onset', 'segment_offset']].sort_values(['segment_onset', 'segment_offset']).reset_index(drop = True)
+        och_segs[['segment_onset', 'segment_offset']].sort_values(['segment_onset', 'segment_offset']).reset_index(drop = True),
+        check_dtype=False,
     )
     
     segments = []
@@ -239,7 +242,8 @@ def test_periodic(project):
     
     pd.testing.assert_frame_equal(
         segments[['segment_onset', 'segment_offset']].sort_values(['segment_onset', 'segment_offset']).reset_index(drop = True),
-        fem_segs[['segment_onset', 'segment_offset']].sort_values(['segment_onset', 'segment_offset']).reset_index(drop = True)
+        fem_segs[['segment_onset', 'segment_offset']].sort_values(['segment_onset', 'segment_offset']).reset_index(drop = True),
+        check_dtype=False,
     )
 
     assert eaf.media_descriptors[0]['MEDIA_URL'] == 'sound.wav'

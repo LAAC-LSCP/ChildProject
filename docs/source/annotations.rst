@@ -139,6 +139,14 @@ the user when using the python api directly.
 
     child-project derive-annotations . conversations --input-set vtc --output-set vtc/conversations
 
+The following derivations exist:
+
+.. _list-derivations:
+
+.. custom-table::
+    :header: list-derivations
+
+
 ITS annotations anonymization
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

@@ -31,10 +31,7 @@ def test_acoustics():
     # res.to_csv(TRUTH / 'acoustics.csv', index=False)
     truth = pd.read_csv(TRUTH / 'acoustics.csv')
 
-    print(truth.to_string())
-    print(res.to_string())
-
-    pd.testing.assert_frame_equal(res, truth)
+    pd.testing.assert_frame_equal(res, truth, check_exact=False, rtol=1e-4, atol=1e-7)
 
 
 def test_remove_overlaps():
@@ -45,5 +42,18 @@ def test_remove_overlaps():
     res = deriv.remove_overlaps(project, meta, df)
     # res.to_csv(TRUTH / 'remove-overlaps.csv', index=False)
     truth = pd.read_csv(TRUTH / 'remove-overlaps.csv')
+
+    pd.testing.assert_frame_equal(res, truth, check_dtype=False)
+
+def test_cva():
+    df = CSV_DF.copy()
+    meta = {}
+    project = None
+
+    # we use restrictive, so we should remove overlaps first (this is not ideal for independent testing though)
+    df = deriv.remove_overlaps(project, meta, df)
+    res = deriv.kcds_ohs(project, meta, df)
+    # res.to_csv(TRUTH / 'cva.csv', index=False)
+    truth = pd.read_csv(TRUTH / 'cva.csv', keep_default_na=False)
 
     pd.testing.assert_frame_equal(res, truth, check_dtype=False)

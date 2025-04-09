@@ -10,13 +10,13 @@ from ChildProject.metrics import (
     conf_matrix,
 )
 
-
-def test_gamma():
-    segments = pd.read_csv("tests/data/gamma.csv")
-
-    value = gamma(segments, "speaker_type", alpha=3, beta=1, precision_level=0.01)
-
-    assert 0.39 <= value <= 0.44
+# we are removing pygamma-agreement support as it is hugely underused and deemed not very relevant by lead researcher
+# def test_gamma():
+#     segments = pd.read_csv("tests/data/gamma.csv")
+#
+#     value = gamma(segments, "speaker_type", alpha=3, beta=1, precision_level=0.01)
+#
+#     assert 0.39 <= value <= 0.44
 
 
 def test_segments_to_grid():

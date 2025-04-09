@@ -780,13 +780,6 @@ class MetricsPipeline(Pipeline):
             help="comma separated columns from children.csv to include in the outputted metrics (optional), NA if ambiguous",
             default=None,
         )
-
-        parser.add_argument(
-            "--set-cols",
-            help="comma separated columns from the set metadata to include in the outputted metrics (optional), NA if ambiguous",
-            default=None,
-        )
-        
         
         parser.add_argument(
             "--threads", help="amount of threads to run on", default=1, type=int

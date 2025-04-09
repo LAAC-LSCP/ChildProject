@@ -433,7 +433,7 @@ def derive_annotations(args):
     perform_validation(project, require_success=True, ignore_recordings=True)
 
     am = AnnotationManager(project)
-    imported, errors_der = am.derive_annotations(args.input_set, args.output_set, args.derivation, args.threads, overwrite_existing=args.overwrite_existing)
+    imported, errors_der = am.derive_annotations(args.input_set, args.output_set, args.derivation, None, args.threads, overwrite_existing=args.overwrite_existing)
 
     if errors_der is not None and errors_der.shape[0] > 0:
         logger.error('The derivation failed for %d entry/ies', errors_der.shape[0])

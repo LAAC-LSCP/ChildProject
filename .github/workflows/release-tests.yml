@@ -1,0 +1,121 @@
+name: release-tests
+on:
+  pull_request:
+    branches:
+      - master
+      - pre-release
+jobs:
+# we keep macos-13 for x64 and use macos-latest for arm64
+  build-macos:
+    strategy:
+      matrix:
+        os: [macos-13, macos-latest]
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12','3.13']
+    name: Tests-macos
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v3
+      - name: Setup python
+        uses: "actions/setup-python@v3"
+        with:
+          python-version: "${{ matrix.python-version }}"
+      - name: ffmpeg
+        uses: AnimMouse/setup-ffmpeg@v1
+      - name: Setup package
+        run: |
+          pip install --upgrade setuptools
+          pip install -r requirements.txt
+          pip install . --upgrade
+          python -m pip install --user pytest
+      - name: Run pytest
+        run: |
+          mkdir output
+          python -m pytest
+  build-windows:
+    strategy:
+      matrix:
+        os: [windows-latest]
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13']
+    name: Tests-windows
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v3
+      - name: Setup python
+        uses: "actions/setup-python@v3"
+        with:
+          python-version: "${{ matrix.python-version }}"
+      - name: ffmpeg
+        uses: AnimMouse/setup-ffmpeg@v1
+      - name: Setup package
+        run: |
+          pip install --upgrade setuptools
+          pip install -r requirements.txt
+          pip install . --upgrade
+          python -m pip install --user pytest
+      - name: Run pytest
+        run: |
+          mkdir output
+          python -m pytest
+  build-environment-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v3
+      - name: build virtual environment
+        uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-file: env_linux.yml
+          init-shell: >-
+            bash
+      - name: use ChildProject dev version
+        run: pip install .[tests,docs] -U
+        shell: micromamba-shell {0}
+      - name: run pytest
+        run: pytest
+        shell: micromamba-shell {0}
+      - name: make docs
+        run: |
+          cd docs
+          make clean
+          make html
+          touch build/html/.nojekyll
+        shell: micromamba-shell {0}
+  build-environment-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v3
+      - name: build virtual environment
+        uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-file: env_macos.yml
+          init-shell: >-
+            cmd.exe
+      - name: activate cli for env
+        run: micromamba activate childproject
+        shell: cmd /C CALL {0}
+      - name: use ChildProject dev version
+        run: pip install .[tests,docs] -U
+        shell: cmd /C CALL {0}
+      - name: run pytest
+        run: pytest
+        shell: cmd /C CALL {0}
+  build-environment-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v3
+      - name: build virtual environment
+        uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-file: env_macos.yml
+          init-shell: >-
+            bash
+      - name: use ChildProject dev version
+        run: pip install .[tests,docs] -U
+        shell: micromamba-shell {0}
+      - name: run pytest
+        run: pytest
+        shell: micromamba-shell {0}

@@ -329,6 +329,7 @@ class Conversations(ABC):
 
         if not self.conversations.shape[0]:
             logger_conversations.warning("The extraction did not find any conversation")
+        self.conversations = self.conversations.convert_dtypes()
         return self.conversations
 
     def retrieve_segments(self, recording: str):
