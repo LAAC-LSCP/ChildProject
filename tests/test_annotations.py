@@ -13,6 +13,7 @@ import pytest
 import shutil
 from pathlib import Path
 import time
+import filecmp
 
 
 def standardize_dataframe(df, columns):
@@ -205,7 +206,7 @@ def test_import(project, am):
         annotations = am.annotations[am.annotations["set"] == dataset]
         segments = am.get_segments(annotations)
         segments.drop(columns=set(annotations.columns) - {"raw_filename"}, inplace=True)
-        truth = pd.read_csv("tests/truth/{}.csv".format(dataset))
+        truth = pd.read_csv("tests/truth/{}.csv".format(dataset), dtype_backend='numpy_nullable')
 
         # print(segments)
         # print(truth)
@@ -491,12 +492,8 @@ def test_merge(project, am):
     input_annotations = input_annotations[
         input_annotations["set"].isin(["vtc_rttm", "alice/output"])
     ]
-    # print(input_annotations)
     am.import_annotations(input_annotations)
-    am.read()
 
-    # print(am.annotations)
-    am.read()
     am.merge_sets(
         left_set="vtc_rttm",
         right_set="alice/output",
@@ -662,7 +659,7 @@ def test_rename(project, am, old, new, error, mf, index):
     am.read()
 
     if mf:
-        mdf = pd.read_csv("examples/valid_raw_data/annotations/merged_from.csv")
+        mdf = pd.read_csv("examples/valid_raw_data/annotations/merged_from.csv", dtype_backend='numpy_nullable')
         am.annotations['merged_from'] = mdf['merged_from']
         am.write()
 
@@ -995,3 +992,37 @@ def check_its(segments, truth):
         standardize_dataframe(segments, columns),
         check_dtype=False,
     )
+
+@pytest.mark.parametrize("file_path,dst_file,dst_path,set,overwrite,error",
+     [(PATH / 'metadata/children/0_test.csv', 'rec1.rttm', PATH / 'annotations/new_vtc/raw/rec1.rttm', 'new_vtc', False, None),
+    (str(PATH / 'metadata/children/0_test.csv'), Path('rec1.rttm'), PATH / 'annotations/new_vtc/raw/rec1.rttm', 'new_vtc', False, None),
+    (PATH / 'metadata/children/0_test.csv', 'example.rttm', None, 'vtc_rttm', False, AssertionError),
+    (PATH / 'made_up_file.txt', 'rec.rttm', None, 'new_vtc', False, FileNotFoundError),
+    (PATH / 'metadata/children/0_test.csv', '/etc/rec1.rttm', None, 'new_vtc', False, AssertionError),
+    (PATH / 'metadata/children/0_test.csv', '../test.rttm', None, 'new_vtc', False, AssertionError),
+    (PATH / 'metadata/children/0_test.csv', 'example.rttm', PATH / 'annotations/vtc_rttm/raw/example.rttm', 'vtc_rttm', True, None),
+    (PATH / 'metadata/children/0_test.csv', 'example2.rttm', PATH / 'annotations/vtc_rttm/raw/example2.rttm', 'vtc_rttm', False, None),
+    (PATH / 'metadata/children/0_test.csv', 'scripts/new_subfolder/any_script.py', PATH / 'annotations/super/long/set/raw/scripts/new_subfolder/any_script.py', 'super/long/set', False, None),
+      ])
+def test_add_annotation_file(project, am, file_path, dst_file, dst_path, set, overwrite, error):
+    if error is not None:
+        with pytest.raises(error):
+            am.add_annotation_file(file_path, dst_file, set, overwrite)
+    else:
+        am.add_annotation_file(file_path, dst_file, set, overwrite)
+        assert filecmp.cmp(file_path, dst_path)
+
+
+@pytest.mark.parametrize("file,dst,set,error",
+     [('example.rttm', PATH / 'annotations/vtc_rttm/raw/example.rttm', 'vtc_rttm', None),
+    ('example2.rttm', None, 'vtc_rttm', FileNotFoundError),
+    ('/sound.rttm', None, 'vtc', AssertionError),
+    ('../../../../sound.wav', None, 'vtc', AssertionError),
+      ])
+def test_remove_annotation_file(project, am, file, dst, set, error):
+    if error is not None:
+        with pytest.raises(error):
+            am.remove_annotation_file(file, set)
+    else:
+        am.remove_annotation_file(file, set)
+        assert not dst.exists()

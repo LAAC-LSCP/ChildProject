@@ -299,7 +299,7 @@ def cry_voc_speaker(segments: pd.DataFrame, duration: int, **kwargs):
                                (segments["vcm_type"] == "Y")].shape[0]
     # elif 'cries' in segments.columns:
     else:
-        return segments[segments['speaker_type'] == kwargs["speaker"]]["cries"].apply(lambda x: len(ast.literal_eval(x))).sum()
+        return segments[segments['speaker_type'] == kwargs["speaker"]]["cries"].apply(lambda x: len(ast.literal_eval(str(x)))).astype('Int64').sum()
 
 
 peak_cry_voc_speaker = metricFunction({"speaker"}, ({"speaker_type", "vcm_type"}, {"speaker_type", "cries"})
@@ -342,8 +342,8 @@ def avg_cry_voc_dur_speaker(segments: pd.DataFrame, duration: int, **kwargs):
         value = segments.loc[(segments["speaker_type"] == kwargs["speaker"]) &
                                 (segments["vcm_type"] == "Y")]["duration"].mean()
     else:
-        annots = segments[segments['speaker_type'] == kwargs["speaker"]]
-        value = annots["child_cry_vfx_len"].sum() / annots["cries"].apply(lambda x: len(ast.literal_eval(x))).sum()
+        segments = segments[segments['speaker_type'] == kwargs["speaker"]]
+        value = segments["child_cry_vfx_len"].sum() / segments["cries"].apply(lambda x: len(ast.literal_eval(x))).sum()
 
     if pd.isnull(value):
         value = 0
@@ -451,8 +451,8 @@ def lp_n(segments: pd.DataFrame, duration: int, **kwargs):
     """
     if {"cries", "vfxs", "utterances_count"}.issubset(segments.columns):
         segments = segments[segments["speaker_type"] == "CHI"]
-        cries = segments["cries"].apply(lambda x: len(ast.literal_eval(x))).sum()
-        vfxs = segments["vfxs"].apply(lambda x: len(ast.literal_eval(x))).sum()
+        cries = segments["cries"].apply(lambda x: len(ast.literal_eval(x))).astype('Int64').sum()
+        vfxs = segments["vfxs"].apply(lambda x: len(ast.literal_eval(x))).astype('Int64').sum()
         utterances = segments["utterances_count"].sum()
         total = (utterances + cries + vfxs)
         if total:

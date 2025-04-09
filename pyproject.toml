@@ -8,13 +8,12 @@ version = '0.2.3'
 dependencies = [
   "colorlog",
   "GitPython",
-  "importlib-metadata; python_version < '3.8'",
-  "librosa",
+  "librosa>=0.11.0",
   "lxml",
   "matplotlib",
   "nltk",
   "numpy>=1.17",
-  "pandas>=1.1.0,<=3.0.0",
+  "pandas>=2.0.0,<=3.0.0",
   "panoptes_client",
   "praat-parselmouth",
   "pyannote.core",
@@ -33,7 +32,7 @@ authors = [
 ]
 description = "LAAC@LSCP"
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
@@ -45,10 +44,9 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-reliability = ["pygamma-agreement"]
 tests = ["pytest"]
 docs = [
-    "sphinx",
+    "sphinx>=6.2.1",
     "sphinx_rtd_theme",
     "sphinx-tabs",
     "datalad",

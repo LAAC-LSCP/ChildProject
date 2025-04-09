@@ -35,7 +35,7 @@ def assert_columns_presence(name: str, df: pd.DataFrame, columns: Union[Set, Lis
         
 def read_csv_with_dtype(file: str, dtypes: dict):
     try:
-        df = pd.read_csv(file,dtype=dtypes)
+        df = pd.read_csv(file, dtype=dtypes, dtype_backend='numpy_nullable')
     except ValueError:
         raise IncorrectDtypeException('Incorrect type found in {}, expected column types are:\n{}'.format(file,dtypes))
     return df
@@ -119,9 +119,9 @@ class IndexTable:
             dtype = {
                 column.name: column.dtype for column in self.columns if column.dtype
             }
-            self.df = pd.read_csv(self.path, dtype=dtype, **pd_flags)
+            self.df = pd.read_csv(self.path, dtype=dtype, **pd_flags, dtype_backend='numpy_nullable')
         else:
-            self.df = pd.read_csv(self.path, **pd_flags)
+            self.df = pd.read_csv(self.path, **pd_flags, dtype_backend='numpy_nullable')
 
         self.df.index = self.df.index + 2
         return self.df

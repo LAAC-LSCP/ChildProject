@@ -5,6 +5,7 @@ import numpy as np
 import os
 import pandas as pd
 import re
+import shutil
 from typing import Union
 from pathlib import Path
 
@@ -66,7 +67,7 @@ class ChildProject:
             description="unique child ID -- unique within the experiment (Id could be repeated across experiments to refer to different children)",
             unique=True,
             required=True,
-            dtype="str",
+            dtype="string",
         ),
         IndexColumn(
             name="child_dob",
@@ -151,6 +152,7 @@ class ChildProject:
             description="set to 1 if item should be discarded in analyses",
             choices=["0", "1"],
             required=False,
+            dtype='string'
         ),
     ]
 
@@ -164,7 +166,7 @@ class ChildProject:
             name="child_id",
             description="unique child ID -- unique within the experiment (Id could be repeated across experiments to refer to different children)",
             required=True,
-            dtype="str",
+            dtype="string",
         ),
         IndexColumn(
             name="date_iso",
@@ -190,7 +192,7 @@ class ChildProject:
             required=True,
             filename=True,
             unique=True,
-            dtype="str",
+            dtype="string",
         ),
         IndexColumn(
             name="duration",
@@ -201,7 +203,7 @@ class ChildProject:
         IndexColumn(
             name="session_id",
             description="identifier of the recording session.",
-            dtype="str",
+            dtype="string",
         ),
         IndexColumn(
             name="session_offset",
@@ -226,7 +228,7 @@ class ChildProject:
         IndexColumn(
             name="lena_recording_num",
             description="value of the corresponding <Recording> num's attribute, for LENA recordings that have been split into contiguous parts",
-            dtype="int",
+            dtype="Int64",
         ),
         IndexColumn(
             name="might_feature_gaps",
@@ -252,6 +254,7 @@ class ChildProject:
             description="set to 1 if item should be discarded in analyses",
             choices=["0", "1"],
             required=False,
+            dtype='string',
         ),
     ]
 
@@ -358,13 +361,10 @@ class ChildProject:
                 )
 
             df["line"] = df.index
-            df = (
-                df[list((set(df.columns) - set(dataframe.columns)) | {merge_column})]
-                .merge(
-                    dataframe, how="left", left_on=merge_column, right_on=merge_column
-                )
-                .set_index("line")
-            )
+            df = df.merge(dataframe, how='left', suffixes=('_old', ''), on=merge_column).set_index('line')
+            for col in replaced_columns:
+                df[col] = df[col].where(df[col].notnull(), df[col + '_old'])
+                df = df.drop(columns=[col + '_old'])
 
         return df
 
@@ -407,25 +407,103 @@ class ChildProject:
                 verbose,
             )
 
+        # breakpoint()
         if self.ignore_discarded and "discard" in self.ct.df:
-            self.ct.df['discard'] = self.ct.df["discard"].apply(np.nan_to_num).astype(int, errors='ignore')
-            self.discarded_children = self.ct.df[self.ct.df["discard"].astype(str) == "1"]
-            self.ct.df = self.ct.df[self.ct.df["discard"].astype(str) != "1"]
+            self.ct.df['discard'] = pd.to_numeric(self.ct.df["discard"], errors='coerce').fillna(0).astype('Int64').astype('string')
+            self.discarded_children = self.ct.df[self.ct.df["discard"] == '1']
+            self.ct.df = self.ct.df[self.ct.df["discard"] != '1']
 
         if self.ignore_discarded and "discard" in self.rt.df:
-            self.rt.df['discard'] = self.rt.df["discard"].apply(np.nan_to_num).astype(int, errors='ignore')
-            self.discarded_recordings = self.rt.df[self.rt.df['discard'].astype(str) == '1']
-            self.rt.df = self.rt.df[self.rt.df["discard"].astype(str) != "1"]
+            self.rt.df['discard'] = pd.to_numeric(self.rt.df["discard"], errors='coerce').fillna(0).astype('Int64').astype('string')
+            self.discarded_recordings = self.rt.df[self.rt.df['discard'] == '1']
+            self.rt.df = self.rt.df[self.rt.df["discard"] != '1']
 
         self.children = self.ct.df
         self.recordings = self.rt.df
 
         # not sure what to use if no row in children, let's just put the folder name as a replacement?
         exp = self.children.iloc[0]['experiment'] if self.children.shape[0] else self.path.name
-        exp_values = set(self.children['experiment'].unique()).union(set(self.recordings['experiment'].unique()))
-        if len(exp_values) > 1:
-            raise ValueError(f"Column <experiment> must be unique across the dataset, in both children.csv and recordings.csv , {len(exp_values)} different values were found: {exp_values}")
         self.experiment = exp
+
+
+    def add_project_file(self, src_path, dst_file, file_type: str, overwrite=False):
+        """
+        Add a file to the dataset. This function takes the path to a file, copies that file inside the dataset in
+        the correct spot depending on the file type.
+        The destination file can contain parent folders, which will be included in the copied file (e.g. src_path=
+        "/home/user/tmp/myrec.wav", dst_file="loc1/RA5/rec001.wav", file_type='recording' ; will copy the file inside
+         the dataset in a recordings/raw/loc1/RA5 folder, the file will be named rec001.wav.
+
+        :param src_path: path to the file to add to the dataset on the system
+        :type src_path: Path | str
+        :param dst_file: filename as it will be stored in the dataset, with possible subfolder(s) (e.g.
+        "location1/RA5/rec004.wav will copy the original file as rec004.wav inside folders location1 -> RA5)
+        :type dst_file: Path | str
+        :param file_type: type of the file to copy in order to know where it should be stored in the dataset, choose any
+        of 'recording','metadata','extra' or 'raw', raw is just copied from the root of the dataset into any folder
+        :type file_type: str
+        :param overwrite: overwrite the existing destination if it already exists
+        :type overwrite: bool, optional
+        """
+        file_path = Path(src_path)
+        target_path = Path(dst_file)
+        assert not target_path.is_absolute(), "parameter dst_file must be a relative path"
+        if file_type == 'recording':
+            destination = self.path / RAW_RECORDINGS / target_path
+        elif file_type == 'extra':
+            destination = self.path / EXTRA / target_path
+        elif file_type == 'metadata':
+            destination = self.path / METADATA_FOLDER / target_path
+        elif file_type == 'raw':
+            destination = self.path / target_path
+        else :
+            raise ValueError(f"unknown file_type {file_type}")
+        print(type(self.path))
+        print(destination.parents)
+        assert self.path.resolve() in destination.resolve().parents, f"target destination {destination} is outside the dataset, aborting"
+        if not overwrite and destination.exists():
+            raise FileExistsError(f"target destination {destination} already exists, to overwrite it anyway, put the parameter overwrite as True")
+        assert not destination.is_symlink(), f"target destination {destination} is annexed data in the dataset, please unlock it if you want to change its content"
+
+        if file_path.suffixes != target_path.suffixes:
+            logger_project.warning(f"origin {file_path} and destination {target_path} have different file extensions, make sure this is intended")
+
+        os.makedirs(destination.parent, exist_ok=True)
+        shutil.copyfile(file_path, destination)
+
+    def remove_project_file(self, file, file_type: str):
+        """
+        remove a file from the dataset. This function takes the path to a file, and removes it from the dataset at
+        the file system level (not in the index), the file could be under folder, they need to be in the file name
+        as a posix path (i.e. subfolder/file)
+        The file_type is meant to define the type of file in the dataset, and each category corresponds to a subfolder
+        path.
+
+        :param file: filename as it is stored in the dataset, in the tree of its category (e.g. recordings names are
+        evaluated inside the recordings/raw folder of the dataset
+        :type file: Path | str
+        :param file_type: type of the file to copy in order to know where it should be stored in the dataset, choose any
+        of 'recording','metadata','extra' or 'raw', raw is just copied from the root of the dataset into any folder
+        :type file_type: str
+        """
+        file_path = Path(file)
+        assert not file_path.is_absolute(), "parameter file must be a relative path"
+        if file_type == 'recording':
+            destination = self.path / RAW_RECORDINGS / file_path
+        elif file_type == 'extra':
+            destination = self.path / EXTRA / file_path
+        elif file_type == 'metadata':
+            destination = self.path / METADATA_FOLDER / file_path
+        elif file_type == 'raw':
+            destination = self.path / file_path
+        else:
+            raise ValueError(f"unknown file_type {file_type}")
+
+        assert self.path.resolve() in destination.resolve().parents, f"target file {destination} is outside the dataset, aborting"
+        assert not destination.is_symlink(), f"target file {destination} is annexed data in the dataset, please unlock it if you want to remove it"
+
+        destination.unlink()
+
 
     def dict_summary(self):
         if self.recordings is None:
@@ -466,14 +544,16 @@ class ChildProject:
         }
         return record
         
-    def write_recordings(self, keep_discarded: bool = True, keep_original_columns: bool = True):
+    def write_recordings(self, keep_discarded: bool = True, skip_validation=False, keep_original_columns: bool = True):
         """
         Write self.recordings to the recordings csv file of the dataset.
         !! if `read()` was done with `accumulate` , you may write confidential information in recordings.csv !!
         
         :param keep_discarded: if True, the lines in the csv that are discarded by the dataset are kept when writing. defaults to True (when False, discarded lines disappear from the dataset)
         :type keep_discarded: bool, optional
-        :param keep_original_columns: if True, deleting columns in the recordings dataframe will not result in them disappearing from the csv file (if false, only the current columns are kept)
+        :param skip_validation: if True, writes the recordings without checking if the dataset is valid
+        :type skip_validation: bool, optional
+        :param keep_original_columns: NOT IMPLEMENTED, if True, deleting columns in the recordings dataframe will not result in them disappearing from the csv file (if false, only the current columns are kept)
         :type keep_original_columns: bool, optional
         :return: dataframe that was written to the csv file
         :rtype: pandas.DataFrame
@@ -481,19 +561,57 @@ class ChildProject:
         if self.recordings is None:
             #logger to add (can not write recordings file as recordings is not initialized)
             return None
+        if not skip_validation:
+            errors, warnings = self.validate(True, current_metadata=True)
+            if len(errors):
+                raise ValueError('Dataset is not validating, use skip_validation to write anyway')
         
         if keep_discarded:
-            recs_to_write = pd.concat([self.recordings, self.discarded_recordings])
+            recs_to_write = pd.concat([self.recordings.assign(discard='0'),
+                                       self.discarded_recordings.assign(discard='1')]).convert_dtypes()
             recs_to_write = recs_to_write.astype(self.recordings.dtypes.to_dict())
         else:
-            recs_to_write = self.recordings
+            recs_to_write = self.recordings.assign(discard='0')
 
-        columns = self.recordings.columns
-            
-        recs_to_write.sort_index().to_csv(self.path / METADATA_FOLDER / RECORDINGS_CSV,columns = columns,index=False)
+        columns = recs_to_write.columns
+        recs_to_write.sort_index().to_csv(self.path / METADATA_FOLDER / RECORDINGS_CSV, columns=columns, index=False)
         return recs_to_write
 
-    def validate(self, ignore_recordings: bool = False, profile: str = None, accumulate: bool = True) -> tuple:
+    def write_children(self, keep_discarded: bool = True, skip_validation=False, keep_original_columns: bool = True):
+        """
+        Write self.children to the children csv file of the dataset.
+        !! if `read()` was done with `accumulate` , you may write confidential information in recordings.csv !!
+
+        :param keep_discarded: if True, the lines in the csv that are discarded by the dataset are kept when writing. defaults to True (when False, discarded lines disappear from the dataset)
+        :type keep_discarded: bool, optional
+        :param skip_validation: if True, writes the recordings without checking if the dataset is valid
+        :type skip_validation: bool, optional
+        :param keep_original_columns: if True, deleting columns in the recordings dataframe will not result in them disappearing from the csv file (if false, only the current columns are kept)
+        :type keep_original_columns: bool, optional
+        :return: dataframe that was written to the csv file
+        :rtype: pandas.DataFrame
+        """
+        if self.children is None:
+            # logger to add (can not write recordings file as recordings is not initialized)
+            return None
+        if not skip_validation:
+            errors, warnings = self.validate(True, current_metadata=True)
+            if len(errors):
+                raise ValueError('Dataset is not validating, use skip_validation to write anyway')
+
+        if keep_discarded:
+            chis_to_write = pd.concat([self.children.assign(discard='0'),
+                                       self.discarded_children.assign(discard='1')])
+            chis_to_write = chis_to_write.astype(self.children.dtypes.to_dict())
+        else:
+            chis_to_write = self.children.assign(discard='0')
+
+        columns = chis_to_write.columns
+        chis_to_write.sort_index().to_csv(self.path / METADATA_FOLDER / CHILDREN_CSV, columns=columns, index=False)
+        return chis_to_write
+
+    def validate(self, ignore_recordings: bool = False, profile: str = None, accumulate: bool = True,
+                 current_metadata = False, custom_metadata=None) -> tuple:
         """Validate a dataset, returning all errors and warnings.
 
         :param ignore_recordings: if True, no errors will be returned for missing recordings.
@@ -502,25 +620,43 @@ class ChildProject:
         :type profile: str, optional
         :param accumulate: use accumulated metadata (usually confidential metadata if present)
         :type accumualte: bool, optional
+        :param current_metadata: validate the currently set metadata, without reacquiring it from the files
+        :type current_metadata: bool, optional
         :return: A tuple containing the list of errors, and the list of warnings.
         :rtype: a tuple of two lists
         """
         self.errors = []
         self.warnings = []
 
-        # check tables
-        self.read(verbose=True, accumulate=accumulate)
+        # check tables, reacquire files, except if we validate on data that has been programmatically changed
+        if not current_metadata:
+            self.read(verbose=True, accumulate=accumulate)
 
-        errors, warnings = self.ct.validate()
-        self.errors += errors
-        self.warnings += warnings
+            errors, warnings = self.ct.validate()
+            self.errors += errors
+            self.warnings += warnings
 
-        errors, warnings = self.rt.validate()
-        self.errors += errors
-        self.warnings += warnings
+            errors, warnings = self.rt.validate()
+            self.errors += errors
+            self.warnings += warnings
+        else:
+            tmp_table = IndexTable("children", columns=self.CHILDREN_COLUMNS)
+            tmp_table.df = self.children
+            errors, warnings = tmp_table.validate()
+            self.errors += errors
+            self.warnings += warnings
 
-        if ignore_recordings:
-            return self.errors, self.warnings
+            tmp_table = IndexTable("recordings", columns=self.RECORDINGS_COLUMNS)
+            tmp_table.df = self.recordings
+            errors, warnings = tmp_table.validate()
+            self.errors += errors
+            self.warnings += warnings
+
+        exp_values = set(self.children['experiment'].unique()).union(set(self.recordings['experiment'].unique()))
+        if len(exp_values) > 1:
+            self.errors.append(
+                f"Column <experiment> must be unique across the dataset, in both children.csv and recordings.csv , {len(exp_values)} different values were found: {exp_values}"
+            )
 
         from pydub.utils import mediainfo #mediainfo to get audio files info
         for index, row in self.recordings.iterrows():
@@ -547,45 +683,46 @@ class ChildProject:
                             )
                         continue
 
-                    if path.exists():
-                        if not profile:
-                            info = mediainfo(str(path))
-                            if 'sample_rate' not in info or int(info['sample_rate']) != STANDARD_SAMPLE_RATE:
-                                try:
-                                    std_path = self.get_recording_path(raw_filename, STANDARD_PROFILE)
-                                    if std_path.exists():
-                                        std_info = mediainfo(str(std_path))
-                                        if 'sample_rate' not in std_info:
-                                            self.warnings.append(
-                                                f"Could not read the sample rate of converted version of recording '{raw_filename}' at '{std_path}'. {STANDARD_SAMPLE_RATE}Hz is expected for profile {STANDARD_PROFILE}")
-                                        elif int(std_info['sample_rate']) != STANDARD_SAMPLE_RATE:
-                                            self.warnings.append(f"converted version of recording '{raw_filename}' at '{std_path}' has unexpected sampling rate {std_info['sample_rate']}Hz when {STANDARD_SAMPLE_RATE}Hz is expected for profile {STANDARD_PROFILE}")
-                                    else:
-                                        if 'sample_rate' in info:
-                                            self.warnings.append(
-                                                f"recording '{raw_filename}' at '{path}' has a non standard sampling rate of {info['sample_rate']}Hz and no standard conversion in profile {STANDARD_PROFILE} was found. Does the standard profile exist? Does {profile_metadata} exist? you can create the standard profile with 'child-project process {self.path} {STANDARD_PROFILE} basic --format=wav --sampling={STANDARD_SAMPLE_RATE} --codec=pcm_s16le --skip-existing'")
+                    if not ignore_recordings:
+                        if path.exists():
+                            if not profile:
+                                info = mediainfo(str(path))
+                                if 'sample_rate' not in info or int(info['sample_rate']) != STANDARD_SAMPLE_RATE:
+                                    try:
+                                        std_path = self.get_recording_path(raw_filename, STANDARD_PROFILE)
+                                        if std_path.exists():
+                                            std_info = mediainfo(str(std_path))
+                                            if 'sample_rate' not in std_info:
+                                                self.warnings.append(
+                                                    f"Could not read the sample rate of converted version of recording '{raw_filename}' at '{std_path}'. {STANDARD_SAMPLE_RATE}Hz is expected for profile {STANDARD_PROFILE}")
+                                            elif int(std_info['sample_rate']) != STANDARD_SAMPLE_RATE:
+                                                self.warnings.append(f"converted version of recording '{raw_filename}' at '{std_path}' has unexpected sampling rate {std_info['sample_rate']}Hz when {STANDARD_SAMPLE_RATE}Hz is expected for profile {STANDARD_PROFILE}")
                                         else:
-                                            self.warnings.append(
-                                                f"Could not read the sample rate of recording '{raw_filename}' at '{path}' and no standard conversion in profile {STANDARD_PROFILE} was found. Does the standard profile exist? Does {profile_metadata} exist? you can create the standard profile with 'child-project process {self.path} {STANDARD_PROFILE} basic --format=wav --sampling={STANDARD_SAMPLE_RATE} --codec=pcm_s16le --skip-existing'")
-                                except:
-                                    profile_metadata = self.path / CONVERTED_RECORDINGS / STANDARD_PROFILE / RECORDINGS_CSV
-                                    if 'sample_rate' in info:
-                                        self.warnings.append(f"recording '{raw_filename}' at '{path}' has a non standard sampling rate of {info['sample_rate']}Hz and no standard conversion in profile {STANDARD_PROFILE} was found. Does the standard profile exist? Does {profile_metadata} exist? you can create the standard profile with 'child-project process {self.path} {STANDARD_PROFILE} basic --format=wav --sampling={STANDARD_SAMPLE_RATE} --codec=pcm_s16le --skip-existing'")
-                                    else:
-                                        self.warnings.append(f"Could not read the sample rate of recording '{raw_filename}' at '{path}' and no standard conversion in profile {STANDARD_PROFILE} was found. Does the standard profile exist? Does {profile_metadata} exist? you can create the standard profile with 'child-project process {self.path} {STANDARD_PROFILE} basic --format=wav --sampling={STANDARD_SAMPLE_RATE} --codec=pcm_s16le --skip-existing'")
-                        elif profile == STANDARD_PROFILE:
-                            info = mediainfo(str(path))
-                            if 'sample_rate' in info and int(info['sample_rate']) != STANDARD_SAMPLE_RATE:
-                                self.warnings.append(f"recording '{raw_filename}' at '{path}' has unexpected sampling rate {info['sample_rate']}Hz when {STANDARD_SAMPLE_RATE}Hz is expected for profile {STANDARD_PROFILE}")
-                    
-                    elif path.is_symlink():
-                        message = self.warnings.append(f"the data content of recording '{raw_filename}' at path '{path}' is absent. See 'broken symlinks'") #The path is valid but there's no content. See broken symlinks (try 'Datalad get $filename')
-                    else:    
-                        message = f"cannot find recording '{raw_filename}' at '{path}'"
-                        if column_attr.required:
-                            self.errors.append(message)
+                                            if 'sample_rate' in info:
+                                                self.warnings.append(
+                                                    f"recording '{raw_filename}' at '{path}' has a non standard sampling rate of {info['sample_rate']}Hz and no standard conversion in profile {STANDARD_PROFILE} was found. Does the standard profile exist? Does {profile_metadata} exist? you can create the standard profile with 'child-project process {self.path} {STANDARD_PROFILE} basic --format=wav --sampling={STANDARD_SAMPLE_RATE} --codec=pcm_s16le --skip-existing'")
+                                            else:
+                                                self.warnings.append(
+                                                    f"Could not read the sample rate of recording '{raw_filename}' at '{path}' and no standard conversion in profile {STANDARD_PROFILE} was found. Does the standard profile exist? Does {profile_metadata} exist? you can create the standard profile with 'child-project process {self.path} {STANDARD_PROFILE} basic --format=wav --sampling={STANDARD_SAMPLE_RATE} --codec=pcm_s16le --skip-existing'")
+                                    except:
+                                        profile_metadata = self.path / CONVERTED_RECORDINGS / STANDARD_PROFILE / RECORDINGS_CSV
+                                        if 'sample_rate' in info:
+                                            self.warnings.append(f"recording '{raw_filename}' at '{path}' has a non standard sampling rate of {info['sample_rate']}Hz and no standard conversion in profile {STANDARD_PROFILE} was found. Does the standard profile exist? Does {profile_metadata} exist? you can create the standard profile with 'child-project process {self.path} {STANDARD_PROFILE} basic --format=wav --sampling={STANDARD_SAMPLE_RATE} --codec=pcm_s16le --skip-existing'")
+                                        else:
+                                            self.warnings.append(f"Could not read the sample rate of recording '{raw_filename}' at '{path}' and no standard conversion in profile {STANDARD_PROFILE} was found. Does the standard profile exist? Does {profile_metadata} exist? you can create the standard profile with 'child-project process {self.path} {STANDARD_PROFILE} basic --format=wav --sampling={STANDARD_SAMPLE_RATE} --codec=pcm_s16le --skip-existing'")
+                            elif profile == STANDARD_PROFILE:
+                                info = mediainfo(str(path))
+                                if 'sample_rate' in info and int(info['sample_rate']) != STANDARD_SAMPLE_RATE:
+                                    self.warnings.append(f"recording '{raw_filename}' at '{path}' has unexpected sampling rate {info['sample_rate']}Hz when {STANDARD_SAMPLE_RATE}Hz is expected for profile {STANDARD_PROFILE}")
+
+                        elif path.is_symlink():
+                            message = self.warnings.append(f"the data content of recording '{raw_filename}' at path '{path}' is absent. See 'broken symlinks'") #The path is valid but there's no content. See broken symlinks (try 'Datalad get $filename')
                         else:
-                            self.warnings.append(message)
+                            message = f"cannot find recording '{raw_filename}' at '{path}'"
+                            if column_attr.required:
+                                self.errors.append(message)
+                            else:
+                                self.warnings.append(message)
 
             # child id refers to an existing child in the children table
             if (
@@ -892,7 +1029,9 @@ class ChildProject:
 
             table = IndexTable(f"{doc}-documentation", path, self.DOCUMENTATION_COLUMNS)
             table.read()
-            documentation.append(table.df.assign(table=doc))
+            table.df['table'] = doc
+            table.df['table'] = table.df['table'].astype('string')
+            documentation.append(table.df)
 
         documentation = pd.concat(documentation)
         return documentation

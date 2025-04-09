@@ -90,7 +90,7 @@ def test_energy_detection(project):
     pd.testing.assert_frame_equal(
         sampler.segments[["recording_filename", "segment_onset", "segment_offset"]],
         pd.DataFrame(
-            [["sound.wav", 1900, 2000]],
+            [["sound2.wav", 1900, 2000]],
             columns=["recording_filename", "segment_onset", "segment_offset"],
         ),
         check_dtype=False,

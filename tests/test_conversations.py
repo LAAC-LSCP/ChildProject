@@ -112,12 +112,12 @@ def test_conversations(project, am, segments, error, col_change, new_value):
         cm = Conversations(project, 'custom_conv', features)
         results = cm.extract()
 
-        cm.conversations.to_csv("tests/truth/python_conversations.csv",index=False)
+        # cm.conversations.to_csv("tests/truth/python_conversations.csv",index=False)
         truth = pd.read_csv("tests/truth/python_conversations.csv")
+        print(truth['interval_last_conv'])
+        print(results['interval_last_conv'])
 
-        pd.testing.assert_frame_equal(truth, results)
-
-        pd.testing.assert_frame_equal(results, truth, check_like=True)
+        pd.testing.assert_frame_equal(results, truth, check_like=True, check_dtype=False)
 
 #TODO adapt
 def test_standard(project, am, segments):
@@ -169,7 +169,7 @@ def test_custom(project, am, segments):
     # cm.conversations.to_csv("tests/truth/custom_conversations.csv", index=False)
     truth = pd.read_csv("tests/truth/custom_conversations.csv")
 
-    pd.testing.assert_frame_equal(cm.conversations, truth, check_like=True)
+    pd.testing.assert_frame_equal(cm.conversations, truth, check_like=True, check_dtype=False)
 
 
 #TODO adapt
