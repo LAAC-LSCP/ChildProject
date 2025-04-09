@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.0] 2025-04-09
+
 ### Added
 
 - Adding support for sets metadata, in the form of a yaml file stored in the root folder of the set. the package reads this file and computes metadata for each set
@@ -19,6 +21,7 @@ All notable changes to this project will be documented in this file.
 - Use pathlib across the package (except a few cases where justified usage) instead of os.path
 - the overview CLI call has a very different output, giving more information about more things
 - discarded items (recordings and children) are now stored in the ChildProject object
+- dropping support of python 3.7
 
 ## [0.2.3] 2024-11-21
 
