@@ -8,7 +8,7 @@ converters = {}
 extensions = {
     'csv': 'csv',
     'vtc_rttm': 'rttm',
-    'vcm_rttm': 'rttm',
+    'vcm_rttm': 'vcm',
     'alice': 'txt',
     'its': 'its',
     'TextGrid': 'TextGrid',
