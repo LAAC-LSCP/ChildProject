@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixing bug where utils.series_to_datetime() function would return Na values because of index not being incremental from 0
+
 ## [0.3.0] 2025-04-09
 
 ### Added
