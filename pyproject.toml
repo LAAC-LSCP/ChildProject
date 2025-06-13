@@ -31,8 +31,13 @@ authors = [
   { name="Lucas Gautheron", email="lucas.gautheron@gmail.com" },
   { name="Loann Peurey", email="loannpeurey@gmail.com" },
 ]
+maintainers = [
+  { name="Lucas Gautheron", email="lucas.gautheron@gmail.com" },
+  { name="Loann Peurey", email="loannpeurey@gmail.com" },
+]
 description = "LAAC@LSCP"
-readme = "README.md"
+readme = { file = "README.md", content-type = "text/markdown" }
+keywords = ["childproject", "long form recordings", "language acquisition", "laac", "linguistics", "child", "language", "development"]
 requires-python = ">=3.8"
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -56,6 +61,9 @@ repository = ["datalad"]
 [project.urls]
 Homepage = "https://github.com/LAAC-LSCP/ChildProject"
 Documentation = "https://childproject.readthedocs.io/en/latest/"
+Issues = "https://github.com/LAAC-LSCP/ChildProject/issues"
+Discussions = "https://github.com/LAAC-LSCP/ChildProject/discussions"
+ChangeLog = "https://github.com/LAAC-LSCP/ChildProject/blob/master/CHANGELOG.md"
 
 [project.scripts]
 child-project = "ChildProject.cmdline:main"
