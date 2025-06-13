@@ -1,0 +1,9 @@
+requires = ["tox>=4.26"]
+isolated_build = true
+envlist = ["3.12", "test"]
+
+[env.test]
+description = "run test under {base_python}"
+install_package = true
+deps = ["pytest", "pytest-randomly"]
+commands = [["pytest", { replace = "posargs", default = ["--randomly-seed=1234", "--strict-markers"], extend = true } ]]
