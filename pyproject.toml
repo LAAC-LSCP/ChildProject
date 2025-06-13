@@ -63,9 +63,11 @@ child-project = "ChildProject.cmdline:main"
 [tool.setuptools]
 include-package-data = true
 
-[tool.setuptools.packages.find]
-namespaces = true
-include = ["ChildProject*"]
-
 [tool.setuptools.package-data]
 "ChildProject.templates" = ["*.etf", "*.pfsx"]
+
+[tool.setuptools.packages.find]
+namespaces = true
+where = ["."]
+include = ["ChildProject", "ChildProject.*"]
+exclude = ["tests*", "tests.*"]
