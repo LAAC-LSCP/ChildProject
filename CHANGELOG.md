@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
 - Fixing bug where utils.series_to_datetime() function would return Na values because of index not being incremental from 0
+- function from cmdline now can be imported and used in python directly
 
 ## [0.3.0] 2025-04-09
 
