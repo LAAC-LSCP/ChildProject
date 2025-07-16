@@ -94,6 +94,8 @@ def subcommand(args=[], parent=subparsers):
             parser.add_argument(*arg[0], **arg[1])
         parser.set_defaults(func=func)
 
+        return func
+
     return decorator
 
 
