@@ -28,7 +28,7 @@ else
   exit 1
 fi
 
-# Downloading artifact
+# find curl or wget
 mkdir -p "${BIN_FOLDER}"
 if hash curl >/dev/null 2>&1; then
   HTTP_CMD="curl -o"
