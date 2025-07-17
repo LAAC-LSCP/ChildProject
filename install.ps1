@@ -1,5 +1,5 @@
 # check if VERSION env variable is set, otherwise use "latest"
-$RELEASE_URL = "https://raw.githubusercontent.com/LAAC-LSCP/ChildProject/master/env_windows.yml"
+$RELEASE_URL = "https://raw.githubusercontent.com/LAAC-LSCP/ChildProject/docs/rework_installation/env_windows.yml"
 
 curl.exe -L -o %TEMP%\env.yml $RELEASE_URL
 
