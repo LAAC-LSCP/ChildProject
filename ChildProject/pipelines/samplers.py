@@ -142,6 +142,7 @@ class Sampler(ABC):
             )
 
         self.segments = pd.concat(segments)
+        return self.segments
 
     def assert_valid(self):
         require_columns = ["recording_filename", "segment_onset", "segment_offset"]
@@ -153,6 +154,7 @@ class Sampler(ABC):
                     ",".join(missing_columns)
                 )
             )
+        return True
 
     def export_audio(self, destination, profile=None, **kwargs):
         self.assert_valid()
@@ -174,6 +176,7 @@ class Sampler(ABC):
 
                 os.makedirs(os.path.dirname(output_path), exist_ok=True)
                 seg.export(output_path, **kwargs)
+        return output_path
 
 
 class CustomSampler(Sampler):
@@ -836,6 +839,7 @@ class HighVolubilitySampler(Sampler):
                 self.segments = pool.map(self._sample_unit, recordings.groupby(self.by))
 
         self.segments = pd.concat(self.segments)
+        return self.segments
 
     @staticmethod
     def add_parser(subparsers, subcommand):
@@ -998,6 +1002,7 @@ class ConversationSampler(Sampler):
                 self.segments = pool.map(self._sample_unit, recordings.groupby(self.by))
 
         self.segments = pd.concat(self.segments)
+        return self.segments
 
     @staticmethod
     def add_parser(subparsers, subcommand):
