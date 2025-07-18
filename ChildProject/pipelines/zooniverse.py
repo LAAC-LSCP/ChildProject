@@ -563,6 +563,8 @@ class ZooniversePipeline(Pipeline):
         
         signal.signal(signal.SIGINT, original_sigint_handler)
         signal.signal(signal.SIGTERM, original_sigterm_handler)
+
+        return self.chunks
         
     def exit_upload(self, *args, rec_orphan, sub_set):
         if len(self.subjects_metadata) + len(self.orphan_chunks) != 0:
@@ -730,6 +732,7 @@ class ZooniversePipeline(Pipeline):
             self.chunks = self.chunks.astype(CHUNKS_DTYPES)
             self.chunks.to_csv(self.chunks_file)
         logger_annotations.info('linked %d/%d subjects', len(subjects_metadata), len(chunks_to_link))
+        return self.chunks
         
     def reset_orphan_subjects(
         self,
@@ -776,6 +779,8 @@ class ZooniversePipeline(Pipeline):
             logger_annotations.info('reset %d orphan subjects', nb_reset)
         else:
             logger_annotations.info('no orphan subject to reset')
+
+        return self.chunks
 
     def retrieve_classifications(
         self,
@@ -871,6 +876,7 @@ class ZooniversePipeline(Pipeline):
             )
 
         classifications.set_index("id").to_csv(destination)
+        return classifications
 
     def run(self, action, **kwargs):
         if action == "extract-chunks":
