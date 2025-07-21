@@ -26,228 +26,218 @@ micromamba installed, check the :ref:`environment_manager_section`.
 Automatic install
 ~~~~~~~~~~~~~~~~~
 
-Linux / MacOS
-*************
+Reminder, for running the automatic install, you need an :ref:`environment_manager_section` environment manager to be installed
 
-To install automatically in Linux, MacOS run in a terminal
+.. tabs::
 
-.. code:: bash
+   .. group-tab:: linux
 
-    "${SHELL}" <(curl -L https://raw.githubusercontent.com/LAAC-LSCP/ChildProject/master/install.sh)
+      To install automatically in Linux run in a terminal
 
+      .. code-block:: bash
 
-Windows
-*******
+         "${SHELL}" <(curl -L https://raw.githubusercontent.com/LAAC-LSCP/ChildProject/master/install.sh)
 
-To install automatically in Windows, open a powershell prompt as administrator and run
+   .. group-tab:: MacOS
 
-.. code:: powershell
+      To install automatically in MacOS run in a terminal
 
-    Invoke-Expression ((Invoke-WebRequest -Uri https://raw.githubusercontent.com/LAAC-LSCP/ChildProject/master/install.ps1 -UseBasicParsing).Content)
+      .. code-block:: bash
+
+         "${SHELL}" <(curl -L https://raw.githubusercontent.com/LAAC-LSCP/ChildProject/master/install.sh)
+
+   .. group-tab:: Windows
+
+      To install automatically in Linux, MacOS run in a terminal
+
+      .. code-block:: powershell
+
+         Invoke-Expression ((Invoke-WebRequest -Uri https://raw.githubusercontent.com/LAAC-LSCP/ChildProject/master/install.ps1 -UseBasicParsing).Content)
+
 
 Manual install
 ~~~~~~~~~~~~~~
 
-Linux Users
-***********
+.. tabs::
 
-.. code:: bash
+   .. group-tab:: linux
 
-    # download the conda environment
-    curl https://raw.githubusercontent.com/LAAC-LSCP/ChildProject/master/env_linux.yml -o env.yml
+      .. code-block:: bash
 
-    # create the conda environment
-    micromamba env create -f env.yml
+        # download the conda environment
+        curl https://raw.githubusercontent.com/LAAC-LSCP/ChildProject/master/env_linux.yml -o env.yml
 
-    # activate the environment (this should be done systematically to use our package)
-    micromamba activate childproject
+        # create the conda environment
+        micromamba env create -f env.yml
 
+        # activate the environment (this should be done systematically to use our package)
+        micromamba activate childproject
 
-MacOS users
-***********
+   .. group-tab:: MacOS
 
-.. code:: bash
+      .. code-block:: bash
 
-    # download the conda environment
-    curl https://raw.githubusercontent.com/LAAC-LSCP/ChildProject/master/env_macos.yml -o env.yml
+         # download the conda environment
+         curl https://raw.githubusercontent.com/LAAC-LSCP/ChildProject/master/env_macos.yml -o env.yml
 
-    # create the conda environment
-    micromamba env create -f env.yml
+         # create the conda environment
+         micromamba env create -f env.yml
 
-    # activate the environment (this should be done systematically to use our package)
-    micromamba activate childproject
+         # activate the environment (this should be done systematically to use our package)
+         micromamba activate childproject
 
-    # install git-annex from brew
-    brew install git-annex
+         # install git-annex from brew
+         brew install git-annex
 
+   .. group-tab:: Windows
 
-Windows users
-*************
+      .. code-block:: powershell
 
-.. code:: powershell
+         # download the conda environment
+         curl https://raw.githubusercontent.com/LAAC-LSCP/ChildProject/master/env_windows.yml -o env.yml
 
-    # download the conda environment
-    curl https://raw.githubusercontent.com/LAAC-LSCP/ChildProject/master/env_windows.yml -o env.yml
+         # create the conda environment
+         micromamba env create -f env.yml
 
-Usage inside the environment
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+         # activate the environment (this should be done systematically to use our package)
+         micromamba activate childproject
 
-To use the package, we need the created environment to be active. This step is needed everytime a new terminal is open.
-To activate en environment, use you environment manager and the activate subcommand. For example with micromamba:
-
-.. code:: bash
-
-    # activate the environment
-    micromamba activate childproject
+         # install git-annex using uv tool
+         uv tool install git-annex
 
 
 Installation in the system packages
 -----------------------------------
 
-This installation is not recommended, this won't allow you to clearly separate your python packages depending on projects
-and will require packages at the system level to be installed (meaning you would need administrator permissions) such as
-sox and ffmpeg
+Installing directly into the system is not recommended for non admins and beginners. This won't clearly separate your
+ python packages depending on projects and will require packages at the system level to be installed
+ (requiring administrator permissions) such as sox and ffmpeg.
 
-Linux Users
-~~~~~~~~~~~
+.. tabs::
 
-.. code:: bash
+   .. group-tab:: linux
 
-    # download the conda environment
-    curl https://raw.githubusercontent.com/LAAC-LSCP/ChildProject/master/env_macos.yml -o env.yml
+      Make sure you have a recent version of python installed or install it (https://www.python.org/)
 
-    # create the conda environment
-    conda env create -f env.yml
+      Installing packages on Debian
 
-    # activate the environment (this should be done systematically to use our package)
-    conda activate childproject
+      .. code-block:: bash
 
-    # install git-annex from brew
-    brew install git-annex
+        sudo apt-get install sox ffmpeg git git-annex
 
-MacOS users
-~~~~~~~~~~~
+      Installing packages on Fedora/RHEL/CentOS/Rocky
 
-.. code:: bash
+      .. code-block:: bash
 
-    # download the conda environment
-    curl https://raw.githubusercontent.com/LAAC-LSCP/ChildProject/master/env_macos.yml -o env.yml
+        sudo yum install sox ffmpeg git git-annex
 
-    # create the conda environment
-    conda env create -f env.yml
+      Installing packages on Arch
 
-    # activate the environment (this should be done systematically to use our package)
-    conda activate childproject
+      .. code-block:: bash
 
-    # install git-annex from brew
-    brew install git-annex
+        sudo pacman -S install sox ffmpeg git git-annex
 
 
-Windows users
-~~~~~~~~~~~~~
+      Then python packages can be installed with pip directly (or alternatives like uv)
 
-.. warning::
+      .. code-block:: bash
 
-    ChildProject is only officially supported on Linux and Mac for python >= 3.7.
-    We perform automated, continuous testing on these environments to look
-    for potential issues at any step of the development.
+        pip install -U datalad ChildProject
 
-    If you are on a Windows system, consider using a `Windows subsystem for linux (WSL) <https://docs.microsoft.com/en-us/windows/wsl/install>`__,
-    inside of which you can use all the Linux instructions while accessing your windows filesystem.
+   .. group-tab:: MacOS
 
-If you which to continue using directly Windows, you must do the following:
- 1. Download and run the Git installer found in `this page <https://git-scm.com/download/win>`__, use the first link in the page. When running the installer, we advise you keep all the default choices.
- 
- .. figure:: images/git-install.png
-    :height: 300
-    :alt: git installer Wizard
+      Make sure you have a recent version of python installed or install it (https://www.python.org/)
 
-    git installer
+      .. code-block:: bash
 
- 2. Download and run the git-annex installer found `here <https://downloads.kitenet.net/git-annex/windows/current/>`__, download the file 'git-annex-installer.exe' and then launch it, keep everything as default.
- 
- .. figure:: images/git-annex-install.png
-    :height: 300
-    :alt: git annex installer Wizard
+         # install via brew, git should be installed by default
+         brew install sox ffmpeg git-annex
 
-    git annex installer
+         pip install -U datalad ChildProject
 
- 3. Download and run the `Miniconda installer <https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe>`__, launch the installer and keep all the default options.
- 
- .. figure:: images/miniconda-install.png
-    :height: 300
-    :alt: miniconda installer Wizard
+   .. group-tab:: Windows
 
-    miniconda installer
+     1. Download and run the Git installer found in `this page <https://git-scm.com/download/win>`__, use the first link in the page. When running the installer, we advise you keep all the default choices.
 
- 4. Open an Anaconda prompt, after all the installations, you should now have a program called "Anaconda Prompt" in your start Menu, if you can't find it, use the search field. You will use this program whenever you use ChilProject so it is probably best to pin it to the start menu or create a shortcut on your desktop. Launch it, you should be presented with a terminal window, allowing you to enter and launch commands
- 
- .. figure:: images/anaconda-prompt.png
-    :alt: Anaconda prompt cmd
+     .. figure:: images/git-install.png
+        :height: 300
+        :alt: git installer Wizard
 
-    Anaconda prompt
+        git installer
 
- 5. Use the following command to download the environment description
+     2. Download and run the git-annex installer found `here <https://downloads.kitenet.net/git-annex/windows/current/>`__, download the file 'git-annex-installer.exe' and then launch it, keep everything as default.
 
- .. code:: bash
+     .. figure:: images/git-annex-install.png
+        :height: 300
+        :alt: git annex installer Wizard
 
-     # download the conda environment creation info
-     curl https://raw.githubusercontent.com/LAAC-LSCP/ChildProject/master/env_macos.yml -o env.yml
+        git annex installer
 
- 
- .. figure:: images/download-yml.png
-    :alt: download environment description file
+     3. Download and run the `Miniconda installer <https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe>`__, launch the installer and keep all the default options.
 
-    download the conda environment description file
+     .. figure:: images/miniconda-install.png
+        :height: 300
+        :alt: miniconda installer Wizard
 
- 6. Run this line to create the conda environment, keep the default parameters, this can take several minutes 
+        miniconda installer
 
- .. code:: bash
+     4. Open an Anaconda prompt, after all the installations, you should now have a program called "Anaconda Prompt" in your start Menu, if you can't find it, use the search field. You will use this program whenever you use ChilProject so it is probably best to pin it to the start menu or create a shortcut on your desktop. Launch it, you should be presented with a terminal window, allowing you to enter and launch commands
 
-     # create the conda environment, keep the default parameters, this may take a long time
-     conda env create -f env.yml
- 
- .. figure:: images/env-install.png
-    :alt: creation of conda environment
+     .. figure:: images/anaconda-prompt.png
+        :alt: Anaconda prompt cmd
 
-    creation of the environment
+        Anaconda prompt
 
- 7. Activate the childproject environment in your Anaconda Prompt. This must be done everytime you use childproject
+     5. Use the following command to download the environment description
 
- .. code:: bash
+     .. code:: bash
 
-     # activate the environment (this should be done systematically to use the package)
-     conda activate childproject
- 
- .. figure:: images/env-activate.png
-    :alt: activate the childproject environment
+         # download the conda environment creation info
+         curl https://raw.githubusercontent.com/LAAC-LSCP/ChildProject/master/env_macos.yml -o env.yml
 
-    activate the newly created environment, to do every time we launch a new anaconda prompt
 
-Congratulations, You are now able to use all the childproject features inside your Anaconda Prompt.
+     .. figure:: images/download-yml.png
+        :alt: download environment description file
 
-Datalad installation
-~~~~~~~~~~~~~~~~~~~~
+        download the conda environment description file
 
-This section is optional, it will help you to install Datalad once you have completed the previous step of installing ChildProject.
+     6. Run this line to create the conda environment, keep the default parameters, this can take several minutes
 
-If you followed the previous instructions correctly, you should have created and activated a conda environment with ChildProject installed. When you are in this environment, run the following:
+     .. code:: bash
 
-.. code:: bash
+         # create the conda environment, keep the default parameters, this may take a long time
+         conda env create -f env.yml
 
-     # install datalad in your environment
-     pip install datalad
+     .. figure:: images/env-install.png
+        :alt: creation of conda environment
+
+        creation of the environment
+
+     7. Activate the childproject environment in your Anaconda Prompt. This must be done everytime you use childproject
+
+     .. code:: bash
+
+         # activate the environment (this should be done systematically to use the package)
+         conda activate childproject
+
+     .. figure:: images/env-activate.png
+        :alt: activate the childproject environment
+
+        activate the newly created environment, to do every time we launch a new anaconda prompt
+
+    Congratulations, You are now able to use all the childproject features inside your Anaconda Prompt.
 
 
 Check the setup
 ~~~~~~~~~~~~~~~
 
 You can now make sure the packages have been successfully installed:
-Each --version command should output the version of the package
+Each --version command should output the version of the package.
+If you installed in an environment, check it is activated or activate it
 
 .. clidoc::
 
-   child-project --help
+   child-project --version
 
 .. clidoc::
 
@@ -277,9 +267,14 @@ Each --version command should output the version of the package
 Check and or install Anaconda / Micromamba
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-please run ``conda --version`` and ``micromamba --version``.
-To install micromamba follow instructions `here <https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html>`__.
-To install conda follow instructions `here <https://docs.anaconda.com/anaconda/install/index.html>`__.
+To check if conda or micromamba is installed, run in a terminal or powershell the following commands :
+``conda --version`` and ``micromamba --version``
+
+If either print a version number, they are installed and you should be able to use them.
+
+If none is installed, refe to the installation instructions:
+ - micromamba follow instructions `here <https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html>`__.
+ - conda follow instructions `here <https://docs.anaconda.com/anaconda/install/index.html>`__.
 
 Troubleshooting
 ~~~~~~~~~~~~~~~
