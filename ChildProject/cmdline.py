@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from .analysis.project.analysis_project import AnalysisProject
 from .projects import ChildProject, RAW_RECORDINGS, METADATA_FOLDER, RECORDINGS_CSV, CHILDREN_CSV
 from .annotations import AnnotationManager
 from .pipelines.conversations import ConversationsPipeline
@@ -523,6 +524,18 @@ def intersect_annotations(args):
 @subcommand([])
 def interpreter(args):
     print(sys.executable)
+
+
+@subcommand([
+    arg("name", help="project name")
+])
+def analysis_project(args):
+    """Create an analysis project in the current folder"""
+    project: AnalysisProject = AnalysisProject(project_name=args.name)
+
+    project.create_project()
+
+    logger.info(f"Created project at {project.project_dir}")
 
 
 @subcommand(
