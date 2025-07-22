@@ -664,6 +664,8 @@ class AnnotationManager:
         os.makedirs(destination.parent, exist_ok=True)
         shutil.copyfile(file_path, destination)
 
+        return self
+
 
     def remove_annotation_file(self, file, set: str):
         """
@@ -686,6 +688,8 @@ class AnnotationManager:
         assert not destination.is_symlink(), f"target file {destination} is annexed data in the dataset, please unlock it if you want to remove it"
 
         destination.unlink()
+
+        return self
 
 
     def validate_annotation(self, annotation: dict) -> Tuple[List[str], List[str]]:
@@ -751,10 +755,13 @@ class AnnotationManager:
         self.annotations = self.annotations.sort_values(['imported_at','set', 'annotation_filename'])
         self.annotations.to_csv(self.project.path / METADATA_FOLDER / ANNOTATIONS_CSV, index=False)
 
+        return self
+
     def _write_set_metadata(self, setname, metadata):
         assert setname in self.annotations['set'].unique(), f"set must exist"
         with open(self.project.path / ANNOTATIONS / setname / METANNOTS, 'w') as stream:
             yaml.dump(metadata, stream)
+        return self
 
     def _check_for_outdated_merged_sets(self, sets: set = None):
         """Checks the annotations dataframe for sets that were used in merged sets and modified afterwards.
@@ -1355,6 +1362,8 @@ class AnnotationManager:
         for warning in outdated_sets:
             logger_annotations.warning("warning: %s", warning)
 
+        return self
+
     def rename_set(
         self,
         annotation_set: str,
@@ -1447,6 +1456,8 @@ class AnnotationManager:
 
             self.annotations.loc[matches, 'merged_from'] = merged_from[matches].apply(partial(update_mf, old=annotation_set,new=new_set))
         self.write()
+
+        return self
 
     def merge_annotations(
         self, left_columns, right_columns, columns, output_set, input, skip_existing: bool = False
@@ -1765,6 +1776,8 @@ class AnnotationManager:
         if not (self.project.path / ANNOTATIONS / output_set / METANNOTS).exists():
             self._write_set_metadata(output_set, new_set_meta)
         self._read_sets_metadata()
+
+        return self
 
     def get_segments(self, annotations: pd.DataFrame) -> pd.DataFrame:
         """get all segments associated to the annotations referenced in ``annotations``.

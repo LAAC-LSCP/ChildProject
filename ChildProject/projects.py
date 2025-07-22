@@ -425,6 +425,8 @@ class ChildProject:
         exp = self.children.iloc[0]['experiment'] if self.children.shape[0] else self.path.name
         self.experiment = exp
 
+        return self
+
 
     def add_project_file(self, src_path, dst_file, file_type: str, overwrite=False):
         """
@@ -471,6 +473,8 @@ class ChildProject:
         os.makedirs(destination.parent, exist_ok=True)
         shutil.copyfile(file_path, destination)
 
+        return self
+
     def remove_project_file(self, file, file_type: str):
         """
         remove a file from the dataset. This function takes the path to a file, and removes it from the dataset at
@@ -503,6 +507,8 @@ class ChildProject:
         assert not destination.is_symlink(), f"target file {destination} is annexed data in the dataset, please unlock it if you want to remove it"
 
         destination.unlink()
+
+        return self
 
 
     def dict_summary(self):

@@ -391,6 +391,8 @@ class Metrics(ABC):
             for label in self.rec_cols:
                 self.metrics[label] = self.metrics.apply(lambda row: check_unicity(row, label), axis=1)
 
+        return self.metrics
+
                 
 class CustomMetrics(Metrics):
     """metrics extraction from a csv file. 

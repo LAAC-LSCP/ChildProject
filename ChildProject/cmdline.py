@@ -147,6 +147,7 @@ def init(args):
     pd.DataFrame(columns=[col.name for col in ChildProject.CHILDREN_COLUMNS if col.required]).to_csv(
         path / METADATA_FOLDER / CHILDREN_CSV, index=False
     )
+    return 0
 
 
 @subcommand(
@@ -236,6 +237,7 @@ def validate(args):
         sys.exit(1)
 
     logger.info('validation successfully completed with %d warning(s).', len(warnings))
+    return 0
 
 
 @subcommand(
@@ -286,7 +288,7 @@ def sets_metadata(args):
         elif args.format == 'snapshot':
             logger.info(am.get_sets_metadata('lslike', human=args.human_readable, sort_by=args.sort_by,
                                              sort_ascending=not args.sort_descending))
-
+    return 0
 
 
 @subcommand(
@@ -350,7 +352,7 @@ def import_annotations(args):
                 len(errors),
                 "\n".join(errors),
             )
-
+    return 0
 
 @subcommand(
     [
@@ -411,7 +413,7 @@ def automated_import(args):
                 len(errors),
                 "\n".join(errors),
             )
-
+    return 0
 
 @subcommand(
     [
@@ -448,7 +450,7 @@ def derive_annotations(args):
                 len(errors),
                 "\n".join(errors),
             )
-
+    return 0
 
 @subcommand(
     [
@@ -491,7 +493,7 @@ def merge_annotations(args):
         output_set=args.output_set,
         threads=args.threads,
     )
-
+    return 0
 
 @subcommand(
     [
@@ -519,10 +521,12 @@ def intersect_annotations(args):
     intersection = AnnotationManager.intersection(annotations, args.sets)
     intersection.to_csv(args.destination, index=False)
 
+    return 0
 
 @subcommand([])
 def interpreter(args):
     print(sys.executable)
+    return 0
 
 
 @subcommand(
@@ -541,7 +545,7 @@ def remove_annotations(args):
     am = AnnotationManager(project)
     am.read()
     am.remove_set(args.set, recursive=args.recursive)
-
+    return 0
 
 @subcommand(
     [
@@ -567,6 +571,7 @@ def rename_annotations(args):
         recursive=args.recursive,
         ignore_errors=args.ignore_errors,
     )
+    return 0
 
 
 @subcommand(
@@ -664,6 +669,8 @@ def overview(args):
     if args.format == 'json':
         logger.info(json.dumps(dict))
 
+    return 0
+
 @subcommand(
     [arg("source", help="source data path"), arg("variable", help="name of the variable")]
 )
@@ -731,6 +738,8 @@ def explain(args):
         if 'scope' in doc and not pd.isnull(doc['scope']):
             logger.info("\033[94mscope\033[0m: %s", doc['scope'])
 
+    return 0
+
 @subcommand(
     [
         arg("source", help="source data path"),
@@ -765,6 +774,8 @@ def compute_durations(args):
     
     project.recordings = recordings.copy()
     project.write_recordings()
+
+    return 0
     
 @subcommand(
     [
@@ -818,6 +829,8 @@ def compare_recordings(args):
     if size < 48000 : 
         logger.warning('WARNING : the number of values (%d) in the sample is low, raise the interval value, if possible, for a more reliable analysis', size)
     logger.info("RESULTS :\ndivergence score = %d over a sample of %d values\nREFERENCE :\ndivergence score < 0.1 => the 2 files seem very similar\ndivergence score > 1   => sizable difference", avg, size)
+    return 0
+
 
 def main():
     register_pipeline("process", AudioProcessingPipeline)

@@ -81,6 +81,8 @@ class AudioProcessor(ABC):
 
         self.converted.to_csv(path)
 
+        return path
+
     @abstractmethod
     def process_recording(self, recording):
         pass
@@ -123,6 +125,8 @@ class AudioProcessor(ABC):
             )
 
         self.export_metadata()
+
+        return self
 
     @staticmethod
     def add_parser(parsers):
