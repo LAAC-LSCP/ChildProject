@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- Generalize use of return codes in functions / methods in the package
+
 ### Fixed
 
 - Fixing bug where utils.series_to_datetime() function would return Na values because of index not being incremental from 0
