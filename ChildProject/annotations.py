@@ -636,12 +636,11 @@ class AnnotationManager:
         dataset in the correct spot given the set it belongs to.
         The destination file can contain parent folders, which will be included in the copied file (e.g. src_path=
         "/home/user/tmp/myrec.rttm", dst_file="loc1/RA5/rec001.rttm", set='vtc' ; will copy the file inside
-         the dataset in a annotations/vtc/raw/loc1/RA5 folder, the file will be named rec001.rttm.
+        the dataset in a annotations/vtc/raw/loc1/RA5 folder, the file will be named rec001.rttm.
 
         :param src_path: path on the system to the annotation file to add to the dataset
         :type src_path: Path | str
-        :param dst_file: filename as it will be stored in the dataset, with possible parent folders (e.g.
-        'location1/RA5/rec004.rttm' will copy the original file as rec004.rttm inside folders location1 -> RA5)
+        :param dst_file: filename as it will be stored in the dataset, with possible parent folders (e.g. 'location1/RA5/rec004.rttm' will copy the original file as rec004.rttm inside folders location1 -> RA5)
         :type dst_file: Path | str
         :param set: annotation set the annotation file belongs to
         :type set: str
@@ -672,8 +671,7 @@ class AnnotationManager:
         be in the file name as a posix path (i.e. subfolder/file)
         The set parameter is meant to define what annotation set the raw file is stored in.
 
-        :param file: filename as it is stored in the dataset annotations, in the annotation set raw folder (e.g. set=vtc
-        will be evaluated inside the annotations/vtc/raw folder of the dataset
+        :param file: filename as it is stored in the dataset annotations, in the annotation set raw folder (e.g. set=vtc will be evaluated inside the annotations/vtc/raw folder of the dataset
         :type file: Path | str
         :param set: name of the annotation set the file is stored in.
         :type set: str
@@ -1036,7 +1034,7 @@ class AnnotationManager:
         for warning in outdated_sets:
             logger_annotations.warning("warning: %s", warning)
 
-        return (imported, errors)
+        return imported, errors
 
     def _derive_annotation(
             self,

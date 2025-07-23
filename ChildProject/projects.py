@@ -432,15 +432,13 @@ class ChildProject:
         the correct spot depending on the file type.
         The destination file can contain parent folders, which will be included in the copied file (e.g. src_path=
         "/home/user/tmp/myrec.wav", dst_file="loc1/RA5/rec001.wav", file_type='recording' ; will copy the file inside
-         the dataset in a recordings/raw/loc1/RA5 folder, the file will be named rec001.wav.
+        the dataset in a recordings/raw/loc1/RA5 folder, the file will be named rec001.wav.
 
         :param src_path: path to the file to add to the dataset on the system
         :type src_path: Path | str
-        :param dst_file: filename as it will be stored in the dataset, with possible subfolder(s) (e.g.
-        "location1/RA5/rec004.wav will copy the original file as rec004.wav inside folders location1 -> RA5)
+        :param dst_file: filename as it will be stored in the dataset, with possible subfolder(s) (e.g. "location1/RA5/rec004.wav will copy the original file as rec004.wav inside folders location1 -> RA5)
         :type dst_file: Path | str
-        :param file_type: type of the file to copy in order to know where it should be stored in the dataset, choose any
-        of 'recording','metadata','extra' or 'raw', raw is just copied from the root of the dataset into any folder
+        :param file_type: type of the file to copy in order to know where it should be stored in the dataset, choose any of 'recording','metadata','extra' or 'raw', raw is just copied from the root of the dataset into any folder
         :type file_type: str
         :param overwrite: overwrite the existing destination if it already exists
         :type overwrite: bool, optional
@@ -482,8 +480,7 @@ class ChildProject:
         :param file: filename as it is stored in the dataset, in the tree of its category (e.g. recordings names are
         evaluated inside the recordings/raw folder of the dataset
         :type file: Path | str
-        :param file_type: type of the file to copy in order to know where it should be stored in the dataset, choose any
-        of 'recording','metadata','extra' or 'raw', raw is just copied from the root of the dataset into any folder
+        :param file_type: type of the file to copy in order to know where it should be stored in the dataset, choose any of 'recording','metadata','extra' or 'raw', raw is just copied from the root of the dataset into any folder
         :type file_type: str
         """
         file_path = Path(file)
