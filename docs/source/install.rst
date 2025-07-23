@@ -1,6 +1,9 @@
 .. _installation:
 
-ChildProject is a python package distributed through `pypi https://pypi.org/project/ChildProject/`__. It is meant to
+Installation
+============
+
+ChildProject is a python package distributed through `pypi <https://pypi.org/project/ChildProject>`__. It is meant to
 function in conjunction with multiple dependency packages, both python packages and system packages. This is why we
 advise users to install all of those in a self-contained conda environment, this will ensure separation between your
 system and the software used in projects using ChildProject. You can choose to install ChildProject on its own,
@@ -11,8 +14,8 @@ Installation in a conda environment
 
 The following instructions will let you install the following packages inside a self-contained conda environment:
 
- - **ChildProject**, the package that is documented here, follow the main installation instructions to get it
- - **DataLad**, a python software for the management and delivery of scientific data. Although ChildProject may work without it, a number of datasets of daylong recordings of children require it. We advise to work with it alongside ChildProject. Follow the instructions in the section "Datalad installation" to get it as well.
+ - **ChildProject** (and dependencies), the package that is documented here, follow the main installation instructions to get it
+ - **DataLad** (and dependencies), a python software for the management and delivery of scientific data. Although ChildProject may work without it, a number of datasets of daylong recordings of children require it. We advise to work with it alongside ChildProject. Follow the instructions in the section "Datalad installation" to get it as well.
 
 This installation procedure requires a package able to handle conda environments. We recommend using `micromamba <https://mamba.readthedocs.io/en/latest/user_guide/micromamba.html>`__
 but you can use any alternative. A very common alternative is anaconda (conda command). If you are not sure you have conda or
@@ -23,40 +26,40 @@ micromamba installed, check the :ref:`environment_manager_section`.
     All our instructions use ``micromamba`` commands, if you are using a difference environment manager, such as anaconda
     , replace all instructions with the proper command (``conda`` for example).
 
-Automatic install
-~~~~~~~~~~~~~~~~~
-
-Reminder, for running the automatic install, you need an :ref:`environment_manager_section` environment manager to be installed
-
-.. tabs::
-
-   .. group-tab:: linux
-
-      To install automatically in Linux run in a terminal
-
-      .. code-block:: bash
-
-         "${SHELL}" <(curl -L https://raw.githubusercontent.com/LAAC-LSCP/ChildProject/master/install.sh)
-
-   .. group-tab:: MacOS
-
-      To install automatically in MacOS run in a terminal
-
-      .. code-block:: bash
-
-         "${SHELL}" <(curl -L https://raw.githubusercontent.com/LAAC-LSCP/ChildProject/master/install.sh)
-
-   .. group-tab:: Windows
-
-      To install automatically in Linux, MacOS run in a terminal
-
-      .. code-block:: powershell
-
-         Invoke-Expression ((Invoke-WebRequest -Uri https://raw.githubusercontent.com/LAAC-LSCP/ChildProject/master/install.ps1 -UseBasicParsing).Content)
-
-
-Manual install
-~~~~~~~~~~~~~~
+.. Automatic install
+.. ~~~~~~~~~~~~~~~~~
+..
+.. Reminder, for running the automatic install, you need an :ref:`environment_manager_section` environment manager to be installed
+..
+.. .. tabs::
+..
+..    .. group-tab:: linux
+..
+..       To install automatically in Linux run in a terminal
+..
+..       .. code-block:: bash
+..
+..          "${SHELL}" <(curl -L https://raw.githubusercontent.com/LAAC-LSCP/ChildProject/master/install.sh)
+..
+..    .. group-tab:: MacOS
+..
+..       To install automatically in MacOS run in a terminal
+..
+..       .. code-block:: bash
+..
+..          "${SHELL}" <(curl -L https://raw.githubusercontent.com/LAAC-LSCP/ChildProject/master/install.sh)
+..
+..    .. group-tab:: Windows
+..
+..       To install automatically in Linux, MacOS run in a terminal
+..
+..       .. code-block:: powershell
+..
+..          Invoke-Expression ((Invoke-WebRequest -Uri https://raw.githubusercontent.com/LAAC-LSCP/ChildProject/master/install.ps1 -UseBasicParsing).Content)
+..
+..
+.. Manual install
+.. ~~~~~~~~~~~~~~
 
 .. tabs::
 
@@ -75,6 +78,8 @@ Manual install
 
    .. group-tab:: MacOS
 
+      Use a terminal window
+
       .. code-block:: bash
 
          # download the conda environment
@@ -86,10 +91,11 @@ Manual install
          # activate the environment (this should be done systematically to use our package)
          micromamba activate childproject
 
-         # install git-annex from brew
-         brew install git-annex
 
    .. group-tab:: Windows
+
+      Use powershell if conda/micromamba is installed as a command, or use the anaconda/miniconda powershell prompt
+      program if conda is installed as a program.
 
       .. code-block:: powershell
 
@@ -102,16 +108,19 @@ Manual install
          # activate the environment (this should be done systematically to use our package)
          micromamba activate childproject
 
-         # install git-annex using uv tool
-         uv tool install git-annex
 
+Installation as system packages and separated python packages
+-------------------------------------------------------------
 
-Installation in the system packages
------------------------------------
+Installing directly dependencies as system packages is not recommended as this won't clearly separate dependencies
+between projects and requires you to have administrator privileges.
 
-Installing directly into the system is not recommended for non admins and beginners. This won't clearly separate your
- python packages depending on projects and will require packages at the system level to be installed
- (requiring administrator permissions) such as sox and ffmpeg.
+Instructions here will install the system dependencies directly into the operating system, the python requirements will
+be installed separately (as installing python packages directly in the system is highly discouraged as
+it could break system packages, still installing directly is possible by replacing `pipx` with `pip` and passing the
+`--break-system-packages` flag.) In windows, those intructions guide you into installing the python packages in anaconda
+prompt.
+
 
 .. tabs::
 
@@ -123,26 +132,31 @@ Installing directly into the system is not recommended for non admins and beginn
 
       .. code-block:: bash
 
-        sudo apt-get install sox ffmpeg git git-annex
+        sudo apt-get install sox ffmpeg git git-annex pipx
 
       Installing packages on Fedora/RHEL/CentOS/Rocky
 
       .. code-block:: bash
 
-        sudo yum install sox ffmpeg git git-annex
+        # if the EPEL is not added on your system, you may need to add it with
+        # sudo dnf install epel-release -y
+        # sudo crb enable
+        # sudo dnf install rpmfusion-free-release -y
+
+        sudo dnf install sox ffmpeg git git-annex pipx
 
       Installing packages on Arch
 
       .. code-block:: bash
 
-        sudo pacman -S install sox ffmpeg git git-annex
+        sudo pacman -S sox ffmpeg git git-annex pipx
 
-
-      Then python packages can be installed with pip directly (or alternatives like uv)
+      Then python packages can be installed with pipx directly (or alternatives like uv)
 
       .. code-block:: bash
 
-        pip install -U datalad ChildProject
+        pipx install datalad
+        pipx install ChildProject
 
    .. group-tab:: MacOS
 
@@ -151,9 +165,10 @@ Installing directly into the system is not recommended for non admins and beginn
       .. code-block:: bash
 
          # install via brew, git should be installed by default
-         brew install sox ffmpeg git-annex
+         brew install sox ffmpeg git-annex pipx
 
-         pip install -U datalad ChildProject
+         pipx install datalad
+         pipx install ChildProject
 
    .. group-tab:: Windows
 
@@ -229,26 +244,22 @@ Installing directly into the system is not recommended for non admins and beginn
 
 
 Check the setup
-~~~~~~~~~~~~~~~
+---------------
 
 You can now make sure the packages have been successfully installed:
-Each --version command should output the version of the package.
+each --version command should output the version of the package.
 If you installed in an environment, check it is activated or activate it
 
 .. clidoc::
 
    child-project --version
-
-.. clidoc::
-
-    # run this ONLY IF you have installed the optional software datalad, for getting and sharing data
-    datalad --version
+   datalad --version
 
 .. note::
 
     We recommend that you regularly keep DataLad and our package up to date. 
-    To force-upgrade this package, do ``pip uninstall ChildProject``
-    and then ``pip install ChildProject --upgrade``.
+    To upgrade this package, do ``pip install ChildProject --upgrade`` in virtual environments, or
+    ``pipx upgrade ChildProject`` if installed directly.
 
     You may also want to install the development version from GitHub in order
     to receive more recent updates before their release:
@@ -258,26 +269,43 @@ If you installed in an environment, check it is activated or activate it
         pip install git+https://github.com/LAAC-LSCP/ChildProject.git --force-reinstall
 
     Since some updates may break compatibility with previous versions,
-    we advise you to read the `Change Log <https://github.com/LAAC-LSCP/ChildProject/blob/master/CHANGELOG.md>`_
+    we advise you to read the `Change Log <https://github.com/LAAC-LSCP/ChildProject/blob/master/CHANGELOG.md>`__
     before upgrading.
     
     DataLad can also be upgraded with ``pip install datalad --upgrade``
     (see DataLad's documentation for more details).
 
+.. _environment_manager_section:
+
 Check and or install Anaconda / Micromamba
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------------------------
 
 To check if conda or micromamba is installed, run in a terminal or powershell the following commands :
-``conda --version`` and ``micromamba --version``
+``conda --version`` and ``micromamba --version``. If either command prints a version number, they are installed and
+you should be able to use them.
 
-If either print a version number, they are installed and you should be able to use them.
+On windows, you may have a 'prompt' version of anaconda install, search for 'powershell anaconda prompt' in your
+programs, launch it to use a terminal where cona is available.
 
-If none is installed, refe to the installation instructions:
- - micromamba follow instructions `here <https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html>`__.
- - conda follow instructions `here <https://docs.anaconda.com/anaconda/install/index.html>`__.
+If none is installed, refer to the installation instructions:
+
+Micromamba
+~~~~~~~~~~
+
+Micromamba is a standalone executable that can be installed directly in a terminal using one instruction. On Windows,
+ use preferably the Powershell option. Follow the instructions `here <https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html#automatic-install>`__.
+ Installing micromamba may not require admin privileges.
+
+Miniconda
+~~~~~~~~~
+
+Miniconda is installed as a program, which means you need admin rights. It is then accessible in the terminal on
+Linux/MacOS and by launching a program on Windows (miniconda prompt). Follow instructions `here <https://docs.anaconda.com/anaconda/install/index.html>`__
+to install.
+
 
 Troubleshooting
-~~~~~~~~~~~~~~~
+---------------
 
 If you are having trouble installing ChildProject, please look
 for similar issues on our GithHub (in `Issues <https://github.com/LAAC-LSCP/ChildProject/issues>`__ or `Discussions <https://github.com/LAAC-LSCP/ChildProject/discussions>`__).
@@ -289,7 +317,7 @@ If this issue is related to DataLad, please create an issue on `DataLad's GitHub
 
 
 Frequently Asked Questions
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+--------------------------
 
     *I don't have anaconda and I can't install it. What should I do?*
 
