@@ -15,6 +15,7 @@ extensions = {
     'TextGrid': 'TextGrid',
     'eaf': 'eaf',
     'cha': 'cha',
+    'w2v2-sm': 'csv'
 }
 
 class Formats(Enum):
@@ -26,6 +27,7 @@ class Formats(Enum):
     TEXTGRID = 'TextGrid'
     EAF = 'eaf'
     CHA = 'cha'
+    W2V2SMChunks = 'w2v2-sm'
 
 class AnnotationConverter:
     SPEAKER_ID_TO_TYPE = defaultdict(
