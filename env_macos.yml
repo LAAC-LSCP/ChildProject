@@ -11,3 +11,5 @@ dependencies:
   - sox
   - pip:
     - ChildProject
+    - git-annex
+    - datalad
