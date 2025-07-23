@@ -13,3 +13,5 @@ dependencies:
   - uv
   - pip:
     - ChildProject
+    - git-annex
+    - datalad
