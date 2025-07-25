@@ -11,6 +11,8 @@ from .pipeline import Pipeline
 from ..tables import assert_dataframe, assert_columns_presence
 from ..converters import Formats
 
+import pympi
+
 FORMAT_SPEECH = {Formats.VTC.value,Formats.VCM.value} #formats for which nan must be replaced with SPEECH
 CHILDPROJECT_TYPE = "childProject_generated"
 
@@ -26,8 +28,7 @@ def create_eaf(
     speech_segments: pd.DataFrame = None,
     imported_set: str = None,
     imported_format: str = None,
-):
-    import pympi
+) -> pympi.Elan.Eaf:
 
     eaf = pympi.Elan.Eaf(etf_path)
     

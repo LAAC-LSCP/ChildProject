@@ -26,7 +26,7 @@ New metrics can be added by defining new functions for the Conversations class t
 RESERVED = {'name', 'callable'}  # arguments reserved usage. use other keyword labels.
 
 
-def conversationFunction(args: set = set()):
+def conversationFunction(args: set = set()) -> callable:
     """Decorator for all metrics functions to make them ready to be called by the pipeline.
 
     :param args: set of required keyword arguments for that function, raise ValueError if were not given \
@@ -36,7 +36,7 @@ def conversationFunction(args: set = set()):
     :rtype: Callable
     """
 
-    def decorator(function):
+    def decorator(function) -> callable:
         for a in args:
             if a in RESERVED:
                 raise ValueError(
@@ -60,7 +60,7 @@ def conversationFunction(args: set = set()):
 
 
 @conversationFunction()
-def who_initiated(segments: pd.DataFrame):
+def who_initiated(segments: pd.DataFrame) -> str:
     """speaker type who spoke first in the conversation
 
     Required keyword arguments:
@@ -69,7 +69,7 @@ def who_initiated(segments: pd.DataFrame):
 
 
 @conversationFunction()
-def who_finished(segments: pd.DataFrame):
+def who_finished(segments: pd.DataFrame) -> str:
     """speaker type who spoke last in the conversation
 
     Required keyword arguments:
@@ -77,7 +77,7 @@ def who_finished(segments: pd.DataFrame):
     return segments[segments['segment_offset'] == segments['segment_offset'].max()].iloc[0]['speaker_type']
 
 @conversationFunction()
-def participants(segments: pd.DataFrame):
+def participants(segments: pd.DataFrame) -> str:
     """list of speakers participating in the conversation, '/' separated
 
     Required keyword arguments:
@@ -85,7 +85,7 @@ def participants(segments: pd.DataFrame):
     return '/'.join(segments['speaker_type'].unique())
 
 @conversationFunction()
-def voc_total_dur(segments: pd.DataFrame):
+def voc_total_dur(segments: pd.DataFrame) -> int:
     """summed duration of all speech in the conversation (ms) N.B. can be higher than conversation duration as
     speakers may speak at the same time, resulting in multiple spoken segments happening simultaneously
 
@@ -95,7 +95,7 @@ def voc_total_dur(segments: pd.DataFrame):
 
 
 @conversationFunction({'speaker'})
-def is_speaker(segments: pd.DataFrame, **kwargs):
+def is_speaker(segments: pd.DataFrame, **kwargs) -> bool:
     """is a specific speaker type present in the conversation
 
     Required keyword arguments:
@@ -105,7 +105,7 @@ def is_speaker(segments: pd.DataFrame, **kwargs):
 
 
 @conversationFunction({'speaker'})
-def voc_speaker_count(segments: pd.DataFrame, **kwargs):
+def voc_speaker_count(segments: pd.DataFrame, **kwargs) -> int:
     """number of vocalizations produced by a given speaker
 
     Required keyword arguments:
@@ -115,7 +115,7 @@ def voc_speaker_count(segments: pd.DataFrame, **kwargs):
 
 
 @conversationFunction({'speaker'})
-def voc_speaker_dur(segments: pd.DataFrame, **kwargs):
+def voc_speaker_dur(segments: pd.DataFrame, **kwargs) -> int:
     """summed duration of speech for a given speaker in the conversation
 
     Required keyword arguments:
@@ -125,7 +125,7 @@ def voc_speaker_dur(segments: pd.DataFrame, **kwargs):
 
 
 @conversationFunction({'speaker'})
-def voc_dur_contribution(segments: pd.DataFrame, **kwargs):
+def voc_dur_contribution(segments: pd.DataFrame, **kwargs) -> float:
     """contribution of a given speaker in the conversation compared to others, in terms of total speech duration
 
     Required keyword arguments:
@@ -137,7 +137,7 @@ def voc_dur_contribution(segments: pd.DataFrame, **kwargs):
 
 
 @conversationFunction()
-def assign_conv_type(segments: pd.DataFrame):
+def assign_conv_type(segments: pd.DataFrame) -> str:
     """Compute the conversation type (overheard, dyadic_XXX, peer, parent, triadic_XXX, multiparty) depending on the
     participants
 

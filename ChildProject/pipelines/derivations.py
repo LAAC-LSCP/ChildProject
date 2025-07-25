@@ -8,7 +8,7 @@ from ChildProject.projects import STANDARD_PROFILE, STANDARD_SAMPLE_RATE
 
 
 @np.vectorize
-def f2st(f_Hz, base=50):
+def f2st(f_Hz, base=50) -> float:
     """
     Returns the semitone of the frequency given as input adapted from https://rdrr.io/cran/hqmisc/src/R/hqmisc.R
     itself adapted from http://ldc.upenn.edu/myl/llog/semitones.R (no longer available).
@@ -26,7 +26,7 @@ def f2st(f_Hz, base=50):
     semi = np.log(2 ** (1 / 12))
     return (np.log(f_Hz) - np.log(base)) / semi
 
-def get_pitch(audio_time_series, sampling_rate, func=None):
+def get_pitch(audio_time_series, sampling_rate, func=None) -> dict:
     """
     Returns pitch-related annotations.
     Regarding pitch range, we use the 5-th percentile as the bottom of the range, and the 95-th percentile as the top.
@@ -63,15 +63,15 @@ def acoustics(project,
               segments: pd.DataFrame,
               profile=STANDARD_PROFILE,
               target_sr=STANDARD_SAMPLE_RATE,
-              ):
+              ) -> pd.DataFrame:
     """
         Based on the existing segmentation, extracts acoustics features of each vocalization identified. In particular,
         mean pitch semitone, median pitch semitone as well as 5th and 95th percentile of pitch semitone.
 
         :param file_path: path to an audio file
         :type file_path: str
-        :return: (audio time series, sampling rate)
-        :rtype: np.array
+        :return: audio segments derived
+        :rtype: pd.DataFrame
     """
     recording = project.get_recording_path(metadata['recording_filename'], profile=profile)
     file_sr = librosa.get_samplerate(recording)
@@ -119,7 +119,7 @@ def conversations(project,
                   segments: pd.DataFrame,
                   interactions=INTERACTIONS,
                   max_interval=5000,
-                  min_delay=0):
+                  min_delay=0) -> pd.DataFrame:
 
     """ Based on the given interval (iti, maximum time elapsed after the end of an utterance for the next one to be
     considered an interaction) and delay (minimum time elapsed after the start of an utterance for the next
@@ -186,7 +186,7 @@ def remove_overlaps(project,
                     metadata: dict,
                     segments,
                     speakers=['CHI', 'OCH', 'FEM', 'MAL'],
-                    ):
+                    ) -> pd.DataFrame:
     """
     Cuts the segments to discard any part that has overlapping speech, resulting in a segmentation with no overlap
     of speech. Parts that contained overlapping speech therefore appear empty of any speech.
@@ -198,6 +198,8 @@ def remove_overlaps(project,
     all the others will be completely ignored and removed (useful to remove
     <SPEECH> label for example)
     :type speakers: list[str]
+    :return: derived segments
+    :rtype: pd.DataFrame
     """
     # restrict to wanted speakers  (remove SPEECH)
     segments = segments[segments['speaker_type'].isin(speakers)]
@@ -271,7 +273,7 @@ def kcds_ohs(project,
              segments,
              iti=5000,
              scenario='R',
-             ):
+             ) -> pd.DataFrame:
     """ The function takes a dataframe of annotation segments as an input and based on the given iti (inter turn
     interval) and scenario (permissive or restrictive),
     classifies whether each annotation is targeted to the key child or overheard. Filling in the column cva (child

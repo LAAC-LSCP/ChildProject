@@ -89,7 +89,7 @@ class Chunk:
         self.segment_onset = segment_onset
         self.segment_offset = segment_offset
 
-    def getbasename(self, extension):
+    def getbasename(self, extension) -> str:
         return "{}_{}_{}.{}".format(
             os.path.splitext(self.recording_filename.replace("/", "_"))[0],
             self.onset,
@@ -101,7 +101,7 @@ class ZooniversePipeline(Pipeline):
     def __init__(self):
         self.chunks = []
 
-    def get_credentials(self, login: str = "", pwd: str = ""):
+    def get_credentials(self, login: str = "", pwd: str = "") -> Tuple[str, str]:
         """returns input credentials if provided or attempts to read them
         from the environment variables.
 
@@ -259,7 +259,7 @@ class ZooniversePipeline(Pipeline):
         profile: str = "",
         threads: int = 1,
         **kwargs
-    ):
+    ) -> Tuple[str, str]:
         """extract-audio chunks based on a list of segments and prepare them for upload
         to zooniverse.
 
@@ -281,6 +281,8 @@ class ZooniversePipeline(Pipeline):
         :type profile: str
         :param threads: amount of threads to run-on, defaults to 0
         :type threads: int, optional
+        :return: path of the extract and path of parameter file
+        :rtype: (str, str)
         """
 
         parameters = locals()
@@ -388,7 +390,7 @@ class ZooniversePipeline(Pipeline):
         record_orphan: bool = False,
         test_endpoint: bool = False,
         **kwargs
-    ):
+    ) -> pd.DataFrame | None:
         """Uploads ``amount`` audio chunks from the CSV dataframe `chunks` to a zooniverse project.
 
         :param chunks: path to the chunk CSV dataframe
@@ -409,6 +411,8 @@ class ZooniversePipeline(Pipeline):
         :type record_orphan: bool, optional
         :param test_endpoint: run this command for tests, operations with zooniverse arefaked and considered succesfull
         :type test_endpoint: bool, optional
+        :return: dataframe of chunks (or None if could not upload)
+        :rtype: pd.DataFrame | None
         """
 
         self.chunks_file = chunks
@@ -598,7 +602,7 @@ class ZooniversePipeline(Pipeline):
         ignore_errors: bool = False,       
         test_endpoint: bool = False,
         **kwargs
-    ):
+    ) -> pd.DataFrame | None:
         """Attempts to link subjects that have been uploaded but not linked to a subject set in zooniverse
         from the CSV dataframe `chunks` to a zooniverse project (Attempts are made on chunks that have a zooniverse_id,
         a project_id and uploaded at True but no subject_set )
@@ -619,6 +623,8 @@ class ZooniversePipeline(Pipeline):
         :type ignore_errors: bool, optional
         :param test_endpoint: run this command for tests, operations with zooniverse arefaked and considered succesfull
         :type test_endpoint: bool, optional
+        :return: dataframe of chunks that were linked
+        :rtype: pd.DataFrame | None
         """
         
         self.chunks_file = chunks
@@ -738,13 +744,15 @@ class ZooniversePipeline(Pipeline):
         self,
         chunks: str,
         **kwargs
-    ):
+    ) -> pd.DataFrame:
         """Look for orphan subjects and considers them to be not uploaded, This is to be done either if the oprhan
         subjects were deleted from zooniverse or if they are not usable anymore. The next upload will try to push 
         them to zooniverse as new subjects.
 
         :param chunks: path to the chunk CSV dataframe
         :type chunks: [type]
+        :return: dataframe of orphaned chunks
+        :rtype: pd.DataFrame
         """
         
         self.chunks_file = chunks
@@ -791,7 +799,7 @@ class ZooniversePipeline(Pipeline):
         chunks: List[str] = [],
         test_endpoint: bool = False,
         **kwargs
-    ):
+    ) -> pd.DataFrame:
 
         """Retrieve classifications from Zooniverse as a CSV dataframe.
         They will be matched with the original chunks metadata if the path one 
@@ -807,6 +815,8 @@ class ZooniversePipeline(Pipeline):
         :type zooniverse_pwd: str, optional
         :param chunks: the list of chunk metadata files to match the classifications to. If provided, only the classifications that have a match will be returned.
         :type chunks: List[str], optional
+        :return: classifications from zooniverse
+        :rtype: pd.DataFrame
         """
         self.get_credentials(zooniverse_login, zooniverse_pwd)
 

@@ -81,7 +81,7 @@ def arg(*name_or_flags, **kwargs):
     return (list(name_or_flags), kwargs)
 
 
-def get_doc_summary(doc):
+def get_doc_summary(doc) -> str:
     return doc.split("\n")[0] if doc else ""
 
 
@@ -128,7 +128,7 @@ def perform_validation(project: ChildProject, require_success: bool = True, **ar
         ),
     ]
 )
-def init(args):
+def init(args) -> int:
     path = Path(args.source)
 
     files = glob.glob(str(path / '*'))
@@ -184,7 +184,7 @@ def init(args):
         ),
     ]
 )
-def validate(args):
+def validate(args) -> int:
     """validate the consistency of the dataset returning detailed errors and warnings"""
 
     project = ChildProject(args.source)
@@ -262,7 +262,7 @@ def validate(args):
             ),
     ]
 )
-def sets_metadata(args):
+def sets_metadata(args) -> int:
     """get the metadata on all the annotation sets in the dataset"""
     for source in args.source:
         try:
@@ -316,7 +316,7 @@ def sets_metadata(args):
      arg("--overwrite-existing","--ow", help="overwrites existing annotation file if should generate the same output file (useful when reimporting", action='store_true'),
      ]
 )
-def import_annotations(args):
+def import_annotations(args) -> int:
     """convert and import a set of annotations"""
 
     project = ChildProject(args.source)
@@ -375,7 +375,7 @@ def import_annotations(args):
             action='store_true'),
     ]
 )
-def automated_import(args):
+def automated_import(args) -> int:
     """convert and import a set of automated annotations covering the entire recording"""
 
     project = ChildProject(args.source)
@@ -427,7 +427,7 @@ def automated_import(args):
             action='store_true'),
     ]
 )
-def derive_annotations(args):
+def derive_annotations(args) -> int:
     """derive a set of annotations"""
 
     project = ChildProject(args.source)
@@ -476,7 +476,7 @@ def derive_annotations(args):
         ),
     ]
 )
-def merge_annotations(args):
+def merge_annotations(args) -> int:
     """merge segments sharing identical onset and offset from two sets of annotations"""
     project = ChildProject(args.source)
     errors, warnings = project.validate(ignore_recordings=True)
@@ -507,7 +507,7 @@ def merge_annotations(args):
         ),
     ]
 )
-def intersect_annotations(args):
+def intersect_annotations(args) -> int:
     """calculate the intersection of the annotations belonging to the given sets"""
 
     if args.annotations:
@@ -524,7 +524,7 @@ def intersect_annotations(args):
     return 0
 
 @subcommand([])
-def interpreter(args):
+def interpreter(args) -> int:
     print(sys.executable)
     return 0
 
@@ -536,7 +536,7 @@ def interpreter(args):
         arg("--recursive", help="enable recursive mode", action="store_true"),
     ]
 )
-def remove_annotations(args):
+def remove_annotations(args) -> int:
     """remove converted annotations of a given set and their entries in the index"""
     project = ChildProject(args.source)
 
@@ -556,7 +556,7 @@ def remove_annotations(args):
         arg("--ignore-errors", help="proceed despite errors", action="store_true"),
     ]
 )
-def rename_annotations(args):
+def rename_annotations(args) -> int:
     """rename a set of annotations by moving the files and updating the index accordingly"""
 
     project = ChildProject(args.source)
@@ -585,7 +585,7 @@ def rename_annotations(args):
             choices=['snapshot', 'json']),
     ]
 )
-def overview(args):
+def overview(args) -> int:
     """prints an overview of the contents of a given dataset"""
     dict = {}
     for source in args.source:
@@ -674,7 +674,7 @@ def overview(args):
 @subcommand(
     [arg("source", help="source data path"), arg("variable", help="name of the variable")]
 )
-def explain(args):
+def explain(args) -> int:
     """prints information about a certain metadata variable"""
 
     variable = args.variable.lower()
@@ -747,7 +747,7 @@ def explain(args):
         arg("--force", help="overwrite if column exists", action="store_true"),
     ]
 )
-def compute_durations(args):
+def compute_durations(args) -> int:
     """creates a 'duration' column into metadata/recordings. duration is in ms"""
     project = ChildProject(args.source)
 
@@ -786,7 +786,7 @@ def compute_durations(args):
         arg("--interval", help="duration in minutes of the window used to build the correlation score", default=5, type=int),
     ]
 )
-def compare_recordings(args):
+def compare_recordings(args) -> int:
     """computes the difference between 2 given audio files of the dataset. A divergence score is outputted, it is the average difference of audio signal over the considered sample (random point in the audio, fixed duration). Divergence scores lower than 0.1 indicate a strong proximity"""
     
     project = ChildProject(args.source)

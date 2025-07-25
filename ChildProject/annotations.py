@@ -7,7 +7,7 @@ from functools import reduce, partial
 from shutil import move, rmtree
 import sys
 import traceback
-from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
+from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Union, Self
 import logging
 from pathlib import Path
 import yaml
@@ -523,7 +523,7 @@ class AnnotationManager:
         return errors, warnings
 
 
-    def _read_sets_metadata(self, warning: str = 'ignore'):
+    def _read_sets_metadata(self, warning: str = 'ignore') -> pd.DataFrame:
         """
         Read the metadata of sets detected inside annotations, will not read anything if the attribute
         self.annotations is empty (so do `read()` first)
@@ -595,7 +595,7 @@ class AnnotationManager:
             raise ValueError(f"warning argument must be in ['log','return','ignore']")
 
     def get_sets_metadata(self, format: str = 'dataframe', delimiter=None, escapechar='"', header=True, human=False,
-                          sort_by='set', sort_ascending=True):
+                          sort_by='set', sort_ascending=True) -> str | pd.DataFrame:
         """return metadata about the sets"""
         sets = self._read_sets_metadata()
         annots = self.annotations.copy().set_index('set')
@@ -614,7 +614,7 @@ class AnnotationManager:
             raise ValueError(f"format <{format}> is unknown please use one the documented formats")
 
     @staticmethod
-    def get_printable_sets_metadata(sets, delimiter, header=True, human_readable: bool = False,):
+    def get_printable_sets_metadata(sets, delimiter, header=True, human_readable: bool = False,) -> str:
         assert isinstance(sets,pd.DataFrame), "'sets' should be a pandas DataFrame"
         # only keep a subset of fields, create empty columns when do not exist in the dataframe
         cols = {'duration': 'duration', 'method': 'method', 'annotation_algorithm_name': 'algo',
@@ -630,7 +630,7 @@ class AnnotationManager:
         return df_to_printable(sets, delimiter, header=header)
 
 
-    def add_annotation_file(self, src_path, dst_file, set: str, overwrite):
+    def add_annotation_file(self, src_path, dst_file, set: str, overwrite) -> Self:
         """
         Add an annotation file to the dataset. This function takes the path to a file, copies that file inside the
         dataset in the correct spot given the set it belongs to.
@@ -667,7 +667,7 @@ class AnnotationManager:
         return self
 
 
-    def remove_annotation_file(self, file, set: str):
+    def remove_annotation_file(self, file, set: str) -> Self:
         """
         remove a raw annotation file from the dataset. This function takes the path to a file, and removes it from the
         dataset annotations at the file system level (not in the index), the file could be under folder, they need to
@@ -742,7 +742,7 @@ class AnnotationManager:
 
         return errors, warnings
 
-    def write(self):
+    def write(self) -> Self:
         """Update the annotations index,
         while enforcing its good shape.
         """
@@ -757,13 +757,13 @@ class AnnotationManager:
 
         return self
 
-    def _write_set_metadata(self, setname, metadata):
+    def _write_set_metadata(self, setname, metadata) -> Self:
         assert setname in self.annotations['set'].unique(), f"set must exist"
         with open(self.project.path / ANNOTATIONS / setname / METANNOTS, 'w') as stream:
             yaml.dump(metadata, stream)
         return self
 
-    def _check_for_outdated_merged_sets(self, sets: set = None):
+    def _check_for_outdated_merged_sets(self, sets: set = None) -> List[str]:
         """Checks the annotations dataframe for sets that were used in merged sets and modified afterwards.
         This method produces warnings and suggestions to update the considered merged sets.
         
@@ -804,7 +804,7 @@ class AnnotationManager:
         params: dict,
         annotation: dict,
         overwrite_existing: bool = False,
-    ):
+    ) -> dict:
         """import and convert ``annotation``. This function should not be called outside of this class.
 
         :param import_function: If callable, ``import_function`` will be called to convert the input annotation into a dataframe. Otherwise, the conversion will be performed by a built-in function.
@@ -1051,7 +1051,7 @@ class AnnotationManager:
             import_function: Callable,
             output_set: str,
             overwrite_existing: bool = False,
-    ):
+    ) -> dict:
         """import and convert ``annotation``. This function should not be called outside of this class.
 
         :param annotation: input annotation dictionary (attributes defined according to :ref:`ChildProject.annotations.AnnotationManager.SEGMENTS_COLUMNS`)
@@ -1329,7 +1329,7 @@ class AnnotationManager:
 
         return subsets
 
-    def remove_set(self, annotation_set: str, recursive: bool = False):
+    def remove_set(self, annotation_set: str, recursive: bool = False) -> Self:
         """Remove a set of annotations, deleting every converted file and removing
         them from the index. This preserves raw annotations.
 
@@ -1370,7 +1370,7 @@ class AnnotationManager:
         new_set: str,
         recursive: bool = False,
         ignore_errors: bool = False,
-    ):
+    ) -> Self:
         """Rename a set of annotations, moving all related files
         and updating the index accordingly.
 
@@ -1461,7 +1461,7 @@ class AnnotationManager:
 
     def merge_annotations(
         self, left_columns, right_columns, columns, output_set, input, skip_existing: bool = False
-    ):
+    ) -> pd.DataFrame:
         """From 2 DataFrames listing the annotation indexes to merge together (those indexes should come from
         the intersection of the left_set and right_set indexes), the listing of the columns
         to merge and name of the output_set, creates the resulting csv files containing the converted merged
@@ -1641,7 +1641,7 @@ class AnnotationManager:
         recording_filter: str = None,
         metadata: str = None,
         threads=-1,
-    ):
+    ) -> Self:
         """Merge columns from ``left_set`` and ``right_set`` annotations, 
         for all matching segments, into a new set of annotations named
         ``output_set`` that will be saved in the dataset. ``output_set``
@@ -1669,8 +1669,8 @@ class AnnotationManager:
         :type metadata: None | str
         :param threads: number of threads
         :type threads: int
-        :return: [description]
-        :rtype: [type]
+        :return: AnnotationManager object updated after the merge
+        :rtype: AnnotationManager
         """
         existing_sets = self.annotations['set'].unique()
         if full_set_merge: assert output_set not in existing_sets, "output_set <{}> already exists, remove the existing set or another name.".format(output_set)
@@ -1875,7 +1875,7 @@ class AnnotationManager:
         ranges: pd.DataFrame,
         sets: Union[Set, List] = None,
         missing_data: str = "ignore",
-    ):
+    ) -> pd.DataFrame:
         """Retrieve and clip annotations that cover specific portions of recordings (``ranges``).
         
         The desired ranges are defined by an input dataframe with three columns: ``recording_filename``, ``range_onset``, and ``range_offset``.
@@ -2007,7 +2007,7 @@ class AnnotationManager:
         interval : TimeInterval = None,
         start_time: str = None,
         end_time: str = None,
-    ):
+    ) -> pd.DataFrame:
         """Clip all input annotations within a given HH:MM:SS clock-time range.
         Those that do not intersect the input time range at all are filtered out.
 

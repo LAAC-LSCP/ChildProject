@@ -214,7 +214,7 @@ class Conversations(ABC):
         super().__init_subclass__(**kwargs)
         pipelines[cls.SUBCOMMAND] = cls
 
-    def _process_conversation(self, conversation, rec): #process recording line
+    def _process_conversation(self, conversation, rec) -> dict: #process recording line
         """for one conversation block compute the list of required features and store return the results as a dictionary
 
         :param conversation: index and Series of the unit to process, to be modified with the results
@@ -240,7 +240,7 @@ class Conversations(ABC):
 
         return result
 
-    def _process_recording(self, recording, grouper):
+    def _process_recording(self, recording, grouper) -> list[dict]:
         """for one recording, get the segments required, group by conversation and launch computation for each block
 
         :param recording: recording_filename to which belongs that conversation
@@ -268,7 +268,7 @@ class Conversations(ABC):
 
         return extractions
 
-    def extract(self):
+    def extract(self) -> pd.DataFrame:
         """from the initiated self.features_dict, compute each row feature (handles threading)
         Once the Conversation class is initialized, call this function to extract the features and populate
          self.conversations
@@ -332,7 +332,7 @@ class Conversations(ABC):
         self.conversations = self.conversations.convert_dtypes()
         return self.conversations
 
-    def retrieve_segments(self, recording: str):
+    def retrieve_segments(self, recording: str) -> pd.DataFrame:
         """from a list of sets and a row identifying the unit computed, return the relevant annotation segments
 
         :param recording: recording
@@ -499,7 +499,7 @@ class ConversationsPipeline(Pipeline):
         self.conversations = None
         self.parameters_path = None
 
-    def run(self, path, destination, pipeline, func=None, **kwargs):
+    def run(self, path, destination, pipeline, func=None, **kwargs) -> pd.DataFrame:
         self.destination = destination
         # build a dictionary with all parameters used
         parameters = locals()
@@ -620,7 +620,7 @@ class ConversationsSpecificationPipeline(Pipeline):
         self.conversations = None
         self.parameters_path = None
 
-    def run(self, parameters_input, func=None):
+    def run(self, parameters_input, func=None) -> pd.DataFrame:
         # build a dictionary with all parameters used
         parameters = None
         with open(parameters_input, "r") as stream:

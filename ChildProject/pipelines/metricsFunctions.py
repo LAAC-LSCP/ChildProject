@@ -3,7 +3,7 @@ import numpy as np
 import ast
 import re
 import functools
-from typing import Union, Set, Tuple
+from typing import Union, Set, Tuple, Any
 
 """
 This file lists all the metrics functions commonly used.
@@ -30,7 +30,7 @@ MISSING_COLUMNS = 'The given set <{}> does not have the required column(s) <{}> 
 RESERVED = {'set', 'name', 'callable'}  # arguments reserved usage. use other keyword labels.
 
 
-def metricFunction(args: set, columns: Union[Set[str], Tuple[Set[str], ...]], empty_value=0, default_name: str = None):
+def metricFunction(args: set, columns: Union[Set[str], Tuple[Set[str], ...]], empty_value=0, default_name: str = None) -> callable:
     """Decorator for all metrics functions to make them ready to be called by the pipeline.
     
     :param args: set of required keyword arguments for that function, raise ValueError if were not given \
@@ -46,7 +46,7 @@ def metricFunction(args: set, columns: Union[Set[str], Tuple[Set[str], ...]], em
     :rtype: Callable
     """
 
-    def decorator(function):
+    def decorator(function) -> callable:
         for a in args:
             if a in RESERVED:
                 raise ValueError(
@@ -55,7 +55,7 @@ def metricFunction(args: set, columns: Union[Set[str], Tuple[Set[str], ...]], em
                         function.__name__, a, RESERVED))
 
         @functools.wraps(function)
-        def new_func(segments: pd.DataFrame, duration: int, **kwargs):
+        def new_func(segments: pd.DataFrame, duration: int, **kwargs) -> Tuple[str, Any]:
             for arg in args:
                 if arg not in kwargs:
                     raise ValueError(f"{function.__name__} metric needs an argument <{arg}>")
@@ -104,11 +104,11 @@ def metricFunction(args: set, columns: Union[Set[str], Tuple[Set[str], ...]], em
     return decorator
 
 
-def peak_hour_metric(empty_value=0):
+def peak_hour_metric(empty_value=0) -> callable:
     """
     empty_value : should repeat the empty value of the metric function wrapper (as this will be used for empty periods)
     """
-    def decorator(function):
+    def decorator(function) -> callable:
         """Decorator a metric function to select the maximum value observed over 1h periods. function is prefixed with
            'peak_'
             """
@@ -148,10 +148,10 @@ def peak_hour_metric(empty_value=0):
     return decorator
 
 
-def per_hour_metric():
+def per_hour_metric() -> callable:
     """
     """
-    def decorator(function):
+    def decorator(function) -> callable:
         """Decorator creating a metric function controlling the original value by time. function is suffixed with '_ph'
             """
         @functools.wraps(function)
@@ -167,7 +167,7 @@ def per_hour_metric():
     return decorator
 
 
-def voc_speaker(segments: pd.DataFrame, duration: int, **kwargs):
+def voc_speaker(segments: pd.DataFrame, duration: int, **kwargs) -> int:
     """number of vocalizations for a given speaker type
     
     Required keyword arguments:
@@ -182,8 +182,8 @@ voc_speaker_ph = metricFunction({"speaker"}, {"speaker_type"})(per_hour_metric()
 voc_speaker = metricFunction({"speaker"}, {"speaker_type"})(voc_speaker)
 
 
-def voc_dur_speaker(segments: pd.DataFrame, duration: int, **kwargs):
-    """total duration of vocalizations by a given speaker type in milliseconds per hour
+def voc_dur_speaker(segments: pd.DataFrame, duration: int, **kwargs) -> int:
+    """total duration of vocalizations by a given speaker type in milliseconds
     
     Required keyword arguments:
         - speaker : speaker_type to use
@@ -198,7 +198,7 @@ voc_dur_speaker = metricFunction({"speaker"}, {"speaker_type", "duration"})(voc_
 
 
 @metricFunction({"speaker"}, {"speaker_type", "duration"}, np.nan)
-def avg_voc_dur_speaker(segments: pd.DataFrame, duration: int, **kwargs):
+def avg_voc_dur_speaker(segments: pd.DataFrame, duration: int, **kwargs) -> float:
     """average duration in milliseconds of vocalizations for a given speaker type 
     
     Required keyword arguments:
@@ -207,7 +207,7 @@ def avg_voc_dur_speaker(segments: pd.DataFrame, duration: int, **kwargs):
     return segments[segments["speaker_type"] == kwargs["speaker"]]["duration"].mean()
 
 
-def wc_speaker(segments: pd.DataFrame, duration: int, **kwargs):
+def wc_speaker(segments: pd.DataFrame, duration: int, **kwargs) -> float:
     """number of words for a given speaker type
     
     Required keyword arguments:
@@ -221,7 +221,7 @@ wc_speaker_ph = metricFunction({"speaker"}, {"speaker_type", "words"})(per_hour_
 wc_speaker = metricFunction({"speaker"}, {"speaker_type", "words"})(wc_speaker)
 
 
-def sc_speaker(segments: pd.DataFrame, duration: int, **kwargs):
+def sc_speaker(segments: pd.DataFrame, duration: int, **kwargs) -> float:
     """number of syllables for a given speaker type
     
     Required keyword arguments:
@@ -235,7 +235,7 @@ sc_speaker_ph = metricFunction({"speaker"}, {"speaker_type", "syllables"})(per_h
 sc_speaker = metricFunction({"speaker"}, {"speaker_type", "syllables"})(sc_speaker)
 
 
-def pc_speaker(segments: pd.DataFrame, duration: int, **kwargs):
+def pc_speaker(segments: pd.DataFrame, duration: int, **kwargs) -> float:
     """number of phonemes for a given speaker type
     
     Required keyword arguments:
@@ -249,7 +249,7 @@ pc_speaker_ph = metricFunction({"speaker"}, {"speaker_type", "phonemes"})(per_ho
 pc_speaker = metricFunction({"speaker"}, {"speaker_type", "phonemes"})(pc_speaker)
 
 
-def wc_adu(segments: pd.DataFrame, duration: int, **kwargs):
+def wc_adu(segments: pd.DataFrame, duration: int, **kwargs) -> float:
     """number of words for all speakers
     
     Required keyword arguments:
@@ -262,7 +262,7 @@ wc_adu_ph = metricFunction(set(), {"words"})(per_hour_metric()(wc_adu))
 wc_adu = metricFunction(set(), {"words"})(wc_adu)
 
 
-def sc_adu(segments: pd.DataFrame, duration: int, **kwargs):
+def sc_adu(segments: pd.DataFrame, duration: int, **kwargs) -> float:
     """number of syllables for all speakers
     
     Required keyword arguments:
@@ -275,7 +275,7 @@ sc_adu_ph = metricFunction(set(), {"syllables"})(per_hour_metric()(sc_adu))
 sc_adu = metricFunction(set(), {"syllables"})(sc_adu)
 
 
-def pc_adu(segments: pd.DataFrame, duration: int, **kwargs):
+def pc_adu(segments: pd.DataFrame, duration: int, **kwargs) -> float:
     """number of phonemes for all speakers
     
     Required keyword arguments:
@@ -288,7 +288,7 @@ pc_adu_ph = metricFunction(set(), {"phonemes"})(per_hour_metric()(pc_adu))
 pc_adu = metricFunction(set(), {"phonemes"})(pc_adu)
 
 
-def cry_voc_speaker(segments: pd.DataFrame, duration: int, **kwargs):
+def cry_voc_speaker(segments: pd.DataFrame, duration: int, **kwargs) -> int:
     """number of cry vocalizations for a given speaker (based on vcm_type or lena cries)
     
     Required keyword arguments:
@@ -310,7 +310,7 @@ cry_voc_speaker = metricFunction({"speaker"}, ({"speaker_type", "vcm_type"}, {"s
                                  )(cry_voc_speaker)
 
 
-def cry_voc_dur_speaker(segments: pd.DataFrame, duration: int, **kwargs):
+def cry_voc_dur_speaker(segments: pd.DataFrame, duration: int, **kwargs) -> int:
     """total duration of cry vocalizations by a given speaker type in milliseconds (based on vcm_type or lena cry)
     
     Required keyword arguments:
@@ -332,7 +332,7 @@ cry_voc_dur_speaker = metricFunction({"speaker"}, ({"speaker_type", "vcm_type", 
 
 
 @metricFunction({"speaker"}, ({"speaker_type", "vcm_type", "duration"}, {'speaker_type', "child_cry_vfx_len", "cries"}), np.nan)
-def avg_cry_voc_dur_speaker(segments: pd.DataFrame, duration: int, **kwargs):
+def avg_cry_voc_dur_speaker(segments: pd.DataFrame, duration: int, **kwargs) -> float:
     """average duration of cry vocalizations by a given speaker type (based on vcm_type or lena cries)
     
     Required keyword arguments:
@@ -350,7 +350,7 @@ def avg_cry_voc_dur_speaker(segments: pd.DataFrame, duration: int, **kwargs):
     return value
 
 
-def can_voc_speaker(segments: pd.DataFrame, duration: int, **kwargs):
+def can_voc_speaker(segments: pd.DataFrame, duration: int, **kwargs) -> int:
     """number of canonical vocalizations for a given speaker type (based on vcm_type)
     
     Required keyword arguments:
@@ -365,7 +365,7 @@ can_voc_speaker_ph = metricFunction({"speaker"}, {"speaker_type", "vcm_type"})(p
 can_voc_speaker = metricFunction({"speaker"}, {"speaker_type", "vcm_type"})(can_voc_speaker)
 
 
-def can_voc_dur_speaker(segments: pd.DataFrame, duration: int, **kwargs):
+def can_voc_dur_speaker(segments: pd.DataFrame, duration: int, **kwargs) -> int:
     """total duration of canonical vocalizations by a given speaker type in milliseconds (based on vcm_type)
     
     Required keyword arguments:
@@ -383,7 +383,7 @@ can_voc_dur_speaker = metricFunction({"speaker"}, {"speaker_type", "vcm_type", "
 
 
 @metricFunction({"speaker"}, {"speaker_type", "vcm_type", "duration"}, np.nan)
-def avg_can_voc_dur_speaker(segments: pd.DataFrame, duration: int, **kwargs):
+def avg_can_voc_dur_speaker(segments: pd.DataFrame, duration: int, **kwargs) -> float:
     """average duration of canonical vocalizations for a given speaker type (based on vcm_type)
     
     Required keyword arguments:
@@ -395,7 +395,7 @@ def avg_can_voc_dur_speaker(segments: pd.DataFrame, duration: int, **kwargs):
     return value
 
 
-def non_can_voc_speaker(segments: pd.DataFrame, duration: int, **kwargs):
+def non_can_voc_speaker(segments: pd.DataFrame, duration: int, **kwargs) -> int:
     """number of non-canonical vocalizations for a given speaker type (based on vcm_type)
     
     Required keyword arguments:
@@ -412,7 +412,7 @@ non_can_voc_speaker_ph = metricFunction({"speaker"}, {"speaker_type", "vcm_type"
 non_can_voc_speaker = metricFunction({"speaker"}, {"speaker_type", "vcm_type"})(non_can_voc_speaker)
 
 
-def non_can_voc_dur_speaker(segments: pd.DataFrame, duration: int, **kwargs):
+def non_can_voc_dur_speaker(segments: pd.DataFrame, duration: int, **kwargs) -> int:
     """total duration of non-canonical vocalizations by a given speaker type in milliseconds (based on vcm_type)
     
     Required keyword arguments:
@@ -430,7 +430,7 @@ non_can_voc_dur_speaker = metricFunction({"speaker"}, {"speaker_type", "vcm_type
 
 
 @metricFunction({"speaker"}, {"speaker_type", "vcm_type", "duration"}, np.nan)
-def avg_non_can_voc_dur_speaker(segments: pd.DataFrame, duration: int, **kwargs):
+def avg_non_can_voc_dur_speaker(segments: pd.DataFrame, duration: int, **kwargs) -> float:
     """average duration of non-canonical vocalizations for a given speaker type (based on vcm_type)
     
     Required keyword arguments:
@@ -444,7 +444,7 @@ def avg_non_can_voc_dur_speaker(segments: pd.DataFrame, duration: int, **kwargs)
 
 
 @metricFunction(set(), set(), np.nan)
-def lp_n(segments: pd.DataFrame, duration: int, **kwargs):
+def lp_n(segments: pd.DataFrame, duration: int, **kwargs) -> float:
     """linguistic proportion on the number of vocalizations for CHI (based on vcm_type or [cries,vfxs,utterances_count] if vcm_type does not exist)
     
     Required keyword arguments:
@@ -476,7 +476,7 @@ def lp_n(segments: pd.DataFrame, duration: int, **kwargs):
 
 
 @metricFunction(set(), {"speaker_type", "vcm_type"}, np.nan)
-def cp_n(segments: pd.DataFrame, duration: int, **kwargs):
+def cp_n(segments: pd.DataFrame, duration: int, **kwargs) -> float:
     """canonical proportion on the number of vocalizations for CHI (based on vcm_type)
     
     Required keyword arguments:
@@ -492,7 +492,7 @@ def cp_n(segments: pd.DataFrame, duration: int, **kwargs):
 
 
 @metricFunction(set(), set(), np.nan)
-def lp_dur(segments: pd.DataFrame, duration: int, **kwargs):
+def lp_dur(segments: pd.DataFrame, duration: int, **kwargs) -> float:
     """linguistic proportion on the duration of vocalizations for CHI (based on vcm_type or [child_cry_vfxs_len,utterances_length] if vcm_type does not exist)
     
     Required keyword arguments:
@@ -523,7 +523,7 @@ def lp_dur(segments: pd.DataFrame, duration: int, **kwargs):
 
 
 @metricFunction(set(), {"speaker_type", "vcm_type", "duration"}, np.nan)
-def cp_dur(segments: pd.DataFrame, duration: int, **kwargs):
+def cp_dur(segments: pd.DataFrame, duration: int, **kwargs) -> float:
     """canonical proportion on the number of vocalizations for CHI (based on vcm_type)
     
     Required keyword arguments:
@@ -539,7 +539,7 @@ def cp_dur(segments: pd.DataFrame, duration: int, **kwargs):
     return value
 
 
-def lena_CVC(segments: pd.DataFrame, duration: int, **kwargs):
+def lena_CVC(segments: pd.DataFrame, duration: int, **kwargs) -> int:
     """number of child vocalizations according to LENA's extraction
     
     Required keyword arguments:
@@ -552,7 +552,7 @@ lena_CVC_ph = metricFunction(set(), {"utterances_count"})(per_hour_metric()(lena
 lena_CVC = metricFunction(set(), {"utterances_count"})(lena_CVC)
 
 
-def lena_CTC(segments: pd.DataFrame, duration: int, **kwargs):
+def lena_CTC(segments: pd.DataFrame, duration: int, **kwargs) -> int:
     """number of conversational turn counts according to LENA's extraction
     
     Required keyword arguments:
@@ -572,7 +572,7 @@ def simple_CTC(segments: pd.DataFrame,
         interlocutors_2=('FEM', 'MAL', 'OCH'),
         max_interval=1000,
         min_delay=0,
-        **kwargs):
+        **kwargs) -> int:
     """number of conversational turn counts based on vocalizations occurring
     in a given interval of one another
 
