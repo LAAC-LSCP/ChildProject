@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.1] 2025-07-25
+
 ### Changed
 
 - Generalize use of return codes in functions / methods in the package
