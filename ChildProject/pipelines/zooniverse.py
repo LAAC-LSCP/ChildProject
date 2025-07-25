@@ -15,7 +15,7 @@ import signal
 import re
 import logging
 
-from typing import List
+from typing import List, Optional
 from yaml import dump
 
 from functools import partial
@@ -390,7 +390,7 @@ class ZooniversePipeline(Pipeline):
         record_orphan: bool = False,
         test_endpoint: bool = False,
         **kwargs
-    ) -> pd.DataFrame | None:
+    ) -> Optional[pd.DataFrame]:
         """Uploads ``amount`` audio chunks from the CSV dataframe `chunks` to a zooniverse project.
 
         :param chunks: path to the chunk CSV dataframe
@@ -602,7 +602,7 @@ class ZooniversePipeline(Pipeline):
         ignore_errors: bool = False,       
         test_endpoint: bool = False,
         **kwargs
-    ) -> pd.DataFrame | None:
+    ) -> Optional[pd.DataFrame]:
         """Attempts to link subjects that have been uploaded but not linked to a subject set in zooniverse
         from the CSV dataframe `chunks` to a zooniverse project (Attempts are made on chunks that have a zooniverse_id,
         a project_id and uploaded at True but no subject_set )

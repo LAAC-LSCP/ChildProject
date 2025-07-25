@@ -8,7 +8,11 @@ import sys
 import pandas as pd
 import shutil
 import subprocess
-from typing import Union, List, Self, Tuple
+from typing import Union, List, Tuple, Optional
+if sys.version_info[0] == 3 and sys.version_info[1] >= 11:
+    from typing import Self
+else:
+    from typing_extensions import Self
 from yaml import dump
 import logging
 
@@ -66,7 +70,7 @@ class AudioProcessor(ABC):
             self.name,
         )
 
-    def read_metadata(self) -> pd.DataFrame | None:
+    def read_metadata(self) -> Optional[pd.DataFrame]:
         path = os.path.join(self.output_directory(), "recordings.csv")
 
         if os.path.exists(path):
@@ -87,7 +91,7 @@ class AudioProcessor(ABC):
     def process_recording(self, recording):
         pass
 
-    def process(self, parameters) -> Self | None:
+    def process(self, parameters) -> Optional[Self]:
         recordings = self.project.get_recordings_from_list(self.recordings)
 
         os.makedirs(name=self.output_directory(), exist_ok=True)

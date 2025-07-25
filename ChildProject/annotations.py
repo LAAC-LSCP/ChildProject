@@ -7,7 +7,11 @@ from functools import reduce, partial
 from shutil import move, rmtree
 import sys
 import traceback
-from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Union, Self
+from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
+if sys.version_info[0] == 3 and sys.version_info[1] >= 11:
+    from typing import Self
+else:
+    from typing_extensions import Self
 import logging
 from pathlib import Path
 import yaml
@@ -595,7 +599,7 @@ class AnnotationManager:
             raise ValueError(f"warning argument must be in ['log','return','ignore']")
 
     def get_sets_metadata(self, format: str = 'dataframe', delimiter=None, escapechar='"', header=True, human=False,
-                          sort_by='set', sort_ascending=True) -> str | pd.DataFrame:
+                          sort_by='set', sort_ascending=True) -> Union[str, pd.DataFrame]:
         """return metadata about the sets"""
         sets = self._read_sets_metadata()
         annots = self.annotations.copy().set_index('set')

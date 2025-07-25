@@ -129,7 +129,7 @@ class IndexTable:
     def msg(self, text) -> str:
         return "{}: {}".format(self.path, text)
 
-    def validate(self) -> tuple[list[str],list[str]]:
+    def validate(self) -> Tuple[List[str], List[str]]:
         errors, warnings = [], []
 
         columns = {c.name: c for c in self.columns}

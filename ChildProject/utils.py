@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+from typing import List
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -128,7 +129,7 @@ class TimeInterval:
     def __eq__(self, other):
         return self.start == other.start and self.stop == other.stop
     
-def time_intervals_intersect(ti1 : TimeInterval, ti2 : TimeInterval) -> list[TimeInterval]:
+def time_intervals_intersect(ti1 : TimeInterval, ti2 : TimeInterval) -> List[TimeInterval]:
     """
     given 2 time intervals (those do not take in consideration days, only time in the day), return an array of new interval(s) representing the intersections of the original ones.
     Examples

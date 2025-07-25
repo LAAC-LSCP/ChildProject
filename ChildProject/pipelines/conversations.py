@@ -240,7 +240,7 @@ class Conversations(ABC):
 
         return result
 
-    def _process_recording(self, recording, grouper) -> list[dict]:
+    def _process_recording(self, recording, grouper) -> List[dict]:
         """for one recording, get the segments required, group by conversation and launch computation for each block
 
         :param recording: recording_filename to which belongs that conversation

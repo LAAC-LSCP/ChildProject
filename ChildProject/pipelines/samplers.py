@@ -8,7 +8,7 @@ import pandas as pd
 from pydub import AudioSegment
 import sys
 import traceback
-from typing import Union, List
+from typing import Union, List, Optional
 from yaml import dump
 import logging
 
@@ -100,7 +100,7 @@ class Sampler(ABC):
 
         return segments
 
-    def remove_excluded(self) -> pd.DataFrame | None:
+    def remove_excluded(self) -> Optional[pd.DataFrame]:
         if len(self.excluded) == 0:
             return
 

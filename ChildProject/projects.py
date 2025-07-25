@@ -1,3 +1,4 @@
+import sys
 import datetime
 from functools import partial
 import logging
@@ -6,7 +7,11 @@ import os
 import pandas as pd
 import re
 import shutil
-from typing import Union, Self
+from typing import Union, List, Tuple, Optional
+if sys.version_info[0] == 3 and sys.version_info[1] >= 11:
+    from typing import Self
+else:
+    from typing_extensions import Self
 from pathlib import Path
 
 from .tables import (
@@ -623,7 +628,7 @@ class ChildProject:
         return chis_to_write
 
     def validate(self, ignore_recordings: bool = False, profile: str = None, accumulate: bool = True,
-                 current_metadata = False, custom_metadata=None) -> tuple[list[str],list[str]]:
+                 current_metadata = False, custom_metadata=None) -> Tuple[List[str], List[str]]:
         """Validate a dataset, returning all errors and warnings.
 
         :param ignore_recordings: if True, no errors will be returned for missing recordings.
@@ -860,7 +865,7 @@ class ChildProject:
             self.converted_recordings_hashtable[key] = None
             return None
 
-    def recording_from_path(self, path: Path, profile: str = None) -> str | None:
+    def recording_from_path(self, path: Path, profile: str = None) -> Optional[str]:
         path = Path(path)
         if profile:
             raise NotImplementedError(
@@ -973,7 +978,7 @@ class ChildProject:
                 return False
             return True
         
-        def date_fmt(dt,fmt='months') -> int | float | None:
+        def date_fmt(dt,fmt='months') -> Union[Optional[int],Optional[float]]:
             if dt:
                 if fmt == 'months':
                     return dt.days / (365.25 / 12)
