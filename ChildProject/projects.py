@@ -6,7 +6,7 @@ import os
 import pandas as pd
 import re
 import shutil
-from typing import Union
+from typing import Union, Self
 from pathlib import Path
 
 from .tables import (
@@ -368,13 +368,15 @@ class ChildProject:
 
         return df
 
-    def read(self, verbose=False, accumulate=True):
+    def read(self, verbose=False, accumulate=True) -> Self:
         """Read the metadata from the project and stores it in recordings and children attributes
         
         :param verbose: read with additional output
         :type verbose: bool
         :param accumulate: add metadata from subfolders (usually confidential metadata)
         :type accumulate: bool
+        :return: ChildProject object after reading
+        :rtype: ChildProject
         """
         self.ct = IndexTable(
             "children",
@@ -428,7 +430,7 @@ class ChildProject:
         return self
 
 
-    def add_project_file(self, src_path, dst_file, file_type: str, overwrite=False):
+    def add_project_file(self, src_path, dst_file, file_type: str, overwrite=False) -> Self:
         """
         Add a file to the dataset. This function takes the path to a file, copies that file inside the dataset in
         the correct spot depending on the file type.
@@ -446,6 +448,8 @@ class ChildProject:
         :type file_type: str
         :param overwrite: overwrite the existing destination if it already exists
         :type overwrite: bool, optional
+        :return: ChildProject changed object
+        :rtype: ChildProject
         """
         file_path = Path(src_path)
         target_path = Path(dst_file)
@@ -475,7 +479,7 @@ class ChildProject:
 
         return self
 
-    def remove_project_file(self, file, file_type: str):
+    def remove_project_file(self, file, file_type: str) -> Self:
         """
         remove a file from the dataset. This function takes the path to a file, and removes it from the dataset at
         the file system level (not in the index), the file could be under folder, they need to be in the file name
@@ -489,6 +493,8 @@ class ChildProject:
         :param file_type: type of the file to copy in order to know where it should be stored in the dataset, choose any
         of 'recording','metadata','extra' or 'raw', raw is just copied from the root of the dataset into any folder
         :type file_type: str
+        :return: ChildProject changed object
+        :rtype: ChildProject
         """
         file_path = Path(file)
         assert not file_path.is_absolute(), "parameter file must be a relative path"
@@ -511,7 +517,7 @@ class ChildProject:
         return self
 
 
-    def dict_summary(self):
+    def dict_summary(self) -> dict:
         if self.recordings is None:
             self.read()
         ages = self.compute_ages()
@@ -550,7 +556,7 @@ class ChildProject:
         }
         return record
         
-    def write_recordings(self, keep_discarded: bool = True, skip_validation=False, keep_original_columns: bool = True):
+    def write_recordings(self, keep_discarded: bool = True, skip_validation=False, keep_original_columns: bool = True) -> pd.DataFrame:
         """
         Write self.recordings to the recordings csv file of the dataset.
         !! if `read()` was done with `accumulate` , you may write confidential information in recordings.csv !!
@@ -583,7 +589,7 @@ class ChildProject:
         recs_to_write.sort_index().to_csv(self.path / METADATA_FOLDER / RECORDINGS_CSV, columns=columns, index=False)
         return recs_to_write
 
-    def write_children(self, keep_discarded: bool = True, skip_validation=False, keep_original_columns: bool = True):
+    def write_children(self, keep_discarded: bool = True, skip_validation=False, keep_original_columns: bool = True) -> pd.DataFrame:
         """
         Write self.children to the children csv file of the dataset.
         !! if `read()` was done with `accumulate` , you may write confidential information in recordings.csv !!
@@ -617,7 +623,7 @@ class ChildProject:
         return chis_to_write
 
     def validate(self, ignore_recordings: bool = False, profile: str = None, accumulate: bool = True,
-                 current_metadata = False, custom_metadata=None) -> tuple:
+                 current_metadata = False, custom_metadata=None) -> tuple[list[str],list[str]]:
         """Validate a dataset, returning all errors and warnings.
 
         :param ignore_recordings: if True, no errors will be returned for missing recordings.
@@ -629,7 +635,7 @@ class ChildProject:
         :param current_metadata: validate the currently set metadata, without reacquiring it from the files
         :type current_metadata: bool, optional
         :return: A tuple containing the list of errors, and the list of warnings.
-        :rtype: a tuple of two lists
+        :rtype: tuple[list[str],list[str]]
         """
         self.errors = []
         self.warnings = []
@@ -800,7 +806,7 @@ class ChildProject:
         :param profile: name of the conversion profile, defaults to None
         :type profile: str, optional
         :return: path to the recording
-        :rtype: str
+        :rtype: pathlib.Path
         """
 
         if profile:
@@ -854,7 +860,7 @@ class ChildProject:
             self.converted_recordings_hashtable[key] = None
             return None
 
-    def recording_from_path(self, path: Path, profile: str = None) -> str:
+    def recording_from_path(self, path: Path, profile: str = None) -> str | None:
         path = Path(path)
         if profile:
             raise NotImplementedError(
@@ -960,14 +966,14 @@ class ChildProject:
         :type age_format: str, optional
         """
 
-        def date_is_valid(date: str, fmt: str):
+        def date_is_valid(date: str, fmt: str) -> bool:
             try:
                 datetime.datetime.strptime(date, fmt)
             except:
                 return False
             return True
         
-        def date_fmt(dt,fmt='months'):
+        def date_fmt(dt,fmt='months') -> int | float | None:
             if dt:
                 if fmt == 'months':
                     return dt.days / (365.25 / 12)

@@ -58,7 +58,7 @@ def df_to_printable(df : pd.DataFrame, delimiter:str=' ' , header:bool=False) ->
         result += f"{delimiter}\033[94m{row}\033[0m\n"
     return result
 
-def printable_unit_duration(duration):
+def printable_unit_duration(duration) -> str:
     """from a duration in milliseconds, returns a string with an appropriate unit between ms, seconds, minutes and hours
 
     :param duration: duration in milliseconds
@@ -128,7 +128,7 @@ class TimeInterval:
     def __eq__(self, other):
         return self.start == other.start and self.stop == other.stop
     
-def time_intervals_intersect(ti1 : TimeInterval, ti2 : TimeInterval):
+def time_intervals_intersect(ti1 : TimeInterval, ti2 : TimeInterval) -> list[TimeInterval]:
     """
     given 2 time intervals (those do not take in consideration days, only time in the day), return an array of new interval(s) representing the intersections of the original ones.
     Examples
@@ -139,6 +139,8 @@ def time_intervals_intersect(ti1 : TimeInterval, ti2 : TimeInterval):
     :param ti2: second interval
     :type ti1: TimeInterval
     :type ti2: TimeInterval
+    :return: list of intervals that intersect
+    :rtype: list[TimeInterval]
     """
     #The calculation and boolean evaluation is done that way to optimize the process, those expressions were obtained using a Karnaugh table. Given the relations between the different start and ending times, the boolean relations used below gives the correct intervals
     a = ti1.start <= ti1.stop
@@ -163,11 +165,13 @@ def time_intervals_intersect(ti1 : TimeInterval, ti2 : TimeInterval):
     #remove the intervals having equal values (3:00 to 3:00)
     i = 0
     while i < len(r):
-        if r[i].start == r[i].stop : r.pop(i)
-        else : i += 1
+        if r[i].start == r[i].stop:
+            r.pop(i)
+        else:
+            i += 1
     return r
 
-def get_audio_duration(filename: Path):
+def get_audio_duration(filename: Path) -> int:
     from soundfile import info
 
     if not filename.exists():
@@ -258,7 +262,7 @@ def calculate_shift(file1, file2, start1, start2, interval):
 
     return res,len(ref)
 
-def find_lines_involved_in_overlap(df: pd.DataFrame, onset_label: str = 'range_onset', offset_label:str = 'range_offset', labels = []):
+def find_lines_involved_in_overlap(df: pd.DataFrame, onset_label: str = 'range_onset', offset_label:str = 'range_offset', labels = []) -> pd.DataFrame:
     """takes a dataframe as input. The dataframe is supposed to have a column for the onset
     og a timeline and one for the offset. The function returns a boolean series where
     all indexes having 'True' are lines involved in overlaps and 'False' when not
@@ -288,7 +292,7 @@ def find_lines_involved_in_overlap(df: pd.DataFrame, onset_label: str = 'range_o
     #overlap is defined by having s2.offset > s1.onset and s2.onset < s1.offset and s2.index != s1.index (same seg)
     return df.apply(lambda row: True if df[eval(conditions)].shape[0] else False,axis=1) 
 
-def series_to_datetime(time_series, time_index_list, time_column_name:str, date_series = None, date_index_list = None, date_column_name = None):
+def series_to_datetime(time_series, time_index_list, time_column_name:str, date_series = None, date_index_list = None, date_column_name = None) -> pd.Series:
     """
     returns a series of datetimes from a series of str. Using pd.to_datetime on all the formats \
     listed for a specific column name in an index consisting of IndexColumn items. \

@@ -5,8 +5,10 @@ from typing import List
 
 from .tables import assert_dataframe, assert_columns_presence
 
+from nltk.metrics import agreement
+from pyannote.core import Annotation, Segment
 
-def segments_to_annotation(segments: pd.DataFrame, column: str):
+def segments_to_annotation(segments: pd.DataFrame, column: str) -> Annotation:
     """Transform a dataframe of annotation segments into a pyannote.core.Annotation object
 
     :param segments: a dataframe of input segments. It should at least have the following columns: ``segment_onset``, ``segment_offset`` and ``column``.
@@ -19,8 +21,6 @@ def segments_to_annotation(segments: pd.DataFrame, column: str):
 
     assert_dataframe("segments", segments)
     assert_columns_presence("segments", segments, {"segment_onset", "segment_offset"})
-
-    from pyannote.core import Annotation, Segment
 
     annotation = Annotation()
 
@@ -148,7 +148,7 @@ def segments_to_grid(
     return data
 
 
-def grid_to_vector(grid, categories):
+def grid_to_vector(grid, categories) -> np.array:
     """Transform a grid of active classes into a vector of labels.
     In case several classes are active at time i, the label is 
     set to 'overlap'.
@@ -167,7 +167,7 @@ def grid_to_vector(grid, categories):
     )
 
 
-def conf_matrix(rows_grid, columns_grid):
+def conf_matrix(rows_grid, columns_grid) -> np.array:
     """compute the confusion matrix (as counts) from grids of active classes.
 
     See :func:`ChildProject.metrics.segments_to_grid` for a description of grids.
@@ -184,7 +184,7 @@ def conf_matrix(rows_grid, columns_grid):
     return rows_grid.T @ columns_grid
 
 
-def vectors_to_annotation_task(*args, drop: List[str] = []):
+def vectors_to_annotation_task(*args, drop: List[str] = []) -> agreement.AnnotationTask:
     """transform vectors of labels into a nltk AnnotationTask object.
 
     :param args: vector of labels for each annotator; add one argument per annotator.
@@ -194,7 +194,6 @@ def vectors_to_annotation_task(*args, drop: List[str] = []):
     :return: the AnnotationTask object
     :rtype: nltk.metrics.agreement.AnnotationTask
     """
-    from nltk.metrics import agreement
 
     v = np.vstack(args)
     it = np.nditer(v, flags=["multi_index"])
@@ -247,7 +246,6 @@ def gamma(
         "segments", segments, {"set", "segment_onset", "segment_offset"}
     )
 
-    from pyannote.core import Segment
     from pygamma_agreement.continuum import Continuum
     from pygamma_agreement.dissimilarity import CombinedCategoricalDissimilarity
 

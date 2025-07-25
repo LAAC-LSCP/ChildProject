@@ -72,12 +72,12 @@ class Sampler(ABC):
     def add_parser(parsers):
         pass
 
-    def sample(self):
+    def sample(self) -> pd.DataFrame:
         self._sample()
         self.remove_excluded()
         return self.segments
 
-    def retrieve_segments(self, recording_filename=None):
+    def retrieve_segments(self, recording_filename=None) -> pd.DataFrame:
         am = AnnotationManager(self.project)
         annotations = am.annotations
         annotations = annotations[annotations["set"] == self.annotation_set]
@@ -100,7 +100,7 @@ class Sampler(ABC):
 
         return segments
 
-    def remove_excluded(self):
+    def remove_excluded(self) -> pd.DataFrame | None:
         if len(self.excluded) == 0:
             return
 
@@ -144,7 +144,7 @@ class Sampler(ABC):
         self.segments = pd.concat(segments)
         return self.segments
 
-    def assert_valid(self):
+    def assert_valid(self) -> bool:
         require_columns = ["recording_filename", "segment_onset", "segment_offset"]
         missing_columns = list(set(require_columns) - set(self.segments.columns))
 
@@ -156,7 +156,7 @@ class Sampler(ABC):
             )
         return True
 
-    def export_audio(self, destination, profile=None, **kwargs):
+    def export_audio(self, destination, profile=None, **kwargs) -> str:
         self.assert_valid()
 
         for recording, segments in self.segments.groupby("recording_filename"):
@@ -239,7 +239,7 @@ class PeriodicSampler(Sampler):
         self.profile = profile
         self.by = by
 
-    def _sample(self):
+    def _sample(self) -> pd.DataFrame:
         recordings = self.project.get_recordings_from_list(self.recordings)
 
         if not "duration" in recordings.columns:
@@ -361,7 +361,7 @@ class RandomVocalizationSampler(Sampler):
         self.threads = threads
         self.by = by
 
-    def _get_segments(self, recording):
+    def _get_segments(self, recording) -> pd.DataFrame:
         segments = self.retrieve_segments(recording["recording_filename"])
 
         if segments is None:
@@ -376,7 +376,7 @@ class RandomVocalizationSampler(Sampler):
 
         return segments
 
-    def _sample_unit(self, group):
+    def _sample_unit(self, group) -> pd.DataFrame:
         unit, recordings = group
         recordings[self.by] = unit
         segments = pd.concat(
@@ -385,7 +385,7 @@ class RandomVocalizationSampler(Sampler):
 
         return segments.sample(frac=1).head(self.sample_size)
 
-    def _sample(self):
+    def _sample(self) -> pd.DataFrame:
         recordings = self.project.get_recordings_from_list(self.recordings)
 
         if self.threads == 1:
@@ -487,7 +487,7 @@ class EnergyDetectionSampler(Sampler):
         self.profile = profile
         self.by = by
 
-    def compute_energy_loudness(self, chunk, sampling_frequency: int):
+    def compute_energy_loudness(self, chunk, sampling_frequency: int) -> int:
         if self.low_freq > 0 or self.high_freq < 100000:
             chunk_fft = np.fft.fft(chunk)
             freq = np.abs(np.fft.fftfreq(len(chunk_fft), 1 / sampling_frequency))
@@ -496,7 +496,7 @@ class EnergyDetectionSampler(Sampler):
         else:
             return np.sum(chunk ** 2)
 
-    def get_recording_windows(self, recording):
+    def get_recording_windows(self, recording) -> pd.DataFrame:
         recording_path = self.project.get_recording_path(
             recording["recording_filename"], self.profile
         )
@@ -563,7 +563,7 @@ class EnergyDetectionSampler(Sampler):
 
         return pd.DataFrame(windows)
 
-    def _sample(self):
+    def _sample(self) -> pd.DataFrame:
         recordings = self.project.get_recordings_from_list(self.recordings)
 
         if self.threads == 1:
@@ -597,6 +597,7 @@ class EnergyDetectionSampler(Sampler):
         self.segments.drop_duplicates(
             ["recording_filename", "segment_onset", "segment_offset"], inplace=True
         )
+        return self.segments
 
     @staticmethod
     def add_parser(subparsers, subcommand):
@@ -716,7 +717,7 @@ class HighVolubilitySampler(Sampler):
         self.threads = threads
         self.by = by
 
-    def _segment_scores(self, recording):
+    def _segment_scores(self, recording) -> pd.DataFrame:
         segments = self.retrieve_segments(recording["recording_filename"])
 
         if segments is None:
@@ -814,7 +815,7 @@ class HighVolubilitySampler(Sampler):
 
         return segments
 
-    def _sample_unit(self, group):
+    def _sample_unit(self, group) -> pd.DataFrame:
         unit, recordings = group
         recordings[self.by] = unit
         segments = pd.concat(
@@ -827,7 +828,7 @@ class HighVolubilitySampler(Sampler):
             .reset_index(drop=True)
         )
 
-    def _sample(self):
+    def _sample(self) -> pd.DataFrame:
         recordings = self.project.get_recordings_from_list(self.recordings)
 
         if self.threads == 1:
@@ -929,7 +930,7 @@ class ConversationSampler(Sampler):
         self.threads = threads
         self.by = by
 
-    def _retrieve_conversations(self, recording):
+    def _retrieve_conversations(self, recording) -> pd.DataFrame:
         segments = self.retrieve_segments(recording["recording_filename"])
 
         if segments is None or "speaker_type" not in segments.columns:
@@ -974,7 +975,7 @@ class ConversationSampler(Sampler):
 
         return conversations
 
-    def _sample_unit(self, group):
+    def _sample_unit(self, group) -> pd.DataFrame:
         unit, recordings = group
         recordings[self.by] = unit
         conversations = pd.concat(
@@ -990,7 +991,7 @@ class ConversationSampler(Sampler):
             .reset_index(drop=True)
         )
 
-    def _sample(self):
+    def _sample(self) -> pd.DataFrame:
         recordings = self.project.get_recordings_from_list(self.recordings)
 
         if self.threads == 1:
@@ -1042,7 +1043,7 @@ class SamplerPipeline(Pipeline):
     def __init__(self):
         self.segments = []
 
-    def run(self, path, destination, sampler, func=None, **kwargs):
+    def run(self, path, destination, sampler, func=None, **kwargs) -> str:
         parameters = locals()
         parameters = [
             {key: parameters[key]}

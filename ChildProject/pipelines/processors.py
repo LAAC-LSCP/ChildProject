@@ -8,7 +8,7 @@ import sys
 import pandas as pd
 import shutil
 import subprocess
-from typing import Union, List
+from typing import Union, List, Self, Tuple
 from yaml import dump
 import logging
 
@@ -59,14 +59,14 @@ class AudioProcessor(ABC):
         super().__init_subclass__(**kwargs)
         pipelines[cls.SUBCOMMAND] = cls
 
-    def output_directory(self):
+    def output_directory(self) -> str:
         return os.path.join(
             self.project.path,
             CONVERTED_RECORDINGS,
             self.name,
         )
 
-    def read_metadata(self):
+    def read_metadata(self) -> pd.DataFrame | None:
         path = os.path.join(self.output_directory(), "recordings.csv")
 
         if os.path.exists(path):
@@ -76,7 +76,7 @@ class AudioProcessor(ABC):
         else:
             return None
 
-    def export_metadata(self):
+    def export_metadata(self) -> str:
         path = os.path.join(self.output_directory(), "recordings.csv")
 
         self.converted.to_csv(path)
@@ -87,7 +87,7 @@ class AudioProcessor(ABC):
     def process_recording(self, recording):
         pass
 
-    def process(self, parameters):
+    def process(self, parameters) -> Self | None:
         recordings = self.project.get_recordings_from_list(self.recordings)
 
         os.makedirs(name=self.output_directory(), exist_ok=True)
@@ -162,7 +162,7 @@ class BasicProcessor(AudioProcessor):
         self.sampling = int(sampling)
         self.skip_existing = bool(skip_existing)
 
-    def process_recording(self, recording):
+    def process_recording(self, recording) -> pd.DataFrame:
         if recording["recording_filename"] == "NA":
             return pd.DataFrame()
 
@@ -274,7 +274,7 @@ class VettingProcessor(AudioProcessor):
         )
         self.segments = pd.read_csv(segments_path)
 
-    def process_recording(self, recording):
+    def process_recording(self, recording) -> pd.DataFrame:
         import librosa
         import soundfile
 
@@ -369,7 +369,7 @@ class ChannelMapper(AudioProcessor):
 
         self.channels = np.array(self.channels)
 
-    def process_recording(self, recording):
+    def process_recording(self, recording) -> pd.DataFrame:
         import librosa
         import soundfile
 
@@ -456,7 +456,7 @@ class AudioStandard(AudioProcessor):
         self.sampling = "16000"
         self.skip_existing = bool(skip_existing)
 
-    def process_recording(self, recording):
+    def process_recording(self, recording) -> pd.DataFrame:
         if recording["recording_filename"] == "NA":
             return pd.DataFrame()
 
@@ -547,7 +547,7 @@ class AudioProcessingPipeline(Pipeline):
         threads: int = 1,
         func=None,
         **kwargs,
-    ):
+    ) -> Tuple[str, str]:
         parameters = locals()
         parameters = [
             {key: parameters[key]}
