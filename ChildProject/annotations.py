@@ -18,7 +18,7 @@ import yaml
 import shutil
 
 from . import __version__
-from .pipelines.derivations import DERIVATIONS, conversations
+from .pipelines.derivations import DERIVATIONS, Derivator, RuntimeDerivator
 from .projects import ChildProject, METADATA_FOLDER, EXTRA
 from .converters import *
 from .tables import IndexTable, IndexColumn, assert_dataframe, assert_columns_presence
@@ -1220,21 +1220,28 @@ class AnnotationManager:
          set {1}".format(input_set, output_set)
 
         # check the existence of the derivation function and that it is callable or predefined
-        if not callable(derivation_function):
-            if derivation_function in DERIVATIONS.keys():
-                if derivation_metadata is None:
-                    derivation_metadata = DERIVATIONS[derivation_function][1]
-                derivation_function = DERIVATIONS[derivation_function][0]
+        if callable(derivation_function):
+            derivator = RuntimeDerivator(derivation_function)
+        elif derivation_function in DERIVATIONS.keys():
+            derivator = DERIVATIONS[derivation_function]()
+        else:
+            is_derivator = False
+            try:
+                is_derivator = isinstance(derivation_function, Derivator)
+            except TypeError:
+                pass
+            if is_derivator:
+                derivator = derivation_function
             else:
                 raise ValueError(
-                    "derivation value '{}' unknown, use one of {}".format(derivation_function, DERIVATIONS.keys())
+                    "derivation value '{}' unknown, use one of {}, a callable function or a Derivator object".format(derivation_function, DERIVATIONS.keys())
                 )
 
         if threads == 1:
             # apply the derivation function to each annotation file that needs to be derived (sequential)
             imported = input_processed.apply(
                 partial(self._derive_annotation,
-                        import_function=derivation_function,
+                        import_function=derivator.derive,
                         output_set=output_set,
                         overwrite_existing=overwrite_existing
                         ), axis=1
@@ -1275,6 +1282,8 @@ class AnnotationManager:
 
         # metadata for the set is inherited from the set it derives from, some fields are automatically updated
         set_metadata = self.sets.loc[input_set].to_dict()
+        print(self, input_set, output_set)
+        set_metadata.update(derivator.get_auto_metadata(self, input_set, output_set))
         set_metadata.update({'method': 'derivation',
                              'date_annotation': datetime.datetime.now().strftime("%Y-%m-%d")})
         if derivation_metadata is not None:
