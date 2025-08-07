@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- Derivations are stored as subclasses that allow for more fined grained metadata extraction
+
 ## [0.3.1] 2025-07-25
 
 ### Changed
