@@ -15,7 +15,8 @@ def test_conversations():
     project = None
     meta = {}
 
-    res = deriv.ConversationDerivator.derive(project, meta, df)
+    derivator=deriv.ConversationDerivator()
+    res = derivator.derive(project, meta, df)
     # res.to_csv(TRUTH / 'conversations.csv', index=False)
     truth = pd.read_csv(TRUTH / 'conversations.csv')
 
@@ -27,7 +28,8 @@ def test_acoustics():
     project.read()
     meta = {'recording_filename': 'sound.wav'}
 
-    res = deriv.AcousticDerivator.derive(project, meta, df, profile=None, target_sr=4096)
+    derivator = deriv.AcousticDerivator(profile=None, target_sr=4096)
+    res = derivator.derive(project, meta, df)
     # res.to_csv(TRUTH / 'acoustics.csv', index=False)
     truth = pd.read_csv(TRUTH / 'acoustics.csv')
 
@@ -39,7 +41,8 @@ def test_remove_overlaps():
     project = None
     meta = {}
 
-    res = deriv.RemoveOverlapsDerivator.derive(project, meta, df)
+    derivator = deriv.RemoveOverlapsDerivator()
+    res = derivator.derive(project, meta, df)
     # res.to_csv(TRUTH / 'remove-overlaps.csv', index=False)
     truth = pd.read_csv(TRUTH / 'remove-overlaps.csv')
 
@@ -51,8 +54,10 @@ def test_cva():
     project = None
 
     # we use restrictive, so we should remove overlaps first (this is not ideal for independent testing though)
-    df = deriv.RemoveOverlapsDerivator.derive(project, meta, df)
-    res = deriv.CVADerivator.derive(project, meta, df)
+    derivator = deriv.RemoveOverlapsDerivator()
+    df = derivator.derive(project, meta, df)
+    derivator = deriv.CVADerivator()
+    res = derivator.derive(project, meta, df)
     # res.to_csv(TRUTH / 'cva.csv', index=False)
     truth = pd.read_csv(TRUTH / 'cva.csv', keep_default_na=False)
 
