@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from math import ceil, floor
 from abc import ABC, abstractmethod
 import numpy as np
@@ -8,32 +9,92 @@ from typing import List
 from ChildProject.projects import STANDARD_PROFILE, STANDARD_SAMPLE_RATE, ChildProject
 
 class Derivator(ABC):
+    """
+    Class used by a derivation process to carry it out. It defines a derive method and a get_auto_metadata method
+    """
     def __init__(self):
         pass
 
-    @staticmethod
     @abstractmethod
-    def derive(project, metadata, segments):
+    def derive(self,
+               project: ChildProject,
+               metadata: dict,
+               segments: pd.DataFrame
+               ) -> pd.DataFrame:
+        """
+        Modifies the content of segments given the current derivation (actual logic of the derivation)
+
+        :param project: dataset the derivation is run on
+        :type project: ChildProject
+        :param metadata: dictionary of all the information on the element of the dataset being processed (recording, child etc)
+        :type metadata: dict
+        :params segments: annotation segment to derive
+        :type segments: pd.DataFrame
+        """
         pass
 
     @abstractmethod
-    def get_auto_metadata(self, am, input_set, output_set):
+    def get_auto_metadata(self,
+                          am: 'AnnotationManager',
+                          input_set: str,
+                          output_set: str
+                        ) -> dict:
+        """
+        Creates the set metadata that should be stored in the new set
+
+        :param am: AnnotationManager object carrying out the derivation
+        :type am: AnnotationManager
+        :param input_set: set used as the input of the derivation
+        :type input_set: str
+        :param output_set: set to output to
+        :type output_set: str
+        """
         pass
 
 
 class RuntimeDerivator(Derivator):
+    """
+    Derivator object using a standolone function/callable. the metadata returned is empty, no parameters
+    """
 
-    def __init__(self, func):
+    def __init__(self, func: Callable):
         self.function = func
 
-    @staticmethod
-    def derive(project, metadata, segments):
-        return self.function(segments)
+    def derive(self,
+               project: ChildProject,
+               metadata: dict,
+               segments: pd.DataFrame
+               ) -> pd.DataFrame:
+        return self.function(project, metadata, segments)
 
-    def get_auto_metadata(self, am, input_set, output_set):
+    def get_auto_metadata(self,
+                          am: 'AnnotationManager',
+                          input_set: str,
+                          output_set: str
+                          ) -> dict:
         return {}
 
 class AcousticDerivator(Derivator):
+    """
+    Derivator for generating acoustics description of identified vocalizations
+
+    Based on the existing segmentation, extracts acoustics features of each vocalization identified. In particular,
+            mean pitch semitone, median pitch semitone as well as 5th and 95th percentile of pitch semitone.
+    """
+    def __init__(self,
+                 profile: str= STANDARD_PROFILE,
+                 target_sr: int= STANDARD_SAMPLE_RATE,
+                 ):
+        """
+        :param profile: profile of audio conversaion to use in the dataset
+        :type profile: str
+        :param target_sr: sampling rate used to extract acoustic ffeatures
+        :type target_sr: int
+        """
+        self.profile = profile
+        self.target_sr = target_sr
+
+        super().__init__()
 
     @staticmethod
     @np.vectorize
@@ -88,27 +149,16 @@ class AcousticDerivator(Derivator):
                 "p95_pitch_{}".format(pitch_type): p95_pitch,
                 "pitch_range_{}".format(pitch_type): p95_pitch - p5_pitch}
 
-    @staticmethod
-    def derive(project: ChildProject,
+    def derive(self,
+               project: ChildProject,
                metadata: dict,
                segments: pd.DataFrame,
-              profile=STANDARD_PROFILE,
-              target_sr=STANDARD_SAMPLE_RATE,
               ) -> pd.DataFrame:
-        """
-            Based on the existing segmentation, extracts acoustics features of each vocalization identified. In particular,
-            mean pitch semitone, median pitch semitone as well as 5th and 95th percentile of pitch semitone.
-
-            :param file_path: path to an audio file
-            :type file_path: str
-            :return: audio segments derived
-            :rtype: pd.DataFrame
-        """
-        recording = project.get_recording_path(metadata['recording_filename'], profile=profile)
+        recording = project.get_recording_path(metadata['recording_filename'], profile=self.profile)
         file_sr = librosa.get_samplerate(recording)
-        assert file_sr == target_sr, ValueError("Mismatch between file's true sampling rate ({}) and "
-                                                "target sampling rate ({})!".format(file_sr, target_sr))
-        audio_time_series, sampling_rate = librosa.load(recording, mono=True, sr=target_sr)
+        assert file_sr == self.target_sr, ValueError("Mismatch between file's true sampling rate ({}) and "
+                                                "target sampling rate ({})!".format(file_sr, self.target_sr))
+        audio_time_series, sampling_rate = librosa.load(recording, mono=True, sr=self.target_sr)
 
         # Computes the start frame and end frame of the given segments given is on/offset in seconds
         segments['frame_onset'] = segments['segment_onset'].apply(
@@ -120,7 +170,7 @@ class AcousticDerivator(Derivator):
         pitch = pd.DataFrame.from_records(segments.apply(lambda row:
                                                    AcousticDerivator.get_pitch(
                                                        audio_time_series[row['frame_onset']:row['frame_offset']],
-                                                       target_sr,
+                                                       self.target_sr,
                                                        func=AcousticDerivator.f2st
                                                    ), axis=1).tolist())
 
@@ -136,41 +186,43 @@ class AcousticDerivator(Derivator):
 
         return audio_segments
 
-    def get_auto_metadata(self, am, input_set, output_set):
+    def get_auto_metadata(self,
+                          am: 'AnnotationManager',
+                          input_set: str,
+                          output_set: str
+                          ) -> dict:
         return {'segmentation': input_set,
                 'segmentation_type' : am.sets.loc[input_set,'segmentation_type'],
                 'has_acoustics': 'Y',
                 'has_speaker_type': am.sets.loc[input_set,'has_speaker_type'],
+                'parameters': {'profile': self.profile, 'target_sr':self.target_sr},
                 }
 
 
 
 class ConversationDerivator(Derivator):
+    """
+    Derivator for predicting interactions between participants given an identified segmentation
+
+    Based on the given interval (iti, maximum time elapsed after the end of an utterance for the next one to be
+        considered an interaction) and delay (minimum time elapsed after the start of an utterance for the next
+        one to be considered an interaction),
+        classifies whether each segment is an interaction with the previous (columns is_CT i.e. is conversational turn).
+         Then adds a column grouping vocalisations which belong to the same conversation (conv_count)
+    """
     INTERACTIONS = {
         'CHI': {'FEM', 'MAL', 'OCH', 'CHI'},
         'FEM': {'FEM', 'MAL', 'OCH', 'CHI'},
         'MAL': {'FEM', 'MAL', 'OCH', 'CHI'},
         'OCH': {'FEM', 'MAL', 'OCH', 'CHI'},
     }
-    # Work in progress, method and parameters may evolve
-    @staticmethod
-    def derive(project: ChildProject,
-               metadata: dict,
-               segments: pd.DataFrame,
-              interactions=INTERACTIONS,
-              max_interval=5000,
-              min_delay=0) -> pd.DataFrame:
 
-        """ Based on the given interval (iti, maximum time elapsed after the end of an utterance for the next one to be
-        considered an interaction) and delay (minimum time elapsed after the start of an utterance for the next
-        one to be considered an interaction),
-        classifies whether each segment is an interaction with the previous (columns is_CT i.e. is conversational turn).
-         Then adds a column grouping vocalisations which belong to the same conversation (conv_count)
-
-        :param metadata: series mapping all the metadata available
-        :type metadata: pd.Series
-        :param segments: dataframe of annotation segments
-        :type segments: DataFrame
+    def __init__(self,
+                 interactions: dict=INTERACTIONS,
+                 max_interval: int=5000,
+                 min_delay: int=0,
+                ):
+        """
         :param interactions: dictionary mapping each speaker_type to the speaker_types it can interact with
         :type interactions: dict
         :param max_interval: maximum interval in ms for it to be considered a turn transition, default = 5000
@@ -178,11 +230,20 @@ class ConversationDerivator(Derivator):
         :param min_delay: minimum delay in ms from previous speaker start of vocalization from
          a vocalization to be considered a response to the previous one
         :type min_delay: int
-
-        :return: output annotation DataFrame
-        :rtype: DataFrame
         """
-        speakers = set(interactions.keys())
+        self.interactions = interactions
+        self.max_interval = max_interval
+        self.min_delay = min_delay
+
+        super().__init__()
+
+    # Work in progress, method and parameters may evolve
+    def derive(self,
+               project: ChildProject,
+               metadata: dict,
+               segments: pd.DataFrame,
+              ) -> pd.DataFrame:
+        speakers = set(self.interactions.keys())
 
         segments = segments[segments["speaker_type"].isin(speakers)].copy()
 
@@ -202,11 +263,11 @@ class ConversationDerivator(Derivator):
             # note that we allow iti to be negative, which means that a turn transition can exist when speaking before
             # the previous speaker finished talking
             segments["is_CT"] = (
-                    (segments.apply(lambda row: row["prev_speaker_type"] in interactions[row['speaker_type']], axis=1))
+                    (segments.apply(lambda row: row["prev_speaker_type"] in self.interactions[row['speaker_type']], axis=1))
                     &
-                    (segments['iti'] < max_interval)
+                    (segments['iti'] < self.max_interval)
                     &
-                    (segments['delay'] >= min_delay)
+                    (segments['delay'] >= self.min_delay)
             )
 
             # find places where the sequence of turn transitions changes status to find beginning and ends of conversations
@@ -221,38 +282,48 @@ class ConversationDerivator(Derivator):
         else:
             return pd.DataFrame([], columns=['segment_onset', 'raw_filename', 'segment_offset'])
 
-    def get_auto_metadata(self, am, input_set, output_set):
+    def get_auto_metadata(self,
+                          am: 'AnnotationManager',
+                          input_set: str,
+                          output_set: str
+                          ) -> dict:
         return {'segmentation': input_set,
                 'segmentation_type': am.sets.loc[input_set, 'segmentation_type'],
                 'has_interactions': 'Y',
                 'has_speaker_type': am.sets.loc[input_set, 'has_speaker_type'],
+                'parameters': {'interactions': self.interactions,
+                               'max_interval':self.max_interval,
+                               'min_delay':self.min_delay},
                 }
 
 
 class RemoveOverlapsDerivator(Derivator):
+    """
+        Derivator going from permissive segmentation to restrictive, discarding any overlapping segments
 
-    @staticmethod
-    def derive(project: ChildProject,
-               metadata: dict,
-               segments: pd.DataFrame,
-               speakers: List[str] =['CHI', 'OCH', 'FEM', 'MAL'],
-               ) -> pd.DataFrame:
-        """
         Cuts the segments to discard any part that has overlapping speech, resulting in a segmentation with no overlap
         of speech. Parts that contained overlapping speech therefore appear empty of any speech.
-
-        :param df: Dataframe of annotation segments with speaker_type, segment_onset and
-        segment_offset
-        :type df: pd.DataFrame
+    """
+    def __init__(self,
+                speakers: List[str] =['CHI', 'OCH', 'FEM', 'MAL'],
+                ):
+        """
         :param speakers: list of speakers to consider in speaker_type column,
         all the others will be completely ignored and removed (useful to remove
         <SPEECH> label for example)
         :type speakers: list[str]
-        :return: derived segments
-        :rtype: pd.DataFrame
         """
+        self.speakers = speakers
+
+        super().__init__()
+
+    def derive(self,
+               project: ChildProject,
+               metadata: dict,
+               segments: pd.DataFrame,
+               ) -> pd.DataFrame:
         # restrict to wanted speakers  (remove SPEECH)
-        segments = segments[segments['speaker_type'].isin(speakers)]
+        segments = segments[segments['speaker_type'].isin(self.speakers)]
         segments = segments.sort_values(['segment_onset', 'segment_offset'])
 
         # initiate a new dataframe to concat into
@@ -272,7 +343,7 @@ class RemoveOverlapsDerivator(Derivator):
 
             # squash overlapping into a single timeline:
             # we take the list of segments that are overlapping with the original segment
-            # then we merge them to form a continuous 'times where overlaps exist' timeline
+            # then we merge them to form a continuous 'times when overlaps exist' timeline
             while index < overlapping_segments.shape[0]:
                 if index == 0 or (overlapping_segments.iloc[index]['segment_onset'] > overlaps[-1][1]):
                     overlaps.append((overlapping_segments.iloc[index]['segment_onset'],
@@ -318,40 +389,50 @@ class RemoveOverlapsDerivator(Derivator):
 
         return new_segments
 
-    def get_auto_metadata(self, am, input_set, output_set):
+    def get_auto_metadata(self,
+                          am: 'AnnotationManager',
+                          input_set: str,
+                          output_set: str
+                          ) -> dict:
         return {'segmentation': output_set,
                 'segmentation_type' : 'restrictive',
                 'has_speaker_type': am.sets.loc[input_set,'has_speaker_type'],
+                'parameters': {'speakers': self.speakers},
                 }
 
 class CVADerivator(Derivator):
+    """
+        Derivator predicting addressed character of identified vocalizations
 
-    @staticmethod
-    def derive(project: ChildProject,
-               metadata: dict,
-               segments: pd.DataFrame,
-               iti: int =5000,
-               scenario: str ='R',
-               ) -> pd.DataFrame:
-        """ The function takes a dataframe of annotation segments as an input and based on the given iti (inter turn
+        takes a dataframe of annotation segments as an input and based on the given iti (inter turn
         interval) and scenario (permissive or restrictive),
         classifies whether each annotation is targeted to the key child or overheard. Filling in the column cva (child
         vocalization adjacent), Y meaning it is in an interaction with the child, N meaning the vocalization is not in
         direct interaction with the key child.
-
-        :param metadata: series mapping all the metadata available
-        :type metadata: pd.Series
-        :param segments: dataframe of annotation segments
-        :type segments: DataFrame
+    """
+    def __init__(self,
+               iti: int =5000,
+               scenario: str ='R',
+                 ):
+        """
         :param iti: maximum interval in ms for it to be considered interaction, default = 5000
         :type iti: int
         :param scenario: scenario to choose from P for permissive, R for restrictive. You MUST use annotations that are
         respectively permissive (allow overlaps between speakers) and restrictive (no overlap allowed between speakers) for
         those scenarios
         :type scenario: str
-        :return: output annotation DataFrame
-        :rtype: pd.DataFrame
         """
+        self.iti = iti
+        self.scenario = scenario
+
+        super().__init__()
+
+    def derive(self,
+               project: ChildProject,
+               metadata: dict,
+               segments: pd.DataFrame
+               ) -> pd.DataFrame:
+
         def classify_speaker_type(speaker_type):
             return 'C' if speaker_type == 'CHI' else 'O'
 
@@ -368,13 +449,13 @@ class CVADerivator(Derivator):
             next_gap = next_row['segment_onset'] - curr_row['segment_offset'] if next_row is not None else None
 
             # R scenario
-            if scenario == "R":
+            if self.scenario == "R":
                 if curr_row["speaker_class"] == "C":
                     segments.at[idx, 'cva'] = 'NA'
-                elif prev_row is not None and prev_row['speaker_class'] == 'C' and prev_gap is not None and prev_gap <= iti:
+                elif prev_row is not None and prev_row['speaker_class'] == 'C' and prev_gap is not None and prev_gap <= self.iti:
                     segments.at[idx, 'cva'] = 'Y'
 
-                elif next_row is not None and next_row['speaker_class'] == 'C' and next_gap is not None and next_gap <= iti:
+                elif next_row is not None and next_row['speaker_class'] == 'C' and next_gap is not None and next_gap <= self.iti:
                     segments.at[idx, 'cva'] = 'Y'
                 else:
                     segments.at[idx, 'cva'] = 'N'
@@ -396,8 +477,8 @@ class CVADerivator(Derivator):
                         segments.at[idx, 'cva'] = 'Y'
                     else:
                         # Otherwise, apply standard rules
-                        prev_is_turn = prev_row is not None and abs(prev_gap) <= iti
-                        next_is_turn = next_row is not None and abs(next_gap) <= iti
+                        prev_is_turn = prev_row is not None and abs(prev_gap) <= self.iti
+                        next_is_turn = next_row is not None and abs(next_gap) <= self.iti
 
                         if prev_is_turn and next_is_turn:
                             # Choose the smallest gap in absolute value
@@ -431,11 +512,16 @@ class CVADerivator(Derivator):
 
         return segments
 
-    def get_auto_metadata(self, am, input_set, output_set):
+    def get_auto_metadata(self,
+                          am: 'AnnotationManager',
+                          input_set: str,
+                          output_set: str
+                          ) -> dict:
         return {'segmentation': output_set,
                 'segmentation_type' : am.sets.loc[input_set,'segmentation_type'],
                 'has_addressee' : 'Y',
                 'has_speaker_type': am.sets.loc[input_set,'has_speaker_type'],
+                'parameters': {'iti': self.iti, 'scenario': self.scenario}
                 }
 
 # listing the possible derivators available by default
