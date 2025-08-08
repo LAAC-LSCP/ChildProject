@@ -1050,7 +1050,7 @@ class AnnotationManager:
     def _derive_annotation(
             self,
             annotation: dict,
-            import_function: Callable,
+            derivator: Derivator,
             output_set: str,
             overwrite_existing: bool = False,
     ) -> dict:
@@ -1058,11 +1058,11 @@ class AnnotationManager:
 
         :param annotation: input annotation dictionary (attributes defined according to :ref:`ChildProject.annotations.AnnotationManager.SEGMENTS_COLUMNS`)
         :type annotation: dict
-        :param import_function: derivation function to apply to the original set. This can be a python function or a string name of a stored method in .pipelines.derivations.DERIVATIONS .
-        :type import_function: Callable[[str], pd.DataFrame]
+        :param derivator: Derivator object on which the derive method is implemented.
+        :type derivator: Derivator
         :param output_set: name of the new set of derived annotations
         :type output_set: str
-        :param overwrite_existing: use for lines with the same set and annotation_filename to be rederived and overwritten
+        :param overwrite_existing: use for lines with the same set and annotation_filename to be re-derived and overwritten
         :type overwrite_existing: bool
         :return: output annotation dictionary (attributes defined according to :ref:`ChildProject.annotations.AnnotationManager.SEGMENTS_COLUMNS`)
         :rtype: dict
@@ -1133,19 +1133,19 @@ class AnnotationManager:
         # apply the derivation to the annotation dataframe
         # if the derivation raises an exception stop the processing there and return the line
         try:
-            df = import_function(self.project, metadata, df_input)
+            df = derivator.derive(self.project, metadata, df_input)
         except Exception as e:
             return bad_derivation(annotation_result, e, traceback.format_exc(), path)
 
         # if the derivation function did not return a dataframe, stop there and return the line
         if df is None or not isinstance(df, pd.DataFrame):
-            msg = f"<{import_function}> did not return a pandas DataFrame"
+            msg = f"<{derivator}> derive did not return a pandas DataFrame"
             return bad_derivation(annotation_result, msg, msg, path)
 
         # if the derivation does not contain the required columns of annotations
         if not {c.name for c in self.SEGMENTS_COLUMNS if c.required}.issubset(df.columns):
             required = {c.name for c in self.SEGMENTS_COLUMNS if c.required}
-            msg = f"DataFrame result of <{import_function}> function does not contain the required {required}"
+            msg = f"DataFrame result of <{derivator}> derive method does not contain the required {required}"
             return bad_derivation(annotation_result, msg, msg, path)
 
         if not df.shape[1]:
@@ -1189,7 +1189,7 @@ class AnnotationManager:
     def derive_annotations(self,
                            input_set: str,
                            output_set: str,
-                           derivation_function: Union[str, Callable],
+                           derivation: Union[str, Callable],
                            derivation_metadata=None,
                            threads: int = -1,
                            overwrite_existing: bool = False,
@@ -1201,9 +1201,9 @@ class AnnotationManager:
         :type input_set: str
         :param output_set: name of the new set of derived annotations
         :type output_set: str
-        :param derivation_function: name of the derivation type to be performed
-        :type derivation_function: Union[str, Callable]
-        :param derivation_metadata: metadata to be used for the set created by the derivation, if none and derivation is internal to the package (using str label), use the internally stored metadata
+        :param derivation: derivation to perform. this can be a str reference to existing keys in pipelines.derivations.DERIVATIONS, or a Derivator object or a function that is then used to create a minimal Derivator
+        :type derivation: Union[str, Derivator, Callable]
+        :param derivation_metadata: metadata to be used for the set created by the derivation, this will be added to the automatically generated metadata and overwrite keys in common
         :type derivation_metadata: dict
         :param threads: If > 1, conversions will be run on ``threads`` threads, defaults to -1
         :type threads: int, optional
@@ -1220,28 +1220,28 @@ class AnnotationManager:
          set {1}".format(input_set, output_set)
 
         # check the existence of the derivation function and that it is callable or predefined
-        if callable(derivation_function):
-            derivator = RuntimeDerivator(derivation_function)
-        elif derivation_function in DERIVATIONS.keys():
-            derivator = DERIVATIONS[derivation_function]()
+        if callable(derivation):
+            derivator = RuntimeDerivator(derivation)
+        elif derivation in DERIVATIONS.keys():
+            derivator = DERIVATIONS[derivation]()
         else:
             is_derivator = False
             try:
-                is_derivator = isinstance(derivation_function, Derivator)
+                is_derivator = isinstance(derivation, Derivator)
             except TypeError:
                 pass
             if is_derivator:
-                derivator = derivation_function
+                derivator = derivation
             else:
                 raise ValueError(
-                    "derivation value '{}' unknown, use one of {}, a callable function or a Derivator object".format(derivation_function, DERIVATIONS.keys())
+                    "derivation value '{}' unknown, use one of {}, a callable function or a Derivator object".format(derivation, DERIVATIONS.keys())
                 )
 
         if threads == 1:
             # apply the derivation function to each annotation file that needs to be derived (sequential)
             imported = input_processed.apply(
                 partial(self._derive_annotation,
-                        import_function=derivator.derive,
+                        derivator=derivator,
                         output_set=output_set,
                         overwrite_existing=overwrite_existing
                         ), axis=1
@@ -1251,7 +1251,7 @@ class AnnotationManager:
             with mp.Pool(processes=threads if threads > 0 else mp.cpu_count()) as pool:
                 imported = pool.map(
                     partial(self._derive_annotation,
-                            import_function=derivation_function,
+                            derivator=derivator,
                             output_set=output_set,
                             overwrite_existing=overwrite_existing
                             ),
@@ -1281,10 +1281,12 @@ class AnnotationManager:
             errors = None
 
         # metadata for the set is inherited from the set it derives from, some fields are automatically updated
-        set_metadata = self.sets.loc[input_set].to_dict()
-        print(self, input_set, output_set)
+        # set_metadata = self.sets.loc[input_set].to_dict()
+        set_metadata = {} # let's initialize empty, inheritance of all metadata is probably not ideal
         set_metadata.update(derivator.get_auto_metadata(self, input_set, output_set))
         set_metadata.update({'method': 'derivation',
+                             'ChildProject_version': __version__,
+                             'derivator_object': derivator.__repr__(),
                              'date_annotation': datetime.datetime.now().strftime("%Y-%m-%d")})
         if derivation_metadata is not None:
             set_metadata.update(derivation_metadata)
