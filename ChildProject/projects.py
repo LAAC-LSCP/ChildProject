@@ -477,10 +477,11 @@ class ChildProject:
         The file_type is meant to define the type of file in the dataset, and each category corresponds to a subfolder
         path.
 
-        :param file: filename as it is stored in the dataset, in the tree of its category (e.g. recordings names are
+        :param file: filename as it is stored in the dataset, in the tree of its category (e.g. recordings names are \
         evaluated inside the recordings/raw folder of the dataset
         :type file: Path | str
-        :param file_type: type of the file to copy in order to know where it should be stored in the dataset, choose any of 'recording','metadata','extra' or 'raw', raw is just copied from the root of the dataset into any folder
+        :param file_type: type of the file to copy in order to know where it should be stored in the dataset, choose \
+        any of 'recording','metadata','extra' or 'raw', raw is just copied from the root of the dataset into any folder
         :type file_type: str
         """
         file_path = Path(file)
