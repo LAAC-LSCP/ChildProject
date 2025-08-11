@@ -342,4 +342,4 @@ Please try ``brew install --build-from-source git-annex``.
 If this does not work better for you, make sure that your version of Mac OS is 10.14 or later.
 We are aware of issues with Mac OS 10.13 (High Sierra) and earlier.
 
-If your issues persistent, please report it to [DataLad](https://github.com/datalad/datalad).
+If your issues persistent, please report it to `DataLad <https://github.com/datalad/datalad>`__.
