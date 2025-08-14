@@ -68,7 +68,7 @@ class IndexColumn:
         self.regex = regex
         self.datetime = datetime
         self.function = function
-        self.choices = choices
+        self.choices: List[str] = [str(choice) for choice in choices]
         self.unique = unique
         self.generated = generated
         self.dtype = dtype

@@ -1,13 +1,25 @@
 import datetime
 import multiprocessing as mp
+from ChildProject.types.annotations import (
+    LENABlockType,
+    LENAConversationalFloorType,
+    LENAConversationalStatus,
+    LENAConversationalTurnType,
+    LENASpeakerType,
+)
 import numpy as np
 import os
 import pandas as pd
 from functools import reduce, partial
 from shutil import move, rmtree
-import sys
 import traceback
-from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
+from typing import (
+    Callable,
+    List,
+    Set,
+    Tuple,
+    Union,
+)
 import logging
 from pathlib import Path
 import yaml
@@ -18,8 +30,15 @@ from .pipelines.derivations import DERIVATIONS, conversations
 from .projects import ChildProject, METADATA_FOLDER, EXTRA
 from .converters import *
 from .tables import IndexTable, IndexColumn, assert_dataframe, assert_columns_presence
-from .utils import (Segment, intersect_ranges, TimeInterval, series_to_datetime, find_lines_involved_in_overlap,
-                    df_to_printable, printable_unit_duration)
+from .utils import (
+    Segment,
+    intersect_ranges,
+    TimeInterval,
+    series_to_datetime,
+    find_lines_involved_in_overlap,
+    df_to_printable,
+    printable_unit_duration,
+)
 
 ANNOTATIONS = Path("annotations")
 ANNOTATIONS_CSV = Path('annotations.csv')
@@ -191,24 +210,24 @@ class AnnotationManager:
             name="lena_block_type",
             description="whether regarded as part as a pause or a conversation by LENA",
             choices=[
-                "pause",
-                "CM",
-                "CIC",
-                "CIOCX",
-                "CIOCAX",
-                "AMF",
-                "AICF",
-                "AIOCF",
-                "AIOCCXF",
-                "AMM",
-                "AICM",
-                "AIOCM",
-                "AIOCCXM",
-                "XM",
-                "XIOCC",
-                "XIOCA",
-                "XIC",
-                "XIOCAC",
+                LENABlockType.PAUSE,
+                LENABlockType.KEY_CHILD_MONOLOGUE,
+                LENABlockType.KEY_CHILD_WITH_ADULT,
+                LENABlockType.KEY_CHILD_WITH_OTHER_CHILD,
+                LENABlockType.KEY_CHILD_WITH_ADULT_AND_OTHER_CHILD,
+                LENABlockType.FEMALE_ADULT_MONOLOGUE,
+                LENABlockType.FEMALE_ADULT_WITH_KEY_CHILD,
+                LENABlockType.FEMALE_ADULT_WITH_OTHER_CHILD,
+                LENABlockType.FEMALE_ADULT_WITH_KEY_CHILD_AND_OTHER_CHILD,
+                LENABlockType.MALE_ADULT_MONOLOGUE,
+                LENABlockType.MALE_ADULT_WITH_KEY_CHILD,
+                LENABlockType.MALE_ADULT_WITH_OTHER_CHILD,
+                LENABlockType.MALE_ADULT_WITH_KEY_CHILD_AND_OTHER_CHILD,
+                LENABlockType.OTHER_CHILD_MONOLOGUE,
+                LENABlockType.OTHER_CHILD_WITH_KEY_CHILD,
+                LENABlockType.OTHER_CHILD_WITH_ADULT,
+                LENABlockType.OTHER_CHILD_WITH_KEY_CHILD_AND_ADULT_TURNS,
+                LENABlockType.OTHER_CHILD_WITH_KEY_CHILD_AND_ADULT_NO_TURNS,
             ],
         ),
         IndexColumn(
@@ -219,7 +238,11 @@ class AnnotationManager:
         IndexColumn(
             name="lena_conv_status",
             description="LENA conversation status",
-            choices=["BC", "RC", "EC"],
+            choices=[
+                LENAConversationalStatus.BEGIN,
+                LENAConversationalStatus.RUNNING,
+                LENAConversationalStatus.END_OF_BLOCK,
+            ],
         ),
         IndexColumn(
             name="lena_response_count",
@@ -229,32 +252,43 @@ class AnnotationManager:
         IndexColumn(
             name="lena_conv_floor_type",
             description="(FI): Floor Initiation, (FH): Floor Holding",
-            choices=["FI", "FH"],
+            choices=[
+                LENAConversationalFloorType.FLOOR_INITIALIZATION,
+                LENAConversationalFloorType.FLOOR_HOLDING,
+            ],
         ),
         IndexColumn(
             name="lena_conv_turn_type",
             description="LENA turn type",
-            choices=["TIFI", "TIMI", "TIFR", "TIMR", "TIFE", "TIME", "NT"],
+            choices=[
+                LENAConversationalTurnType.TURN_INITIALIZATION_WITH_FEMALE,
+                LENAConversationalTurnType.TURN_INITIALIZATION_WITH_MALE,
+                LENAConversationalTurnType.TURN_RESPONSE_WITH_FEMALE,
+                LENAConversationalTurnType.TURN_RESPONSE_WITH_MALE,
+                LENAConversationalTurnType.TURN_END_WITH_FEMALE,
+                LENAConversationalTurnType.TURN_END_WITH_MALE,
+                LENAConversationalTurnType.OTHER_CHI_WITH_KEY_CHI_AND_ADULT,
+            ],
         ),
         IndexColumn(
             name="lena_speaker",
             description="LENA speaker type",
             choices=[
-                "TVF",
-                "FAN",
-                "OLN",
-                "SIL",
-                "NOF",
-                "CXF",
-                "OLF",
-                "CHF",
-                "MAF",
-                "TVN",
-                "NON",
-                "CXN",
-                "CHN",
-                "MAN",
-                "FAF",
+                LENASpeakerType.TV_OR_ELECTRONIC_SOUNDS_FAINT,
+                LENASpeakerType.FEMALE_ADULT,
+                LENASpeakerType.OVERLAPPING_NOISE,
+                LENASpeakerType.SILENCE,
+                LENASpeakerType.NOISE_FAINT,
+                LENASpeakerType.OTHER_CHILD_FAINT,
+                LENASpeakerType.OVERLAPPING_NOISE_FAINT,
+                LENASpeakerType.KEY_CHILD_FAINT,
+                LENASpeakerType.MALE_ADULT_FAINT,
+                LENASpeakerType.TV_OR_ELECTRONIC_SOUNDS,
+                LENASpeakerType.NOISE,
+                LENASpeakerType.OTHER_CHILD,
+                LENASpeakerType.KEY_CHILD,
+                LENASpeakerType.MALE_ADULT,
+                LENASpeakerType.FEMALE_ADULT_FAINT,
             ],
         ),
         IndexColumn(
