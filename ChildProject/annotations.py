@@ -1227,12 +1227,7 @@ class AnnotationManager:
         elif derivation in DERIVATIONS.keys():
             derivator = DERIVATIONS[derivation]()
         else:
-            is_derivator = False
-            try:
-                is_derivator = isinstance(derivation, Derivator)
-            except TypeError:
-                pass
-            if is_derivator:
+            if isinstance(derivation, Derivator):
                 derivator = derivation
             else:
                 raise ValueError(
