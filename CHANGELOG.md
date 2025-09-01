@@ -8,6 +8,10 @@ All notable changes to this project will be documented in this file.
 
 - Derivations are stored as subclasses that allow for more fined grained metadata extraction
 
+### Fixed
+
+- Fixed a case where remove-annotations recursively would fail
+
 ## [0.3.1] 2025-07-25
 
 ### Changed
