@@ -1330,7 +1330,7 @@ class AnnotationManager:
             if not (self.project.path / ANNOTATIONS / subset).is_dir():
                 continue
 
-            subsets.append(subset)
+            subsets.append(subset.as_posix())
 
             if recursive:
                 subsets.extend(self.get_subsets(subset))
