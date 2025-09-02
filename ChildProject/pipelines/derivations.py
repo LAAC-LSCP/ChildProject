@@ -158,18 +158,22 @@ class AcousticDerivator(Derivator):
         file_sr = librosa.get_samplerate(recording)
         assert file_sr == self.target_sr, ValueError("Mismatch between file's true sampling rate ({}) and "
                                                 "target sampling rate ({})!".format(file_sr, self.target_sr))
-        audio_time_series, sampling_rate = librosa.load(recording, mono=True, sr=self.target_sr)
+        #audio_time_series, sampling_rate = librosa.load(recording, mono=True, sr=self.target_sr)
 
         # Computes the start frame and end frame of the given segments given is on/offset in seconds
         segments['frame_onset'] = segments['segment_onset'].apply(
-            lambda onset: floor(onset / 1000 * sampling_rate))
+            lambda onset: floor(onset / 1000 * self.target_sr))
         segments['frame_offset'] = segments['segment_offset'].apply(
-            lambda offset: ceil(offset / 1000 * sampling_rate))
+            lambda offset: ceil(offset / 1000 * self.target_sr))
 
         # Find better solution if more acoustic annotations are added in the future (concat dfs)
         pitch = pd.DataFrame.from_records(segments.apply(lambda row:
                                                    AcousticDerivator.get_pitch(
-                                                       audio_time_series[row['frame_onset']:row['frame_offset']],
+                                                       librosa.load(recording,
+                                                                    mono=True,
+                                                                    sr=self.target_sr,
+                                                                    offset=row['frame_onset']/1000,
+                                                                    duration=(row['frame_offset'] - row['frame_onset']) / 1000)[0],
                                                        self.target_sr,
                                                        func=AcousticDerivator.f2st
                                                    ), axis=1).tolist())
