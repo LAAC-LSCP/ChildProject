@@ -82,8 +82,8 @@ class AcousticDerivator(Derivator):
             mean pitch semitone, median pitch semitone as well as 5th and 95th percentile of pitch semitone.
     """
     def __init__(self,
-                 profile: str= STANDARD_PROFILE,
-                 target_sr: int= STANDARD_SAMPLE_RATE,
+                 profile: str = str(STANDARD_PROFILE),
+                 target_sr: int = STANDARD_SAMPLE_RATE,
                  ):
         """
         :param profile: profile of audio conversaion to use in the dataset
@@ -222,9 +222,9 @@ class ConversationDerivator(Derivator):
     }
 
     def __init__(self,
-                 interactions: dict=INTERACTIONS,
-                 max_interval: int=5000,
-                 min_delay: int=0,
+                 interactions: dict = INTERACTIONS,
+                 max_interval: int = 5000,
+                 min_delay: int = 0,
                 ):
         """
         :param interactions: dictionary mapping each speaker_type to the speaker_types it can interact with
@@ -309,7 +309,7 @@ class RemoveOverlapsDerivator(Derivator):
         of speech. Parts that contained overlapping speech therefore appear empty of any speech.
     """
     def __init__(self,
-                speakers: List[str] =['CHI', 'OCH', 'FEM', 'MAL'],
+                speakers: List[str] = ['CHI', 'OCH', 'FEM', 'MAL'],
                 ):
         """
         :param speakers: list of speakers to consider in speaker_type column,
