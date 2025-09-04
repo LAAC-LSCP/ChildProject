@@ -161,10 +161,10 @@ class AcousticDerivator(Derivator):
         #audio_time_series, sampling_rate = librosa.load(recording, mono=True, sr=self.target_sr)
 
         # Computes the start frame and end frame of the given segments given is on/offset in seconds
-        segments['frame_onset'] = segments['segment_onset'].apply(
-            lambda onset: floor(onset / 1000 * self.target_sr))
-        segments['frame_offset'] = segments['segment_offset'].apply(
-            lambda offset: ceil(offset / 1000 * self.target_sr))
+        segments['extended_onset'] = segments['segment_onset'].apply(
+            lambda onset: floor(onset / 1000 * self.target_sr) / self.target_sr)
+        segments['extended_offset'] = segments['segment_offset'].apply(
+            lambda offset: ceil(offset / 1000 * self.target_sr) / self.target_sr)
 
         # Find better solution if more acoustic annotations are added in the future (concat dfs)
         pitch = pd.DataFrame.from_records(segments.apply(lambda row:
@@ -172,8 +172,8 @@ class AcousticDerivator(Derivator):
                                                        librosa.load(recording,
                                                                     mono=True,
                                                                     sr=self.target_sr,
-                                                                    offset=row['frame_onset']/1000,
-                                                                    duration=(row['frame_offset'] - row['frame_onset']) / 1000)[0],
+                                                                    offset=row['extended_onset'],
+                                                                    duration=(row['extended_offset'] - row['extended_onset']))[0],
                                                        self.target_sr,
                                                        func=AcousticDerivator.f2st
                                                    ), axis=1).tolist())
@@ -184,8 +184,8 @@ class AcousticDerivator(Derivator):
         pitch.index = segments.index
         audio_segments = pd.concat([segments, pitch], axis=1)
 
-        audio_segments.drop(columns=['frame_onset',
-                                  'frame_offset'],
+        audio_segments.drop(columns=['extended_onset',
+                                  'extended_offset'],
                          inplace=True)
 
         return audio_segments
