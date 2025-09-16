@@ -741,7 +741,7 @@ class ChildProject:
         :rtype: pandas.DataFrame
         """
         filename = self.path / CONVERTED_RECORDINGS / profile / RECORDINGS_CSV
-        filename.parent.mkdir(parent=True, exist_ok=True)
+        filename.parent.mkdir(parents=True, exist_ok=True)
         if filename.exists() and not os.access(str(filename), os.W_OK):
             logger_project.warning(f"Could not write to {filename}. Make sure it is writable")
             return None
