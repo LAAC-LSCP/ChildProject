@@ -497,8 +497,8 @@ class ChildProject:
         :return: list of all found profiles in the dataset
         :rtype: list[str]
         """
-        return [x.parents[len(RECORDINGS_CSV.parts) - 1] for x in
-                (self.path / CONVERTED_RECORDINGS).rglob(str(RECORDINGS_CSV))]
+        return [x.parents[len(RECORDINGS_CSV.parts) - 1].relative_to(self.path / CONVERTED_RECORDINGS).as_posix()
+                for x in (self.path / CONVERTED_RECORDINGS).rglob(str(RECORDINGS_CSV))]
 
 
 
