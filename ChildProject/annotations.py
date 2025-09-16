@@ -694,6 +694,13 @@ class AnnotationManager:
         return self
 
 
+    def rename_recording_filename(self, recording_filename, new_recording_filename):
+        if self.annotations is None:
+            self.read()
+        self.annotation.loc[
+            self.annotations['recording_filename'] == recording_filename, 'recording_filename'] = new_recording_filename
+        self.write()
+
     def validate_annotation(self, annotation: dict) -> Tuple[List[str], List[str]]:
         logger_annotations.info("Validating %s from %s...", annotation["annotation_filename"], annotation["set"])
         segments = IndexTable(

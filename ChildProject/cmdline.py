@@ -243,6 +243,31 @@ def validate(args) -> int:
 @subcommand(
     [
         arg("source", help="project_path", nargs='+'),
+        arg("--filename", "--recording-filename", "-f",
+            help="existing recording filename, to be renamed",
+            required=True,
+            ),
+        arg("--new-filename", "--new-recording-filename", "-n",
+            help="new recording filename for the existing to be renamed to",
+            required=True,
+            ),
+    ]
+)
+def rename_recording(args) -> int:
+    """rename a recording indexed in the dataset"""
+    project = ChildProject(source)
+    perform_validation(project, require_success=True, ignore_recordings=True)
+    am = AnnotationManager(project)
+    am.read()
+
+    project.rename_recording(args.filename, args.new_filename)
+    am.rename_recording_filename(args.filename, args.new_filename)
+
+    return 0
+
+@subcommand(
+    [
+        arg("source", help="project_path", nargs='+'),
         arg("--format",
             help="format to output to",
             default="snapshot",
