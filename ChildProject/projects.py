@@ -498,7 +498,7 @@ class ChildProject:
         :rtype: list[str]
         """
         return [x.parents[len(RECORDINGS_CSV.parts) - 1] for x in
-                (self.path / CONVERTED_RECORDINGS).rglob(RECORDINGS_CSV)]
+                (self.path / CONVERTED_RECORDINGS).rglob(str(RECORDINGS_CSV))]
 
 
 
