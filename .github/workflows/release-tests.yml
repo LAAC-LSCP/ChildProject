@@ -20,8 +20,16 @@ jobs:
         uses: "actions/setup-python@v3"
         with:
           python-version: "${{ matrix.python-version }}"
-      - name: ffmpeg
+      - name: ffmpeg-x64
+        if: ${{ matrix.os == 'macos-13' }}
         uses: AnimMouse/setup-ffmpeg@v1
+        with:
+          version: 7.1.1
+      - name: ffmpeg-arm
+        if: ${{ matrix.os == 'macos-latest' }}
+        uses: AnimMouse/setup-ffmpeg@v1
+        with:
+          version: 71
       - name: Setup package
         run: |
           pip install --upgrade setuptools
