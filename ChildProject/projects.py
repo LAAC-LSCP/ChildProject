@@ -524,7 +524,7 @@ class ChildProject:
         if self.recordings is None:
             self.read()
         ages = self.compute_ages()
-        languages = (set(self.children['languages'].apply(
+        languages = (set(self.children['languages'].fillna('').apply(
                             lambda x: [name.split(' ')[0] for name in x.split(';')]).explode()) if 'languages' in self.children.columns else
                      set(self.children['language'].apply(lambda x: x.split(' ')[0])) if 'language' in self.children.columns else set())
 
