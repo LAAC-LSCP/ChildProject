@@ -113,9 +113,42 @@ class EafBuilderPipeline(Pipeline):
         pass
 
     def run(
+            self,
+            destination: str,
+            segments: str,
+            eaf_type: str,
+            template: str,
+            context_onset: int = 0,
+            context_offset: int = 0,
+            path: str = None,
+            import_speech_from: str = None,
+            **kwargs,
+    ):
+        """generate .eaf templates based on intervals to code.
+
+        :param path: project path
+        :type path: str
+        :param destination: eaf destination
+        :type destination: str
+        :param segments: path to the input segments dataframe
+        :type segments: str
+        :param eaf_type: eaf-type [random, periodic]
+        :type eaf_type: str
+        :param template: name of the template to use (basic, native, or non-native)
+        :type template: str
+        :param context_onset: context onset and segment offset difference in milliseconds, 0 for no introductory context
+        :type context_onset: int
+        :param context_offset: context offset and segment offset difference in milliseconds, 0 for no outro context
+        :type context_offset: int
+        """
+
+        segments = pd.read_csv(segments)
+        self.extract(destination,segments,eaf_type,template,context_onset,context_offset,path,import_speech_from,**kwargs)
+
+    def extract(
         self,
         destination: str,
-        segments: str,
+        segments: pd.DataFrame,
         eaf_type: str,
         template: str,
         context_onset: int = 0,
@@ -130,8 +163,8 @@ class EafBuilderPipeline(Pipeline):
         :type path: str
         :param destination: eaf destination
         :type destination: str
-        :param segments: path to the input segments dataframe
-        :type segments: str
+        :param segments: pandas DataFrame with the segments to include
+        :type segments: pd.DataFrame
         :param eaf_type: eaf-type [random, periodic]
         :type eaf_type: str
         :param template: name of the template to use (basic, native, or non-native)
@@ -165,8 +198,6 @@ class EafBuilderPipeline(Pipeline):
             raise Exception("{} cannot be found".format(pfsx_path))
 
         print("making the " + eaf_type + " eaf file and csv")
-
-        segments = pd.read_csv(segments)
 
         assert_dataframe("segments", segments, not_empty=True)
         assert_columns_presence(
