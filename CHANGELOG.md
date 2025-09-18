@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- converter for w2v2-sm outpout model
+
 ### Fixed
 
 - Fixing bug where utils.series_to_datetime() function would return Na values because of index not being incremental from 0
