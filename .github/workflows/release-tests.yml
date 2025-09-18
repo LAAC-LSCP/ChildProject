@@ -21,10 +21,7 @@ jobs:
         with:
           python-version: "${{ matrix.python-version }}"
       - name: ffmpeg
-        uses: FedericoCarboni/setup-ffmpeg@v3
-        id: setup-ffmpeg
-        with:
-          ffmpeg-version: release
+        uses: AnimMouse/setup-ffmpeg@v1
       - name: Setup package
         run: |
           pip install --upgrade setuptools
