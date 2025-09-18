@@ -2,6 +2,8 @@ from ChildProject.projects import ChildProject
 from ChildProject.annotations import AnnotationManager
 from ChildProject.converters import *
 from ChildProject.annotations import METANNOTS, ANNOTATIONS
+from ChildProject.pipelines.derivations import Derivator
+from ChildProject import __version__ as CPVERSION
 from functools import partial
 
 import pandas as pd
@@ -334,6 +336,26 @@ def dv_func(a, b, x, type):
         return x
 
 
+
+class CustomDerivator(Derivator):
+    def __init__(self, type):
+        self.type = type
+        super().__init__()
+
+    def derive(self, project, metadata, segments):
+        if self.type == 'number':
+            return 1
+        elif self.type == 'columns':
+            return pd.DataFrame([], columns=['segment_onset', 'segment_offset'])
+        elif self.type == 'normal':
+            return segments
+
+    def get_auto_metadata(self, am, input_set, output_set):
+        return {
+            'has_speaker_type': 'Y',
+            'segmentation' : output_set,
+        }
+
 @pytest.mark.parametrize("exists,ow",
                          [(False, False),
                           (True, False),
@@ -343,7 +365,8 @@ def dv_func(a, b, x, type):
 def test_derive(project, am, exists, ow):
     input_set = 'vtc_present'
     output_set = 'output'
-    function = partial(dv_func, type='normal')
+
+    derivator = CustomDerivator('normal')
     am.read()
 
     # copy the input set to act as an existing output_set
@@ -353,8 +376,10 @@ def test_derive(project, am, exists, ow):
         additions['set'] = output_set
         am.annotations = pd.concat([am.annotations, additions])
 
-    imported, errors = am.derive_annotations(input_set, output_set, function, overwrite_existing=ow,
+    imported, errors = am.derive_annotations(input_set, output_set, derivator, overwrite_existing=ow,
                                              derivation_metadata={'segmentation_type':'restrictive', 'has_words':'Y'})
+    print(imported)
+    print(errors.to_string())
     assert imported.shape[0] == am.annotations[am.annotations['set'] == input_set].shape[0]
     assert errors.shape[0] == 0
 
@@ -367,13 +392,24 @@ def test_derive(project, am, exists, ow):
                                   imported.drop(columns=cols).reset_index(drop=True))
     # check metadata
     current_meta = am.get_sets_metadata()
-    comparison = current_meta.loc[input_set]
+    comparison = pd.Series()
+    comparison['segmentation'] = output_set
     comparison['segmentation_type'] = 'restrictive'
     comparison['has_words'] = 'Y'
+    comparison['has_speaker_type'] = 'Y'
     comparison['method'] = 'derivation'
     comparison['date_annotation'] = datetime.datetime.today().strftime('%Y-%m-%d')
+    comparison['ChildProject_version'] = CPVERSION
+    comparison['derivator_object'] = '<test_annotations.CustomDerivator>'
+    comparison['duration'] = 8000
     comparison = comparison.rename(output_set)
-    pd.testing.assert_series_equal(current_meta.loc[output_set], comparison)
+
+    result = current_meta.loc[output_set].dropna()
+    #remove the memory location part
+    result['derivator_object'] = result['derivator_object'].split(' ')[0] + '>'
+    print(result)
+    print(comparison)
+    pd.testing.assert_series_equal(result, comparison, check_like=True)
 
 
 # function used for derivation but does not hav correct signature

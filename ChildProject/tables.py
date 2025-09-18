@@ -3,7 +3,7 @@ import os
 import re
 import datetime
 import numpy as np
-from typing import Union, Set, List
+from typing import Union, Set, List, Tuple
 
 
 class MissingColumnsException(Exception):
@@ -33,7 +33,7 @@ def assert_columns_presence(name: str, df: pd.DataFrame, columns: Union[Set, Lis
     if len(missing):
         raise MissingColumnsException(name, missing)
         
-def read_csv_with_dtype(file: str, dtypes: dict):
+def read_csv_with_dtype(file: str, dtypes: dict) -> pd.DataFrame:
     try:
         df = pd.read_csv(file, dtype=dtypes, dtype_backend='numpy_nullable')
     except ValueError:
@@ -89,7 +89,7 @@ class IndexTable:
         self.df = None
         self.enforce_dtypes = enforce_dtypes
 
-    def read(self):
+    def read(self) -> pd.DataFrame:
         pd_flags = {
             "keep_default_na": False,
             "na_values": [
@@ -126,10 +126,10 @@ class IndexTable:
         self.df.index = self.df.index + 2
         return self.df
 
-    def msg(self, text):
+    def msg(self, text) -> str:
         return "{}: {}".format(self.path, text)
 
-    def validate(self):
+    def validate(self) -> Tuple[List[str], List[str]]:
         errors, warnings = [], []
 
         columns = {c.name: c for c in self.columns}

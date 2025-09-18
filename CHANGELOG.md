@@ -8,6 +8,20 @@ All notable changes to this project will be documented in this file.
 
 - converter for w2v2-sm outpout model
 
+### Changed
+
+- Derivations are stored as subclasses that allow for more fined grained metadata extraction
+
+### Fixed
+
+- Fixed a case where remove-annotations recursively would fail
+
+## [0.3.1] 2025-07-25
+
+### Changed
+
+- Generalize use of return codes in functions / methods in the package
+
 ### Fixed
 
 - Fixing bug where utils.series_to_datetime() function would return Na values because of index not being incremental from 0

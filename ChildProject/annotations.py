@@ -8,13 +8,17 @@ from shutil import move, rmtree
 import sys
 import traceback
 from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
+if sys.version_info[0] == 3 and sys.version_info[1] >= 11:
+    from typing import Self
+else:
+    from typing_extensions import Self
 import logging
 from pathlib import Path
 import yaml
 import shutil
 
 from . import __version__
-from .pipelines.derivations import DERIVATIONS, conversations
+from .pipelines.derivations import DERIVATIONS, Derivator, RuntimeDerivator
 from .projects import ChildProject, METADATA_FOLDER, EXTRA
 from .converters import *
 from .tables import IndexTable, IndexColumn, assert_dataframe, assert_columns_presence
@@ -523,7 +527,7 @@ class AnnotationManager:
         return errors, warnings
 
 
-    def _read_sets_metadata(self, warning: str = 'ignore'):
+    def _read_sets_metadata(self, warning: str = 'ignore') -> pd.DataFrame:
         """
         Read the metadata of sets detected inside annotations, will not read anything if the attribute
         self.annotations is empty (so do `read()` first)
@@ -595,7 +599,7 @@ class AnnotationManager:
             raise ValueError(f"warning argument must be in ['log','return','ignore']")
 
     def get_sets_metadata(self, format: str = 'dataframe', delimiter=None, escapechar='"', header=True, human=False,
-                          sort_by='set', sort_ascending=True):
+                          sort_by='set', sort_ascending=True) -> Union[str, pd.DataFrame]:
         """return metadata about the sets"""
         sets = self._read_sets_metadata()
         annots = self.annotations.copy().set_index('set')
@@ -614,7 +618,7 @@ class AnnotationManager:
             raise ValueError(f"format <{format}> is unknown please use one the documented formats")
 
     @staticmethod
-    def get_printable_sets_metadata(sets, delimiter, header=True, human_readable: bool = False,):
+    def get_printable_sets_metadata(sets, delimiter, header=True, human_readable: bool = False,) -> str:
         assert isinstance(sets,pd.DataFrame), "'sets' should be a pandas DataFrame"
         # only keep a subset of fields, create empty columns when do not exist in the dataframe
         cols = {'duration': 'duration', 'method': 'method', 'annotation_algorithm_name': 'algo',
@@ -630,18 +634,17 @@ class AnnotationManager:
         return df_to_printable(sets, delimiter, header=header)
 
 
-    def add_annotation_file(self, src_path, dst_file, set: str, overwrite):
+    def add_annotation_file(self, src_path, dst_file, set: str, overwrite) -> Self:
         """
         Add an annotation file to the dataset. This function takes the path to a file, copies that file inside the
         dataset in the correct spot given the set it belongs to.
         The destination file can contain parent folders, which will be included in the copied file (e.g. src_path=
         "/home/user/tmp/myrec.rttm", dst_file="loc1/RA5/rec001.rttm", set='vtc' ; will copy the file inside
-         the dataset in a annotations/vtc/raw/loc1/RA5 folder, the file will be named rec001.rttm.
+        the dataset in a annotations/vtc/raw/loc1/RA5 folder, the file will be named rec001.rttm.
 
         :param src_path: path on the system to the annotation file to add to the dataset
         :type src_path: Path | str
-        :param dst_file: filename as it will be stored in the dataset, with possible parent folders (e.g.
-        'location1/RA5/rec004.rttm' will copy the original file as rec004.rttm inside folders location1 -> RA5)
+        :param dst_file: filename as it will be stored in the dataset, with possible parent folders (e.g. 'location1/RA5/rec004.rttm' will copy the original file as rec004.rttm inside folders location1 -> RA5)
         :type dst_file: Path | str
         :param set: annotation set the annotation file belongs to
         :type set: str
@@ -664,16 +667,17 @@ class AnnotationManager:
         os.makedirs(destination.parent, exist_ok=True)
         shutil.copyfile(file_path, destination)
 
+        return self
 
-    def remove_annotation_file(self, file, set: str):
+
+    def remove_annotation_file(self, file, set: str) -> Self:
         """
         remove a raw annotation file from the dataset. This function takes the path to a file, and removes it from the
         dataset annotations at the file system level (not in the index), the file could be under folder, they need to
         be in the file name as a posix path (i.e. subfolder/file)
         The set parameter is meant to define what annotation set the raw file is stored in.
 
-        :param file: filename as it is stored in the dataset annotations, in the annotation set raw folder (e.g. set=vtc
-        will be evaluated inside the annotations/vtc/raw folder of the dataset
+        :param file: filename as it is stored in the dataset annotations, in the annotation set raw folder (e.g. set=vtc will be evaluated inside the annotations/vtc/raw folder of the dataset
         :type file: Path | str
         :param set: name of the annotation set the file is stored in.
         :type set: str
@@ -686,6 +690,8 @@ class AnnotationManager:
         assert not destination.is_symlink(), f"target file {destination} is annexed data in the dataset, please unlock it if you want to remove it"
 
         destination.unlink()
+
+        return self
 
 
     def validate_annotation(self, annotation: dict) -> Tuple[List[str], List[str]]:
@@ -738,7 +744,7 @@ class AnnotationManager:
 
         return errors, warnings
 
-    def write(self):
+    def write(self) -> Self:
         """Update the annotations index,
         while enforcing its good shape.
         """
@@ -751,12 +757,15 @@ class AnnotationManager:
         self.annotations = self.annotations.sort_values(['imported_at','set', 'annotation_filename'])
         self.annotations.to_csv(self.project.path / METADATA_FOLDER / ANNOTATIONS_CSV, index=False)
 
-    def _write_set_metadata(self, setname, metadata):
+        return self
+
+    def _write_set_metadata(self, setname, metadata) -> Self:
         assert setname in self.annotations['set'].unique(), f"set must exist"
         with open(self.project.path / ANNOTATIONS / setname / METANNOTS, 'w') as stream:
             yaml.dump(metadata, stream)
+        return self
 
-    def _check_for_outdated_merged_sets(self, sets: set = None):
+    def _check_for_outdated_merged_sets(self, sets: set = None) -> List[str]:
         """Checks the annotations dataframe for sets that were used in merged sets and modified afterwards.
         This method produces warnings and suggestions to update the considered merged sets.
         
@@ -797,7 +806,7 @@ class AnnotationManager:
         params: dict,
         annotation: dict,
         overwrite_existing: bool = False,
-    ):
+    ) -> dict:
         """import and convert ``annotation``. This function should not be called outside of this class.
 
         :param import_function: If callable, ``import_function`` will be called to convert the input annotation into a dataframe. Otherwise, the conversion will be performed by a built-in function.
@@ -1036,24 +1045,24 @@ class AnnotationManager:
         for warning in outdated_sets:
             logger_annotations.warning("warning: %s", warning)
 
-        return (imported, errors)
+        return imported, errors
 
     def _derive_annotation(
             self,
             annotation: dict,
-            import_function: Callable,
+            derivator: Derivator,
             output_set: str,
             overwrite_existing: bool = False,
-    ):
+    ) -> dict:
         """import and convert ``annotation``. This function should not be called outside of this class.
 
         :param annotation: input annotation dictionary (attributes defined according to :ref:`ChildProject.annotations.AnnotationManager.SEGMENTS_COLUMNS`)
         :type annotation: dict
-        :param import_function: derivation function to apply to the original set. This can be a python function or a string name of a stored method in .pipelines.derivations.DERIVATIONS .
-        :type import_function: Callable[[str], pd.DataFrame]
+        :param derivator: Derivator object on which the derive method is implemented.
+        :type derivator: Derivator
         :param output_set: name of the new set of derived annotations
         :type output_set: str
-        :param overwrite_existing: use for lines with the same set and annotation_filename to be rederived and overwritten
+        :param overwrite_existing: use for lines with the same set and annotation_filename to be re-derived and overwritten
         :type overwrite_existing: bool
         :return: output annotation dictionary (attributes defined according to :ref:`ChildProject.annotations.AnnotationManager.SEGMENTS_COLUMNS`)
         :rtype: dict
@@ -1124,19 +1133,19 @@ class AnnotationManager:
         # apply the derivation to the annotation dataframe
         # if the derivation raises an exception stop the processing there and return the line
         try:
-            df = import_function(self.project, metadata, df_input)
+            df = derivator.derive(self.project, metadata, df_input)
         except Exception as e:
             return bad_derivation(annotation_result, e, traceback.format_exc(), path)
 
         # if the derivation function did not return a dataframe, stop there and return the line
         if df is None or not isinstance(df, pd.DataFrame):
-            msg = f"<{import_function}> did not return a pandas DataFrame"
+            msg = f"<{derivator}> derive did not return a pandas DataFrame"
             return bad_derivation(annotation_result, msg, msg, path)
 
         # if the derivation does not contain the required columns of annotations
         if not {c.name for c in self.SEGMENTS_COLUMNS if c.required}.issubset(df.columns):
             required = {c.name for c in self.SEGMENTS_COLUMNS if c.required}
-            msg = f"DataFrame result of <{import_function}> function does not contain the required {required}"
+            msg = f"DataFrame result of <{derivator}> derive method does not contain the required {required}"
             return bad_derivation(annotation_result, msg, msg, path)
 
         if not df.shape[1]:
@@ -1180,7 +1189,7 @@ class AnnotationManager:
     def derive_annotations(self,
                            input_set: str,
                            output_set: str,
-                           derivation_function: Union[str, Callable],
+                           derivation: Union[str, Callable],
                            derivation_metadata=None,
                            threads: int = -1,
                            overwrite_existing: bool = False,
@@ -1192,9 +1201,9 @@ class AnnotationManager:
         :type input_set: str
         :param output_set: name of the new set of derived annotations
         :type output_set: str
-        :param derivation_function: name of the derivation type to be performed
-        :type derivation_function: Union[str, Callable]
-        :param derivation_metadata: metadata to be used for the set created by the derivation, if none and derivation is internal to the package (using str label), use the internally stored metadata
+        :param derivation: derivation to perform. this can be a str reference to existing keys in pipelines.derivations.DERIVATIONS, or a Derivator object or a function that is then used to create a minimal Derivator
+        :type derivation: Union[str, Derivator, Callable]
+        :param derivation_metadata: metadata to be used for the set created by the derivation, this will be added to the automatically generated metadata and overwrite keys in common
         :type derivation_metadata: dict
         :param threads: If > 1, conversions will be run on ``threads`` threads, defaults to -1
         :type threads: int, optional
@@ -1211,21 +1220,23 @@ class AnnotationManager:
          set {1}".format(input_set, output_set)
 
         # check the existence of the derivation function and that it is callable or predefined
-        if not callable(derivation_function):
-            if derivation_function in DERIVATIONS.keys():
-                if derivation_metadata is None:
-                    derivation_metadata = DERIVATIONS[derivation_function][1]
-                derivation_function = DERIVATIONS[derivation_function][0]
+        if callable(derivation):
+            derivator = RuntimeDerivator(derivation)
+        elif derivation in DERIVATIONS.keys():
+            derivator = DERIVATIONS[derivation]()
+        else:
+            if isinstance(derivation, Derivator):
+                derivator = derivation
             else:
                 raise ValueError(
-                    "derivation value '{}' unknown, use one of {}".format(derivation_function, DERIVATIONS.keys())
+                    "derivation value '{}' unknown, use one of {}, a callable function or a Derivator object".format(derivation, DERIVATIONS.keys())
                 )
 
         if threads == 1:
             # apply the derivation function to each annotation file that needs to be derived (sequential)
             imported = input_processed.apply(
                 partial(self._derive_annotation,
-                        import_function=derivation_function,
+                        derivator=derivator,
                         output_set=output_set,
                         overwrite_existing=overwrite_existing
                         ), axis=1
@@ -1235,7 +1246,7 @@ class AnnotationManager:
             with mp.Pool(processes=threads if threads > 0 else mp.cpu_count()) as pool:
                 imported = pool.map(
                     partial(self._derive_annotation,
-                            import_function=derivation_function,
+                            derivator=derivator,
                             output_set=output_set,
                             overwrite_existing=overwrite_existing
                             ),
@@ -1265,8 +1276,12 @@ class AnnotationManager:
             errors = None
 
         # metadata for the set is inherited from the set it derives from, some fields are automatically updated
-        set_metadata = self.sets.loc[input_set].to_dict()
+        # set_metadata = self.sets.loc[input_set].to_dict()
+        set_metadata = {} # let's initialize empty, inheritance of all metadata is probably not ideal
+        set_metadata.update(derivator.get_auto_metadata(self, input_set, output_set))
         set_metadata.update({'method': 'derivation',
+                             'ChildProject_version': __version__,
+                             'derivator_object': derivator.__repr__(),
                              'date_annotation': datetime.datetime.now().strftime("%Y-%m-%d")})
         if derivation_metadata is not None:
             set_metadata.update(derivation_metadata)
@@ -1315,14 +1330,14 @@ class AnnotationManager:
             if not (self.project.path / ANNOTATIONS / subset).is_dir():
                 continue
 
-            subsets.append(subset)
+            subsets.append(subset.as_posix())
 
             if recursive:
                 subsets.extend(self.get_subsets(subset))
 
         return subsets
 
-    def remove_set(self, annotation_set: str, recursive: bool = False):
+    def remove_set(self, annotation_set: str, recursive: bool = False) -> Self:
         """Remove a set of annotations, deleting every converted file and removing
         them from the index. This preserves raw annotations.
 
@@ -1355,13 +1370,15 @@ class AnnotationManager:
         for warning in outdated_sets:
             logger_annotations.warning("warning: %s", warning)
 
+        return self
+
     def rename_set(
         self,
         annotation_set: str,
         new_set: str,
         recursive: bool = False,
         ignore_errors: bool = False,
-    ):
+    ) -> Self:
         """Rename a set of annotations, moving all related files
         and updating the index accordingly.
 
@@ -1448,9 +1465,11 @@ class AnnotationManager:
             self.annotations.loc[matches, 'merged_from'] = merged_from[matches].apply(partial(update_mf, old=annotation_set,new=new_set))
         self.write()
 
+        return self
+
     def merge_annotations(
         self, left_columns, right_columns, columns, output_set, input, skip_existing: bool = False
-    ):
+    ) -> pd.DataFrame:
         """From 2 DataFrames listing the annotation indexes to merge together (those indexes should come from
         the intersection of the left_set and right_set indexes), the listing of the columns
         to merge and name of the output_set, creates the resulting csv files containing the converted merged
@@ -1630,7 +1649,7 @@ class AnnotationManager:
         recording_filter: str = None,
         metadata: str = None,
         threads=-1,
-    ):
+    ) -> Self:
         """Merge columns from ``left_set`` and ``right_set`` annotations, 
         for all matching segments, into a new set of annotations named
         ``output_set`` that will be saved in the dataset. ``output_set``
@@ -1658,8 +1677,8 @@ class AnnotationManager:
         :type metadata: None | str
         :param threads: number of threads
         :type threads: int
-        :return: [description]
-        :rtype: [type]
+        :return: AnnotationManager object updated after the merge
+        :rtype: AnnotationManager
         """
         existing_sets = self.annotations['set'].unique()
         if full_set_merge: assert output_set not in existing_sets, "output_set <{}> already exists, remove the existing set or another name.".format(output_set)
@@ -1766,6 +1785,8 @@ class AnnotationManager:
             self._write_set_metadata(output_set, new_set_meta)
         self._read_sets_metadata()
 
+        return self
+
     def get_segments(self, annotations: pd.DataFrame) -> pd.DataFrame:
         """get all segments associated to the annotations referenced in ``annotations``.
 
@@ -1862,7 +1883,7 @@ class AnnotationManager:
         ranges: pd.DataFrame,
         sets: Union[Set, List] = None,
         missing_data: str = "ignore",
-    ):
+    ) -> pd.DataFrame:
         """Retrieve and clip annotations that cover specific portions of recordings (``ranges``).
         
         The desired ranges are defined by an input dataframe with three columns: ``recording_filename``, ``range_onset``, and ``range_offset``.
@@ -1994,7 +2015,7 @@ class AnnotationManager:
         interval : TimeInterval = None,
         start_time: str = None,
         end_time: str = None,
-    ):
+    ) -> pd.DataFrame:
         """Clip all input annotations within a given HH:MM:SS clock-time range.
         Those that do not intersect the input time range at all are filtered out.
 

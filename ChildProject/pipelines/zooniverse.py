@@ -15,7 +15,7 @@ import signal
 import re
 import logging
 
-from typing import List
+from typing import List, Optional
 from yaml import dump
 
 from functools import partial
@@ -89,7 +89,7 @@ class Chunk:
         self.segment_onset = segment_onset
         self.segment_offset = segment_offset
 
-    def getbasename(self, extension):
+    def getbasename(self, extension) -> str:
         return "{}_{}_{}.{}".format(
             os.path.splitext(self.recording_filename.replace("/", "_"))[0],
             self.onset,
@@ -101,7 +101,7 @@ class ZooniversePipeline(Pipeline):
     def __init__(self):
         self.chunks = []
 
-    def get_credentials(self, login: str = "", pwd: str = ""):
+    def get_credentials(self, login: str = "", pwd: str = "") -> Tuple[str, str]:
         """returns input credentials if provided or attempts to read them
         from the environment variables.
 
@@ -259,7 +259,7 @@ class ZooniversePipeline(Pipeline):
         profile: str = "",
         threads: int = 1,
         **kwargs
-    ):
+    ) -> Tuple[str, str]:
         """extract-audio chunks based on a list of segments and prepare them for upload
         to zooniverse.
 
@@ -281,6 +281,8 @@ class ZooniversePipeline(Pipeline):
         :type profile: str
         :param threads: amount of threads to run-on, defaults to 0
         :type threads: int, optional
+        :return: path of the extract and path of parameter file
+        :rtype: (str, str)
         """
 
         parameters = locals()
@@ -388,7 +390,7 @@ class ZooniversePipeline(Pipeline):
         record_orphan: bool = False,
         test_endpoint: bool = False,
         **kwargs
-    ):
+    ) -> Optional[pd.DataFrame]:
         """Uploads ``amount`` audio chunks from the CSV dataframe `chunks` to a zooniverse project.
 
         :param chunks: path to the chunk CSV dataframe
@@ -409,6 +411,8 @@ class ZooniversePipeline(Pipeline):
         :type record_orphan: bool, optional
         :param test_endpoint: run this command for tests, operations with zooniverse arefaked and considered succesfull
         :type test_endpoint: bool, optional
+        :return: dataframe of chunks (or None if could not upload)
+        :rtype: pd.DataFrame | None
         """
 
         self.chunks_file = chunks
@@ -563,6 +567,8 @@ class ZooniversePipeline(Pipeline):
         
         signal.signal(signal.SIGINT, original_sigint_handler)
         signal.signal(signal.SIGTERM, original_sigterm_handler)
+
+        return self.chunks
         
     def exit_upload(self, *args, rec_orphan, sub_set):
         if len(self.subjects_metadata) + len(self.orphan_chunks) != 0:
@@ -596,7 +602,7 @@ class ZooniversePipeline(Pipeline):
         ignore_errors: bool = False,       
         test_endpoint: bool = False,
         **kwargs
-    ):
+    ) -> Optional[pd.DataFrame]:
         """Attempts to link subjects that have been uploaded but not linked to a subject set in zooniverse
         from the CSV dataframe `chunks` to a zooniverse project (Attempts are made on chunks that have a zooniverse_id,
         a project_id and uploaded at True but no subject_set )
@@ -617,6 +623,8 @@ class ZooniversePipeline(Pipeline):
         :type ignore_errors: bool, optional
         :param test_endpoint: run this command for tests, operations with zooniverse arefaked and considered succesfull
         :type test_endpoint: bool, optional
+        :return: dataframe of chunks that were linked
+        :rtype: pd.DataFrame | None
         """
         
         self.chunks_file = chunks
@@ -730,18 +738,21 @@ class ZooniversePipeline(Pipeline):
             self.chunks = self.chunks.astype(CHUNKS_DTYPES)
             self.chunks.to_csv(self.chunks_file)
         logger_annotations.info('linked %d/%d subjects', len(subjects_metadata), len(chunks_to_link))
+        return self.chunks
         
     def reset_orphan_subjects(
         self,
         chunks: str,
         **kwargs
-    ):
+    ) -> pd.DataFrame:
         """Look for orphan subjects and considers them to be not uploaded, This is to be done either if the oprhan
         subjects were deleted from zooniverse or if they are not usable anymore. The next upload will try to push 
         them to zooniverse as new subjects.
 
         :param chunks: path to the chunk CSV dataframe
         :type chunks: [type]
+        :return: dataframe of orphaned chunks
+        :rtype: pd.DataFrame
         """
         
         self.chunks_file = chunks
@@ -777,6 +788,8 @@ class ZooniversePipeline(Pipeline):
         else:
             logger_annotations.info('no orphan subject to reset')
 
+        return self.chunks
+
     def retrieve_classifications(
         self,
         destination: str,
@@ -786,7 +799,7 @@ class ZooniversePipeline(Pipeline):
         chunks: List[str] = [],
         test_endpoint: bool = False,
         **kwargs
-    ):
+    ) -> pd.DataFrame:
 
         """Retrieve classifications from Zooniverse as a CSV dataframe.
         They will be matched with the original chunks metadata if the path one 
@@ -802,6 +815,8 @@ class ZooniversePipeline(Pipeline):
         :type zooniverse_pwd: str, optional
         :param chunks: the list of chunk metadata files to match the classifications to. If provided, only the classifications that have a match will be returned.
         :type chunks: List[str], optional
+        :return: classifications from zooniverse
+        :rtype: pd.DataFrame
         """
         self.get_credentials(zooniverse_login, zooniverse_pwd)
 
@@ -871,6 +886,7 @@ class ZooniversePipeline(Pipeline):
             )
 
         classifications.set_index("id").to_csv(destination)
+        return classifications
 
     def run(self, action, **kwargs):
         if action == "extract-chunks":

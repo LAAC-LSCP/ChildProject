@@ -7,7 +7,7 @@ import logging
 
 import numpy as np
 import pandas as pd
-from typing import Union, List
+from typing import Union, List, Tuple
 import yaml
 from git import Repo
 from git.exc import InvalidGitRepositoryError
@@ -216,7 +216,7 @@ class Metrics(ABC):
         super().__init_subclass__(**kwargs)
         pipelines[cls.SUBCOMMAND] = cls
 
-    def _process_unit(self, row):
+    def _process_unit(self, row) -> pd.Series:
         """for one unit (i.e. 1 {recording|session|child} [period]) compute the list of required metrics and store the results in the current row of self.metrics
         
         :param row: index and Series of the unit to process, to be modified with the results
@@ -246,7 +246,7 @@ class Metrics(ABC):
         return row[1]
                 
     
-    def extract(self):
+    def extract(self) -> pd.DataFrame:
         """from the initiated self.metrics, compute each row metrics (handles threading)
         Once the Metrics class is initialized, call this function to extract the metrics and populate self.metrics
         
@@ -269,7 +269,7 @@ class Metrics(ABC):
             self.metrics['period_end'] = self.metrics['period_end'].dt.strftime('%H:%M:%S')
         return self.metrics
 
-    def retrieve_segments(self, sets: List[str], row: str):
+    def retrieve_segments(self, sets: List[str], row: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
         """from a list of sets and a row identifying the unit computed, return the relevant annotation segments
         
         :param sets: List of annotation sets to keep
@@ -325,7 +325,7 @@ class Metrics(ABC):
 
         return matches, segments
     
-    def _initiate_metrics_df(self):
+    def _initiate_metrics_df(self) -> pd.DataFrame:
         """builds a dataframe with all the rows necessary and their labels
         eg : - one row per child if --by child_id and no --period
              - 48 rows if 2 recordings in the corpus --period 1h --by recording_filename
@@ -390,6 +390,8 @@ class Metrics(ABC):
         if self.rec_cols:
             for label in self.rec_cols:
                 self.metrics[label] = self.metrics.apply(lambda row: check_unicity(row, label), axis=1)
+
+        return self.metrics
 
                 
 class CustomMetrics(Metrics):

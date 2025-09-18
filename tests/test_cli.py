@@ -50,13 +50,6 @@ def dataset_setup(request):
 
     yield 1
 
-# def segments():
-#     segments = pd.read_csv("tests/data/csv.csv")
-#     segments.loc[2:4, 'conv_count'] = 1
-#     segments.loc[8:9, 'conv_count'] = 2
-#     segments.loc[10:11, 'conv_count'] = 3
-#
-#     return segments
 
 def test_validate(dataset_setup):
     stdout, stderr, exit_code = cli(

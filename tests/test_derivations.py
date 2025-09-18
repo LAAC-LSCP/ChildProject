@@ -12,10 +12,11 @@ TRUTH = Path('tests', 'truth', 'derivations')
 
 def test_conversations():
     df = CSV_DF.copy()
-    meta = {}
     project = None
+    meta = {}
 
-    res = deriv.conversations(project, meta, df)
+    derivator=deriv.ConversationDerivator()
+    res = derivator.derive(project, meta, df)
     # res.to_csv(TRUTH / 'conversations.csv', index=False)
     truth = pd.read_csv(TRUTH / 'conversations.csv')
 
@@ -27,7 +28,8 @@ def test_acoustics():
     project.read()
     meta = {'recording_filename': 'sound.wav'}
 
-    res = deriv.acoustics(project, meta, df, profile=None, target_sr=4096)
+    derivator = deriv.AcousticDerivator(profile=None, target_sr=4096)
+    res = derivator.derive(project, meta, df)
     # res.to_csv(TRUTH / 'acoustics.csv', index=False)
     truth = pd.read_csv(TRUTH / 'acoustics.csv')
 
@@ -36,10 +38,11 @@ def test_acoustics():
 
 def test_remove_overlaps():
     df = CSV_DF.copy()
-    meta = {}
     project = None
+    meta = {}
 
-    res = deriv.remove_overlaps(project, meta, df)
+    derivator = deriv.RemoveOverlapsDerivator()
+    res = derivator.derive(project, meta, df)
     # res.to_csv(TRUTH / 'remove-overlaps.csv', index=False)
     truth = pd.read_csv(TRUTH / 'remove-overlaps.csv')
 
@@ -51,8 +54,10 @@ def test_cva():
     project = None
 
     # we use restrictive, so we should remove overlaps first (this is not ideal for independent testing though)
-    df = deriv.remove_overlaps(project, meta, df)
-    res = deriv.kcds_ohs(project, meta, df)
+    derivator = deriv.RemoveOverlapsDerivator()
+    df = derivator.derive(project, meta, df)
+    derivator = deriv.CVADerivator()
+    res = derivator.derive(project, meta, df)
     # res.to_csv(TRUTH / 'cva.csv', index=False)
     truth = pd.read_csv(TRUTH / 'cva.csv', keep_default_na=False)
 

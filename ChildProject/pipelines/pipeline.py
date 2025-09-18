@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import pandas as pd
 
 class Pipeline(ABC):
     def __init__(self):
@@ -19,8 +20,7 @@ class Pipeline(ABC):
         pass
 
     @staticmethod
-    def recordings_from_list(recordings):
-        import pandas as pd
+    def recordings_from_list(recordings) -> pd.DataFrame:
         from os.path import exists
 
         if recordings is None:
