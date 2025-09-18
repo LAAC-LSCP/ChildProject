@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- converter for w2v2-sm outpout model
+
 ### Changed
 
 - Derivations are stored as subclasses that allow for more fined grained metadata extraction

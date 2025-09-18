@@ -1,5 +1,6 @@
 from collections import defaultdict
 import pandas as pd
+import numpy as np
 import re
 from enum import Enum
 from .pipelines.metricsFunctions import voc_speaker
@@ -14,6 +15,7 @@ extensions = {
     'TextGrid': 'TextGrid',
     'eaf': 'eaf',
     'cha': 'cha',
+    'w2v2-sm': 'csv'
 }
 
 class Formats(Enum):
@@ -25,6 +27,7 @@ class Formats(Enum):
     TEXTGRID = 'TextGrid'
     EAF = 'eaf'
     CHA = 'cha'
+    W2V2SMChunks = 'w2v2-sm'
 
 class AnnotationConverter:
     SPEAKER_ID_TO_TYPE = defaultdict(
@@ -707,3 +710,48 @@ class ChatConverter(AnnotationConverter):
         df.fillna("NA", inplace=True)
 
         return df
+
+
+class W2V2SMChunksConverter(AnnotationConverter):
+    FORMAT = Formats.W2V2SMChunks.value
+
+    @staticmethod
+    def id_split(id :str) -> str:
+        """
+        split the id of cut chunks, chunks are expected to have been cut from audio and their names to be constituted
+        of the original audio filename (minus extension) with onset and offset added separated by _
+
+        :return: return 3 values: audio filename without extension (could be a problem), onset offset
+        """
+        split = id.split('_')
+        offset = int(split.pop())
+        onset = int(split.pop())
+        nid = '_'.join(split)
+
+        return offset, onset, nid
+
+    VCM_TRANSLATION = defaultdict(
+        lambda: "NA", {"Canonical": "C", "Non-Canonical": "N", "Junk": "J", "Crying": "Y", "Laughing": "L"}
+    )
+
+    @staticmethod
+    def convert(filename: str, recording: str=None, **kwargs) -> pd.DataFrame:
+
+        segments = pd.read_csv(filename)
+
+        segments = segments.concat([segments, pd.DataFrame(np.vstack(segments['id'].apply(self.id_split)),
+                                                           columns=['audio_id', 'segment_onset', 'segment_offset'])],
+                                   axis=1)
+
+        if recording is not None:
+            # chunk extraction replaces / with _ , this could be problematic as this could include annotations of other
+            # audios if there are 2 recs that have the same id (e.g. lena/audio1.wav and lena_audio1.wav)
+            recording_id = recording.replace("/", "_")
+
+            #apply recording filter
+            segments = segments[segments['audio_id'] == recording_id]
+
+        segments['vcm_type'] = segments['prediction_class_name'].map(self.VCM_TRANSLATION)
+
+        segments = segments[['segment_onset', 'segment_offset', 'vcm_type']]
+        return segments
