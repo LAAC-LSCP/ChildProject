@@ -103,7 +103,7 @@ class VtcConverter(AnnotationConverter):
     FORMAT = Formats.VTC.value
 
     SPEAKER_TYPE_TRANSLATION = defaultdict(
-        lambda: "NA", {"CHI": "OCH", "KCHI": "CHI", "FEM": "FEM", "MAL": "MAL"}
+        lambda: "NA", {"CHI": "OCH", "KCHI": "CHI", "FEM": "FEM", "MAL": "MAL", "OCH": "OCH"}
     )
 
     @staticmethod
