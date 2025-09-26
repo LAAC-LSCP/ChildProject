@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - converter for w2v2-sm outpout model
+- VTC converter handles OCH label from rttm as OCH (used in VTC2.0)
 
 ### Changed
 
