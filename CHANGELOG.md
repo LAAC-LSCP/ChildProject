@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- methods rename_recording_filename for ChildProject and AnnotationManager to handle the renaming of a file to a new name
+
 ### Changed
 
 - Derivations are stored as subclasses that allow for more fined grained metadata extraction
