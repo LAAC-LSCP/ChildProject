@@ -605,9 +605,9 @@ class ChildProject:
         # Don't check if the argument is a valid reference, just loop through things to rename and do it
         # assert recording_filename in self.recordings['recording_filename'].values, (f"{recording_filename} is not "
         #                                                                            f"indexed in the dataset")
-        # assert new_recording_filename not in self.recordings['recording_filename'].values, (f"{new_recording_filename} "
-        #                                                                                    f"already exists in the "
-        #                                                                                    f"dataset")
+        assert new_recording_filename not in self.recordings['recording_filename'].values, (f"{new_recording_filename} "
+                                                                                           f"already exists in the "
+                                                                                           f"dataset")
         rec = self.get_recording_path(recording_filename)
         new_rec = self.get_recording_path(new_recording_filename)
         if rec.exists() and not new_rec.exists():
