@@ -1062,3 +1062,23 @@ def test_remove_annotation_file(project, am, file, dst, set, error):
     else:
         am.remove_annotation_file(file, set)
         assert not dst.exists()
+
+
+@pytest.mark.parametrize("old,new,error,exists",
+     [('sound.wav','new_sound.wav',None,True),
+    ('soundx.wav','new_sound.wav',None,False),
+    ('sound.wav','sound2.wav',ValueError,True),
+    ])
+def test_rename_recording_filename(project, am, old, new, error, exists):
+    project.read()
+    am.read()
+    if exists:
+        count = am.annotations[am.annotations['recording_filename']==old].shape[0]
+    if error:
+        with pytest.raises(error):
+            am.rename_recording_filename(old, new)
+    else:
+        am.rename_recording_filename(old, new)
+        assert am.annotations[am.annotations['recording_filename']==old].shape[0] == 0
+        if exists:
+            assert am.annotations[am.annotations['recording_filename']==new].shape[0] == count
