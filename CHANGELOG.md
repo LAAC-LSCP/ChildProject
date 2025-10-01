@@ -7,6 +7,8 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - methods rename_recording_filename for ChildProject and AnnotationManager to handle the renaming of a file to a new name
+- converter for w2v2-sm outpout model
+- VTC converter handles OCH label from rttm as OCH (used in VTC2.0)
 
 ### Changed
 
@@ -26,6 +28,7 @@ All notable changes to this project will be documented in this file.
 
 - Fixing bug where utils.series_to_datetime() function would return Na values because of index not being incremental from 0
 - function from cmdline now can be imported and used in python directly
+- fixed a case where languages would miss only from some columns, leading dict_summary() to fail
 
 ## [0.3.0] 2025-04-09
 
