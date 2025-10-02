@@ -46,6 +46,39 @@ def test_ignore_discarded(idis, rshape, cshape, drshape, dcshape):
     assert project.discarded_children.shape[0] == dcshape
 
 
+@pytest.mark.parametrize("old,new,error,exists,indexed",
+                         [('sound.wav','new_sound.wav', None, True, True),
+                          ('sound.wav','sound2.wav', AssertionError, True, True),
+                          ('soundx.wav','new_sound.wav', None, False, True),
+                          ('soundx.wav','new_sound.wav', None, False, False),
+                         ])
+def test_rename_recording(project, old, new, error, exists, indexed):
+    project.read()
+    if indexed:
+        if old not in project.recordings['recording_filename'].unique():
+            project.recordings = pd.concat([project.recordings, pd.DataFrame({'recording_filename':[old],
+                                                                      'experiment':['test'],
+                                                                      'start_time':['9:00'],
+                                                                      'date_iso':['2020-01-01'],
+                                                                      'child_id': ['1'],
+                                                                      'recording_device_type':['usb'],
+                                                                      })])
+        series = project.recordings.set_index('recording_filename', drop=True).loc[old].copy()
+    if error:
+        with pytest.raises(error):
+            project.rename_recording(old, new)
+
+    else:
+        project.rename_recording(old, new)
+
+        if indexed:
+            new_series = project.recordings.set_index('recording_filename', drop=True).loc[new].copy()
+            pd.testing.assert_series_equal(series, new_series, check_names=False)
+        assert not project.get_recording_path(old).exists()
+        if exists:
+            assert project.get_recording_path(new).exists()
+
+
 def test_compute_ages():
     project = ChildProject("examples/valid_raw_data")
     project.read()

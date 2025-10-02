@@ -263,6 +263,42 @@ class ChildProject:
         ),
     ]
 
+    CONVERTED_COLUMNS = [
+        IndexColumn(
+            name="original_filename",
+            description="name of the recording in the main index",
+            required=True,
+            filename=True,
+            unique=True,
+            dtype="string",
+        ),
+        IndexColumn(
+            name="converted_filename",
+            description="name of the recording file in the converted space",
+            required=True,
+            filename=True,
+            unique=True,
+            dtype="string",
+        ),
+        IndexColumn(
+            name="success",
+            description="success of the conversion",
+            dtype="bool",
+        ),
+        IndexColumn(
+            name="error",
+            description="error description if relevant",
+            required=False,
+            dtype="string",
+        ),
+        IndexColumn(
+            name="parameters",
+            description="file storing the parameters of the conversion",
+            required=False,
+            dtype="string",
+        )
+    ]
+
     DOCUMENTATION_COLUMNS = [
         IndexColumn(
             name="variable",
@@ -435,6 +471,37 @@ class ChildProject:
         return self
 
 
+    def read_profile(self, profile: str) -> pd.DataFrame:
+        """
+        Read profile index, return index in DataFrame form
+
+        :param profile: profile to read index from
+        :type profile: str
+        :return: index of the profile
+        :rtype: pd.DataFrame
+        """
+        index = self.path / CONVERTED_RECORDINGS / profile / RECORDINGS_CSV
+        conv_table = IndexTable(
+            f"{profile}_index",
+            index,
+            self.CONVERTED_COLUMNS,
+            enforce_dtypes=True,
+        )
+        return conv_table.read()
+
+    def _get_profiles(self) -> List[str]:
+        """
+        Return list of found profiles in the dataset, a profile is a collection of recordings inside the CONVERTED
+        directory and indexed by a RECORDINGS_CSV csv file. This function searches for potential existing profiles
+
+        :return: list of all found profiles in the dataset
+        :rtype: list[str]
+        """
+        return [x.parents[len(RECORDINGS_CSV.parts) - 1].relative_to(self.path / CONVERTED_RECORDINGS).as_posix()
+                for x in (self.path / CONVERTED_RECORDINGS).rglob(str(RECORDINGS_CSV))]
+
+
+
     def add_project_file(self, src_path, dst_file, file_type: str, overwrite=False) -> Self:
         """
         Add a file to the dataset. This function takes the path to a file, copies that file inside the dataset in
@@ -518,6 +585,43 @@ class ChildProject:
         destination.unlink()
 
         return self
+
+
+    def rename_recording(self, recording_filename: str, new_recording_filename: str) -> str:
+        """
+        Renames an existing recording to a specified new name. This change is written to the index of recordings, and
+        spreads to converted recording profiles. the name given should be formatted as a posix path, '/' will be
+        interpreted as a directory separator, even on systems using different separators.
+        Will carry out the changes regardless of presence of the reference in the index. This is to account for partial
+        changes already made, so not finding the recording in the index is not blocking
+
+        :param recording_filename: recording to be changed
+        :type recording_filename: str
+        :param new_recording_filename: new name the recording will use
+        :type new_recording_filename: str
+        :return: name of the renamed recording
+        :rtype: str
+        """
+        # Don't check if the argument is a valid reference, just loop through things to rename and do it
+        # assert recording_filename in self.recordings['recording_filename'].values, (f"{recording_filename} is not "
+        #                                                                            f"indexed in the dataset")
+        assert new_recording_filename not in self.recordings['recording_filename'].values, (f"{new_recording_filename} "
+                                                                                           f"already exists in the "
+                                                                                           f"dataset")
+        rec = self.get_recording_path(recording_filename)
+        new_rec = self.get_recording_path(new_recording_filename)
+        if rec.exists() and not new_rec.exists():
+            rec.rename(new_rec)
+        else:
+            logger_project.warning(f"File {rec} could not be renamed to {new_rec}")
+        self.recordings.loc[self.recordings['recording_filename'] == recording_filename, 'recording_filename']=new_recording_filename
+        self.write_recordings()
+        for profile in self._get_profiles():
+            index = self.read_profile(profile)
+            if recording_filename in index['original_filename'].values:
+                index.loc[index['original_filename'] == recording_filename, 'original_filename'] = new_recording_filename
+                self.write_profile(profile, index)
+        return new_recording_filename
 
 
     def dict_summary(self) -> dict:
@@ -624,6 +728,25 @@ class ChildProject:
         columns = chis_to_write.columns
         chis_to_write.sort_index().to_csv(self.path / METADATA_FOLDER / CHILDREN_CSV, columns=columns, index=False)
         return chis_to_write
+
+    def write_profile(self, profile, index) -> pd.DataFrame:
+        """
+        Write conversion table for a profile
+
+        :param profile: name of the profile to write
+        :type profile: str
+        :param index: Index to write to the dataset, storing the conversion between raw recordings and converted ones
+        :type index: pd.DataFrame
+        :return: dataframe that was written to the csv file
+        :rtype: pandas.DataFrame
+        """
+        filename = self.path / CONVERTED_RECORDINGS / profile / RECORDINGS_CSV
+        filename.parent.mkdir(parents=True, exist_ok=True)
+        if filename.exists() and not os.access(str(filename), os.W_OK):
+            logger_project.warning(f"Could not write to {filename}. Make sure it is writable")
+            return None
+        index.sort_index().to_csv(filename, index=False)
+        return index
 
     def validate(self, ignore_recordings: bool = False, profile: str = None, accumulate: bool = True,
                  current_metadata = False, custom_metadata=None) -> Tuple[List[str], List[str]]:

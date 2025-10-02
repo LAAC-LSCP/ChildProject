@@ -694,6 +694,36 @@ class AnnotationManager:
         return self
 
 
+    def rename_recording_filename(self, recording_filename: str, new_recording_filename: str) -> str:
+        """
+        Renames all references to a recording_filename in the annotation index to a new name. No check is carried out
+        if the recording_filename given is not referenced in the index, the annotation index will be orphaned. Using values
+        other than str may break the index
+
+        :param recording_filename: existing reference to be changed
+        :type recording_filename: str
+        :param new_recording_filename: new recording_filename to use in place of the old one
+        :type new_recording_filename: str
+        :return: new recording_filename
+        :rtype: str
+        """
+        if self.annotations is None:
+            self.read()
+        annotations = self.annotations.copy()
+        annotations.loc[
+            annotations['recording_filename'] == recording_filename, 'recording_filename'] = new_recording_filename
+        ovl = find_lines_involved_in_overlap(
+            annotations[annotations['recording_filename'] == new_recording_filename],
+            labels=['recording_filename', 'set'])
+        if ovl[ovl == True].shape[0] == 0:
+            self.annotations = annotations
+            self.write()
+            return new_recording_filename
+        else:
+            ovl = self.annotations[ovl][['set', 'annotation_filename']].values.tolist()
+            raise ValueError(f"Rename {recording_filename} to {new_recording_filename} would cause overlaps in the"
+                             f" annotation index for the following [set, annotation_filename] list: {ovl}")
+
     def validate_annotation(self, annotation: dict) -> Tuple[List[str], List[str]]:
         logger_annotations.info("Validating %s from %s...", annotation["annotation_filename"], annotation["set"])
         segments = IndexTable(

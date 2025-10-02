@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- methods rename_recording_filename for ChildProject and AnnotationManager to handle the renaming of a file to a new name
 - converter for w2v2-sm outpout model
 - VTC converter handles OCH label from rttm as OCH (used in VTC2.0)
 
