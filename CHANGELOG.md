@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.4.0] 2025-10-06
+
 ### Added
 
 - methods rename_recording_filename for ChildProject and AnnotationManager to handle the renaming of a file to a new name
