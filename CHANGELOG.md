@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - Derivations are stored as subclasses that allow for more fined grained metadata extraction
+- Functions that load audio do not load the whole file anymore
 
 ### Fixed
 
