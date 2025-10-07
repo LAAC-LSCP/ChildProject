@@ -9,6 +9,8 @@ dependencies:
   - pytest
   - scipy
   - sox
+  - git
+  - uv
   - pip:
     - ChildProject
     - git-annex

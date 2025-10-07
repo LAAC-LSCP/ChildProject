@@ -12,3 +12,4 @@ dependencies:
   - sox
   - pip:
     - ChildProject
+    - datalad

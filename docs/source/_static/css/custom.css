@@ -8,6 +8,9 @@
 .highlight-bash > .highlight{
 	background: #edf4f9;
 }
+.highlight-powershell > .highlight{
+	background: #edf4f9;
+}
 
 .sphinx-tabs-tab {
   font-size: 13px;

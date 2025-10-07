@@ -18,7 +18,7 @@ import yaml
 import shutil
 
 from . import __version__
-from .pipelines.derivations import DERIVATIONS, conversations
+from .pipelines.derivations import DERIVATIONS, Derivator, RuntimeDerivator
 from .projects import ChildProject, METADATA_FOLDER, EXTRA
 from .converters import *
 from .tables import IndexTable, IndexColumn, assert_dataframe, assert_columns_presence
@@ -640,12 +640,11 @@ class AnnotationManager:
         dataset in the correct spot given the set it belongs to.
         The destination file can contain parent folders, which will be included in the copied file (e.g. src_path=
         "/home/user/tmp/myrec.rttm", dst_file="loc1/RA5/rec001.rttm", set='vtc' ; will copy the file inside
-         the dataset in a annotations/vtc/raw/loc1/RA5 folder, the file will be named rec001.rttm.
+        the dataset in a annotations/vtc/raw/loc1/RA5 folder, the file will be named rec001.rttm.
 
         :param src_path: path on the system to the annotation file to add to the dataset
         :type src_path: Path | str
-        :param dst_file: filename as it will be stored in the dataset, with possible parent folders (e.g.
-        'location1/RA5/rec004.rttm' will copy the original file as rec004.rttm inside folders location1 -> RA5)
+        :param dst_file: filename as it will be stored in the dataset, with possible parent folders (e.g. 'location1/RA5/rec004.rttm' will copy the original file as rec004.rttm inside folders location1 -> RA5)
         :type dst_file: Path | str
         :param set: annotation set the annotation file belongs to
         :type set: str
@@ -678,8 +677,7 @@ class AnnotationManager:
         be in the file name as a posix path (i.e. subfolder/file)
         The set parameter is meant to define what annotation set the raw file is stored in.
 
-        :param file: filename as it is stored in the dataset annotations, in the annotation set raw folder (e.g. set=vtc
-        will be evaluated inside the annotations/vtc/raw folder of the dataset
+        :param file: filename as it is stored in the dataset annotations, in the annotation set raw folder (e.g. set=vtc will be evaluated inside the annotations/vtc/raw folder of the dataset
         :type file: Path | str
         :param set: name of the annotation set the file is stored in.
         :type set: str
@@ -695,6 +693,36 @@ class AnnotationManager:
 
         return self
 
+
+    def rename_recording_filename(self, recording_filename: str, new_recording_filename: str) -> str:
+        """
+        Renames all references to a recording_filename in the annotation index to a new name. No check is carried out
+        if the recording_filename given is not referenced in the index, the annotation index will be orphaned. Using values
+        other than str may break the index
+
+        :param recording_filename: existing reference to be changed
+        :type recording_filename: str
+        :param new_recording_filename: new recording_filename to use in place of the old one
+        :type new_recording_filename: str
+        :return: new recording_filename
+        :rtype: str
+        """
+        if self.annotations is None:
+            self.read()
+        annotations = self.annotations.copy()
+        annotations.loc[
+            annotations['recording_filename'] == recording_filename, 'recording_filename'] = new_recording_filename
+        ovl = find_lines_involved_in_overlap(
+            annotations[annotations['recording_filename'] == new_recording_filename],
+            labels=['recording_filename', 'set'])
+        if ovl[ovl == True].shape[0] == 0:
+            self.annotations = annotations
+            self.write()
+            return new_recording_filename
+        else:
+            ovl = self.annotations[ovl][['set', 'annotation_filename']].values.tolist()
+            raise ValueError(f"Rename {recording_filename} to {new_recording_filename} would cause overlaps in the"
+                             f" annotation index for the following [set, annotation_filename] list: {ovl}")
 
     def validate_annotation(self, annotation: dict) -> Tuple[List[str], List[str]]:
         logger_annotations.info("Validating %s from %s...", annotation["annotation_filename"], annotation["set"])
@@ -1047,12 +1075,12 @@ class AnnotationManager:
         for warning in outdated_sets:
             logger_annotations.warning("warning: %s", warning)
 
-        return (imported, errors)
+        return imported, errors
 
     def _derive_annotation(
             self,
             annotation: dict,
-            import_function: Callable,
+            derivator: Derivator,
             output_set: str,
             overwrite_existing: bool = False,
     ) -> dict:
@@ -1060,11 +1088,11 @@ class AnnotationManager:
 
         :param annotation: input annotation dictionary (attributes defined according to :ref:`ChildProject.annotations.AnnotationManager.SEGMENTS_COLUMNS`)
         :type annotation: dict
-        :param import_function: derivation function to apply to the original set. This can be a python function or a string name of a stored method in .pipelines.derivations.DERIVATIONS .
-        :type import_function: Callable[[str], pd.DataFrame]
+        :param derivator: Derivator object on which the derive method is implemented.
+        :type derivator: Derivator
         :param output_set: name of the new set of derived annotations
         :type output_set: str
-        :param overwrite_existing: use for lines with the same set and annotation_filename to be rederived and overwritten
+        :param overwrite_existing: use for lines with the same set and annotation_filename to be re-derived and overwritten
         :type overwrite_existing: bool
         :return: output annotation dictionary (attributes defined according to :ref:`ChildProject.annotations.AnnotationManager.SEGMENTS_COLUMNS`)
         :rtype: dict
@@ -1135,19 +1163,19 @@ class AnnotationManager:
         # apply the derivation to the annotation dataframe
         # if the derivation raises an exception stop the processing there and return the line
         try:
-            df = import_function(self.project, metadata, df_input)
+            df = derivator.derive(self.project, metadata, df_input)
         except Exception as e:
             return bad_derivation(annotation_result, e, traceback.format_exc(), path)
 
         # if the derivation function did not return a dataframe, stop there and return the line
         if df is None or not isinstance(df, pd.DataFrame):
-            msg = f"<{import_function}> did not return a pandas DataFrame"
+            msg = f"<{derivator}> derive did not return a pandas DataFrame"
             return bad_derivation(annotation_result, msg, msg, path)
 
         # if the derivation does not contain the required columns of annotations
         if not {c.name for c in self.SEGMENTS_COLUMNS if c.required}.issubset(df.columns):
             required = {c.name for c in self.SEGMENTS_COLUMNS if c.required}
-            msg = f"DataFrame result of <{import_function}> function does not contain the required {required}"
+            msg = f"DataFrame result of <{derivator}> derive method does not contain the required {required}"
             return bad_derivation(annotation_result, msg, msg, path)
 
         if not df.shape[1]:
@@ -1191,7 +1219,7 @@ class AnnotationManager:
     def derive_annotations(self,
                            input_set: str,
                            output_set: str,
-                           derivation_function: Union[str, Callable],
+                           derivation: Union[str, Callable],
                            derivation_metadata=None,
                            threads: int = -1,
                            overwrite_existing: bool = False,
@@ -1203,9 +1231,9 @@ class AnnotationManager:
         :type input_set: str
         :param output_set: name of the new set of derived annotations
         :type output_set: str
-        :param derivation_function: name of the derivation type to be performed
-        :type derivation_function: Union[str, Callable]
-        :param derivation_metadata: metadata to be used for the set created by the derivation, if none and derivation is internal to the package (using str label), use the internally stored metadata
+        :param derivation: derivation to perform. this can be a str reference to existing keys in pipelines.derivations.DERIVATIONS, or a Derivator object or a function that is then used to create a minimal Derivator
+        :type derivation: Union[str, Derivator, Callable]
+        :param derivation_metadata: metadata to be used for the set created by the derivation, this will be added to the automatically generated metadata and overwrite keys in common
         :type derivation_metadata: dict
         :param threads: If > 1, conversions will be run on ``threads`` threads, defaults to -1
         :type threads: int, optional
@@ -1222,21 +1250,23 @@ class AnnotationManager:
          set {1}".format(input_set, output_set)
 
         # check the existence of the derivation function and that it is callable or predefined
-        if not callable(derivation_function):
-            if derivation_function in DERIVATIONS.keys():
-                if derivation_metadata is None:
-                    derivation_metadata = DERIVATIONS[derivation_function][1]
-                derivation_function = DERIVATIONS[derivation_function][0]
+        if callable(derivation):
+            derivator = RuntimeDerivator(derivation)
+        elif derivation in DERIVATIONS.keys():
+            derivator = DERIVATIONS[derivation]()
+        else:
+            if isinstance(derivation, Derivator):
+                derivator = derivation
             else:
                 raise ValueError(
-                    "derivation value '{}' unknown, use one of {}".format(derivation_function, DERIVATIONS.keys())
+                    "derivation value '{}' unknown, use one of {}, a callable function or a Derivator object".format(derivation, DERIVATIONS.keys())
                 )
 
         if threads == 1:
             # apply the derivation function to each annotation file that needs to be derived (sequential)
             imported = input_processed.apply(
                 partial(self._derive_annotation,
-                        import_function=derivation_function,
+                        derivator=derivator,
                         output_set=output_set,
                         overwrite_existing=overwrite_existing
                         ), axis=1
@@ -1246,7 +1276,7 @@ class AnnotationManager:
             with mp.Pool(processes=threads if threads > 0 else mp.cpu_count()) as pool:
                 imported = pool.map(
                     partial(self._derive_annotation,
-                            import_function=derivation_function,
+                            derivator=derivator,
                             output_set=output_set,
                             overwrite_existing=overwrite_existing
                             ),
@@ -1276,8 +1306,12 @@ class AnnotationManager:
             errors = None
 
         # metadata for the set is inherited from the set it derives from, some fields are automatically updated
-        set_metadata = self.sets.loc[input_set].to_dict()
+        # set_metadata = self.sets.loc[input_set].to_dict()
+        set_metadata = {} # let's initialize empty, inheritance of all metadata is probably not ideal
+        set_metadata.update(derivator.get_auto_metadata(self, input_set, output_set))
         set_metadata.update({'method': 'derivation',
+                             'ChildProject_version': __version__,
+                             'derivator_object': derivator.__repr__(),
                              'date_annotation': datetime.datetime.now().strftime("%Y-%m-%d")})
         if derivation_metadata is not None:
             set_metadata.update(derivation_metadata)
@@ -1326,7 +1360,7 @@ class AnnotationManager:
             if not (self.project.path / ANNOTATIONS / subset).is_dir():
                 continue
 
-            subsets.append(subset)
+            subsets.append(subset.as_posix())
 
             if recursive:
                 subsets.extend(self.get_subsets(subset))

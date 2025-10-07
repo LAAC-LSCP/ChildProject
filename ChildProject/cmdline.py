@@ -243,6 +243,31 @@ def validate(args) -> int:
 @subcommand(
     [
         arg("source", help="project_path", nargs='+'),
+        arg("--filename", "--recording-filename", "-f",
+            help="existing recording filename, to be renamed",
+            required=True,
+            ),
+        arg("--new-filename", "--new-recording-filename", "-n",
+            help="new recording filename for the existing to be renamed to",
+            required=True,
+            ),
+    ]
+)
+def rename_recording(args) -> int:
+    """rename a recording indexed in the dataset"""
+    project = ChildProject(source)
+    perform_validation(project, require_success=True, ignore_recordings=True)
+    am = AnnotationManager(project)
+    am.read()
+
+    project.rename_recording(args.filename, args.new_filename)
+    am.rename_recording_filename(args.filename, args.new_filename)
+
+    return 0
+
+@subcommand(
+    [
+        arg("source", help="project_path", nargs='+'),
         arg("--format",
             help="format to output to",
             default="snapshot",
@@ -435,7 +460,8 @@ def derive_annotations(args) -> int:
     perform_validation(project, require_success=True, ignore_recordings=True)
 
     am = AnnotationManager(project)
-    imported, errors_der = am.derive_annotations(args.input_set, args.output_set, args.derivation, None, args.threads, overwrite_existing=args.overwrite_existing)
+    imported, errors_der = am.derive_annotations(args.input_set, args.output_set, args.derivation,
+                                                 None, args.threads, overwrite_existing=args.overwrite_existing)
 
     if errors_der is not None and errors_der.shape[0] > 0:
         logger.error('The derivation failed for %d entry/ies', errors_der.shape[0])
