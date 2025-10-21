@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- derivation cva should fail when NA values were loaded as pd.NA values
+- automated metadata for derived sets would fail when values were not present in the original set metadata
+
 ## [0.4.0] 2025-10-06
 
 ### Added
