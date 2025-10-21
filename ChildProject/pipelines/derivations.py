@@ -195,13 +195,18 @@ class AcousticDerivator(Derivator):
                           input_set: str,
                           output_set: str
                           ) -> dict:
-        return {'segmentation': input_set,
-                'segmentation_type' : am.sets.loc[input_set,'segmentation_type'],
+        meta = {'segmentation': input_set,
                 'has_acoustics': 'Y',
-                'has_speaker_type': am.sets.loc[input_set,'has_speaker_type'],
                 'parameters': {'profile': self.profile, 'target_sr':self.target_sr},
                 }
 
+        if 'segmentation_type' in am.sets.columns:
+            meta['segmentation_type'] = am.sets.loc[input_set,'segmentation_type']
+
+        if 'has_speaker_type' in am.sets.columns:
+            meta['has_speaker_type'] = am.sets.loc[input_set,'has_speaker_type']
+
+        return meta
 
 
 class ConversationDerivator(Derivator):
@@ -291,15 +296,20 @@ class ConversationDerivator(Derivator):
                           input_set: str,
                           output_set: str
                           ) -> dict:
-        return {'segmentation': input_set,
-                'segmentation_type': am.sets.loc[input_set, 'segmentation_type'],
+        meta= {'segmentation': input_set,
                 'has_interactions': 'Y',
-                'has_speaker_type': am.sets.loc[input_set, 'has_speaker_type'],
                 'parameters': {'interactions': self.interactions,
                                'max_interval':self.max_interval,
                                'min_delay':self.min_delay},
                 }
 
+        if 'segmentation_type' in am.sets.columns:
+            meta['segmentation_type'] = am.sets.loc[input_set,'segmentation_type']
+
+        if 'has_speaker_type' in am.sets.columns:
+            meta['has_speaker_type'] = am.sets.loc[input_set,'has_speaker_type']
+
+        return meta
 
 class RemoveOverlapsDerivator(Derivator):
     """
@@ -398,11 +408,15 @@ class RemoveOverlapsDerivator(Derivator):
                           input_set: str,
                           output_set: str
                           ) -> dict:
-        return {'segmentation': output_set,
+        meta= {'segmentation': output_set,
                 'segmentation_type' : 'restrictive',
-                'has_speaker_type': am.sets.loc[input_set,'has_speaker_type'],
                 'parameters': {'speakers': self.speakers},
                 }
+
+        if 'has_speaker_type' in am.sets.columns:
+            meta['has_speaker_type'] = am.sets.loc[input_set,'has_speaker_type']
+
+        return meta
 
 class CVADerivator(Derivator):
     """
@@ -438,7 +452,7 @@ class CVADerivator(Derivator):
                ) -> pd.DataFrame:
 
         def classify_speaker_type(speaker_type):
-            return 'C' if speaker_type == 'CHI' else 'O'
+            return 'C' if pd.isna(speaker_type) or speaker_type == 'CHI' else 'O'
 
         segments['speaker_class'] = segments['speaker_type'].apply(classify_speaker_type)
         segments['cva'] = 'N'
@@ -521,12 +535,19 @@ class CVADerivator(Derivator):
                           input_set: str,
                           output_set: str
                           ) -> dict:
-        return {'segmentation': output_set,
-                'segmentation_type' : am.sets.loc[input_set,'segmentation_type'],
+        meta = {'segmentation': output_set,
                 'has_addressee' : 'Y',
-                'has_speaker_type': am.sets.loc[input_set,'has_speaker_type'],
                 'parameters': {'iti': self.iti, 'scenario': self.scenario}
                 }
+
+        if 'segmentation_type' in am.sets.columns:
+            meta['segmentation_type'] = am.sets.loc[input_set,'segmentation_type']
+
+        if 'has_speaker_type' in am.sets.columns:
+            meta['has_speaker_type'] = am.sets.loc[input_set,'has_speaker_type']
+    
+        return meta
+
 
 # listing the possible derivators available by default
 DERIVATIONS = {
