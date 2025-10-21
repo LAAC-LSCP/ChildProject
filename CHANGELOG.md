@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.4.1] 2025-10-21
+
 ### Fixed
 
 - derivation cva should fail when NA values were loaded as pd.NA values
