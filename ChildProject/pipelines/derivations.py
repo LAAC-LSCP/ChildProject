@@ -452,9 +452,9 @@ class CVADerivator(Derivator):
                ) -> pd.DataFrame:
 
         def classify_speaker_type(speaker_type):
-            return 'C' if pd.isna(speaker_type) or speaker_type == 'CHI' else 'O'
+            return 'C' if speaker_type == 'CHI' else 'O'
 
-        segments['speaker_class'] = segments['speaker_type'].apply(classify_speaker_type)
+        segments['speaker_class'] = segments['speaker_type'].dropna().apply(classify_speaker_type)
         segments['cva'] = 'N'
         debug_data = []
 

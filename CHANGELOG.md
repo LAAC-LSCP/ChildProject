@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.4.2] 2025-11-03
+
+### Fixed
+
+- derivation cva fixed discarding of NA segments
+
 ## [0.4.1] 2025-10-21
 
 ### Fixed
