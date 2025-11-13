@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## Fixed
+
+- in certain cases the acoustics derivation would fail b/c of a dataframe casting
+
 ## [0.4.2] 2025-11-03
 
 ### Fixed
