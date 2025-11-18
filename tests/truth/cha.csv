@@ -1,21 +1,21 @@
-transcription,segment_onset,segment_offset,speaker_id,speaker_role,speaker_type,words
-&=vocalizes . [+ nc] ,0,12414,CHI,Target_Child,CHI,0
-&=vocalizes . [+ nc] ,12414,17804,CHI,Target_Child,CHI,0
-&=vocalizes . [+ nc] ,17804,30429,CHI,Target_Child,CHI,0
-&=babbles . [+ c] ,30429,33578,CHI,Target_Child,CHI,0
-&=whines . [+ r] ,33578,37359,CHI,Target_Child,CHI,0
-&=grunts . [+ nc] ,37508,59836,CHI,Target_Child,CHI,0
-let's change your diaper . [+ id] ,59836,66554,MOT,Mother,FEM,4
-&=coos . [+ nc] ,66554,71117,CHI,Target_Child,CHI,0
-xxx xxx girl . [+ id] ,71117,73039,MOT,Mother,FEM,1
-xxx girl . [+ id] ,73039,76789,MOT,Mother,FEM,1
-xxx girl [=! whispers] . [+ id] ,76789,82211,MOT,Mother,FEM,1
-&=vocalizes . [+ r] ,82211,86339,CHI,Target_Child,CHI,0
-yyy a mama [=! babbles] . [+ c] ,86339,90557,CHI,Target_Child,CHI,2
-xxx Natasha [=! whispers] . ,90882,93117,MOT,Mother,FEM,1
-&=whines . [+ r] ,93117,103086,CHI,Target_Child,CHI,0
-&=grunts . [+ nc] ,103086,114242,CHI,Target_Child,CHI,0
-xxx xxx girl . [+ id] ,114242,118336,MOT,Mother,FEM,1
-&=vocalizes . [+ r] ,118336,119758,CHI,Target_Child,CHI,0
-&=babbles . [+ c] ,119758,126586,CHI,Target_Child,CHI,0
-I think xxx xxx xxx . [+ id] ,126586,136789,MOT,Mother,FEM,2
+transcription,add,segment_onset,segment_offset,speaker_id,speaker_role,speaker_type,words,addressee
+&=vocalizes . [+ nc] ,NA,0,12414,CHI,Target_Child,CHI,0,NA
+&=vocalizes . [+ nc] ,NA,12414,17804,CHI,Target_Child,CHI,0,NA
+&=vocalizes . [+ nc] ,NA,17804,30429,CHI,Target_Child,CHI,0,NA
+&=babbles . [+ c] ,NA,30429,33578,CHI,Target_Child,CHI,0,NA
+&=whines . [+ r] ,NA,33578,37359,CHI,Target_Child,CHI,0,NA
+&=grunts . [+ nc] ,NA,37508,59836,CHI,Target_Child,CHI,0,NA
+let's change your diaper . [+ id] ,NA,59836,66554,MOT,Mother,FEM,4,NA
+&=coos . [+ nc] ,MOT,66554,71117,CHI,Target_Child,CHI,0,A
+xxx xxx girl . [+ id] ,NA,71117,73039,MOT,Mother,FEM,1,NA
+xxx girl . [+ id] ,NA,73039,76789,MOT,Mother,FEM,1,NA
+xxx girl [=! whispers] . [+ id] ,NA,76789,82211,MOT,Mother,FEM,1,NA
+&=vocalizes . [+ r] ,MOT,82211,86339,CHI,Target_Child,CHI,0,A
+yyy a mama [=! babbles] . [+ c] ,NA,86339,90557,CHI,Target_Child,CHI,2,NA
+xxx Natasha [=! whispers] . ,CHI,90882,93117,MOT,Mother,FEM,1,T
+&=whines . [+ r] ,NA,93117,103086,CHI,Target_Child,CHI,0,NA
+&=grunts . [+ nc] ,NA,103086,114242,CHI,Target_Child,CHI,0,NA
+xxx xxx girl . [+ id] ,NA,114242,118336,MOT,Mother,FEM,1,NA
+&=vocalizes . [+ r] ,NA,118336,119758,CHI,Target_Child,CHI,0,NA
+&=babbles . [+ c] ,NA,119758,126586,CHI,Target_Child,CHI,0,NA
+I think xxx xxx xxx . [+ id] ,NA,126586,136789,MOT,Mother,FEM,2,NA
