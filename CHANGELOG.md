@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
 - derivation cva fixed discarding of NA segments
+- converter for CHAT (.cha) file format now correctly uses addressee (%add) tier
 
 ## [0.4.1] 2025-10-21
 
