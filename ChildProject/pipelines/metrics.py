@@ -233,9 +233,9 @@ class Metrics(ABC):
             if prev_set != curr_set:
                 index, annotations = self.retrieve_segments([curr_set],row[1])
                 if index.shape[0]:
-                    duration_set = (
+                    duration_set = int((
                             index["range_offset"] - index["range_onset"]
-                        ).sum()
+                        ).sum())
                 else: duration_set = 0
                 row[1]["duration_{}".format(line["set"])] = duration_set
                 prev_set = curr_set            

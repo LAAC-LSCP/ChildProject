@@ -173,6 +173,7 @@ class AcousticDerivator(Derivator):
             lambda offset: ceil(offset / 1000 * self.target_sr) / self.target_sr)
 
         # Find better solution if more acoustic annotations are added in the future (concat dfs)
+        
         pitch = segments.apply(lambda row:
                                AcousticDerivator.get_pitch(
                                    librosa.load(recording,
@@ -188,7 +189,7 @@ class AcousticDerivator(Derivator):
         pitch.drop(list(pitch.filter(regex='raw_')), axis=1, inplace=True)
 
         pitch.index = segments.index
-        audio_segments = pd.concat([segments, pitch], axis=1)
+        audio_segments = pd.concat([segments, pitch.drop(columns=segments.columns, errors='ignore')], axis=1) #dropping columns that already exists to avoid same name columns
 
         audio_segments.drop(columns=['extended_onset',
                                   'extended_offset'],
