@@ -634,12 +634,78 @@ class ChatConverter(AnnotationConverter):
     )
 
     ADDRESSEE_TABLE = defaultdict(
-        lambda: "NA", {"FEM": "A", "MAL": "A", "OCH": "C", "CHI": "T"}
+        lambda: "NA",
+        {
+            "Target_Child": "T",
+            # Use of this role is very important for CHILDES and PhonBank transcripts, because it allows users to search and analyze the output from the children who are the focus of many of the studies.
+            "Target_Adult": "A",
+            # This role serves a similar function to Target_Child by making it clear who which speaker was at the focus of the data collection.
+            "Child": "C",
+            # This role is used mostly in transcripts studying large groups of children, when it is not easy to determine whether a child is a boy or girl or perhaps a relative.
+            "Mother": "A",  # This should be the mother of the Target_Child.
+            "Father": "A",  # This should be the father of the Target_Child.
+            "Brother": "C",  # This should be a brother of the Target_Child.
+            "Sister": "C",  # This should be a sister of the Target_Child.
+            "Sibling": "C",  # This should be a sibling of the Target_Child.
+            "Grandfather": "A",
+            # This should be the grandfather of the Target_Child.  Further details such as Paternal_Grandfather can be placed into the Specific Role field.
+            "Grandmother": "A",
+            # This should be the grandmother of the Target_Child.  Further details such as Paternal_Grandmother can be placed into the Specific Role field.
+            "Relative": "U",
+            # This role is designed to include all other relations, including Aunt, Uncle, Cousin, Father_in_Law etc. which can then be entered into the Specific Role field.
+            "Participant": "U",
+            # This is the generic role for adult participants in interviews and other conversations.  Usually, these are coded as having a Participant and an Investigator.  Other forms of this role include Patient, Informant, and Subject which can be listed in the Specific Role field or else just omitted.
+            "Investigator": "A",
+            # Other terms for this role can be listed in the Specific Roles.  These include Researcher, Clinician, Therapist, Observer, Camera_Operator, and so on.
+            "Partner": "A",
+            # This is the role for the person accompanying the Participant to the interview or conversation.
+            "Boy": "U",  # This is a generic role.
+            "Girl": "U",  # This is a generic role.
+            "Adult": "A",  # This is a very generic role for use when little else is known.
+            "Teenager": "A",  # This is a generic role.
+            "Male": "A",  # Use this role when all we know is that the participant is an adult male.
+            "Female": "A",  # Use this role when all we know is that the participant is an adult female.
+            "Visitor": "A",  # This role assumes that the visitor is coming to a conversation in the home.
+            "Friend": "C",  # This is a role for a Friend of the target participants.
+            "Playmate": "C",  # This is a role for a child that the Target_Child plays with.
+            "Caretaker": "A",
+            # This person takes care of the child. Other names for the Specific Role field include Housekeeper, Nursemaid, or Babysitter.
+            "Environment": "U",  # This role is used in the SBCSAE corpus.
+            "Group": "U",  # This role is used when transcribing simultaneous productions from a whole group.
+            "Unidentified": "U",  # This is a role for unidentifiable participants.
+            "Uncertain": "U",  # This role can be used when it is not clear who produced an utterance.
+            "Other": "O",
+            # This is a generic role.  When it is used, there should be further specification in the Specific Role field. Roles defined by jobs such as Technician, Patron, Policeman, etc can be listed as Other and the details given in the Specific Role field.
+            "Text": "O",  # This role is used for written segments of TalkBank.
+            "Media": "O",  # This role is used for speech from televisions, computers, or talking toys.
+            "PlayRole": "O",
+            # This role is used when speakers pretend to be something, such as an animal or another person.
+            "LENA": "O",
+            # This role is used in HomeBank LENA recordings.  The specific LENA role is then listed in the Specific Role field.
+            "Justice": "A",  # This is role is used in the SCOTUS corpus. It also includes the role of Judge.
+            "Attorney": "A",  # This is the general role for attorneys, lawyers, prosecutors, etc.
+            "Doctor": "A",  # This is the general role for doctors.
+            "Nurse": "A",  # This is the general role for nurses.
+            "Student": "A",
+            # Specific forms of this general role include Graduate Student, Senior, High_Schooler, and so on.
+            "Teacher": "A",
+            # This is the general role for Teachers. Specific forms of this general role include Instuctor, Advisor, Faculty, Professor, Tutor, or T_A.
+            "Host": "A",  # Specific forms of this general role include ShowHost, Interviewer, and CallTaker.
+            "Guest": "A",  # Specific forms of this general role include ShowGuest, Interviewee, and Caller.
+            "Leader": "A",
+            # Specific forms of this general role include Group_Leader, Panel_Moderator, Committee_Chair, Facilitator, Tour_Guide, Tour_Leader, Peer_Leader, Chair, or Discussion_Leader.
+            "Member": "A",
+            # Specific forms of this general role include Committee_Member, Group_Member, Panelist, and Tour_Participant.
+            "Narrator": "A",  # This is a role for presentations of stories.
+            "Speaker": "A",
+            # Specific forms of this general role include Lecturer, Presenter, Introducer, Welcomer, and Main_Speaker.
+            "Audience": "A",  # This is the general role for single audience members.
+        },
     )
 
     @staticmethod
     def role_to_addressee(role):
-        return ChatConverter.ADDRESSEE_TABLE[ChatConverter.SPEAKER_ROLE_TO_TYPE[role]]
+        return ChatConverter.ADDRESSEE_TABLE[role] #if label != 'NA' else 'NA'
 
     @staticmethod
     def convert(filename: str, filter=None, **kwargs) -> pd.DataFrame:
@@ -688,7 +754,7 @@ class ChatConverter(AnnotationConverter):
 
         if "add" in df.columns:
             df["addressee"] = (
-                df["speaker_type"]
+                df["add"]
                 .fillna("")
                 .replace({"NA": ""})
                 .apply(
