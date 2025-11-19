@@ -140,14 +140,20 @@ class AcousticDerivator(Derivator):
         mean_pitch, median_pitch, p5_pitch, p95_pitch = pitch.mean(), np.quantile(pitch, .5), \
                                                         np.percentile(pitch, 5), np.percentile(pitch, 95)
 
+        mean_abs_amp = np.abs(audio_time_series).mean()
+        peak_abs_amp = np.max(audio_time_series).mean()
+
         pitch_type = "f0" if not callable(func) else func.__name__
 
-        return {"raw_pitch_{}".format(pitch_type): f0,
+        return pd.Series({"raw_pitch_{}".format(pitch_type): f0,
                 "mean_pitch_{}".format(pitch_type): mean_pitch,
                 "median_pitch_{}".format(pitch_type): median_pitch,
                 "p5_pitch_{}".format(pitch_type): p5_pitch,
                 "p95_pitch_{}".format(pitch_type): p95_pitch,
-                "pitch_range_{}".format(pitch_type): p95_pitch - p5_pitch}
+                "pitch_range_{}".format(pitch_type): p95_pitch - p5_pitch,
+                "mean_abs_amp": mean_abs_amp,
+                "peak_abs_amp": peak_abs_amp,
+                })
 
     def derive(self,
                project: ChildProject,
@@ -167,22 +173,23 @@ class AcousticDerivator(Derivator):
             lambda offset: ceil(offset / 1000 * self.target_sr) / self.target_sr)
 
         # Find better solution if more acoustic annotations are added in the future (concat dfs)
-        pitch = pd.DataFrame.from_records(segments.apply(lambda row:
-                                                   AcousticDerivator.get_pitch(
-                                                       librosa.load(recording,
-                                                                    mono=True,
-                                                                    sr=self.target_sr,
-                                                                    offset=row['extended_onset'],
-                                                                    duration=(row['extended_offset'] - row['extended_onset']))[0],
-                                                       self.target_sr,
-                                                       func=AcousticDerivator.f2st
-                                                   ), axis=1).tolist())
+        
+        pitch = segments.apply(lambda row:
+                               AcousticDerivator.get_pitch(
+                                   librosa.load(recording,
+                                                mono=True,
+                                                sr=self.target_sr,
+                                                offset=row['extended_onset'],
+                                                duration=(row['extended_offset'] - row['extended_onset']))[0],
+                                   self.target_sr,
+                                   func=AcousticDerivator.f2st
+                               ), axis=1)
 
         # Drop raw pitch values
         pitch.drop(list(pitch.filter(regex='raw_')), axis=1, inplace=True)
 
         pitch.index = segments.index
-        audio_segments = pd.concat([segments, pitch], axis=1)
+        audio_segments = pd.concat([segments, pitch.drop(columns=segments.columns, errors='ignore')], axis=1) #dropping columns that already exists to avoid same name columns
 
         audio_segments.drop(columns=['extended_onset',
                                   'extended_offset'],
