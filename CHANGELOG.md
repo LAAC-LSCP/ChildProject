@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ## Fixed
 
 - in certain cases the acoustics derivation would fail b/c of a dataframe casting
+- empty segments going through the acoustics derivation would fail because of duplicated columns in dataframe
 
 ## [0.4.2] 2025-11-03
 
