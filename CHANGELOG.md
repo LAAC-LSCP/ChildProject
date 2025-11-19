@@ -4,17 +4,19 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.4.3] 2025-11-19
+
 ## Fixed
 
 - in certain cases the acoustics derivation would fail b/c of a dataframe casting
 - empty segments going through the acoustics derivation would fail because of duplicated columns in dataframe
+- converter for CHAT (.cha) file format now correctly uses addressee (%add) tier
 
 ## [0.4.2] 2025-11-03
 
 ### Fixed
 
 - derivation cva fixed discarding of NA segments
-- converter for CHAT (.cha) file format now correctly uses addressee (%add) tier
 
 ## [0.4.1] 2025-10-21
 
