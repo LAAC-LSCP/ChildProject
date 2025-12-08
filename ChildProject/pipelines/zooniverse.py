@@ -176,7 +176,7 @@ class ZooniversePipeline(Pipeline):
         recording = segments[0]["recording_filename"]
         source = self.project.get_recording_path(recording, self.profile)
 
-        # audio = AudioSegment.from_file(source)
+        audio = AudioSegment.from_file(source)
 
         logger_annotations.info("extracting chunks from %s...", source)
 
@@ -212,9 +212,9 @@ class ZooniversePipeline(Pipeline):
                     original_offset,
                 )
 
-                audio = AudioSegment.from_file(source, start_second=chunk.onset / 1000,
-                                               duration=(chunk.offset - chunk.onset) / 1000,
-                                               channels=1)
+                # audio = AudioSegment.from_file(source, start_second=chunk.onset / 1000,
+                #                                duration=(chunk.offset - chunk.onset) / 1000,
+                #                                channels=1)
                 chunk_audio = audio.fade_in(10).fade_out(10)
 
                 wav = os.path.join(self.destination, "chunks", chunk.getbasename("wav"))
