@@ -595,6 +595,7 @@ class AclewMetrics(Metrics):
         segments: Union[str, pd.DataFrame] = None,
         by: str = "recording_filename",
         threads: int = 1,
+        include_std: bool = False,
     ):
         
         self.vtc = vtc
@@ -618,6 +619,14 @@ class AclewMetrics(Metrics):
              ["avg_voc_dur_speaker",self.vtc,'CHI'],
              ["simple_CTC_ph",self.vtc,pd.NA],
              ])
+        
+        if include_std:
+            METRICS = np.concatenate((np.array(
+                [["std_voc_dur_speaker", self.vtc,'FEM'],
+                 ["std_voc_dur_speaker", self.vtc,'MAL'],
+                 ["std_voc_dur_speaker", self.vtc,'OCH'],
+                 ["std_voc_dur_speaker", self.vtc,'CHI']]
+            ), METRICS))
         
         if self.alice not in am.annotations["set"].values:
             print(f"The ALICE set ('{self.alice}') was not found in the index.")
@@ -652,6 +661,13 @@ class AclewMetrics(Metrics):
              ["cp_n",self.vcm,pd.NA],
              ["cp_dur",self.vcm,pd.NA],
              ])))
+            
+            if include_std:
+                METRICS = np.concatenate((METRICS, np.array(
+                    [["std_cry_voc_dur_speaker",self.vcm,"CHI"],
+                     ["std_can_voc_dur_speaker",self.vcm,"CHI"],
+                     ["std_non_can_voc_dur_speaker",self.vcm,"CHI"]]
+                )))
                 
         METRICS = pd.DataFrame(METRICS, columns=["callable","set","speaker"])
 
