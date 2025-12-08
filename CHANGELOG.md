@@ -4,9 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- Loading audio separately was a huge bottleneck with filesystem access, reverting it
+
 ## [0.4.3] 2025-11-19
 
-## Fixed
+### Fixed
 
 - in certain cases the acoustics derivation would fail b/c of a dataframe casting
 - empty segments going through the acoustics derivation would fail because of duplicated columns in dataframe
