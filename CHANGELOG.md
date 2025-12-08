@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.4.4] 2025-12-08
+
 ### Fixed
 
 - Loading audio separately was a huge bottleneck with filesystem access, reverting it
