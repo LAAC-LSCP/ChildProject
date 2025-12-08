@@ -164,23 +164,19 @@ class AcousticDerivator(Derivator):
         file_sr = librosa.get_samplerate(recording)
         assert file_sr == self.target_sr, ValueError("Mismatch between file's true sampling rate ({}) and "
                                                 "target sampling rate ({})!".format(file_sr, self.target_sr))
-        #audio_time_series, sampling_rate = librosa.load(recording, mono=True, sr=self.target_sr)
+        audio_time_series, sampling_rate = librosa.load(recording, mono=True, sr=self.target_sr)
 
-        # Computes the start frame and end frame of the given segments given is on/offset in seconds
-        segments['extended_onset'] = segments['segment_onset'].apply(
-            lambda onset: floor(onset / 1000 * self.target_sr) / self.target_sr)
-        segments['extended_offset'] = segments['segment_offset'].apply(
-            lambda offset: ceil(offset / 1000 * self.target_sr) / self.target_sr)
+        # Computes the start frame and end frame of the given segments given
+        segments['frame_onset'] = segments['segment_onset'].apply(
+            lambda onset: floor(onset / 1000 * self.target_sr))
+        segments['frame_offset'] = segments['segment_offset'].apply(
+            lambda offset: ceil(offset / 1000 * self.target_sr))
 
         # Find better solution if more acoustic annotations are added in the future (concat dfs)
         
         pitch = segments.apply(lambda row:
                                AcousticDerivator.get_pitch(
-                                   librosa.load(recording,
-                                                mono=True,
-                                                sr=self.target_sr,
-                                                offset=row['extended_onset'],
-                                                duration=(row['extended_offset'] - row['extended_onset']))[0],
+                                   audio_time_series[row['frame_onset']:row['frame_offset']],
                                    self.target_sr,
                                    func=AcousticDerivator.f2st
                                ), axis=1)
@@ -191,8 +187,8 @@ class AcousticDerivator(Derivator):
         pitch.index = segments.index
         audio_segments = pd.concat([segments, pitch.drop(columns=segments.columns, errors='ignore')], axis=1) #dropping columns that already exists to avoid same name columns
 
-        audio_segments.drop(columns=['extended_onset',
-                                  'extended_offset'],
+        audio_segments.drop(columns=['frame_onset',
+                                  'frame_offset'],
                          inplace=True)
 
         return audio_segments
