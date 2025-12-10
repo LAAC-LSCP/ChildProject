@@ -16,6 +16,7 @@ import logging
 from pathlib import Path
 import yaml
 import shutil
+import tqdm
 
 from . import __version__
 from .pipelines.derivations import DERIVATIONS, Derivator, RuntimeDerivator
@@ -25,6 +26,7 @@ from .tables import IndexTable, IndexColumn, assert_dataframe, assert_columns_pr
 from .utils import (Segment, intersect_ranges, TimeInterval, series_to_datetime, find_lines_involved_in_overlap,
                     df_to_printable, printable_unit_duration)
 
+sys.settrace
 ANNOTATIONS = Path("annotations")
 ANNOTATIONS_CSV = Path('annotations.csv')
 CONVERTED = Path('converted')
@@ -1097,6 +1099,7 @@ class AnnotationManager:
         :return: output annotation dictionary (attributes defined according to :ref:`ChildProject.annotations.AnnotationManager.SEGMENTS_COLUMNS`)
         :rtype: dict
         """
+        print(f"start processing {annotation['recording_filename']}")
         annotation_result = annotation.copy()
         annotation_result['set'] = output_set
         annotation_result['format'] = "NA"
@@ -1118,6 +1121,9 @@ class AnnotationManager:
                 logger_annotations.warning("File %s already exists. To overwrite, specify parameter ''overwrite_existing'' to True", output_filename)
                 return annotation_result
 
+        if output_filename.exists() and not overwrite_existing:
+            logger_annotations.warning("File %s already exists. To overwrite, specify parameter ''overwrite_existing'' to True", output_filename)
+            return annotation_result
         # find if there are annotation indexes in the same set that overlap the new annotation
         # as it is not possible to annotate multiple times the same audio stretch in the same set
         ovl_annots = self.annotations[(self.annotations['set'] == output_set) &
@@ -1207,6 +1213,7 @@ class AnnotationManager:
             exist_ok=True,
         )
         df.to_csv(self.project.path / output_filename, index=False)
+        print(f"Finished processing {annotation['recording_filename']}")
 
         annotation_result["annotation_filename"] = annotation_filename
         annotation_result["imported_at"] = datetime.datetime.now().strftime(
@@ -1274,14 +1281,14 @@ class AnnotationManager:
         else:
             # apply the derivation function to each annotation file that needs to be derived (threaded)
             with mp.Pool(processes=threads if threads > 0 else mp.cpu_count()) as pool:
-                imported = pool.map(
+                imported = list(tqdm.tqdm(pool.imap(
                     partial(self._derive_annotation,
                             derivator=derivator,
                             output_set=output_set,
                             overwrite_existing=overwrite_existing
                             ),
                     input_processed.to_dict(orient="records"),
-                )
+                ), total=input_processed.shape[0]))
 
         imported = pd.DataFrame(imported)
         # drop additional columns that are not supposed to be kept in annotations.csv

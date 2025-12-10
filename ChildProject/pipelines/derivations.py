@@ -5,6 +5,9 @@ import numpy as np
 import pandas as pd
 import librosa
 from typing import List
+import tqdm
+
+tqdm.tqdm.pandas()
 
 from ChildProject.projects import STANDARD_PROFILE, STANDARD_SAMPLE_RATE, ChildProject
 
@@ -165,7 +168,7 @@ class AcousticDerivator(Derivator):
         assert file_sr == self.target_sr, ValueError("Mismatch between file's true sampling rate ({}) and "
                                                 "target sampling rate ({})!".format(file_sr, self.target_sr))
         audio_time_series, sampling_rate = librosa.load(recording, mono=True, sr=self.target_sr)
-
+        print(f"loaded audio {recording}")
         # Computes the start frame and end frame of the given segments given
         segments['frame_onset'] = segments['segment_onset'].apply(
             lambda onset: floor(onset / 1000 * self.target_sr))
@@ -174,7 +177,7 @@ class AcousticDerivator(Derivator):
 
         # Find better solution if more acoustic annotations are added in the future (concat dfs)
         
-        pitch = segments.apply(lambda row:
+        pitch = segments.progress_apply(lambda row:
                                AcousticDerivator.get_pitch(
                                    audio_time_series[row['frame_onset']:row['frame_offset']],
                                    self.target_sr,
