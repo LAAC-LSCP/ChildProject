@@ -215,7 +215,7 @@ class ZooniversePipeline(Pipeline):
                 # audio = AudioSegment.from_file(source, start_second=chunk.onset / 1000,
                 #                                duration=(chunk.offset - chunk.onset) / 1000,
                 #                                channels=1)
-                chunk_audio = audio.fade_in(10).fade_out(10)
+                chunk_audio = audio[chunk.onset:chunk.offset].fade_in(10).fade_out(10)
 
                 wav = os.path.join(self.destination, "chunks", chunk.getbasename("wav"))
                 mp3 = os.path.join(self.destination, "chunks", chunk.getbasename("mp3"))
