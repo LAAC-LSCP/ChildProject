@@ -9,7 +9,7 @@ jobs:
   build-macos:
     strategy:
       matrix:
-        os: [macos-15-intel, macos-latest]
+        os: [macos-latest]
         python-version: ['3.8', '3.9', '3.10', '3.11', '3.12','3.13']
     name: Tests-macos
     runs-on: ${{ matrix.os }}
