@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.4.5] 2025-12-15
+
+### Fixed
+
+- Extract chunks would export the entire audio
+
 ## [0.4.4] 2025-12-08
 
 ### Fixed
