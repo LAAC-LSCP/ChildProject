@@ -15,6 +15,7 @@ Welcome to ChildProject's documentation!
    format
    getting-data
    projects
+   full-project-from-scratch
 
 .. toctree::
    :maxdepth: 2
