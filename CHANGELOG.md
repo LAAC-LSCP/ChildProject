@@ -8,6 +8,18 @@ All notable changes to this project will be documented in this file.
 
 - adding std (standard deviation) on the durations of vocalizations in metrics
 
+## [0.4.5] 2025-12-15
+
+### Fixed
+
+- Extract chunks would export the entire audio
+
+## [0.4.4] 2025-12-08
+
+### Fixed
+
+- Loading audio separately was a huge bottleneck with filesystem access, reverting it
+
 ## [0.4.3] 2025-11-19
 
 ### Fixed

@@ -9,7 +9,7 @@ jobs:
   build-macos:
     strategy:
       matrix:
-        os: [macos-13, macos-latest]
+        os: [macos-latest]
         python-version: ['3.8', '3.9', '3.10', '3.11', '3.12','3.13']
     name: Tests-macos
     runs-on: ${{ matrix.os }}
@@ -21,7 +21,7 @@ jobs:
         with:
           python-version: "${{ matrix.python-version }}"
       - name: ffmpeg-x64
-        if: ${{ matrix.os == 'macos-13' }}
+        if: ${{ matrix.os == 'macos-15-intel' }}
         uses: AnimMouse/setup-ffmpeg@v1
         with:
           version: 7.1.1
