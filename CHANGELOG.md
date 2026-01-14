@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- adding std (standard deviation) on the durations of vocalizations in metrics
+
 ## [0.4.5] 2025-12-15
 
 ### Fixed
