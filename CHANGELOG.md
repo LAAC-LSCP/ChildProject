@@ -11,6 +11,9 @@ All notable changes to this project will be documented in this file.
 ### Modified
 
 - Derivation and merge of sets won't fail if the writing of metannots fails, it will simply issue an error in log
+- dialect element in languages column inside children.csv is not supported anymore, dialect should be indicated elsewhere
+- NA is accepted in datetime elements without warning
+- custom is accepted as an annotation format
 
 ## [0.4.5] 2025-12-15
 

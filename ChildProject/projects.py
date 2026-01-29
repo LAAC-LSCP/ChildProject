@@ -91,7 +91,7 @@ class ChildProject:
         ),
         IndexColumn(
             name="language",
-            description='language the child is exposed to if child is monolingual; small caps, indicate dialect by name or location if available; eg "france french"; "paris french"',
+            description='main language the child is exposed to; small caps; eg "french"; "english"',
         ),
         IndexColumn(
             name="languages",
