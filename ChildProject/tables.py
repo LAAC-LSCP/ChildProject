@@ -231,7 +231,8 @@ class IndexTable:
                         if column_attr.required and str(row[column_name]) != "NA":
                             errors.append(self.msg(message))
                         elif column_attr.required or str(row[column_name]) != "NA":
-                            warnings.append(self.msg(message))
+                            pass
+                            #warnings.append(self.msg(message))
                 elif column_attr.regex:
                     if not re.fullmatch(column_attr.regex, str(row[column_name])):
                         message = "'{}' does not match the format required for '{}' on line {}, expected '{}'".format(

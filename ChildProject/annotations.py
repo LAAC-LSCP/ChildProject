@@ -75,7 +75,7 @@ class AnnotationManager:
         IndexColumn(
             name="format",
             description="input annotation format",
-            choices=[*converters.keys(), "NA"],
+            choices=[*converters.keys(), "NA", "custom"],
             required=False,
         ),
         IndexColumn(
