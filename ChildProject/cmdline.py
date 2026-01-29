@@ -28,6 +28,11 @@ import sys
 import random
 import logging
 import json
+class SetEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, set):
+            return list(obj)
+        return json.JSONEncoder.default(self, obj)
 
 # add this to setup,py in the requires section and in requirements.txt
 import colorlog
@@ -693,7 +698,7 @@ def overview(args) -> int:
             logger.info(output)
 
     if args.format == 'json':
-        logger.info(json.dumps(dict))
+        logger.info(json.dumps(dict, cls=SetEncoder))
 
     return 0
 
