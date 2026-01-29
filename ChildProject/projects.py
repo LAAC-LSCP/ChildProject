@@ -87,7 +87,7 @@ class ChildProject:
         IndexColumn(
             name="child_sex",
             description="f= female, m=male",
-            choices=["m", "M", "f", "F"],
+            choices=["m", "M", "f", "F", 'NA'],
         ),
         IndexColumn(
             name="language",
@@ -106,7 +106,7 @@ class ChildProject:
         IndexColumn(
             name="monoling",
             description="whether the child is monolingual (Y) or not (N)",
-            choices=["Y", "N"],
+            choices=["Y", "N", 'NA'],
         ),
         IndexColumn(
             name="monoling_criterion",
@@ -115,7 +115,7 @@ class ChildProject:
         IndexColumn(
             name="normative",
             description="whether the child is normative (Y) or not (N)",
-            choices=["Y", "N"],
+            choices=["Y", "N", 'NA'],
         ),
         IndexColumn(
             name="normative_criterion",
@@ -144,13 +144,13 @@ class ChildProject:
         IndexColumn(
             name="dob_criterion",
             description="determines whether the date of birth is known exactly or extrapolated e.g. from the age. Dates of birth are assumed to be known exactly if this column is NA or unspecified.",
-            choices=["extrapolated", "exact"],
+            choices=["extrapolated", "exact", 'reported', 'innacurate'],
             required=False,
         ),
         IndexColumn(
             name="dob_accuracy",
             description="date of birth accuracy",
-            choices=["day", "week", "month", "year", "other"],
+            choices=["day", "week", "month", "year", "other", "innacurate", 'NA'], # innacurate shows the dob isn't representative of the child's age; analysis should not use the age of the participant
         ),
         IndexColumn(
             name="discard",
@@ -243,7 +243,7 @@ class ChildProject:
         IndexColumn(
             name="start_time_accuracy",
             description="Accuracy of start_time for this recording. If not specified, assumes second-accuray.",
-            choices=["second", "minute", "hour", "reliable"],
+            choices=["second", "minute", "hour", "reliable", 'NA'],
         ),
         IndexColumn(
             name="noisy_setting",

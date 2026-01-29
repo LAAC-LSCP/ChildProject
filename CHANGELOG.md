@@ -13,7 +13,8 @@ All notable changes to this project will be documented in this file.
 - Derivation and merge of sets won't fail if the writing of metannots fails, it will simply issue an error in log
 - dialect element in languages column inside children.csv is not supported anymore, dialect should be indicated elsewhere
 - NA is accepted in datetime elements without warning
-- custom is accepted as an annotation format
+- custom is accepted as an annotation format, monoling, normative, child_sex, start_time_accuracy and dob_accuracy
+- allow innacurate and reported for dob_criterion / accuracy to reflect lack of knowledge of the participant's age
 
 ## [0.4.5] 2025-12-15
 
