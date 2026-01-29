@@ -1369,7 +1369,10 @@ class AnnotationManager:
             subset=["set", "recording_filename", "range_onset", "range_offset"], keep='last')
         # write the derived set metadata only if some lines were correctly imported
         if imported.shape[0]:
-            self._write_set_metadata(output_set, set_metadata, output_as_path)
+            try:
+                self._write_set_metadata(output_set, set_metadata, output_as_path)
+            except Exception as e:
+                logger.error(f"Could not write set metadata for {output_set}")
 
         if output_as_path:
             # At this point the outputs are where they need to be, but the below functions will not run
@@ -1863,7 +1866,10 @@ class AnnotationManager:
         self.write()
         # if the set's metadata exists already, do not write new metadata
         if not (self.project.path / ANNOTATIONS / output_set / METANNOTS).exists():
-            self._write_set_metadata(output_set, new_set_meta)
+            try:
+                self._write_set_metadata(output_set, new_set_meta)
+            except Exception as e:
+                logger.error(f"Could not write set metadata for {output_set}")
         self._read_sets_metadata()
 
         return self

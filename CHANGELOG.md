@@ -8,6 +8,10 @@ All notable changes to this project will be documented in this file.
 
 - adding std (standard deviation) on the durations of vocalizations in metrics
 
+### Modified
+
+- Derivation and merge of sets won't fail if the writing of metannots fails, it will simply issue an error in log
+
 ## [0.4.5] 2025-12-15
 
 ### Fixed
