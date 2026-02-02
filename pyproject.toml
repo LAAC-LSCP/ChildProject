@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ChildProject"
-version = '0.4.5'
+version = '0.4.6'
 dependencies = [
   "colorlog",
   "GitPython",
@@ -13,7 +13,7 @@ dependencies = [
   "matplotlib",
   "nltk",
   "numpy>=1.17",
-  "pandas>=2.0.0,<=3.0.0",
+  "pandas>=2.0.0,<3.0.0",
   "panoptes_client",
   "praat-parselmouth",
   "pyannote.core",

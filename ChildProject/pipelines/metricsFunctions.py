@@ -207,6 +207,16 @@ def avg_voc_dur_speaker(segments: pd.DataFrame, duration: int, **kwargs) -> floa
     return segments[segments["speaker_type"] == kwargs["speaker"]]["duration"].mean()
 
 
+@metricFunction({"speaker"}, {"speaker_type", "duration"}, np.nan)
+def std_voc_dur_speaker(segments: pd.DataFrame, duration: int, **kwargs) -> float:
+    """standard deviation of duration in milliseconds of vocalizations for a given speaker type 
+    
+    Required keyword arguments:
+        - speaker : speaker_type to use
+    """
+    return segments[segments["speaker_type"] == kwargs["speaker"]]["duration"].std()
+
+
 def wc_speaker(segments: pd.DataFrame, duration: int, **kwargs) -> float:
     """number of words for a given speaker type
     
@@ -342,11 +352,33 @@ def avg_cry_voc_dur_speaker(segments: pd.DataFrame, duration: int, **kwargs) -> 
         value = segments.loc[(segments["speaker_type"] == kwargs["speaker"]) &
                                 (segments["vcm_type"] == "Y")]["duration"].mean()
     else:
-        segments = segments[segments['speaker_type'] == kwargs["speaker"]]
+        segments = segments[(segments['speaker_type'] == kwargs["speaker"]) & (segments["child_cry_vfx_len"] > 0)]
         value = segments["child_cry_vfx_len"].sum() / segments["cries"].apply(lambda x: len(ast.literal_eval(x))).sum()
 
     if pd.isnull(value):
         value = 0
+    return value
+
+
+@metricFunction({"speaker"}, ({"speaker_type", "vcm_type", "duration"}, {'speaker_type', "child_cry_vfx_len", "cries"}), np.nan)
+def std_cry_voc_dur_speaker(segments: pd.DataFrame, duration: int, **kwargs) -> float:
+    """standard deviation of duration of cry vocalizations by a given speaker type (based on vcm_type or lena cries)
+    
+    Required keyword arguments:
+        - speaker : speaker_type to use
+    """
+    if 'vcm_type' in segments.columns and 'duration' in segments.columns:
+        value = segments.loc[(segments["speaker_type"] == kwargs["speaker"]) &
+                                (segments["vcm_type"] == "Y")]["duration"].std()
+    else:
+        segments = segments[
+            (segments['speaker_type'] == kwargs["speaker"]) & (segments["child_cry_vfx_len"] > 0)].copy()
+        segments['cry_dur'] = segments["child_cry_vfx_len"] / segments["cries"].apply(
+            lambda x: len(ast.literal_eval(x)))  # split duration of cry in the same voc
+        segments['num'] = segments["cries"].apply(lambda x: ast.literal_eval(x))  # have a array to explode
+        segments = segments.explode('num')
+        value = segments['cry_dur'].std()
+
     return value
 
 
@@ -395,6 +427,18 @@ def avg_can_voc_dur_speaker(segments: pd.DataFrame, duration: int, **kwargs) -> 
     return value
 
 
+@metricFunction({"speaker"}, {"speaker_type", "vcm_type", "duration"}, np.nan)
+def std_can_voc_dur_speaker(segments: pd.DataFrame, duration: int, **kwargs) -> float:
+    """standard deviation of duration of canonical vocalizations for a given speaker type (based on vcm_type)
+    
+    Required keyword arguments:
+        - speaker : speaker_type to use
+    """
+    value = segments.loc[(segments["speaker_type"] == kwargs["speaker"]) & (segments["vcm_type"] == "C")][
+        "duration"].std()
+    return value
+
+
 def non_can_voc_speaker(segments: pd.DataFrame, duration: int, **kwargs) -> int:
     """number of non-canonical vocalizations for a given speaker type (based on vcm_type)
     
@@ -440,6 +484,18 @@ def avg_non_can_voc_dur_speaker(segments: pd.DataFrame, duration: int, **kwargs)
                             (segments["vcm_type"] == "N")]["duration"].mean()
     if pd.isnull(value):
         value = 0
+    return value
+
+
+@metricFunction({"speaker"}, {"speaker_type", "vcm_type", "duration"}, np.nan)
+def std_non_can_voc_dur_speaker(segments: pd.DataFrame, duration: int, **kwargs) -> float:
+    """standard deviation of duration of non-canonical vocalizations for a given speaker type (based on vcm_type)
+    
+    Required keyword arguments:
+        - speaker : speaker_type to use
+    """
+    value = segments.loc[(segments["speaker_type"] == kwargs["speaker"]) &
+                            (segments["vcm_type"] == "N")]["duration"].std()
     return value
 
 

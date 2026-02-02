@@ -75,7 +75,7 @@ class AnnotationManager:
         IndexColumn(
             name="format",
             description="input annotation format",
-            choices=[*converters.keys(), "NA"],
+            choices=[*converters.keys(), "NA", "custom"],
             required=False,
         ),
         IndexColumn(
@@ -789,8 +789,14 @@ class AnnotationManager:
 
         return self
 
-    def _write_set_metadata(self, setname, metadata) -> Self:
+    def _write_set_metadata(self, setname, metadata, output_as_path: bool=False) -> Self:
+        if output_as_path:
+            with open(setname / METANNOTS, 'w') as stream:
+                yaml.dump(metadata, stream)
+            return self
+
         assert setname in self.annotations['set'].unique(), f"set must exist"
+
         with open(self.project.path / ANNOTATIONS / setname / METANNOTS, 'w') as stream:
             yaml.dump(metadata, stream)
         return self
@@ -1083,6 +1089,7 @@ class AnnotationManager:
             derivator: Derivator,
             output_set: str,
             overwrite_existing: bool = False,
+            output_as_path = False,
     ) -> dict:
         """import and convert ``annotation``. This function should not be called outside of this class.
 
@@ -1094,6 +1101,8 @@ class AnnotationManager:
         :type output_set: str
         :param overwrite_existing: use for lines with the same set and annotation_filename to be re-derived and overwritten
         :type overwrite_existing: bool
+        :param output_as_path: used if you want to direct your outputs to any filesystem folder, specified by `output_set`
+        :type output_as_path: bool
         :return: output annotation dictionary (attributes defined according to :ref:`ChildProject.annotations.AnnotationManager.SEGMENTS_COLUMNS`)
         :rtype: dict
         """
@@ -1106,7 +1115,10 @@ class AnnotationManager:
         annotation_filename = "{}_{}_{}.csv".format(
             source_recording, annotation["range_onset"], annotation["range_offset"]
         )
-        output_filename = ANNOTATIONS / output_set / CONVERTED / annotation_filename
+        if not output_as_path:
+            output_filename = ANNOTATIONS / output_set / CONVERTED / annotation_filename
+        else:
+            output_filename = Path(output_set) / CONVERTED / annotation_filename
 
         # check if the annotation file already exists in dataset (same filename and same set)
         if self.annotations[(self.annotations['set'] == output_set) &
@@ -1202,11 +1214,18 @@ class AnnotationManager:
 
         df.sort_values(sort_columns, inplace=True)
 
-        os.makedirs(
-            (self.project.path / output_filename).parent,
-            exist_ok=True,
-        )
-        df.to_csv(self.project.path / output_filename, index=False)
+        if output_as_path:
+            os.makedirs(
+                output_filename.parent,
+                exist_ok=True,
+            )
+            df.to_csv(output_filename, index=False)
+        else:
+            os.makedirs(
+                (self.project.path / output_filename).parent,
+                exist_ok=True,
+            )
+            df.to_csv(self.project.path / output_filename, index=False)
 
         annotation_result["annotation_filename"] = annotation_filename
         annotation_result["imported_at"] = datetime.datetime.now().strftime(
@@ -1242,6 +1261,29 @@ class AnnotationManager:
         :return: tuple of dataframe of derived annotations, as in :ref:`format-annotations` and dataframe of errors
         :rtype: tuple(pd.DataFrame, pd.DataFrame)
         """
+        return self._derive_annotations(
+                            input_set=input_set,
+                            output_set=output_set,
+                            derivation=derivation,
+                            derivation_metadata=derivation_metadata,
+                            threads=threads,
+                            overwrite_existing=overwrite_existing,
+                            output_as_path=False,
+                            )
+
+    def _derive_annotations(self,
+                           input_set: str,
+                           output_set: str,
+                           derivation: Union[str, Callable],
+                           derivation_metadata=None,
+                           threads: int = -1,
+                           overwrite_existing: bool = False,
+                           output_as_path: bool = False,
+                           ) -> (pd.DataFrame, pd.DataFrame):
+        """
+        Derive annotations. Same as the public routine, except specifying `output_as_path==True`
+        will direct your outputs to a chosen folder anywhere on the filesystem
+        """
         input_processed = self.annotations[self.annotations['set'] == input_set].copy()
         assert not input_processed.empty, "Input set {0} does not exist,\
          existing sets are in the 'set' column of {1}".format(input_set, ANNOTATIONS_CSV)
@@ -1268,7 +1310,8 @@ class AnnotationManager:
                 partial(self._derive_annotation,
                         derivator=derivator,
                         output_set=output_set,
-                        overwrite_existing=overwrite_existing
+                        overwrite_existing=overwrite_existing,
+                        output_as_path=output_as_path,
                         ), axis=1
             ).to_dict(orient="records")
         else:
@@ -1278,7 +1321,8 @@ class AnnotationManager:
                     partial(self._derive_annotation,
                             derivator=derivator,
                             output_set=output_set,
-                            overwrite_existing=overwrite_existing
+                            overwrite_existing=overwrite_existing,
+                            output_as_path=output_as_path,
                             ),
                     input_processed.to_dict(orient="records"),
                 )
@@ -1325,7 +1369,17 @@ class AnnotationManager:
             subset=["set", "recording_filename", "range_onset", "range_offset"], keep='last')
         # write the derived set metadata only if some lines were correctly imported
         if imported.shape[0]:
-            self._write_set_metadata(output_set, set_metadata)
+            try:
+                self._write_set_metadata(output_set, set_metadata, output_as_path)
+            except Exception as e:
+                logger.error(f"Could not write set metadata for {output_set}")
+
+        if output_as_path:
+            # At this point the outputs are where they need to be, but the below functions will not run
+            # Until the set has been added to the dataset. You would have to import yourself manually
+            # after the fact using an automated importation (and possibly some file/folder renaming)
+            return imported, errors
+
         self._read_sets_metadata()
         self.write()
 
@@ -1812,7 +1866,10 @@ class AnnotationManager:
         self.write()
         # if the set's metadata exists already, do not write new metadata
         if not (self.project.path / ANNOTATIONS / output_set / METANNOTS).exists():
-            self._write_set_metadata(output_set, new_set_meta)
+            try:
+                self._write_set_metadata(output_set, new_set_meta)
+            except Exception as e:
+                logger.error(f"Could not write set metadata for {output_set}")
         self._read_sets_metadata()
 
         return self
