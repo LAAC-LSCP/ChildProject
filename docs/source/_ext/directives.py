@@ -144,8 +144,8 @@ class CustomTable(CSVTable):
             self.options['widths'] = [20, 50, 25]
         elif array == 'list-derivations':
             for name in DERIVATIONS:
-                func, meta = DERIVATIONS[name]
-                doc = cleandoc(func.__doc__.split(':param')[0]) # not great...
+                derivator = DERIVATIONS[name]
+                doc = cleandoc(derivator.__doc__) # not great...
                 df_entry = {
                     'Derivation': name,
                     'Description': wrap(doc, 80),
