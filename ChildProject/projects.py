@@ -322,6 +322,7 @@ class ChildProject:
     def __init__(
         self, path: Union[Path, str], enforce_dtypes: bool = True, ignore_discarded: bool = True
     ):
+        self.loaded = False
         self.path = Path(path)
         self.experiment = None
         self.enforce_dtypes = enforce_dtypes
@@ -624,7 +625,7 @@ class ChildProject:
 
 
     def dict_summary(self) -> dict:
-        if self.recordings is None:
+        if not self.loaded:
             self.read()
         ages = self.compute_ages()
         languages = (set(self.children['languages'].fillna('').apply(
@@ -767,7 +768,8 @@ class ChildProject:
 
         # check tables, reacquire files, except if we validate on data that has been programmatically changed
         if not current_metadata:
-            self.read(verbose=True, accumulate=accumulate)
+            if not self.loaded or not accumulate:
+                self.read(verbose=True, accumulate=accumulate)
 
             errors, warnings = self.ct.validate()
             self.errors += errors

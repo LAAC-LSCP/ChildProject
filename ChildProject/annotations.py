@@ -454,9 +454,10 @@ class AnnotationManager:
         if not isinstance(project, ChildProject):
             raise ValueError("project should derive from ChildProject")
 
-        self.project.read()
+        if not self.project.loaded:
+            self.project.read()
 
-        index_path = self.project.path / METADATA_FOLDER /ANNOTATIONS_CSV
+        index_path = self.project.path / METADATA_FOLDER / ANNOTATIONS_CSV
         if not index_path.exists():
             open(index_path, "w+").write(",".join([c.name for c in self.INDEX_COLUMNS]))
 
@@ -707,8 +708,6 @@ class AnnotationManager:
         :return: new recording_filename
         :rtype: str
         """
-        if self.annotations is None:
-            self.read()
         annotations = self.annotations.copy()
         annotations.loc[
             annotations['recording_filename'] == recording_filename, 'recording_filename'] = new_recording_filename
@@ -1068,7 +1067,7 @@ class AnnotationManager:
         else:
             errors = None
 
-        self.read()
+        #self.read()
         self.annotations = pd.concat([self.annotations, imported], sort=False)
         #at this point, 2 lines with same set and annotation_filename can happen if specified overwrite,
         # dropping duplicates remove the first importation and keeps the more recent one
@@ -1361,7 +1360,7 @@ class AnnotationManager:
             set_metadata.update(derivation_metadata)
 
         # here we add the new lines of imported annotations to the annotations.csv file
-        self.read()
+        #self.read()
         self.annotations = pd.concat([self.annotations, imported], sort=False)
         # at this point, 2 lines with same set and annotation_filename can happen if specified overwrite,
         # dropping duplicates remove the first importation and keeps the more recent one
@@ -1430,8 +1429,6 @@ class AnnotationManager:
         :param recursive: remove subsets as well, defaults to False
         :type recursive: bool, optional
         """
-        self.read()
-
         subsets = []
         if recursive:
             subsets = self.get_subsets(annotation_set, recursive=False)
@@ -1475,8 +1472,6 @@ class AnnotationManager:
         :param ignore_errors: If True, keep going even if unindexed files are detected, defaults to False
         :type ignore_errors: bool, optional
         """
-        self.read()
-
         annotation_set = annotation_set.rstrip("/").rstrip("\\")
         new_set = new_set.rstrip("/").rstrip("\\")
 
@@ -1847,7 +1842,6 @@ class AnnotationManager:
         )
         annotations.fillna({"raw_filename": "NA"}, inplace=True)
 
-        self.read()
         # if annotations.csv can have duplicate entries with same converted filename and is normal, check this https://stackoverflow.com/a/45927402 and change the code
         self.annotations = pd.concat([self.annotations, annotations], sort=False).drop_duplicates(subset=['set','recording_filename','annotation_filename'], keep='last')
 
