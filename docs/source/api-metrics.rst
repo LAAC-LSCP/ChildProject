@@ -14,7 +14,6 @@ This section demonstrates how to use the python API for these purposes.
         datalad install git@gin.g-node.org:/LAAC-LSCP/vandam-data.git
         datalad get vandam-data/annotations
 
-
 Comparing two annotators
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -32,6 +31,13 @@ We show how to compute confusion matrices with the ChildProject package,
 using data from the VanDam public corpus. In this example, we will compare
 annotations from the LENA and the Voice Type Classifier.
 
+To access the console in the dataset directory:
+
+.. code-block:: bash
+
+    cd vandam-data
+    python
+
 The first step is to get all annotations common to the LENA and the VTC.
 This can be done with the :meth:`~ChildProject.annotations.AnnotationManager.intersection`
 static method 
@@ -43,7 +49,7 @@ of :class:`~ChildProject.annotations.AnnotationManager`:
     >>> from ChildProject.annotations import AnnotationManager
     >>> from ChildProject.metrics import segments_to_grid, conf_matrix
     >>> speakers = ['CHI', 'OCH', 'FEM', 'MAL']
-    >>> project = ChildProject('vandam-data')
+    >>> project = ChildProject('.')
     >>> am = AnnotationManager(project)
     >>> am.read()
     ([], ["vandam-data/metadata/annotations.csv: 'chat' is not a permitted value for column 'format' on line 4, should be any of [TextGrid,eaf,vtc_rttm,vcm_rttm,alice,its]", "vandam-data/metadata/annotations.csv: 'custom_rttm' is not a permitted value for column 'format' on line 6, should be any of [TextGrid,eaf,vtc_rttm,vcm_rttm,alice,its]"])
