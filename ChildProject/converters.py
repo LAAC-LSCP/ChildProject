@@ -528,7 +528,7 @@ class EafConverter(AnnotationConverter):
             else:
                 label, ref = tier_name, None
             reference_annotations = eaf.tiers[tier_name][1]
-            if label in TIER_TO_COLUMN.keys():
+            if label in EafConverter.TIER_TO_COLUMN.keys():
                 columns = columns | set((EafConverter.TIER_TO_COLUMN[label],))
             if ref not in AnnotationConverter.SPEAKER_ID_TO_TYPE:
                 continue
