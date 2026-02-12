@@ -25,18 +25,23 @@ dependencies = [
   "requests>=2.25.0",
   "soundfile",
 ]
-license = {file = 'LICENSE'}
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [
   { name="Lucas Gautheron", email="lucas.gautheron@gmail.com" },
   { name="Loann Peurey", email="loannpeurey@gmail.com" },
 ]
+maintainers = [
+  { name="Lucas Gautheron", email="lucas.gautheron@gmail.com" },
+  { name="Loann Peurey", email="loannpeurey@gmail.com" },
+]
 description = "LAAC@LSCP"
-readme = "README.md"
+readme = { file = "README.md", content-type = "text/markdown" }
+keywords = ["childproject", "long form recordings", "language acquisition", "laac", "linguistics", "child", "language", "development"]
 requires-python = ">=3.8"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
     "Natural Language :: English",
     "Operating System :: Unix",
     "Programming Language :: Python",
@@ -56,6 +61,9 @@ repository = ["datalad"]
 [project.urls]
 Homepage = "https://github.com/LAAC-LSCP/ChildProject"
 Documentation = "https://childproject.readthedocs.io/en/latest/"
+Issues = "https://github.com/LAAC-LSCP/ChildProject/issues"
+Discussions = "https://github.com/LAAC-LSCP/ChildProject/discussions"
+ChangeLog = "https://github.com/LAAC-LSCP/ChildProject/blob/master/CHANGELOG.md"
 
 [project.scripts]
 child-project = "ChildProject.cmdline:main"
@@ -63,9 +71,23 @@ child-project = "ChildProject.cmdline:main"
 [tool.setuptools]
 include-package-data = true
 
-[tool.setuptools.packages.find]
-namespaces = true
-include = ["ChildProject*"]
-
 [tool.setuptools.package-data]
 "ChildProject.templates" = ["*.etf", "*.pfsx"]
+
+[tool.setuptools.packages.find]
+namespaces = true
+where = ["."]
+include = ["ChildProject", "ChildProject.*"]
+exclude = ["tests*", "tests.*"]
+
+[tool.mypy]
+python_version = "3.8" # set this to the lowest supported version
+namespace_packages = true
+check_untyped_defs = true
+
+[tool.black]
+line-length = 120       # same as flake8
+target-version = ["py38", "py39"]
+
+[tool.flake8]
+max-line-length = 120   # same as black
