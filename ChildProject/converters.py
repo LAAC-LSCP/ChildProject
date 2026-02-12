@@ -486,13 +486,13 @@ class EafConverter(AnnotationConverter):
     @staticmethod
     def convert(filename: str, filter=None, **kwargs) -> pd.DataFrame:
         import pympi
-
+        
         eaf = pympi.Elan.Eaf(filename)
-
+        
         segments = {}
+        columns = {'segment_onset','segment_offset','speaker_id','speaker_type'}
         for tier_name in eaf.tiers:
             annotations = eaf.tiers[tier_name][0]
-
             if (
                 tier_name not in AnnotationConverter.SPEAKER_ID_TO_TYPE
                 and len(annotations) > 0
@@ -503,44 +503,30 @@ class EafConverter(AnnotationConverter):
                     )
                 )
                 continue
-
             for aid in annotations:
                 (start_ts, end_ts, value, svg_ref) = annotations[aid]
                 (start_t, end_t) = (eaf.timeslots[start_ts], eaf.timeslots[end_ts])
-
                 segment = {
                     "segment_onset": int(round(start_t)),
                     "segment_offset": int(round(end_t)),
                     "speaker_id": tier_name,
                     "speaker_type": AnnotationConverter.SPEAKER_ID_TO_TYPE[tier_name],
-                # recent change, not include all columns by default, this can be useful to use column presence
-                # to determine what info is annotated
-                    # "vcm_type": "NA",
-                    # "lex_type": "NA",
-                    # "mwu_type": "NA",
-                    # "addressee": "NA",
-                    # "transcription": value if value != "0" else "0.",
-                    # "words": "NA",
                 }
                 if value:
                     segment['transcription'] = value
-
                 segments[aid] = segment
-
         for tier_name in eaf.tiers:
             if "@" in tier_name:
                 label, ref = tier_name.split("@")
             else:
                 label, ref = tier_name, None
-
             reference_annotations = eaf.tiers[tier_name][1]
-
+            if label in TIER_TO_COLUMN.keys():
+                columns = columns | set((TIER_TO_COLUMN[label],))
             if ref not in AnnotationConverter.SPEAKER_ID_TO_TYPE:
                 continue
-
             for aid in reference_annotations:
                 (ann, value, prev, svg) = reference_annotations[aid]
-
                 ann = aid
                 parentTier = eaf.tiers[eaf.annotations[ann]]
                 while (
@@ -550,7 +536,6 @@ class EafConverter(AnnotationConverter):
                 ):
                     ann = parentTier[1][ann][0]
                     parentTier = eaf.tiers[eaf.annotations[ann]]
-
                 if ann not in segments:
                     print(
                         "warning: annotation '{}' not found in segments for '{}'".format(
@@ -558,23 +543,15 @@ class EafConverter(AnnotationConverter):
                         )
                     )
                     continue
-
                 segment = segments[ann]
-
-                if label == "lex":
-                    segment["lex_type"] = value
-                elif label == "mwu":
-                    segment["mwu_type"] = value
-                elif label == "xds":
-                    segment["addressee"] = value
-                elif label == "vcm":
-                    segment["vcm_type"] = value
-                elif label == "msc":
-                    segment["msc_type"] = value
+                if label in TIER_TO_COLUMN.keys():
+                    segment[TIER_TO_COLUMN[label]] = value
                 elif label in kwargs["new_tiers"]:
                     segment[label] = value
-
-        return pd.DataFrame(segments.values()).fillna('NA')
+        if len(segments):
+            return pd.DataFrame(segments.values()).fillna('NA')
+        else:
+            return pd.DataFrame(columns=list(columns))
 
 
 class ChatConverter(AnnotationConverter):
