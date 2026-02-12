@@ -483,6 +483,13 @@ class TextGridConverter(AnnotationConverter):
 class EafConverter(AnnotationConverter):
     FORMAT = Formats.EAF.value
 
+    TIER_TO_COLUMN = {'lex':'lex_type',
+                  'mwu':'mwu_type',
+                  'xds':'addressee',
+                  'vcm':'vcm_type',
+                  'msc':'msc_type'
+                  }
+
     @staticmethod
     def convert(filename: str, filter=None, **kwargs) -> pd.DataFrame:
         import pympi
@@ -522,7 +529,7 @@ class EafConverter(AnnotationConverter):
                 label, ref = tier_name, None
             reference_annotations = eaf.tiers[tier_name][1]
             if label in TIER_TO_COLUMN.keys():
-                columns = columns | set((TIER_TO_COLUMN[label],))
+                columns = columns | set((EafConverter.TIER_TO_COLUMN[label],))
             if ref not in AnnotationConverter.SPEAKER_ID_TO_TYPE:
                 continue
             for aid in reference_annotations:
@@ -544,8 +551,8 @@ class EafConverter(AnnotationConverter):
                     )
                     continue
                 segment = segments[ann]
-                if label in TIER_TO_COLUMN.keys():
-                    segment[TIER_TO_COLUMN[label]] = value
+                if label in EafConverter.TIER_TO_COLUMN.keys():
+                    segment[EafConverter.TIER_TO_COLUMN[label]] = value
                 elif label in kwargs["new_tiers"]:
                     segment[label] = value
         if len(segments):
