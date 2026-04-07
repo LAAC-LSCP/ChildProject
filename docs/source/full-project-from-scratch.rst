@@ -104,7 +104,7 @@ Now run ``child-project validate .`` to check if everything is tied up correctly
 
 Converting recordings
 ~~~~~~~~~~~~~~~~~~~~~
-The models we run, such as VTC, or ALICE, are trained on audio at 16,000Hz. As a general rule we convert all audio even if
+The models we run, such as VTC, or ALICE, are trained on audio sampled at 16,000Hz. As a general rule we convert all audio even if
 the sampling rate is already at 16,000Hz.
 
 First create the converted folder. ``mkdir recordings/converted``. Now run ``child-project process . basic standard --format=wav --sampling=16000 --codec=pcm_s16le``.
