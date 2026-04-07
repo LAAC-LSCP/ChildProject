@@ -18,7 +18,7 @@ dependencies = [
   "praat-parselmouth",
   "pyannote.core",
   "pydub",
-  "pylangacq",
+  "pylangacq<0.23.0",
   "pympi-ling",
   "python-dateutil>=2.8.1",
   "PyYAML",
