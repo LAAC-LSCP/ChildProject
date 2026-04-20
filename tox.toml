@@ -1,0 +1,28 @@
+requires = ["tox>=4.26"]
+isolated_build = true
+envlist = ["test", "lint", "format", "typecheck"]
+
+[env.test]
+description = "Run tests under {base_python}"
+install_package = true
+deps = ["pytest", "pytest-randomly"]
+commands = [["pytest", "--randomly-seed=1234", "--strict-markers"]]
+
+[env.lint]
+description = "Flake8. Linting + style + unused imports"
+deps = ["flake8"]
+commands = [["flake8", "ChildProject", "tests"]]
+
+[env.format]
+description = "Format check with black, isort, autoflake. Check formatting + fix import order + remove unused imports"
+deps = ["black", "isort", "autoflake"]
+
+# employs lesser-known "-" prefix trick to ignore exit codes and let everything run
+commands = [["-", "black", "--check", "ChildProject", "tests"],
+            ["-", "isort", "--check-only", "ChildProject", "tests"],
+            ["-", "autoflake", "-r", "--check", "ChildProject", "tests"]]
+
+[env.typecheck]
+description = "Type checking with mypy"
+deps = ["mypy"]
+commands = [["mypy", "ChildProject", "tests"]]
