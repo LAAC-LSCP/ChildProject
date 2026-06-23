@@ -7,7 +7,9 @@ import os
 import pandas as pd
 import re
 import shutil
-from typing import Union, List, Tuple, Optional
+from pydantic import Field, BaseModel, NonNegativeInt, PositiveInt, create_model, ValidationError
+from pandantic import Pandantic, Optional as Poptional
+from typing import Union, List, Tuple, Optional, Annotated
 if sys.version_info[0] == 3 and sys.version_info[1] >= 11:
     from typing import Self
 else:
@@ -39,6 +41,7 @@ logger_project = logging.getLogger(__name__)
 # messages are propagated to the higher level logger (ChildProject), used in cmdline.py
 logger_project.propagate = True
 
+
 class ChildProject:
     """ChildProject instance
     This class is a representation of a ChildProject dataset
@@ -66,6 +69,7 @@ class ChildProject:
             name="experiment",
             description="one word to capture the unique ID of the data collection effort; for instance Tsimane_2018, solis-intervention-pre",
             required=True,
+            vfield=str,
         ),
         IndexColumn(
             name="child_id",
@@ -73,91 +77,108 @@ class ChildProject:
             unique=True,
             required=True,
             dtype="string",
+            vfield=str,
         ),
         IndexColumn(
             name="child_dob",
             description="child's date of birth",
             required=True,
             datetime={"%Y-%m-%d"},
+            vfield=datetime.date,
         ),
         IndexColumn(
             name="location_id",
             description="Unique location ID -- only specify here if children never change locations in this culture; otherwise, specify in the recordings metadata",
+            vfield=(Poptional[str], None),
         ),
         IndexColumn(
             name="child_sex",
             description="f= female, m=male",
             choices=["m", "M", "f", "F", 'NA'],
+            vfield=(Poptional[Annotated[str, Field(pattern=r"m|M|F|f|NA")]], None),
         ),
         IndexColumn(
             name="language",
             description='main language the child is exposed to; small caps; eg "french"; "english"',
+            vfield=(Poptional[Annotated[str, Field(pattern=r'^\w+$')]], None),
         ),
         IndexColumn(
             name="languages",
             description='list languages child is exposed to separating them with ; and indicating the percentage if one is available; eg: "french 35%; english 65%"',
+            vfield=(Poptional[Annotated[str, Field(pattern=r'^\w+( (100|(\d\d)|\d)%)?(;\w+( (100|(\d\d)|\d)%)?)*$')]], None)
         ),
-        IndexColumn(name="mat_ed", description="maternal years of education"),
-        IndexColumn(name="fat_ed", description="paternal years of education"),
+        IndexColumn(name="mat_ed", description="maternal years of education", vfield=(Poptional[Annotated[int, Field(ge=0)]], None), ),
+        IndexColumn(name="fat_ed", description="paternal years of education", vfield=(Poptional[Annotated[int, Field(ge=0)]], None), ),
         IndexColumn(
             name="car_ed",
             description="years of education of main caregiver (if not mother or father)",
+            vfield=(Poptional[Annotated[int, Field(ge=0)]], None),
         ),
         IndexColumn(
             name="monoling",
             description="whether the child is monolingual (Y) or not (N)",
             choices=["Y", "N", 'NA'],
+            vfield=(Poptional[Annotated[str, Field(pattern=r"Y|N|NA")]], None),
         ),
         IndexColumn(
             name="monoling_criterion",
             description='how monoling was decided; eg "we asked families which languages they spoke in the home"',
+            vfield=(Poptional[str], None),
         ),
         IndexColumn(
             name="normative",
             description="whether the child is normative (Y) or not (N)",
             choices=["Y", "N", 'NA'],
+            vfield=(Poptional[Annotated[str, Field(pattern=r"Y|N|NA")]], None),
         ),
         IndexColumn(
             name="normative_criterion",
             description='how normative was decided; eg "unless the caregivers volunteered information whereby the child had a problem, we consider them normative by default"',
+            vfield=(Poptional[str], None),
         ),
-        IndexColumn(name="mother_id", description="unique ID of the mother"),
-        IndexColumn(name="father_id", description="unique ID of the father"),
+        IndexColumn(name="mother_id", description="unique ID of the mother", vfield=(Poptional[str], None),),
+        IndexColumn(name="father_id", description="unique ID of the father", vfield=(Poptional[str], None),),
         IndexColumn(
             name="order_of_birth",
             description="child order of birth",
             regex=r"(\d+(\.\d+)?)",
             required=False,
+            vfield=(Poptional[PositiveInt], None),
         ),
         IndexColumn(
             name="n_of_siblings",
             description="amount of siblings",
             regex=r"(\d+(\.\d+)?)",
             required=False,
+            vfield=(Poptional[NonNegativeInt], None),
         ),
         IndexColumn(
             name="household_size",
             description="number of people living in the household (adults+children)",
             regex=r"(\d+(\.\d+)?)",
             required=False,
+            vfield=(Poptional[PositiveInt], None),
         ),
         IndexColumn(
             name="dob_criterion",
             description="determines whether the date of birth is known exactly or extrapolated e.g. from the age. Dates of birth are assumed to be known exactly if this column is NA or unspecified.",
             choices=["extrapolated", "exact", 'reported', 'innacurate'],
             required=False,
+            vfield=(Poptional[Annotated[str, Field(pattern=r"extrapolated|exact|reported|innacurate")]], None),
         ),
         IndexColumn(
             name="dob_accuracy",
             description="date of birth accuracy",
             choices=["day", "week", "month", "year", "other", "innacurate", 'NA'], # innacurate shows the dob isn't representative of the child's age; analysis should not use the age of the participant
+            vfield=(Poptional[Annotated[str, Field(pattern=r"day|week|month|year|other|innacurate|NA")]], None),
         ),
         IndexColumn(
             name="discard",
             description="set to 1 if item should be discarded in analyses",
             choices=["0", "1"],
             required=False,
-            dtype='string'
+            dtype='string',
+            vfield=(Poptional[Annotated[str, Field(pattern=r"0|1")]], None),
         ),
     ]
 
@@ -166,93 +187,113 @@ class ChildProject:
             name="experiment",
             description="one word to capture the unique ID of the data collection effort; for instance Tsimane_2018, solis-intervention-pre",
             required=True,
-        ),
-        IndexColumn(
-            name="child_id",
-            description="unique child ID -- unique within the experiment (Id could be repeated across experiments to refer to different children)",
-            required=True,
-            dtype="string",
-        ),
-        IndexColumn(
-            name="date_iso",
-            description="date in which recording was started in ISO (eg 2020-09-17)",
-            required=True,
-            datetime={"%Y-%m-%d"},
-        ),
-        IndexColumn(
-            name="start_time",
-            description="local time in which recording was started in format 24-hour (H)H:MM:SS or (H)H:MM; if minutes or seconds are unknown, use 00. ‘NA’ if unknown, this will raise a Warning when validating as some analysis that rely on times will not consider this recordings.",
-            required=True,
-            datetime={"%H:%M","%H:%M:%S"},
-        ),
-        IndexColumn(
-            name="recording_device_type",
-            description="lena, usb, olympus, babylogger (lowercase), izyrec",
-            required=True,
-            choices=["lena", "usb", "olympus", "babylogger", "izyrec", "unknown"],
+            vfield=str,
         ),
         IndexColumn(
             name="recording_filename",
             description="the path to the file from the root of “recordings”). It MUST be unique (two recordings cannot point towards the same file).",
             required=True,
             filename=True,
+            directory=RAW_RECORDINGS,
             unique=True,
             dtype="string",
+            vfield=str,
+        ),
+        IndexColumn(
+            name="child_id",
+            description="unique child ID -- unique within the experiment (Id could be repeated across experiments to refer to different children)",
+            required=True,
+            dtype="string",
+            vfield=str,
+        ),
+        IndexColumn(
+            name="date_iso",
+            description="date in which recording was started in ISO (eg 2020-09-17)",
+            required=True,
+            datetime={"%Y-%m-%d"},
+            vfield=datetime.date,
+        ),
+        IndexColumn(
+            name="start_time",
+            description="local time in which recording was started in format 24-hour (H)H:MM:SS or (H)H:MM; if minutes or seconds are unknown, use 00. ‘NA’ if unknown, this will raise a Warning when validating as some analysis that rely on times will not consider this recordings.",
+            required=True,
+            datetime={"%H:%M","%H:%M:%S"},
+            vfield=Annotated[str, Field(pattern=r'^([01]?\d|2[0-3]):[0-5]\d(:[0-5]\d)?$')],
+        ),
+        IndexColumn(
+            name="recording_device_type",
+            description="lena, usb, olympus, babylogger (lowercase), izyrec",
+            required=True,
+            choices=["lena", "usb", "olympus", "babylogger", "izyrec", "unknown"],
+            vfield=(Poptional[Annotated[str, Field(pattern=r"lena|usb|olympus|babylogger|izyrec|unknown")]], None),
         ),
         IndexColumn(
             name="duration",
             description="duration of the audio, in milliseconds",
             regex=r"([0-9]+)",
             dtype='Int64',
+            vfield=(Poptional[PositiveInt], None),
         ),
         IndexColumn(
             name="session_id",
             description="identifier of the recording session.",
             dtype="string",
+            vfield=(Poptional[str], None),
         ),
         IndexColumn(
             name="session_offset",
             description="offset (in milliseconds) of the recording with respect to other recordings that are part of the same session. Each recording session is identified by their `session_id`.",
             regex=r"[0-9]+",
+            vfield=(Poptional[NonNegativeInt], None),
         ),
         IndexColumn(
-            name="recording_device_id", description="unique ID of the recording device"
+            name="recording_device_id",
+            description="unique ID of the recording device",
+            vfield=(Poptional[str], None),
         ),
         IndexColumn(
             name="experimenter",
             description="who collected the data (could be anonymized ID)",
+            vfield=(Poptional[str], None),
         ),
         IndexColumn(
             name="location_id",
             description="unique location ID -- can be specified at the level of the child (if children do not change locations)",
+            vfield=(Poptional[str], None),
         ),
-        IndexColumn(name="its_filename", description="its_filename"),
-        IndexColumn(name="upl_filename", description="upl_filename"),
-        IndexColumn(name="trs_filename", description="trs_filename"),
-        IndexColumn(name="lena_id", description=""),
+        IndexColumn(name="its_filename", description="its_filename", vfield=(Poptional[str], None),),
+        IndexColumn(name="upl_filename", description="upl_filename", vfield=(Poptional[str], None),),
+        IndexColumn(name="trs_filename", description="trs_filename", vfield=(Poptional[str], None),),
+        IndexColumn(name="lena_id", description="", vfield=(Poptional[str], None),),
         IndexColumn(
             name="lena_recording_num",
             description="value of the corresponding <Recording> num's attribute, for LENA recordings that have been split into contiguous parts",
             dtype="Int64",
+            vfield=(Poptional[str], None),
         ),
         IndexColumn(
             name="might_feature_gaps",
             description="1 if the audio cannot be guaranteed to be a continuous block with no time jumps, 0 or NA or undefined otherwise.",
             function=is_boolean,
+            vfield=(Poptional[Annotated[str, Field(pattern=r"0|1|NA")]], None),
         ),
         IndexColumn(
             name="start_time_accuracy",
             description="Accuracy of start_time for this recording. If not specified, assumes second-accuray.",
             choices=["second", "minute", "hour", "reliable", 'NA'],
+            vfield=(Poptional[Annotated[str, Field(pattern=r"second|minute|hour|reliable|NA")]], None),
         ),
         IndexColumn(
             name="noisy_setting",
             description="1 if the audio may be noisier than the childs usual day, 0 or undefined otherwise",
             function=is_boolean,
+            vfield=(Poptional[bool], None),
         ),
         IndexColumn(
             name="notes",
             description="free-style notes about individual recordings (avoid tabs and newlines)",
+            dtype="str",
+            vfield=(Poptional[str], None),
         ),
         IndexColumn(
             name="discard",
@@ -260,6 +301,7 @@ class ChildProject:
             choices=["0", "1"],
             required=False,
             dtype='string',
+            vfield=(Poptional[Annotated[str, Field(pattern=r"0|1")]], None),
         ),
     ]
 
@@ -318,6 +360,13 @@ class ChildProject:
     ]
     
     REC_COL_REF = {c.name: c for c in RECORDINGS_COLUMNS}
+
+    ChildModel = create_model('ChildModel', **{ c.name : c.vfield for c in CHILDREN_COLUMNS if c.vfield})
+    RecordingModel = create_model('RecordingModel', **{c.name: c.vfield for c in RECORDINGS_COLUMNS if c.vfield})
+
+    ChildValidator = Pandantic(schema=ChildModel)
+    RecordingValidator = Pandantic(schema=RecordingModel)
+
 
     def __init__(
         self, path: Union[Path, str], enforce_dtypes: bool = True, ignore_discarded: bool = True
@@ -534,8 +583,7 @@ class ChildProject:
             destination = self.path / target_path
         else :
             raise ValueError(f"unknown file_type {file_type}")
-        print(type(self.path))
-        print(destination.parents)
+
         assert self.path.resolve() in destination.resolve().parents, f"target destination {destination} is outside the dataset, aborting"
         if not overwrite and destination.exists():
             raise FileExistsError(f"target destination {destination} already exists, to overwrite it anyway, put the parameter overwrite as True")
@@ -771,108 +819,68 @@ class ChildProject:
             if not self.loaded or not accumulate:
                 self.read(verbose=True, accumulate=accumulate)
 
-            errors, warnings = self.ct.validate()
-            self.errors += errors
-            self.warnings += warnings
+            try:
+                self.ChildValidator.validate(self.children)
+            except ValidationError as e:
+                self.errors.append(str(e))
 
-            errors, warnings = self.rt.validate()
-            self.errors += errors
-            self.warnings += warnings
+            try:
+                self.RecordingValidator.validate(self.recordings)
+            except ValidationError as e:
+                self.errors.append(str(e))
         else:
             tmp_table = IndexTable("children", columns=self.CHILDREN_COLUMNS)
             tmp_table.df = self.children
-            errors, warnings = tmp_table.validate()
-            self.errors += errors
-            self.warnings += warnings
+            try:
+                self.ChildValidator.validate(tmp_table.df)
+            except ValidationError as e:
+                self.errors.append(str(e))
 
             tmp_table = IndexTable("recordings", columns=self.RECORDINGS_COLUMNS)
             tmp_table.df = self.recordings
-            errors, warnings = tmp_table.validate()
-            self.errors += errors
-            self.warnings += warnings
+            try:
+                self.RecordingValidator.validate(tmp_table.df)
+            except ValidationError as e:
+                self.errors.append(str(e))
 
         exp_values = set(self.children['experiment'].unique()).union(set(self.recordings['experiment'].unique()))
         if len(exp_values) > 1:
             self.errors.append(
-                f"Column <experiment> must be unique across the dataset, in both children.csv and recordings.csv , {len(exp_values)} different values were found: {exp_values}"
+                f"Column <experiment> must be unique across the dataset, in both children.csv and recordings.csv ,"
+                f"{len(exp_values)} different values were found: {exp_values}"
             )
 
-        from pydub.utils import mediainfo #mediainfo to get audio files info
-        for index, row in self.recordings.iterrows():
-            
-            # make sure that recordings exist
-            for column_name in self.recordings.columns:
-                column_attr = next(
-                    (c for c in self.RECORDINGS_COLUMNS if c.name == column_name), None
-                )
+        file_columns = [
+            (c.name, c.directory) for c in self.RECORDINGS_COLUMNS
+            if c.filename and c.name in self.recordings.columns
+        ]
+        for column, directory in file_columns:
+            files = set(str(path.relative_to(self.path / directory)) for path in (self.path / directory).rglob("*.*"))
+            missing = self.recordings[~self.recordings[column].isin(files)]
+            if missing.shape[0]:
+                if ignore_recordings:
+                    self.warnings.append(
+                        "'{}' values {} in recordings table on lines {} cannot be found in the filesystem.".format(
+                            column, set(missing[column].unique()), set(missing.index)
+                        ))
+                else:
+                    self.errors.append(
+                        "'{}' values {} in recordings table on lines {} cannot be found in the filesystem.".format(
+                            column, set(missing[column].unique()), set(missing.index)
+                        ))
+            not_indexed = files - (set(self.recordings[column]) | set(self.discarded_recordings[column]))
+            if len(not_indexed):
+                self.warnings.append(
+                    "files {} not indexed in {} column".format(
+                        not_indexed, column,
+                    ))
 
-                if column_attr is None:
-                    continue
 
-                if column_attr.filename and row[column_name] != "NA":
-                    raw_filename = str(row[column_name])
-
-                    try:
-                        path = self.get_recording_path(raw_filename, profile)
-                    except:
-                        if profile:
-                            profile_metadata = self.path / CONVERTED_RECORDINGS / profile / RECORDINGS_CSV
-                            self.errors.append(
-                                f"failed to recover the path for recording '{raw_filename}' and profile '{profile}'. Does the profile exist? Does {profile_metadata} exist?"
-                            )
-                        continue
-
-                    if not ignore_recordings:
-                        if path.exists():
-                            if not profile:
-                                info = mediainfo(str(path))
-                                if 'sample_rate' not in info or int(info['sample_rate']) != STANDARD_SAMPLE_RATE:
-                                    try:
-                                        std_path = self.get_recording_path(raw_filename, STANDARD_PROFILE)
-                                        if std_path.exists():
-                                            std_info = mediainfo(str(std_path))
-                                            if 'sample_rate' not in std_info:
-                                                self.warnings.append(
-                                                    f"Could not read the sample rate of converted version of recording '{raw_filename}' at '{std_path}'. {STANDARD_SAMPLE_RATE}Hz is expected for profile {STANDARD_PROFILE}")
-                                            elif int(std_info['sample_rate']) != STANDARD_SAMPLE_RATE:
-                                                self.warnings.append(f"converted version of recording '{raw_filename}' at '{std_path}' has unexpected sampling rate {std_info['sample_rate']}Hz when {STANDARD_SAMPLE_RATE}Hz is expected for profile {STANDARD_PROFILE}")
-                                        else:
-                                            if 'sample_rate' in info:
-                                                self.warnings.append(
-                                                    f"recording '{raw_filename}' at '{path}' has a non standard sampling rate of {info['sample_rate']}Hz and no standard conversion in profile {STANDARD_PROFILE} was found. Does the standard profile exist? Does {profile_metadata} exist? you can create the standard profile with 'child-project process {self.path} {STANDARD_PROFILE} basic --format=wav --sampling={STANDARD_SAMPLE_RATE} --codec=pcm_s16le --skip-existing'")
-                                            else:
-                                                self.warnings.append(
-                                                    f"Could not read the sample rate of recording '{raw_filename}' at '{path}' and no standard conversion in profile {STANDARD_PROFILE} was found. Does the standard profile exist? Does {profile_metadata} exist? you can create the standard profile with 'child-project process {self.path} {STANDARD_PROFILE} basic --format=wav --sampling={STANDARD_SAMPLE_RATE} --codec=pcm_s16le --skip-existing'")
-                                    except:
-                                        profile_metadata = self.path / CONVERTED_RECORDINGS / STANDARD_PROFILE / RECORDINGS_CSV
-                                        if 'sample_rate' in info:
-                                            self.warnings.append(f"recording '{raw_filename}' at '{path}' has a non standard sampling rate of {info['sample_rate']}Hz and no standard conversion in profile {STANDARD_PROFILE} was found. Does the standard profile exist? Does {profile_metadata} exist? you can create the standard profile with 'child-project process {self.path} {STANDARD_PROFILE} basic --format=wav --sampling={STANDARD_SAMPLE_RATE} --codec=pcm_s16le --skip-existing'")
-                                        else:
-                                            self.warnings.append(f"Could not read the sample rate of recording '{raw_filename}' at '{path}' and no standard conversion in profile {STANDARD_PROFILE} was found. Does the standard profile exist? Does {profile_metadata} exist? you can create the standard profile with 'child-project process {self.path} {STANDARD_PROFILE} basic --format=wav --sampling={STANDARD_SAMPLE_RATE} --codec=pcm_s16le --skip-existing'")
-                            elif profile == STANDARD_PROFILE:
-                                info = mediainfo(str(path))
-                                if 'sample_rate' in info and int(info['sample_rate']) != STANDARD_SAMPLE_RATE:
-                                    self.warnings.append(f"recording '{raw_filename}' at '{path}' has unexpected sampling rate {info['sample_rate']}Hz when {STANDARD_SAMPLE_RATE}Hz is expected for profile {STANDARD_PROFILE}")
-
-                        elif path.is_symlink():
-                            message = self.warnings.append(f"the data content of recording '{raw_filename}' at path '{path}' is absent. See 'broken symlinks'") #The path is valid but there's no content. See broken symlinks (try 'Datalad get $filename')
-                        else:
-                            message = f"cannot find recording '{raw_filename}' at '{path}'"
-                            if column_attr.required:
-                                self.errors.append(message)
-                            else:
-                                self.warnings.append(message)
-
-            # child id refers to an existing child in the children table
-            if (
-                str(row["child_id"])
-                not in self.children["child_id"].astype(str).tolist()
-            ):
-                self.errors.append(
-                    "child_id '{}' in recordings on line {} cannot be found in the children table.".format(
-                        row["child_id"], index
-                    )
-                )
+        missing_childIDs = self.recordings[~self.recordings['child_id'].isin(self.children['child_id'])]
+        if missing_childIDs.shape[0]:
+            self.errors.append("child_ids '{}' in recordings table on lines {} cannot be found in the children table.".format(
+                 missing_childIDs['child_id'].unique(), missing_childIDs.index
+            ))
 
         # consistency between dates of birth and recording dates
         if "date_iso" in self.recordings.columns and "child_dob" in self.children.columns:
@@ -885,43 +893,6 @@ class ChildProject:
                 f"Age at recording is negative in recordings on line {index} ({age:.1f} months). Check date_iso for that recording and child_dob for the corresponding child."
                 for index, age in ages[ages < 0].items()
             ]
-
-        # detect un-indexed recordings and throw warnings
-        files = [
-            self.recordings[c.name].tolist()
-            for c in self.RECORDINGS_COLUMNS
-            if c.filename and c.name in self.recordings.columns
-        ]
-
-        indexed_files = [
-            (self.path / RAW_RECORDINGS / str(f)).absolute()
-            for f in pd.core.common.flatten(files)
-        ]
-
-        discarded_files = [
-            self.discarded_recordings[c.name].tolist()
-            for c in self.RECORDINGS_COLUMNS
-            if c.filename and c.name in self.recordings.columns
-        ]
-
-        indexed_discarded_files = [
-            (self.path / RAW_RECORDINGS / str(f)).absolute()
-            for f in pd.core.common.flatten(discarded_files)
-        ]
-
-        recordings_files = (self.path / RAW_RECORDINGS).rglob("*.*")
-
-        for rf in recordings_files:
-            if rf.suffix in [
-                ".csv",
-                ".xls",
-                ".xlsx",
-            ]:
-                continue
-
-            ap = rf.absolute()
-            if ap not in indexed_files and ap not in indexed_discarded_files:
-                self.warnings.append("file '{}' not indexed.".format(rf))
 
         return self.errors, self.warnings
 
