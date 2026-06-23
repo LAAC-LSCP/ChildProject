@@ -37,7 +37,7 @@ def read_csv_with_dtype(file: str, dtypes: dict) -> pd.DataFrame:
     try:
         df = pd.read_csv(file, dtype=dtypes, dtype_backend='numpy_nullable')
     except ValueError:
-        raise IncorrectDtypeException('Incorrect type found in {}, expected column types are:\n{}'.format(file,dtypes))
+        raise IncorrectDtypeException('Incorrect type found in {}, expected column types are:\n{}'.format(file, dtypes))
     return df
 
 
@@ -53,6 +53,7 @@ class IndexColumn:
         required=False,
         regex=None,
         filename=False,
+        directory=None,
         datetime=None,
         function=None,
         choices=None,
@@ -60,11 +61,13 @@ class IndexColumn:
         unique=False,
         generated=False,
         annotation_columns=None,
+        vfield=None,
     ):
         self.name = name
         self.description = description
         self.required = required
         self.filename = filename
+        self.directory = directory
         self.regex = regex
         self.datetime = datetime
         self.function = function
@@ -73,6 +76,7 @@ class IndexColumn:
         self.generated = generated
         self.dtype = dtype
         self.annotation_columns = annotation_columns
+        self.vfield = vfield
 
     def __str__(self):
         return "IndexColumn(name = {})".format(self.name)

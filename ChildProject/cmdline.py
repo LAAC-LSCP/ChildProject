@@ -231,14 +231,13 @@ def validate(args) -> int:
         warnings.extend(annotations_warnings)
 
     for error in errors:
-        pass
-        logger.error('%s',error)
+        logger.error('%s', error)
 
     for warning in warnings:
-        pass
-        logger.warning('%s',warning )
+        logger.warning('%s', warning)
+
     if len(errors) > 0:
-        logger.warning('validation failed, %s error(s) occured', len(errors))
+        logger.error('validation failed, %s error(s) occured', len(errors))
         sys.exit(1)
 
     logger.info('validation successfully completed with %d warning(s).', len(warnings))
