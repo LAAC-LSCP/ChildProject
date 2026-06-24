@@ -7,7 +7,7 @@ import os
 import pandas as pd
 import re
 import shutil
-from pydantic import Field, BaseModel, NonNegativeInt, PositiveInt, create_model, ValidationError
+from pydantic import StringConstraints, BaseModel, NonNegativeInt, PositiveInt, create_model, ValidationError
 from pandantic import Pandantic, Optional as Poptional
 from typing import Union, List, Tuple, Optional, Annotated
 if sys.version_info[0] == 3 and sys.version_info[1] >= 11:
@@ -40,7 +40,6 @@ RECORDINGS_CSV = Path('recordings.csv')
 logger_project = logging.getLogger(__name__)
 # messages are propagated to the higher level logger (ChildProject), used in cmdline.py
 logger_project.propagate = True
-
 
 class ChildProject:
     """ChildProject instance
@@ -95,30 +94,38 @@ class ChildProject:
             name="child_sex",
             description="f= female, m=male",
             choices=["m", "M", "f", "F", 'NA'],
-            vfield=(Poptional[Annotated[str, Field(pattern=r"m|M|F|f|NA")]], None),
+            vfield=(Poptional[Annotated[str, StringConstraints(pattern=r"m|M|F|f|NA")]], None),
         ),
         IndexColumn(
             name="language",
             description='main language the child is exposed to; small caps; eg "french"; "english"',
-            vfield=(Poptional[Annotated[str, Field(pattern=r'^\w+$')]], None),
+            vfield=(Poptional[Annotated[str, StringConstraints(pattern=r'^\w+$')]], None),
         ),
         IndexColumn(
             name="languages",
             description='list languages child is exposed to separating them with ; and indicating the percentage if one is available; eg: "french 35%; english 65%"',
-            vfield=(Poptional[Annotated[str, Field(pattern=r'^\w+( (100|(\d\d)|\d)%)?(;\w+( (100|(\d\d)|\d)%)?)*$')]], None)
+            vfield=(Poptional[Annotated[str, StringConstraints(pattern=r'^\w+( (100|(\d\d)|\d)%)?(;\w+( (100|(\d\d)|\d)%)?)*$')]], None)
         ),
-        IndexColumn(name="mat_ed", description="maternal years of education", vfield=(Poptional[Annotated[int, Field(ge=0)]], None), ),
-        IndexColumn(name="fat_ed", description="paternal years of education", vfield=(Poptional[Annotated[int, Field(ge=0)]], None), ),
+        IndexColumn(
+            name="mat_ed",
+            description="maternal years of education",
+            vfield=(Poptional[NonNegativeInt], None),
+        ),
+        IndexColumn(
+            name="fat_ed",
+            description="paternal years of education",
+            vfield=(Poptional[NonNegativeInt], None),
+        ),
         IndexColumn(
             name="car_ed",
             description="years of education of main caregiver (if not mother or father)",
-            vfield=(Poptional[Annotated[int, Field(ge=0)]], None),
+            vfield=(Poptional[NonNegativeInt], None),
         ),
         IndexColumn(
             name="monoling",
             description="whether the child is monolingual (Y) or not (N)",
             choices=["Y", "N", 'NA'],
-            vfield=(Poptional[Annotated[str, Field(pattern=r"Y|N|NA")]], None),
+            vfield=(Poptional[Annotated[str, StringConstraints(pattern=r"Y|N|NA")]], None),
         ),
         IndexColumn(
             name="monoling_criterion",
@@ -129,15 +136,23 @@ class ChildProject:
             name="normative",
             description="whether the child is normative (Y) or not (N)",
             choices=["Y", "N", 'NA'],
-            vfield=(Poptional[Annotated[str, Field(pattern=r"Y|N|NA")]], None),
+            vfield=(Poptional[Annotated[str, StringConstraints(pattern=r"Y|N|NA")]], None),
         ),
         IndexColumn(
             name="normative_criterion",
             description='how normative was decided; eg "unless the caregivers volunteered information whereby the child had a problem, we consider them normative by default"',
             vfield=(Poptional[str], None),
         ),
-        IndexColumn(name="mother_id", description="unique ID of the mother", vfield=(Poptional[str], None),),
-        IndexColumn(name="father_id", description="unique ID of the father", vfield=(Poptional[str], None),),
+        IndexColumn(
+            name="mother_id",
+            description="unique ID of the mother",
+            vfield=(Poptional[str], None),
+        ),
+        IndexColumn(
+            name="father_id",
+            description="unique ID of the father",
+            vfield=(Poptional[str], None),
+        ),
         IndexColumn(
             name="order_of_birth",
             description="child order of birth",
@@ -164,13 +179,13 @@ class ChildProject:
             description="determines whether the date of birth is known exactly or extrapolated e.g. from the age. Dates of birth are assumed to be known exactly if this column is NA or unspecified.",
             choices=["extrapolated", "exact", 'reported', 'innacurate'],
             required=False,
-            vfield=(Poptional[Annotated[str, Field(pattern=r"extrapolated|exact|reported|innacurate")]], None),
+            vfield=(Poptional[Annotated[str, StringConstraints(pattern=r"extrapolated|exact|reported|innacurate")]], None),
         ),
         IndexColumn(
             name="dob_accuracy",
             description="date of birth accuracy",
             choices=["day", "week", "month", "year", "other", "innacurate", 'NA'], # innacurate shows the dob isn't representative of the child's age; analysis should not use the age of the participant
-            vfield=(Poptional[Annotated[str, Field(pattern=r"day|week|month|year|other|innacurate|NA")]], None),
+            vfield=(Poptional[Annotated[str, StringConstraints(pattern=r"day|week|month|year|other|innacurate|NA")]], None),
         ),
         IndexColumn(
             name="discard",
@@ -178,7 +193,7 @@ class ChildProject:
             choices=["0", "1"],
             required=False,
             dtype='string',
-            vfield=(Poptional[Annotated[str, Field(pattern=r"0|1")]], None),
+            vfield=(Poptional[Annotated[str, StringConstraints(pattern=r"0|1")]], None),
         ),
     ]
 
@@ -218,14 +233,14 @@ class ChildProject:
             description="local time in which recording was started in format 24-hour (H)H:MM:SS or (H)H:MM; if minutes or seconds are unknown, use 00. ‘NA’ if unknown, this will raise a Warning when validating as some analysis that rely on times will not consider this recordings.",
             required=True,
             datetime={"%H:%M","%H:%M:%S"},
-            vfield=Annotated[str, Field(pattern=r'^([01]?\d|2[0-3]):[0-5]\d(:[0-5]\d)?$')],
+            vfield=Annotated[str, StringConstraints(pattern=r'^([01]?\d|2[0-3]):[0-5]\d(:[0-5]\d)?$')],
         ),
         IndexColumn(
             name="recording_device_type",
             description="lena, usb, olympus, babylogger (lowercase), izyrec",
             required=True,
             choices=["lena", "usb", "olympus", "babylogger", "izyrec", "unknown"],
-            vfield=(Poptional[Annotated[str, Field(pattern=r"lena|usb|olympus|babylogger|izyrec|unknown")]], None),
+            vfield=(Poptional[Annotated[str, StringConstraints(pattern=r"lena|usb|olympus|babylogger|izyrec|unknown")]], None),
         ),
         IndexColumn(
             name="duration",
@@ -261,10 +276,26 @@ class ChildProject:
             description="unique location ID -- can be specified at the level of the child (if children do not change locations)",
             vfield=(Poptional[str], None),
         ),
-        IndexColumn(name="its_filename", description="its_filename", vfield=(Poptional[str], None),),
-        IndexColumn(name="upl_filename", description="upl_filename", vfield=(Poptional[str], None),),
-        IndexColumn(name="trs_filename", description="trs_filename", vfield=(Poptional[str], None),),
-        IndexColumn(name="lena_id", description="", vfield=(Poptional[str], None),),
+        IndexColumn(
+            name="its_filename",
+            description="its_filename",
+            vfield=(Poptional[str], None),
+        ),
+        IndexColumn(
+            name="upl_filename",
+            description="upl_filename",
+            vfield=(Poptional[str], None),
+        ),
+        IndexColumn(
+            name="trs_filename",
+            description="trs_filename",
+            vfield=(Poptional[str], None),
+        ),
+        IndexColumn(
+            name="lena_id",
+            description="",
+            vfield=(Poptional[str], None),
+        ),
         IndexColumn(
             name="lena_recording_num",
             description="value of the corresponding <Recording> num's attribute, for LENA recordings that have been split into contiguous parts",
@@ -275,13 +306,13 @@ class ChildProject:
             name="might_feature_gaps",
             description="1 if the audio cannot be guaranteed to be a continuous block with no time jumps, 0 or NA or undefined otherwise.",
             function=is_boolean,
-            vfield=(Poptional[Annotated[str, Field(pattern=r"0|1|NA")]], None),
+            vfield=(Poptional[Annotated[str, StringConstraints(pattern=r"0|1|NA")]], None),
         ),
         IndexColumn(
             name="start_time_accuracy",
             description="Accuracy of start_time for this recording. If not specified, assumes second-accuray.",
             choices=["second", "minute", "hour", "reliable", 'NA'],
-            vfield=(Poptional[Annotated[str, Field(pattern=r"second|minute|hour|reliable|NA")]], None),
+            vfield=(Poptional[Annotated[str, StringConstraints(pattern=r"second|minute|hour|reliable|NA")]], None),
         ),
         IndexColumn(
             name="noisy_setting",
@@ -301,7 +332,7 @@ class ChildProject:
             choices=["0", "1"],
             required=False,
             dtype='string',
-            vfield=(Poptional[Annotated[str, Field(pattern=r"0|1")]], None),
+            vfield=(Poptional[Annotated[str, StringConstraints(pattern=r"0|1")]], None),
         ),
     ]
 
