@@ -86,12 +86,13 @@ class IndexColumn:
 
 
 class IndexTable:
-    def __init__(self, name, path=None, columns=[], enforce_dtypes: bool = False):
+    def __init__(self, name, path=None, columns=[], enforce_dtypes: bool = False, validator=None):
         self.name = name
         self.path = path
         self.columns = columns
         self.df = None
         self.enforce_dtypes = enforce_dtypes
+        self.validator = validator
 
     def read(self) -> pd.DataFrame:
         pd_flags = {
@@ -138,28 +139,25 @@ class IndexTable:
 
         columns = {c.name: c for c in self.columns}
 
-        for rc in self.columns:
-            if not rc.required:
-                continue
+        if self.validator is not None:
+            try:
+                self.validator.validate(self.df)
+            except ValidationError as e:
+                errors.append(e)
 
-            if rc.name not in self.df.columns:
-                errors.append(
-                    self.msg(
-                        "{} table is missing column '{}'".format(self.name, rc.name)
+        uniques = [c.name for c in self.columns if c.unique]
+
+        for unique in uniques:
+            duplicates = self.df[unique][self.df.duplicated(subset=[unique], keep=False)]
+            errors.append(
+                self.msg(
+                    "Duplicated values when it should be unique for column {}, values {} on lines {} appear multiple times".format(
+                        unique,
+                        set(duplicates.values),
+                        set(duplicates.index),
                     )
                 )
-                continue
-
-            null = self.df[self.df[rc.name].isnull()].index.values.tolist()
-            if len(null) > 0:
-                errors.append(
-                    self.msg(
-                        """{} table has undefined values
-                    for column '{}' in lines: {}""".format(
-                            self.name, rc.name, ",".join([str(n) for n in null])
-                        )
-                    )
-                )
+            )
 
         unknown_columns = [c for c in self.df.columns if c not in columns.keys()]
 
@@ -175,112 +173,6 @@ class IndexTable:
                 )
             )
 
-        rows = self.df.to_dict(orient="index")
-        for line_number in rows:
-            row = rows[line_number]
-            for column_name in row.keys():
-                column_attr = columns.get(column_name)
 
-                if column_attr is None:
-                    continue
-
-                if callable(column_attr.function):
-                    try:
-                        ok = column_attr.function(str(row[column_name])) == True
-                    except:
-                        ok = False
-
-                    if not ok:
-                        message = "'{}' does not pass callable test for column '{}' on line {}".format(
-                            row[column_name], column_name, line_number
-                        )
-                        if column_attr.required and str(row[column_name]) != "NA":
-                            errors.append(self.msg(message))
-                        elif column_attr.required or str(row[column_name]) != "NA":
-                            warnings.append(self.msg(message))
-
-                elif (
-                    column_attr.choices
-                    and str(row[column_name]) not in column_attr.choices
-                ):
-                    message = "'{}' is not a permitted value for column '{}' on line {}, should be any of [{}]".format(
-                        row[column_name],
-                        column_name,
-                        line_number,
-                        ",".join(column_attr.choices),
-                    )
-                    if column_attr.required and str(row[column_name]) != "NA":
-                        errors.append(self.msg(message))
-                    elif column_attr.required or str(row[column_name]) != "NA":
-                        warnings.append(self.msg(message))
-
-                elif column_attr.datetime:
-                    passed = False
-                    for frmt in column_attr.datetime:
-                        try:
-                            dt = datetime.datetime.strptime(
-                                row[column_name], frmt
-                            )
-                            passed = True
-                            break
-                        except:
-                            pass
-                    if not passed:
-                        message = "'{}' is not a proper date/time for column '{}' (expected: {}) on line {}".format(
-                            row[column_name],
-                            column_name,
-                            ' / '.join(column_attr.datetime),
-                            line_number,
-                        )
-                        if column_attr.required and str(row[column_name]) != "NA":
-                            errors.append(self.msg(message))
-                        elif column_attr.required or str(row[column_name]) != "NA":
-                            pass
-                            #warnings.append(self.msg(message))
-                elif column_attr.regex:
-                    if not re.fullmatch(column_attr.regex, str(row[column_name])):
-                        message = "'{}' does not match the format required for '{}' on line {}, expected '{}'".format(
-                            row[column_name],
-                            column_name,
-                            line_number,
-                            column_attr.regex,
-                        )
-                        if column_attr.required and str(row[column_name]) != "NA":
-                            errors.append(self.msg(message))
-                        elif column_attr.required or str(row[column_name]) != "NA":
-                            warnings.append(self.msg(message))
-
-        for c in self.columns:
-            if not c.unique:
-                continue
-
-            grouped = self.df[self.df[c.name] != "NA"]
-            grouped = grouped.assign(lineno=grouped.index)
-            grouped = (
-                grouped.groupby(c.name)["lineno"]
-                .agg(
-                    [
-                        ("count", len),
-                        (
-                            "lines",
-                            lambda lines: ",".join(
-                                [str(line) for line in sorted(lines)]
-                            ),
-                        ),
-                        ("first", np.min),
-                    ]
-                )
-                .sort_values("first")
-            )
-
-            duplicates = grouped[grouped["count"] > 1]
-            for col, row in duplicates.iterrows():
-                errors.append(
-                    self.msg(
-                        "{} '{}' appears {} times in lines [{}], should appear once".format(
-                            c.name, col, row["count"], row["lines"]
-                        )
-                    )
-                )
 
         return errors, warnings
