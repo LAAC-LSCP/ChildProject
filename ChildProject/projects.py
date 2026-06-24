@@ -392,12 +392,6 @@ class ChildProject:
     
     REC_COL_REF = {c.name: c for c in RECORDINGS_COLUMNS}
 
-    ChildModel = create_model('ChildModel', **{ c.name : c.vfield for c in CHILDREN_COLUMNS if c.vfield})
-    RecordingModel = create_model('RecordingModel', **{c.name: c.vfield for c in RECORDINGS_COLUMNS if c.vfield})
-
-    ChildValidator = Pandantic(schema=ChildModel)
-    RecordingValidator = Pandantic(schema=RecordingModel)
-
 
     def __init__(
         self, path: Union[Path, str], enforce_dtypes: bool = True, ignore_discarded: bool = True
@@ -505,12 +499,14 @@ class ChildProject:
             self.path / METADATA_FOLDER / CHILDREN_CSV,
             self.CHILDREN_COLUMNS,
             enforce_dtypes=self.enforce_dtypes,
+            validator=ChildValidator
         )
         self.rt = IndexTable(
             "recordings",
             self.path / METADATA_FOLDER / RECORDINGS_CSV,
             self.RECORDINGS_COLUMNS,
             enforce_dtypes=self.enforce_dtypes,
+            validator=RecordingValidator
         )
 
         self.children = self.ct.read()
@@ -850,29 +846,25 @@ class ChildProject:
             if not self.loaded or not accumulate:
                 self.read(verbose=True, accumulate=accumulate)
 
-            try:
-                self.ChildValidator.validate(self.children)
-            except ValidationError as e:
-                self.errors.append(str(e))
+            errors, warnings = self.ct.validate()
+            self.errors += errors
+            self.warnings += warnings
 
-            try:
-                self.RecordingValidator.validate(self.recordings)
-            except ValidationError as e:
-                self.errors.append(str(e))
+            errors, warnings = self.rt.validate()
+            self.errors += errors
+            self.warnings += warnings
         else:
             tmp_table = IndexTable("children", columns=self.CHILDREN_COLUMNS)
             tmp_table.df = self.children
-            try:
-                self.ChildValidator.validate(tmp_table.df)
-            except ValidationError as e:
-                self.errors.append(str(e))
+            errors, warnings = tmp_table.validate()
+            self.errors += errors
+            self.warnings += warnings
 
             tmp_table = IndexTable("recordings", columns=self.RECORDINGS_COLUMNS)
             tmp_table.df = self.recordings
-            try:
-                self.RecordingValidator.validate(tmp_table.df)
-            except ValidationError as e:
-                self.errors.append(str(e))
+            errors, warnings = tmp_table.validate()
+            self.errors += errors
+            self.warnings += warnings
 
         exp_values = set(self.children['experiment'].unique()).union(set(self.recordings['experiment'].unique()))
         if len(exp_values) > 1:
@@ -1176,3 +1168,9 @@ class ChildProject:
 
         documentation = pd.concat(documentation)
         return documentation
+
+ChildModel = create_model('ChildModel', **{ c.name : c.vfield for c in ChildProject.CHILDREN_COLUMNS if c.vfield})
+RecordingModel = create_model('RecordingModel', **{c.name: c.vfield for c in ChildProject.RECORDINGS_COLUMNS if c.vfield})
+
+ChildValidator = Pandantic(schema=ChildModel)
+RecordingValidator = Pandantic(schema=RecordingModel)

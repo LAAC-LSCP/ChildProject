@@ -1,9 +1,13 @@
-import pandas as pd
 import os
 import re
 import datetime
-import numpy as np
 from typing import Union, Set, List, Tuple
+
+import numpy as np
+import pandas as pd
+
+from pydantic import ValidationError
+
 
 
 class MissingColumnsException(Exception):
@@ -143,21 +147,24 @@ class IndexTable:
             try:
                 self.validator.validate(self.df)
             except ValidationError as e:
-                errors.append(e)
+                errors.append(
+                    self.msg("\n{}".format(e))
+                )
 
         uniques = [c.name for c in self.columns if c.unique]
 
         for unique in uniques:
             duplicates = self.df[unique][self.df.duplicated(subset=[unique], keep=False)]
-            errors.append(
-                self.msg(
-                    "Duplicated values when it should be unique for column {}, values {} on lines {} appear multiple times".format(
-                        unique,
-                        set(duplicates.values),
-                        set(duplicates.index),
+            if duplicates.shape[0]:
+                errors.append(
+                    self.msg(
+                        "Duplicated values when it should be unique for column {}, values {} on lines {} appear multiple times".format(
+                            unique,
+                            set(duplicates.values),
+                            set(duplicates.index),
+                        )
                     )
                 )
-            )
 
         unknown_columns = [c for c in self.df.columns if c not in columns.keys()]
 
