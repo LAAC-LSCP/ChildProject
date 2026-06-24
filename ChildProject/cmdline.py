@@ -74,6 +74,7 @@ logger.addHandler(clicall_handler)
 
 #config to print to stdout the results from CLI
 logger.setLevel(logging.INFO)
+logger.propagate=False
 
 # Setting up the parse of arguments
 parser = argparse.ArgumentParser()
