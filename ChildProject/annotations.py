@@ -7,7 +7,7 @@ from functools import reduce, partial
 from shutil import move, rmtree
 import sys
 import traceback
-from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
+from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Union, Annotated
 if sys.version_info[0] == 3 and sys.version_info[1] >= 11:
     from typing import Self
 else:
@@ -16,6 +16,8 @@ import logging
 from pathlib import Path
 import yaml
 import shutil
+from pydantic import NonNegativeInt, PositiveInt, StringConstraints, create_model, Json
+from pandantic import Pandantic, Optional as Poptional
 
 from . import __version__
 from .pipelines.derivations import DERIVATIONS, Derivator, RuntimeDerivator
@@ -42,79 +44,93 @@ class AnnotationManager:
             name="set",
             description="name of the annotation set (e.g. VTC, annotator1, etc.)",
             required=True,
+            vfield=str,
         ),
         IndexColumn(
             name="recording_filename",
             description="recording filename as specified in the recordings index",
             required=True,
+            vfield=str,
         ),
         IndexColumn(
             name="time_seek",
             description="shift between the timestamps in the raw input annotations and the actual corresponding timestamps in the recordings (in milliseconds)",
             regex=r"(\-?)([0-9]+)",
             required=True,
+            vfield=int,
         ),
         IndexColumn(
             name="range_onset",
             description="covered range onset timestamp in milliseconds (since the start of the recording)",
             regex=r"[0-9]+",
             required=True,
+            vfield=NonNegativeInt,
         ),
         IndexColumn(
             name="range_offset",
             description="covered range offset timestamp in milliseconds (since the start of the recording)",
             regex=r"[0-9]+",
             required=True,
+            vfield=NonNegativeInt,
         ),
         IndexColumn(
             name="raw_filename",
             description="annotation input filename location, relative to `annotations/<set>/raw`",
             filename=True,
             required=True,
+            vfield=str,
         ),
         IndexColumn(
             name="format",
             description="input annotation format",
             choices=[*converters.keys(), "NA", "custom"],
             required=False,
+            vfield=Annotated[str, StringConstraints(pattern=r'{}'.format([*converters.keys(), "NA", "custom"]))],
         ),
         IndexColumn(
             name="filter",
             description="source file to target. this field is dedicated to rttm and ALICE annotations that may combine annotations from several recordings into one same text file.",
             required=False,
+            vfield=(Poptional[str], None),
         ),
         IndexColumn(
             name="annotation_filename",
             description="output formatted annotation location, relative to `annotations/<set>/converted` (automatic column, don't specify)",
             filename=True,
-            required=False,
+            required=True,
             generated=True,
+            vfield=str,
         ),
         IndexColumn(
             name="imported_at",
             description="importation date (automatic column, don't specify)",
             datetime={"%Y-%m-%d %H:%M:%S"},
-            required=False,
+            required=True,
             generated=True,
+            vfield=datetime.datetime,
         ),
         IndexColumn(
             name="package_version",
             description="version of the package used when the importation was performed",
             regex=r"[0-9]+\.[0-9]+\.[0-9]+",
-            required=False,
+            required=True,
             generated=True,
+            dtype=str,
+            vfield=Annotated[str, StringConstraints(pattern=r'[0-9]+\.[0-9]+\.[0-9]+')],
         ),
         IndexColumn(
             name="error",
             description="error message in case the annotation could not be imported",
-            required=False,
+            required=True,
             generated=True,
+            vfield=(Poptional[str], None),
         ),
         IndexColumn(
             name="merged_from",
             description="sets used to generate this annotation by merging (comma separated)",
-            required=False,
+            required=True,
             generated=True,
+            vfield=(Poptional[str], None),
         ),
     ]
 
@@ -123,73 +139,97 @@ class AnnotationManager:
             name="raw_filename",
             description="raw annotation path relative, relative to `annotations/<set>/raw`",
             required=True,
+            vfield=str,
         ),
         IndexColumn(
             name="segment_onset",
             description="segment onset timestamp in milliseconds (since the start of the recording)",
             regex=r"([0-9]+)",
             required=True,
+            vfield=NonNegativeInt,
         ),
         IndexColumn(
             name="segment_offset",
             description="segment end time in milliseconds (since the start of the recording)",
             regex=r"([0-9]+)",
             required=True,
+            vfield=PositiveInt,
         ),
         IndexColumn(
-            name="speaker_id", description="identity of speaker in the annotation"
+            name="speaker_id",
+            description="identity of speaker in the annotation",
+            vfield=(Poptional[str], None),
         ),
         IndexColumn(
             name="speaker_type",
             description="class of speaker (FEM = female adult, MAL = male adult, CHI = key child, OCH = other child)",
             choices=["FEM", "MAL", "CHI", "OCH", "NA"],
+            vfield=(Poptional[Annotated[str, StringConstraints(pattern=r'{}'.format('|'.join(["FEM", "MAL", "CHI", "OCH", "NA"])))]], None),
         ),
         IndexColumn(
             name="ling_type",
             description="1 if the vocalization contains at least a vowel (ie canonical or non-canonical), 0 if crying or laughing",
             choices=["1", "0", "NA"],
+            vfield=(Poptional[Annotated[str, StringConstraints(pattern=r"1|0|NA")]], None),
         ),
         IndexColumn(
             name="vcm_type",
             description="vocal maturity defined as: C (canonical), N (non-canonical), Y (crying) L (laughing), J (junk), U (uncertain)",
             choices=["C", "N", "Y", "L", "J", "U", "NA"],
+            vfield=(Poptional[Annotated[str, StringConstraints(pattern=r"C|N|Y|L|J|U|NA")]], None),
         ),
         IndexColumn(
             name="lex_type",
             description="W if meaningful, 0 otherwise",
             choices=["W", "0", "NA"],
+            vfield=(Poptional[Annotated[str, StringConstraints(pattern=r"W|0|NA")]], None),
         ),
         IndexColumn(
             name="mwu_type",
             description="M if multiword, 1 if single word -- only filled if lex_type==W",
             choices=["M", "1", "NA"],
+            vfield=(Poptional[Annotated[str, StringConstraints(pattern=r"1|M|NA")]], None),
         ),
         IndexColumn(
             name="msc_type",
             description="morphosyntactical complexity of the utterances defined as: 0 (0 meaningful word), 1 (1 meaningful word), 2 (2 meaningful words), S (simple utterance), C (complex utterance), U (uncertain)",
             choices=["0", "1", "2", "S", "C", "U"],
+            vfield=(Poptional[Annotated[str, StringConstraints(pattern=r"1|0|2|S|C|U")]], None),
         ),
         IndexColumn(
             name="gra_type",
             description="grammaticality of the utterances defined as: G (grammatical), J (ungrammatical), U (uncertain)",
             choices=["G", "J", "U"],
+            vfield=(Poptional[Annotated[str, StringConstraints(pattern=r"G|J|U")]], None),
         ),
         IndexColumn(
             name="addressee",
             description="T if target-child-directed, C if other-child-directed, A if adult-directed, O if addressed to other, P if addressed to a pet, U if uncertain or other. Multiple values should be sorted and separated by commas",
             choices=["T", "C", "A", "O", "P", "U", "NA"],
+            vfield=(Poptional[Annotated[str, StringConstraints(pattern=r"T|C|A|O|P|NA")]], None),
         ),
         IndexColumn(
-            name="transcription", description="orthographic transcription of the speech"
+            name="transcription",
+            description="orthographic transcription of the speech",
+            vfield=(Poptional[str], None),
         ),
         IndexColumn(
-            name="phonemes", description="amount of phonemes", regex=r"(\d+(\.\d+)?)"
+            name="phonemes",
+            description="amount of phonemes",
+            regex=r"(\d+(\.\d+)?)",
+            vfield=(Poptional[float], None),
         ),
         IndexColumn(
-            name="syllables", description="amount of syllables", regex=r"(\d+(\.\d+)?)"
+            name="syllables",
+            description="amount of syllables",
+            regex=r"(\d+(\.\d+)?)",
+            vfield=(Poptional[float], None),
         ),
         IndexColumn(
-            name="words", description="amount of words", regex=r"(\d+(\.\d+)?)"
+            name="words",
+            description="amount of words",
+            regex=r"(\d+(\.\d+)?)",
+            vfield=(Poptional[float], None),
         ),
         IndexColumn(
             name="lena_block_type",
@@ -214,31 +254,56 @@ class AnnotationManager:
                 "XIC",
                 "XIOCAC",
             ],
+            vfield=(Poptional[Annotated[str, StringConstraints(pattern=r"{}".format('|'.join([
+                "pause",
+                "CM",
+                "CIC",
+                "CIOCX",
+                "CIOCAX",
+                "AMF",
+                "AICF",
+                "AIOCF",
+                "AIOCCXF",
+                "AMM",
+                "AICM",
+                "AIOCM",
+                "AIOCCXM",
+                "XM",
+                "XIOCC",
+                "XIOCA",
+                "XIC",
+                "XIOCAC",
+            ])))]], None),
         ),
         IndexColumn(
             name="lena_block_number",
             description="number of the LENA pause/conversation the segment belongs to",
             regex=r"(\d+(\.\d+)?)",
+            vfield=(Poptional[float], None),
         ),
         IndexColumn(
             name="lena_conv_status",
             description="LENA conversation status",
             choices=["BC", "RC", "EC"],
+            vfield=(Poptional[Annotated[str, StringConstraints(pattern=r"BC|EC|RC")]], None),
         ),
         IndexColumn(
             name="lena_response_count",
             description="LENA turn count within block",
             regex=r"(\d+(\.\d+)?)",
+            vfield=(Poptional[float], None),
         ),
         IndexColumn(
             name="lena_conv_floor_type",
             description="(FI): Floor Initiation, (FH): Floor Holding",
             choices=["FI", "FH"],
+            vfield=(Poptional[Annotated[str, StringConstraints(pattern=r"FI|FH")]], None),
         ),
         IndexColumn(
             name="lena_conv_turn_type",
             description="LENA turn type",
             choices=["TIFI", "TIMI", "TIFR", "TIMR", "TIFE", "TIME", "NT"],
+            vfield=(Poptional[Annotated[str, StringConstraints(pattern=r"TIFI|TIMI|TIFR|TIMR|TIFE|TIME|NT")]], None),
         ),
         IndexColumn(
             name="lena_speaker",
@@ -260,34 +325,83 @@ class AnnotationManager:
                 "MAN",
                 "FAF",
             ],
+            vfield=(Poptional[Annotated[str, StringConstraints(pattern=r"{}".format('|'.join([
+                "TVF",
+                "FAN",
+                "OLN",
+                "SIL",
+                "NOF",
+                "CXF",
+                "OLF",
+                "CHF",
+                "MAF",
+                "TVN",
+                "NON",
+                "CXN",
+                "CHN",
+                "MAN",
+                "FAF",
+            ])))]], None),
         ),
         IndexColumn(
             name="utterances_count",
             description="utterances count",
             regex=r"(\d+(\.\d+)?)",
+            vfield=(Poptional[float], None),
         ),
         IndexColumn(
-            name="utterances_length", description="utterances length", regex=r"([0-9]+)"
+            name="utterances_length",
+            description="utterances length",
+            regex=r"([0-9]+)",
+            vfield=(Poptional[NonNegativeInt], None),
         ),
         IndexColumn(
-            name="non_speech_length", description="non-speech length", regex=r"([0-9]+)"
+            name="non_speech_length",
+            description="non-speech length",
+            regex=r"([0-9]+)",
+            vfield=(Poptional[NonNegativeInt], None),
         ),
         IndexColumn(
             name="average_db",
             description="average dB level",
             regex=r"(\-?)(\d+(\.\d+)?)",
+            vfield=(Poptional[float], None),
         ),
         IndexColumn(
-            name="peak_db", description="peak dB level", regex=r"(\-?)(\d+(\.\d+)?)"
+            name="peak_db",
+            description="peak dB level",
+            regex=r"(\-?)(\d+(\.\d+)?)",
+            vfield=(Poptional[float], None),
         ),
         IndexColumn(
-            name="child_cry_vfx_len", description="childCryVfxLen", regex=r"([0-9]+)"
+            name="child_cry_vfx_len",
+            description="childCryVfxLen",
+            regex=r"([0-9]+)",
+            vfield=(Poptional[NonNegativeInt], None),
         ),
-        IndexColumn(name="utterances", description="LENA utterances details (json)"),
-        IndexColumn(name="cries", description="cries (json)"),
-        IndexColumn(name="vfxs", description="Vfx (json)"),
+        IndexColumn(
+            name="utterances",
+            description="LENA utterances details (json)",
+            vfield=(Poptional[Json], None),
+        ),
+        IndexColumn(
+            name="cries",
+            description="cries (json)",
+            vfield=(Poptional[Json], None),
+        ),
+        IndexColumn(
+            name="vfxs",
+            description="Vfx (json)",
+            vfield=(Poptional[Json], None),
+        ),
 
     ]
+
+    AnnotationIndexModel = create_model('AnnotationIndexModel', **{c.name: c.vfield for c in INDEX_COLUMNS if c.vfield})
+    AnnotationModel = create_model('AnnotationModel', **{c.name: c.vfield for c in SEGMENTS_COLUMNS if c.vfield})
+
+    AnnotationIndexValidator = Pandantic(schema=AnnotationIndexModel)
+    AnnotationValidator = Pandantic(schema=AnnotationModel)
 
     # The annotation_columns describes what set of columns must be present in the annotation
     # for the package to automatically deem that this category is True (it can be manually edited later)
@@ -440,7 +554,7 @@ class AnnotationManager:
     # this describes which column infers
     SETS_CONTENT_COLUMNS = {}
 
-    def __init__(self, project: ChildProject):
+    def __init__(self, project: ChildProject, enforce_dtypes: bool = True,):
         """AnnotationManager constructor
 
         :param project: :class:`ChildProject` instance of the target dataset.
@@ -450,6 +564,7 @@ class AnnotationManager:
         self.annotations = None
         self.errors = []
         self.sets = None
+        self.enforce_dtypes = enforce_dtypes
 
         if not isinstance(project, ChildProject):
             raise ValueError("project should derive from ChildProject")
@@ -475,7 +590,8 @@ class AnnotationManager:
             "input",
             path=self.project.path / METADATA_FOLDER / ANNOTATIONS_CSV,
             columns=self.INDEX_COLUMNS,
-            validator=AnnotationManager.AnnotationValidator,
+            enforce_dtypes=self.enforce_dtypes,
+            validator=AnnotationManager.AnnotationIndexValidator,
         )
         self.annotations = table.read()
         errors, warnings = table.validate()
@@ -731,6 +847,7 @@ class AnnotationManager:
             path=self.project.path /
                  ANNOTATIONS / annotation["set"] / CONVERTED / str(annotation["annotation_filename"]),
             columns=self.SEGMENTS_COLUMNS,
+            validator=AnnotationManager.AnnotationValidator,
         )
 
         try:
