@@ -475,6 +475,7 @@ class AnnotationManager:
             "input",
             path=self.project.path / METADATA_FOLDER / ANNOTATIONS_CSV,
             columns=self.INDEX_COLUMNS,
+            validator=AnnotationManager.AnnotationValidator,
         )
         self.annotations = table.read()
         errors, warnings = table.validate()
