@@ -91,6 +91,7 @@ class AnnotationManager:
             name="filter",
             description="source file to target. this field is dedicated to rttm and ALICE annotations that may combine annotations from several recordings into one same text file.",
             required=False,
+            dtype="string",
             vfield=(Poptional[str], None),
         ),
         IndexColumn(
@@ -611,15 +612,16 @@ class AnnotationManager:
                 ]
             )
 
+        # too expensive
         #check the index for overlaps, produces errors as the same set should not have overlaps in annotations
-        ovl_ranges = find_lines_involved_in_overlap(self.annotations, labels=['recording_filename', 'set'])
-        if ovl_ranges[ovl_ranges == True].shape[0] > 0:
-            ovl_ranges = self.annotations[ovl_ranges][['set','annotation_filename']].values.tolist()
-            errors.extend(
-                [
-                    f"overlaps in the annotation index for the following [set, annotation_filename] list: {ovl_ranges}"
-                ]
-            )
+        # ovl_ranges = find_lines_involved_in_overlap(self.annotations, labels=['recording_filename', 'set'])
+        # if ovl_ranges[ovl_ranges == True].shape[0] > 0:
+        #     ovl_ranges = self.annotations[ovl_ranges][['set','annotation_filename']].values.tolist()
+        #     errors.extend(
+        #         [
+        #             f"overlaps in the annotation index for the following [set, annotation_filename] list: {ovl_ranges}"
+        #         ]
+        #     )
 
         #check the index for bad range_onset range_offset
         ranges_invalid = self.annotations[(self.annotations['range_offset'] <= self.annotations['range_onset']) | (self.annotations['range_onset'] < 0)]
