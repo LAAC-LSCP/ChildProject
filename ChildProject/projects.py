@@ -146,11 +146,13 @@ class ChildProject:
         IndexColumn(
             name="mother_id",
             description="unique ID of the mother",
+            dtype="string",
             vfield=(Poptional[str], None),
         ),
         IndexColumn(
             name="father_id",
             description="unique ID of the father",
+            dtype="string",
             vfield=(Poptional[str], None),
         ),
         IndexColumn(
@@ -233,7 +235,7 @@ class ChildProject:
             description="local time in which recording was started in format 24-hour (H)H:MM:SS or (H)H:MM; if minutes or seconds are unknown, use 00. ‘NA’ if unknown, this will raise a Warning when validating as some analysis that rely on times will not consider this recordings.",
             required=True,
             datetime={"%H:%M","%H:%M:%S"},
-            vfield=Annotated[str, StringConstraints(pattern=r'^([01]?\d|2[0-3]):[0-5]\d(:[0-5]\d)?$')],
+            vfield=Annotated[str, StringConstraints(pattern=r'^(NA|([01]?\d|2[0-3]):[0-5]\d(:[0-5]\d)?)$')],
         ),
         IndexColumn(
             name="recording_device_type",
@@ -264,11 +266,13 @@ class ChildProject:
         IndexColumn(
             name="recording_device_id",
             description="unique ID of the recording device",
+            dtype="string",
             vfield=(Poptional[str], None),
         ),
         IndexColumn(
             name="experimenter",
             description="who collected the data (could be anonymized ID)",
+            dtype="string",
             vfield=(Poptional[str], None),
         ),
         IndexColumn(
@@ -873,30 +877,25 @@ class ChildProject:
                 f"{len(exp_values)} different values were found: {exp_values}"
             )
 
-        file_columns = [
-            (c.name, c.directory) for c in self.RECORDINGS_COLUMNS
-            if c.filename and c.name in self.recordings.columns
-        ]
-        for column, directory in file_columns:
-            files = set(str(path.relative_to(self.path / directory)) for path in (self.path / directory).rglob("*.*"))
-            missing = self.recordings[~self.recordings[column].isin(files)]
-            if missing.shape[0]:
-                if ignore_recordings:
-                    self.warnings.append(
-                        "'{}' values {} in recordings table on lines {} cannot be found in the filesystem.".format(
-                            column, set(missing[column].unique()), set(missing.index)
-                        ))
-                else:
+        if not ignore_recordings:
+            file_columns = [
+                (c.name, c.directory) for c in self.RECORDINGS_COLUMNS
+                if c.filename and c.name in self.recordings.columns
+            ]
+            for column, directory in file_columns:
+                files = set(str(path.relative_to(self.path / directory)) for path in (self.path / directory).rglob("*.*"))
+                missing = self.recordings[~self.recordings[column].isin(files)]
+                if missing.shape[0]:
                     self.errors.append(
                         "'{}' values {} in recordings table on lines {} cannot be found in the filesystem.".format(
                             column, set(missing[column].unique()), set(missing.index)
                         ))
-            not_indexed = files - (set(self.recordings[column]) | set(self.discarded_recordings[column]))
-            if len(not_indexed):
-                self.warnings.append(
-                    "files {} not indexed in {} column".format(
-                        not_indexed, column,
-                    ))
+                not_indexed = files - (set(self.recordings[column]) | set(self.discarded_recordings[column]))
+                if len(not_indexed):
+                    self.warnings.append(
+                        "files {} not indexed in {} column".format(
+                            not_indexed, column,
+                        ))
 
 
         missing_childIDs = self.recordings[~self.recordings['child_id'].isin(self.children['child_id'])]
