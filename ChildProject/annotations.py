@@ -85,7 +85,7 @@ class AnnotationManager:
             description="input annotation format",
             choices=[*converters.keys(), "NA", "custom"],
             required=False,
-            vfield=Annotated[str, StringConstraints(pattern=r'{}'.format([*converters.keys(), "NA", "custom"]))],
+            vfield=(Poptional[Annotated[str, StringConstraints(pattern=r'{}'.format('|'.join([*converters.keys(), "NA", "custom"])))]], None),
         ),
         IndexColumn(
             name="filter",
@@ -165,12 +165,14 @@ class AnnotationManager:
             name="speaker_type",
             description="class of speaker (FEM = female adult, MAL = male adult, CHI = key child, OCH = other child)",
             choices=["FEM", "MAL", "CHI", "OCH", "NA"],
+            dtype="str",
             vfield=(Poptional[Annotated[str, StringConstraints(pattern=r'{}'.format('|'.join(["FEM", "MAL", "CHI", "OCH", "NA"])))]], None),
         ),
         IndexColumn(
             name="ling_type",
             description="1 if the vocalization contains at least a vowel (ie canonical or non-canonical), 0 if crying or laughing",
             choices=["1", "0", "NA"],
+            dtype="string",
             vfield=(Poptional[Annotated[str, StringConstraints(pattern=r"1|0|NA")]], None),
         ),
         IndexColumn(
@@ -183,35 +185,39 @@ class AnnotationManager:
             name="lex_type",
             description="W if meaningful, 0 otherwise",
             choices=["W", "0", "NA"],
+            dtype="string",
             vfield=(Poptional[Annotated[str, StringConstraints(pattern=r"W|0|NA")]], None),
         ),
         IndexColumn(
             name="mwu_type",
             description="M if multiword, 1 if single word -- only filled if lex_type==W",
             choices=["M", "1", "NA"],
+            dtype="string",
             vfield=(Poptional[Annotated[str, StringConstraints(pattern=r"1|M|NA")]], None),
         ),
         IndexColumn(
             name="msc_type",
             description="morphosyntactical complexity of the utterances defined as: 0 (0 meaningful word), 1 (1 meaningful word), 2 (2 meaningful words), S (simple utterance), C (complex utterance), U (uncertain)",
             choices=["0", "1", "2", "S", "C", "U"],
-            vfield=(Poptional[Annotated[str, StringConstraints(pattern=r"1|0|2|S|C|U")]], None),
+            dtype="string",
+            vfield=(Poptional[Annotated[str, StringConstraints(pattern=r"1|0|2|S|C|U|NA")]], None),
         ),
         IndexColumn(
             name="gra_type",
             description="grammaticality of the utterances defined as: G (grammatical), J (ungrammatical), U (uncertain)",
             choices=["G", "J", "U"],
-            vfield=(Poptional[Annotated[str, StringConstraints(pattern=r"G|J|U")]], None),
+            vfield=(Poptional[Annotated[str, StringConstraints(pattern=r"G|J|U|NA")]], None),
         ),
         IndexColumn(
             name="addressee",
             description="T if target-child-directed, C if other-child-directed, A if adult-directed, O if addressed to other, P if addressed to a pet, U if uncertain or other. Multiple values should be sorted and separated by commas",
             choices=["T", "C", "A", "O", "P", "U", "NA"],
-            vfield=(Poptional[Annotated[str, StringConstraints(pattern=r"T|C|A|O|P|NA")]], None),
+            vfield=(Poptional[Annotated[str, StringConstraints(pattern=r"T|C|A|O|P|U|NA")]], None),
         ),
         IndexColumn(
             name="transcription",
             description="orthographic transcription of the speech",
+            dtype="string",
             vfield=(Poptional[str], None),
         ),
         IndexColumn(
@@ -274,6 +280,7 @@ class AnnotationManager:
                 "XIOCA",
                 "XIC",
                 "XIOCAC",
+                "NA",
             ])))]], None),
         ),
         IndexColumn(
@@ -286,25 +293,25 @@ class AnnotationManager:
             name="lena_conv_status",
             description="LENA conversation status",
             choices=["BC", "RC", "EC"],
-            vfield=(Poptional[Annotated[str, StringConstraints(pattern=r"BC|EC|RC")]], None),
+            vfield=(Poptional[Annotated[str, StringConstraints(pattern=r"BC|EC|RC|NA")]], None),
         ),
         IndexColumn(
             name="lena_response_count",
             description="LENA turn count within block",
             regex=r"(\d+(\.\d+)?)",
-            vfield=(Poptional[float], None),
+            vfield=(Poptional[Union[float, Annotated[str, StringConstraints(pattern='NA')]]], None),
         ),
         IndexColumn(
             name="lena_conv_floor_type",
             description="(FI): Floor Initiation, (FH): Floor Holding",
             choices=["FI", "FH"],
-            vfield=(Poptional[Annotated[str, StringConstraints(pattern=r"FI|FH")]], None),
+            vfield=(Poptional[Annotated[str, StringConstraints(pattern=r"FI|FH|NA")]], None),
         ),
         IndexColumn(
             name="lena_conv_turn_type",
             description="LENA turn type",
             choices=["TIFI", "TIMI", "TIFR", "TIMR", "TIFE", "TIME", "NT"],
-            vfield=(Poptional[Annotated[str, StringConstraints(pattern=r"TIFI|TIMI|TIFR|TIMR|TIFE|TIME|NT")]], None),
+            vfield=(Poptional[Annotated[str, StringConstraints(pattern=r"TIFI|TIMI|TIFR|TIMR|TIFE|TIME|NT|NA")]], None),
         ),
         IndexColumn(
             name="lena_speaker",
@@ -342,6 +349,7 @@ class AnnotationManager:
                 "CHN",
                 "MAN",
                 "FAF",
+                "NA",
             ])))]], None),
         ),
         IndexColumn(
@@ -383,17 +391,17 @@ class AnnotationManager:
         IndexColumn(
             name="utterances",
             description="LENA utterances details (json)",
-            vfield=(Poptional[Json], None),
+            #vfield=(Poptional[Json], None),
         ),
         IndexColumn(
             name="cries",
             description="cries (json)",
-            vfield=(Poptional[Json], None),
+            #vfield=(Poptional[Json], None),
         ),
         IndexColumn(
             name="vfxs",
             description="Vfx (json)",
-            vfield=(Poptional[Json], None),
+            #vfield=(Poptional[Json], None),
         ),
 
     ]
@@ -850,6 +858,7 @@ class AnnotationManager:
                  ANNOTATIONS / annotation["set"] / CONVERTED / str(annotation["annotation_filename"]),
             columns=self.SEGMENTS_COLUMNS,
             validator=AnnotationManager.AnnotationValidator,
+            enforce_dtypes=self.enforce_dtypes,
         )
 
         try:
