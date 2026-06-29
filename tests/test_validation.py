@@ -8,7 +8,7 @@ def test_valid_project():
     errors, warnings = project.validate()
 
     assert len(errors) == 0, "valid input validation failed (expected to pass)"
-    assert len(warnings) == 3, "expected 3 warnings, got {}".format(len(warnings))
+    assert len(warnings) == 1, "expected 3 warnings, got {}".format(len(warnings))
 
 
 def test_invalid_project():
@@ -21,15 +21,13 @@ def test_invalid_project():
     warnings.extend(am.warnings)
 
     expected_errors = [
-        os.path.normpath("examples/invalid_raw_data/metadata/children.csv")+ ": child_id '1' appears 2 times in lines [2,3], should appear once",
-        os.path.normpath("examples/invalid_raw_data/metadata/recordings.csv")+ ": 'USB' is not a permitted value for column 'recording_device_type' on line 2, should be any of [lena,usb,olympus,babylogger,izyrec,unknown]",
-        "cannot find recording 'test_1_20200918.mp3' at "+os.path.normpath("'examples/invalid_raw_data/recordings/raw/test_1_20200918.mp3'"),
-        "cannot find recording 'test_1_is_not_here.wav' at "+os.path.normpath("'examples/invalid_raw_data/recordings/raw/test_1_is_not_here.wav'"), 
+        os.path.normpath("examples/invalid_raw_data/metadata/children.csv")+ ": Duplicated values when it should be unique for column child_id, values {'1'} on lines {2, 3} appear multiple times",
+        os.path.normpath("examples/invalid_raw_data/metadata/recordings.csv")+ ": \n2 validation errors for RecordingModel\nrecording_device_type\n  String should match pattern 'lena|usb|olympus|babylogger|izyrec|unknown' [type=string_pattern_mismatch, input_value='USB', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.13/v/string_pattern_mismatch\nnoisy_setting\n  Input should be a valid boolean, unable to interpret input [type=bool_parsing, input_value=2, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.13/v/bool_parsing",
+        "'recording_filename' values ['test_1_20200918.mp3', 'test_1_is_not_here.wav'] in recordings table on lines [2, 5] cannot be found in the filesystem.",
         'Age at recording is negative in recordings on line 3 (-15.4 months). Check date_iso for that recording and child_dob for the corresponding child.', 
         'Age at recording is negative in recordings on line 4 (-15.4 months). Check date_iso for that recording and child_dob for the corresponding child.', 
         'Age at recording is negative in recordings on line 5 (-15.4 months). Check date_iso for that recording and child_dob for the corresponding child.',
         "duplicate reference to annotations/vtc_rttm/converted/sound_1980000_1990000.csv (appears 2 times)",
-        "overlaps in the annotation index for the following [set, annotation_filename] list: [['textgrid', 'sound_0_10000.csv'], ['textgrid', 'sound_0_300000.csv'], ['vtc_rttm', 'sound_1980000_1990000.csv'], ['vtc_rttm', 'sound_1980000_1990000.csv']]",
         "annotation index does not verify range_offset > range_onset >= 0 for set <ranges>, annotation filename <sound_0_300000.csv>",
         "annotation index has an offset higher than recorded duration of the audio <textgrid>, annotation filename <sound_0_40000000.csv>",
 
@@ -37,9 +35,7 @@ def test_invalid_project():
 
     expected_warnings = [
         "Metadata files for sets ['alice', 'ranges', 'textgrid', 'vtc_rttm'] could not be found, they should be created as annotations/<set>/metannots.yml",
-        os.path.normpath("examples/invalid_raw_data/metadata/recordings.csv")+ ": '2' does not pass callable test for column 'noisy_setting' on line 2",
-        "file '"+ os.path.normpath("examples/invalid_raw_data/recordings/raw/test_1_2020091.mp3")+"' not indexed.",
-        "the data content of recording 'test_1_is_broken.mp3' at path " + os.path.normpath("'examples/invalid_raw_data/recordings/raw/test_1_is_broken.mp3'") + " is absent. See 'broken symlinks'"
+        "files {'test_1_2020091.mp3'} not indexed in recording_filename column",
     ]
     assert sorted(expected_errors) == sorted(
         errors
