@@ -88,6 +88,7 @@ class ChildProject:
         IndexColumn(
             name="location_id",
             description="Unique location ID -- only specify here if children never change locations in this culture; otherwise, specify in the recordings metadata",
+            dtype="string",
             vfield=(Poptional[str], None),
         ),
         IndexColumn(
@@ -109,12 +110,12 @@ class ChildProject:
         IndexColumn(
             name="mat_ed",
             description="maternal years of education",
-            vfield=(Poptional[NonNegativeInt], None),
+            #vfield=(Poptional[NonNegativeInt], None),
         ),
         IndexColumn(
             name="fat_ed",
             description="paternal years of education",
-            vfield=(Poptional[NonNegativeInt], None),
+            #vfield=(Poptional[NonNegativeInt], None),
         ),
         IndexColumn(
             name="car_ed",
@@ -278,6 +279,7 @@ class ChildProject:
         IndexColumn(
             name="location_id",
             description="unique location ID -- can be specified at the level of the child (if children do not change locations)",
+            dtype="string",
             vfield=(Poptional[str], None),
         ),
         IndexColumn(
@@ -888,7 +890,7 @@ class ChildProject:
                 if missing.shape[0]:
                     self.errors.append(
                         "'{}' values {} in recordings table on lines {} cannot be found in the filesystem.".format(
-                            column, set(missing[column].unique()), set(missing.index)
+                            column, sorted(set(missing[column].unique())), sorted(set(missing.index))
                         ))
                 not_indexed = files - (set(self.recordings[column]) | set(self.discarded_recordings[column]))
                 if len(not_indexed):
