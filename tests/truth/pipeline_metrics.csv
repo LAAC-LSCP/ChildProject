@@ -1,0 +1,3 @@
+recording_filename,child_id,duration_pipe_its,voc_fem_ph,lp_dur,lp_n,wc_adu_ph,wc_mal_ph,wc_fem_ph,avg_voc_dur_chi,avg_voc_dur_och,lena_CVC,avg_voc_dur_mal,voc_dur_chi_ph,voc_dur_och_ph,voc_dur_mal_ph,voc_dur_fem_ph,voc_chi_ph,voc_och_ph,voc_mal_ph,avg_voc_dur_fem,lena_CTC
+sound.wav,1,100000000,75.276,0.6312145802699036,0.6938188787733589,447.92459999999994,130.56336,317.36124,965.4359526372443,1015.1669316375198,1470.0,1467.199391171994,64576.079999999994,22987.44,34702.2,90352.79999999999,66.88799999999999,22.644,23.651999999999997,1200.286944045911,526.0
+sound2.wav,1,0,,,,,,,,,,,,,,,,,,,
