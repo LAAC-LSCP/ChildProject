@@ -1,5 +1,6 @@
 from ChildProject.projects import ChildProject
 from ChildProject.annotations import AnnotationManager
+from pydantic import __version__ as pydantic_version
 import os
 
 def test_valid_project():
@@ -22,7 +23,7 @@ def test_invalid_project():
 
     expected_errors = [
         os.path.normpath("examples/invalid_raw_data/metadata/children.csv")+ ": Duplicated values when it should be unique for column child_id, values {'1'} on lines {2, 3} appear multiple times",
-        os.path.normpath("examples/invalid_raw_data/metadata/recordings.csv")+ ": \n2 validation errors for RecordingModel\nrecording_device_type\n  String should match pattern 'lena|usb|olympus|babylogger|izyrec|unknown' [type=string_pattern_mismatch, input_value='USB', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.13/v/string_pattern_mismatch\nnoisy_setting\n  Input should be a valid boolean, unable to interpret input [type=bool_parsing, input_value=2, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.13/v/bool_parsing",
+        os.path.normpath("examples/invalid_raw_data/metadata/recordings.csv")+ ": \n2 validation errors for RecordingModel\nrecording_device_type\n  String should match pattern 'lena|usb|olympus|babylogger|izyrec|unknown' [type=string_pattern_mismatch, input_value='USB', input_type=str]\n    For further information visit https://errors.pydantic.dev/"+'.'.join(pydantic_version.split('.')[:-1])+"/v/string_pattern_mismatch\nnoisy_setting\n  Input should be a valid boolean, unable to interpret input [type=bool_parsing, input_value=2, input_type=int]\n    For further information visit https://errors.pydantic.dev/"+'.'.join(pydantic_version.split('.')[:-1])+"/v/bool_parsing",
         "'recording_filename' values ['test_1_20200918.mp3', 'test_1_is_not_here.wav'] in recordings table on lines [2, 5] cannot be found in the filesystem.",
         'Age at recording is negative in recordings on line 3 (-15.4 months). Check date_iso for that recording and child_dob for the corresponding child.', 
         'Age at recording is negative in recordings on line 4 (-15.4 months). Check date_iso for that recording and child_dob for the corresponding child.', 
