@@ -2,7 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.4.7]
+
+### Modified
+
+- Faster initialization of objects (ChildProject and AnnotationManager)
+- validation of data is done thorugh pydantic validation
+- some redundant or overcareful checks were abandoned
 
 ## [0.4.6] 2026-02-02
 
