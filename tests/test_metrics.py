@@ -8,7 +8,7 @@ from pathlib import Path
 
 from ChildProject.projects import ChildProject
 from ChildProject.annotations import AnnotationManager
-from ChildProject.pipelines.metrics import Metrics, LenaMetrics, AclewMetrics, CustomMetrics, MetricsSpecificationPipeline
+from ChildProject.pipelines.metrics import Metrics, LenaMetrics, AclewMetrics, CustomMetrics, MetricsSpecificationPipeline, MetricsPipeline
 
 from ChildProject.pipelines.metricsFunctions import metricFunction, RESERVED
 
@@ -244,6 +244,41 @@ def test_metrics_segments(project, am):
     truth = pd.read_csv("tests/truth/segments_metrics.csv", dtype={'child_id': str})
 
     pd.testing.assert_frame_equal(metrics.metrics, truth, check_like=True)
+
+def test_pipeline(project, am):
+    data = pd.read_csv("tests/data/lena_its.csv")
+    output = Path('output/metrics/extra/pipeline_metrics.csv')
+    
+    am.import_annotations(
+        pd.DataFrame(
+            [
+                {
+                    "set": "pipe_its",
+                    "raw_filename": "file.its",
+                    "time_seek": 0,
+                    "recording_filename": "sound.wav",
+                    "range_onset": 0,
+                    "range_offset": 100000000,
+                    "format": "its",
+                }
+            ]
+        ),
+        import_function=partial(fake_vocs, data),
+    )
+    mp = MetricsPipeline()
+
+    args = {'pipeline': 'lena', 'set': 'pipe_its', 'by': 'recording_filename'}
+
+    mp.run(
+        project.path,
+        output,
+        **args,
+    )
+
+    production = pd.read_csv(output, dtype={'child_id': str})
+    truth = pd.read_csv("tests/truth/pipeline_metrics.csv", dtype={'child_id': str})
+
+    pd.testing.assert_frame_equal(production, truth, check_like=True)
 
 def test_specs(project, am):
     data = pd.read_csv("tests/data/lena_its.csv")
