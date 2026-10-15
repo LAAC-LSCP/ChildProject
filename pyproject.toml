@@ -34,7 +34,7 @@ authors = [
 ]
 description = "LAAC@LSCP"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
