@@ -73,6 +73,7 @@ class Metrics(ABC):
         self.project = project
         self.am = AnnotationManager(self.project)
         self.threads = int(threads)
+        self._progress = 0
         
         #check that the callable column is either a callable function or a string that can be found as being part of the list of metrics in ChildProject/pipelines/metricsFunctions.py
         def check_callable(row):
@@ -243,6 +244,7 @@ class Metrics(ABC):
             name, value = line["callable"](annotations, duration_set, **line.drop(['callable', 'set']).dropna().to_dict())
             row[1][name] = value
         
+        self._progress += 1
         return row[1]
                 
     
@@ -390,6 +392,8 @@ class Metrics(ABC):
         if self.rec_cols:
             for label in self.rec_cols:
                 self.metrics[label] = self.metrics.apply(lambda row: check_unicity(row, label), axis=1)
+
+        self._size = self.metrics.shape[0]
 
         return self.metrics
 
@@ -687,6 +691,7 @@ class AclewMetrics(Metrics):
 class MetricsPipeline(Pipeline):
     def __init__(self):
         self.metrics = []
+        self.extractor = None
 
     def run(self, path, destination, pipeline, func=None, **kwargs):
         self.destination = destination
@@ -713,14 +718,15 @@ class MetricsPipeline(Pipeline):
         if pipeline not in pipelines:
             raise NotImplementedError(f"invalid pipeline '{pipeline}'")
 
-        metrics = pipelines[pipeline](self.project, **kwargs)
-        metrics.extract()
+        self.extractor = pipelines[pipeline](self.project, **kwargs)
+        
+        self.extractor.extract()
 
-        self.metrics = metrics.metrics
+        self.metrics = self.extractor.metrics
         self.metrics.to_csv(self.destination,index=False)
         
         # get the df of metrics used from the Metrics class
-        metrics_df = metrics.metrics_list
+        metrics_df = self.extractor.metrics_list
         metrics_df['callable'] = metrics_df.apply(lambda row: row['callable'].__name__, axis=1) #from the callables used, find their name back
         parameters['metrics_list'] = [ {k:v for k,v in m.items() if pd.notnull(v)} for m in metrics_df.to_dict(orient='records')]
         date = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -807,6 +813,7 @@ class MetricsPipeline(Pipeline):
 class MetricsSpecificationPipeline(Pipeline):
     def __init__(self):
         self.metrics = []
+        self.extractor = None
 
     def run(self, parameters_input,func=None):
         #build a dictionary with all parameters used
@@ -856,6 +863,8 @@ class MetricsSpecificationPipeline(Pipeline):
             metrics = Metrics(self.project, metrics_df, **arguments)
         except TypeError as e:
             raise ValueError('Unrecognized parameter found {}'.format(e.args[0][46:])) from e
+        
+        self.extractor = metrics
         metrics.extract()
 
         self.metrics = metrics.metrics
