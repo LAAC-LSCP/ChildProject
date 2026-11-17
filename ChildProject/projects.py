@@ -239,6 +239,13 @@ class ChildProject:
             vfield=Annotated[str, StringConstraints(pattern=r'^(NA|([01]?\d|2[0-3]):[0-5]\d(:[0-5]\d)?)$')],
         ),
         IndexColumn(
+            name="recording_type",
+            description="video, audio",
+            required=True,
+            choices=["video", "audio"],
+            vfield=(Poptional[Annotated[str, StringConstraints(pattern=r"audio|video")]], None),
+        ),
+        IndexColumn(
             name="recording_device_type",
             description="lena, usb, olympus, babylogger (lowercase), izyrec",
             required=True,

@@ -90,7 +90,7 @@ def create_eaf(
     os.makedirs(os.path.dirname(destination), exist_ok=True)
 
     mime_type = "audio/x-wav"
-    mime_types = {"mp3": "audio/mpeg", "mp4": "audio/mp4", "flac": "audio/x-flac"}
+    mime_types = {"mp3": "audio/mpeg", "mp4": "video/mp4", "flac": "audio/x-flac"}
     mime_types.update(eaf.MIMES)
 
     extension = os.path.splitext(recording_filename)[1]
