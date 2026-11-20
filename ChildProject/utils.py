@@ -4,7 +4,7 @@ from typing import List
 import numpy as np
 import pandas as pd
 from pathlib import Path
-
+import subprocess
 
 class Segment:
     def __init__(self, start, stop):
@@ -172,19 +172,42 @@ def time_intervals_intersect(ti1 : TimeInterval, ti2 : TimeInterval) -> List[Tim
             i += 1
     return r
 
-def get_audio_duration(filename: Path) -> int:
-    from soundfile import info
+def get_audio_duration(filename: Path) -> float:
+    """Probe for media duration using ffprobe, return duration in seconds
+
+    :param filename: file to evaluate
+    :type filename: pathlib.Path
+    :return: duration of file in seconds
+    :rtype: float
+    """
 
     if not filename.exists():
         print('Warning: could not find file {}, setting duration to 0'.format(filename))
         return 0
 
     duration = 0
-    try:
-        duration = info(str(filename)).duration
-    except Exception as e:
+
+    args = [
+        "ffprobe",
+        "-i",
+        filename,
+        "-show_entries",
+        "format=duration",
+        "-v",
+        "quiet",
+        "-of",
+        "csv=p=0",
+    ]
+
+    proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    (stdout, stderr) = proc.communicate()
+    success = proc.returncode == 0
+    
+    if success:
+        duration = float(stdout)
+    else:
         print('Warning: could not read duration for {}, setting duration to 0'.format(filename))
-        pass
+        duration = 0
 
     return duration
 

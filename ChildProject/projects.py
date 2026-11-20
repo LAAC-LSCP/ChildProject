@@ -243,14 +243,14 @@ class ChildProject:
             description="video, audio",
             required=True,
             choices=["video", "audio"],
-            vfield=(Poptional[Annotated[str, StringConstraints(pattern=r"audio|video")]], None),
+            vfield=Annotated[str, StringConstraints(pattern=r"audio|video")],
         ),
         IndexColumn(
             name="recording_device_type",
             description="lena, usb, olympus, babylogger (lowercase), izyrec",
             required=True,
             choices=["lena", "usb", "olympus", "babylogger", "izyrec", "unknown"],
-            vfield=(Poptional[Annotated[str, StringConstraints(pattern=r"lena|usb|olympus|babylogger|izyrec|unknown")]], None),
+            vfield=Annotated[str, StringConstraints(pattern=r"lena|usb|olympus|babylogger|izyrec|unknown")],
         ),
         IndexColumn(
             name="duration",

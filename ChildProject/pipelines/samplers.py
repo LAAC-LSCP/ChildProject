@@ -27,6 +27,7 @@ pipelines = {}
 
 
 class Sampler(ABC):
+
     def __init__(
         self,
         project: ChildProject,

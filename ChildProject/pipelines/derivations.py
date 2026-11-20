@@ -12,6 +12,8 @@ class Derivator(ABC):
     """
     Class used by a derivation process to carry it out. It defines a derive method and a get_auto_metadata method
     """
+    MEDIA_TYPES = None
+    
     def __init__(self):
         pass
 
@@ -81,12 +83,14 @@ class AcousticDerivator(Derivator):
     Based on the existing segmentation, extracts acoustics features of each vocalization identified. In particular,
             mean pitch semitone, median pitch semitone as well as 5th and 95th percentile of pitch semitone.
     """
+    MEDIA_TYPES = ['audio']
+
     def __init__(self,
                  profile: str = str(STANDARD_PROFILE),
                  target_sr: int = STANDARD_SAMPLE_RATE,
                  ):
         """
-        :param profile: profile of audio conversaion to use in the dataset
+        :param profile: profile of audio conversation to use in the dataset
         :type profile: str
         :param target_sr: sampling rate used to extract acoustic ffeatures
         :type target_sr: int

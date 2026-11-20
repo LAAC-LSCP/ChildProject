@@ -30,6 +30,8 @@ pipelines = {}
 
 
 class AudioProcessor(ABC):
+    MEDIA_TYPES = None
+
     def __init__(
         self,
         project: ChildProject,
@@ -92,7 +94,17 @@ class AudioProcessor(ABC):
         pass
 
     def process(self, parameters) -> Optional[Self]:
-        recordings = self.project.get_recordings_from_list(self.recordings)
+        recordings_list = self.project.get_recordings_from_list(self.recordings)
+
+        if self.MEDIA_TYPES is not None:
+            recordings = recordings_list[recordings_list['recording_type'].isin(self.MEDIA_TYPES)]
+
+            if recordings_list.shape[0] > recordings.shape[0]:
+                logger_annotations.warning(f"{recordings_list.shape[0] - recordings.shape[0]} recordings were\
+                 skipped because they can't beprocessed by this pipeline as they do not match the type: \
+                 {self.MEDIA_TYPES}")
+        else:
+            recordings = recordings_list
 
         os.makedirs(name=self.output_directory(), exist_ok=True)
 
@@ -258,6 +270,7 @@ class BasicProcessor(AudioProcessor):
 
 class VettingProcessor(AudioProcessor):
     SUBCOMMAND = "vetting"
+    MEDIA_TYPES = ["audio"]
 
     def __init__(
         self,
@@ -350,6 +363,7 @@ class VettingProcessor(AudioProcessor):
 
 class ChannelMapper(AudioProcessor):
     SUBCOMMAND = "channel-mapping"
+    MEDIA_TYPES = ['audio']
 
     def __init__(
         self,
