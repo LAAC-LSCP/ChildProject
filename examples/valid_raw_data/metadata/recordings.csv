@@ -1,4 +1,5 @@
-child_id,recording_device_type,experiment,notes,recording_filename,start_time,noisy_setting,date_iso,duration,discard,session_id
-1,usb,test,VERY confidential notes,sound.wav,9:00,1,2020-04-20,4000,,s1
-1,usb,test,,sound2.wav,9:00,1,2020-04-21,4000,0,s1
-1,usb,test,discarded audio,sound3.wav,10:00,0,2020-04-22,10000,1,s1
+child_id,recording_type,recording_device_type,experiment,notes,recording_filename,start_time,noisy_setting,date_iso,duration,discard,session_id
+1,audio,usb,test,VERY confidential notes,sound.wav,9:00,1,2020-04-20,4000,,s1
+1,video,usb,test,,video.mp4,9:00,0,2020-04-20,10120,,s1
+1,audio,usb,test,,sound2.wav,9:00,1,2020-04-21,4000,0,s1
+1,audio,usb,test,discarded audio,sound3.wav,10:00,0,2020-04-22,10000,1,s1
