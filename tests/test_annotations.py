@@ -48,7 +48,7 @@ def project(request):
 def am(request, project):
     am = AnnotationManager(project)
     # force longer durations to allow for imports
-    project.recordings['duration'] = [100000000, 2000000]
+    project.recordings['duration'] = [100000000, 100000000, 2000000]
     yield am
 
 

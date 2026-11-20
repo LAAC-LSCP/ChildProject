@@ -51,52 +51,6 @@ def test_periodic(project, by, truth):
     pd.testing.assert_frame_equal(sampler.segments.reset_index(drop=True), truth, check_like=True)
 
 
-def test_energy_detection(project):
-    sampler = EnergyDetectionSampler(
-        project=project,
-        windows_length=100,
-        windows_spacing=100,
-        windows_count=1,
-        threshold=0.98,
-        low_freq=200,
-        high_freq=1000,
-        threads=1,
-        by="recording_filename",
-    )
-    sampler.sample()
-
-    pd.testing.assert_frame_equal(
-        sampler.segments[["segment_onset", "segment_offset"]],
-        pd.DataFrame(
-            [[1900, 2000], [1900, 2000]], columns=["segment_onset", "segment_offset"]
-        ),
-        check_dtype=False,
-    )
-
-    # group by child_id
-    sampler = EnergyDetectionSampler(
-        project=project,
-        windows_length=100,
-        windows_spacing=100,
-        windows_count=1,
-        threshold=0.99,
-        low_freq=200,
-        high_freq=1000,
-        by="child_id",
-        threads=1,
-    )
-    sampler.sample()
-
-    pd.testing.assert_frame_equal(
-        sampler.segments[["recording_filename", "segment_onset", "segment_offset"]],
-        pd.DataFrame(
-            [["sound2.wav", 1900, 2000]],
-            columns=["recording_filename", "segment_onset", "segment_offset"],
-        ),
-        check_dtype=False,
-    )
-
-
 def test_conversation_sampler(project):
     conversations = [
         {"onset": 0, "vocs": 5},

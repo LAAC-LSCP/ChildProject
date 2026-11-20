@@ -33,8 +33,8 @@ def test_enforce_dtypes():
     assert project.children["child_id"].dtype.kind == "i"
     
 @pytest.mark.parametrize("idis,rshape,cshape,drshape,dcshape",
-                         [(True,2,1,1,1),
-                         (False,3,2,0,0),
+                         [(True,3,1,1,1),
+                         (False,4,2,0,0),
                          ])
 def test_ignore_discarded(idis, rshape, cshape, drshape, dcshape):
     project = ChildProject("examples/valid_raw_data", ignore_discarded=idis)
@@ -188,7 +188,7 @@ def test_write_children(project, new_chis, keep_discarded, skip_validation, erro
 def test_dict_summary(project):
     project.read()
     summary = project.dict_summary()
-    assert summary == {'recordings': {'count': 2, 'duration': 8000, 'first_date': '2020-04-20', 'last_date': '2020-04-21', 'discarded': 1, 'devices': {'usb': {'count': 2, 'duration': 8000}}}, 'children': {'count': 1, 'min_age': 3.6139630390143735, 'max_age': 3.646817248459959, 'M': None, 'F': None, 'languages': {}, 'monolingual': None, 'multilingual': None, 'normative': None, 'non-normative': None}}
+    assert summary == {'recordings': {'count': 3, 'duration': 18120, 'first_date': '2020-04-20', 'last_date': '2020-04-21', 'discarded': 1, 'devices': {'usb': {'count': 3, 'duration': 18120}}}, 'children': {'count': 1, 'min_age': 3.6139630390143735, 'max_age': 3.646817248459959, 'M': None, 'F': None, 'languages': {}, 'monolingual': None, 'multilingual': None, 'normative': None, 'non-normative': None}}
 
 @pytest.mark.parametrize("file_path,dst_file,dst_path,file_type,overwrite,error",
      [(PATH / 'metadata/children/0_test.csv', 'rec008.wav', PATH / 'recordings/raw/rec008.wav', 'recording', False, None),

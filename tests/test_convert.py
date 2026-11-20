@@ -34,7 +34,7 @@ def test_basic(project):
     converted_recordings = pd.read_csv(processed)
 
     assert np.isclose(
-        8000, project.compute_recordings_duration()["duration"].sum()
+        18120, project.compute_recordings_duration()["duration"].sum()
     ), "audio duration equals expected value"
     assert os.path.exists(
         os.path.join(project.path, CONVERTED_RECORDINGS, "test")
@@ -65,7 +65,7 @@ def test_standard(project):
     converted_recordings = pd.read_csv(processed)
 
     assert np.isclose(
-        8000, project.compute_recordings_duration()["duration"].sum()
+        18120, project.compute_recordings_duration()["duration"].sum()
     ), "audio duration equals expected value"
     assert os.path.exists(
         os.path.join(project.path, CONVERTED_RECORDINGS, "standard")

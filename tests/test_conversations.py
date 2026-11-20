@@ -36,7 +36,7 @@ def project(request):
 @pytest.fixture(scope="function")
 def am(request, project):
     am = AnnotationManager(project)
-    project.recordings['duration'] = [100000000, 2000000] #force longer durations to allow for imports
+    project.recordings['duration'] = [100000000, 100000000, 2000000] #force longer durations to allow for imports
     yield am
 
 @pytest.fixture(scope="function")

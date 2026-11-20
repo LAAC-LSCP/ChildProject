@@ -33,7 +33,7 @@ def project(request):
 @pytest.fixture(scope="function")
 def am(request, project):
     am= AnnotationManager(project)
-    project.recordings['duration'] = [100000000, 2000000] #force longer durations to allow for imports
+    project.recordings['duration'] = [100000000, 100000000, 2000000] #force longer durations to allow for imports
     yield am    
     
 # decorating functions with reserved kwargs should fail
@@ -353,7 +353,5 @@ def test_metrics_peaks(project, am):
     metrics.extract()
 
     truth = pd.read_csv("tests/truth/peak_metrics.csv", dtype={'child_id': str})
-
-    #metrics.metrics.to_csv("tests/truth/peak_metrics.csv",index=False)
 
     pd.testing.assert_frame_equal(metrics.metrics, truth, check_like=True)
