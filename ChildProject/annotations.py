@@ -1534,18 +1534,19 @@ class AnnotationManager:
         """
         subsets = []
 
-        path = self.project.path / "annotations" / annotation_set
-        candidates = list(set([f.name for f in path.iterdir()]) - {"raw", "converted"})
-        for candidate in candidates:
-            subset = Path(annotation_set) / candidate
+        path = self.project.path / ANNOTATIONS / annotation_set
+        if path.exists():
+            candidates = list(set([f.name for f in path.iterdir()]) - {"raw", "converted"})
+            for candidate in candidates:
+                subset = Path(annotation_set) / candidate
 
-            if not (self.project.path / ANNOTATIONS / subset).is_dir():
-                continue
+                if not (self.project.path / ANNOTATIONS / subset).is_dir():
+                    continue
 
-            subsets.append(subset.as_posix())
+                subsets.append(subset.as_posix())
 
-            if recursive:
-                subsets.extend(self.get_subsets(subset))
+                if recursive:
+                    subsets.extend(self.get_subsets(subset))
 
         return subsets
 

@@ -1,0 +1,17 @@
+# coverage configuration for the test-suite
+# usage: pytest tests/ --cov=ChildProject --cov-config=tests/.coveragerc
+[run]
+source = ChildProject
+branch = True
+# annotation import/derivation, metrics, conversations... run inside multiprocessing pools
+concurrency = multiprocessing,thread
+parallel = True
+# measure python subprocesses too
+patch = subprocess
+
+[report]
+show_missing = True
+skip_covered = True
+exclude_also =
+    if __name__ == .__main__.:
+    @(abc\.)?abstractmethod

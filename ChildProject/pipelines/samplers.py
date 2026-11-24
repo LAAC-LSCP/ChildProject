@@ -258,7 +258,7 @@ class PeriodicSampler(Sampler):
 
         recordings = recordings.copy()
         recordings['start_ts'] = recordings.apply(
-            lambda row: int(pd.Timestamp(str(row['date_iso']) + 'T' + str(row['start_time'])).timestamp()) * 1000,
+            lambda row: int(pd.Timestamp(str(row['date_iso']) + 'T' + str(row['start_time'] if row['start_time'] != 'NA' else '00:00')).timestamp()) * 1000,
             axis=1)
         recordings['end_ts'] = recordings['start_ts'] + recordings['duration']
         segments = []
@@ -728,7 +728,7 @@ class HighVolubilitySampler(Sampler):
                 recording["recording_filename"], 
                 )
             return pd.DataFrame(
-                columns=["segment_onset", "segment_offset", "recording_filename"]
+                columns=["segment_onset", "segment_offset", "recording_filename", self.metric]
             )
 
         # NOTE: The timestamps were simply rounded to 5 minutes in the original
@@ -962,9 +962,11 @@ class ConversationSampler(Sampler):
         segments["is_CT"] = (
             (segments["speaker_type"] == "CHI")
             & (segments["prev_speaker_type"].isin(key_child_environment))
+            & (~segments['breaks_chain'])
         ) | (
             (segments["speaker_type"].isin(key_child_environment))
             & (segments["prev_speaker_type"] == "CHI")
+            & (~segments['breaks_chain'])
         )
 
         conversations = segments.groupby(segments["breaks_chain"].cumsum()).agg(

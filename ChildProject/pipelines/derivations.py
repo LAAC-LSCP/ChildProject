@@ -12,7 +12,6 @@ class Derivator(ABC):
     """
     Class used by a derivation process to carry it out. It defines a derive method and a get_auto_metadata method
     """
-    MEDIA_TYPES = None
     
     def __init__(self):
         pass
@@ -83,7 +82,6 @@ class AcousticDerivator(Derivator):
     Based on the existing segmentation, extracts acoustics features of each vocalization identified. In particular,
             mean pitch semitone, median pitch semitone as well as 5th and 95th percentile of pitch semitone.
     """
-    MEDIA_TYPES = ['audio']
 
     def __init__(self,
                  profile: str = str(STANDARD_PROFILE),
@@ -165,7 +163,12 @@ class AcousticDerivator(Derivator):
                segments: pd.DataFrame,
               ) -> pd.DataFrame:
         recording = project.get_recording_path(metadata['recording_filename'], profile=self.profile)
-        file_sr = librosa.get_samplerate(recording)
+        try:
+            file_sr = librosa.get_samplerate(recording)
+        except Exception as e:
+            raise ValueError("Could not load audio from {}. Make sure it exists and is an audio files as acoustic derivation\
+            can only be carried out on audio files, alternatively, select an audio converted profile".format(recording))
+
         assert file_sr == self.target_sr, ValueError("Mismatch between file's true sampling rate ({}) and "
                                                 "target sampling rate ({})!".format(file_sr, self.target_sr))
         audio_time_series, sampling_rate = librosa.load(recording, mono=True, sr=self.target_sr)

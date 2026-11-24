@@ -784,8 +784,8 @@ class ZooniversePipeline(Pipeline):
 
         self.chunks.loc[selection , ['uploaded','zooniverse_id','project_id']] = (False, pd.NA, pd.NA)
 
-        nb_reset = selection[selection == True]
-        if nb_reset.shape[0]:
+        nb_reset = selection[selection == True].shape[0]
+        if nb_reset:
             self.chunks.to_csv(self.chunks_file)
             
             logger_annotations.info('reset %d orphan subjects', nb_reset)
@@ -839,12 +839,13 @@ class ZooniversePipeline(Pipeline):
             for task_id in workflow.tasks:
                 n = 0
                 for answer in workflow.tasks[task_id]["answers"]:
+                    print(answer)
                     answers_translation_table.append(
                         {
                             "workflow_id": str(workflow_id),
                             "task_id": str(task_id),
                             "answer_id": str(n),
-                            "answer": answer["label"],
+                            "answer": answer['label'],
                         }
                     )
                     n += 1

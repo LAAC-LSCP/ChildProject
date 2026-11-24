@@ -77,7 +77,7 @@ class Panoptes:
 class Workflow:
     def __init__(self):
         self.id = 'test_wf'
-        self.tasks = {'test_task_id':{'answers': {'label':'test_task_answer'}}}
+        self.tasks = {'test_task_id':{'answers': [{'label':'test_task_answer'}]}}
         
 class Project:
     def __init__(self, ident):
@@ -91,13 +91,19 @@ class Project:
         self.links.add_attr('workflows',[wf])
         
 class Classification:
-    def where(self, scope, page_size, project_id):
-        return [{'links': {'user' : 'test_user_id',
+    def where(scope, page_size, project_id):
+        return [Result({'links': {'user' : 'test_user_id',
                            'subjects': ['000'],
                            'workflow': 'test_wf'},
                  'annotations': [{'task': 'test_task_id', 'value':0}],
                  'id':'test_id',
-                 }]
+                 'raw':'str',
+                 })]
+
+class Result:
+    def __init__(self, object):
+        self.raw = object
+
     
 def reset_tests():
     Subject.sub_number = 0

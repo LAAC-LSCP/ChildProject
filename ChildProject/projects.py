@@ -457,9 +457,22 @@ class ChildProject:
             paths=("path", list), count=("path", len),
         )
         duplicates = duplicates[duplicates["count"] >= 2].reset_index()
+        print(duplicates)
 
         if len(duplicates):
-            raise Exception(
+            print('--')
+            print("ambiguous filenames detected:\n{}".format(
+                    "\n".join(
+                        duplicates.apply(
+                            lambda d: "{} found as {}".format(
+                                ",".join(d["basename"]), d["path"]
+                            ),
+                            axis=1,
+                        ).tolist()
+                    )
+                ))
+            print('--')
+            raise ValueError(
                 "ambiguous filenames detected:\n{}".format(
                     "\n".join(
                         duplicates.apply(
@@ -556,6 +569,7 @@ class ChildProject:
         # not sure what to use if no row in children, let's just put the folder name as a replacement?
         exp = self.children.iloc[0]['experiment'] if self.children.shape[0] else self.path.name
         self.experiment = exp
+        self.loaded = True
 
         return self
 
@@ -854,6 +868,9 @@ class ChildProject:
         self.errors = []
         self.warnings = []
 
+        if profile is not None and profile not in self._get_profiles():
+            self.errors.append(f"profile {profile} not found in dataset")
+
         # check tables, reacquire files, except if we validate on data that has been programmatically changed
         if not current_metadata:
             if not self.loaded or not accumulate:
@@ -867,13 +884,19 @@ class ChildProject:
             self.errors += errors
             self.warnings += warnings
         else:
-            tmp_table = IndexTable("children", columns=self.CHILDREN_COLUMNS)
+            tmp_table = IndexTable("children",
+                columns=self.CHILDREN_COLUMNS,
+                validator=ChildValidator,
+            )
             tmp_table.df = self.children
             errors, warnings = tmp_table.validate()
             self.errors += errors
             self.warnings += warnings
 
-            tmp_table = IndexTable("recordings", columns=self.RECORDINGS_COLUMNS)
+            tmp_table = IndexTable("recordings",
+                columns=self.RECORDINGS_COLUMNS,
+                validator=RecordingValidator,
+            )
             tmp_table.df = self.recordings
             errors, warnings = tmp_table.validate()
             self.errors += errors
@@ -909,8 +932,8 @@ class ChildProject:
 
         missing_childIDs = self.recordings[~self.recordings['child_id'].isin(self.children['child_id'])]
         if missing_childIDs.shape[0]:
-            self.errors.append("child_ids '{}' in recordings table on lines {} cannot be found in the children table.".format(
-                 missing_childIDs['child_id'].unique(), missing_childIDs.index
+            self.errors.append("child_ids {} in recordings table on lines {} cannot be found in the children table.".format(
+                 list(missing_childIDs['child_id'].unique()), list(missing_childIDs.index)
             ))
 
         # consistency between dates of birth and recording dates
@@ -1165,16 +1188,17 @@ class ChildProject:
         for doc in docs:
             path = self.path / DOCUMENTATION / f"{doc}.csv"
 
+            table = IndexTable(f"{doc}-documentation", path, self.DOCUMENTATION_COLUMNS)
+
             if not path.exists():
                 continue
 
-            table = IndexTable(f"{doc}-documentation", path, self.DOCUMENTATION_COLUMNS)
             table.read()
             table.df['table'] = doc
             table.df['table'] = table.df['table'].astype('string')
             documentation.append(table.df)
 
-        documentation = pd.concat(documentation)
+        documentation = pd.concat(documentation) if len(documentation) else pd.DataFrame()
         return documentation
 
 ChildModel = create_model('ChildModel', **{ c.name : c.vfield for c in ChildProject.CHILDREN_COLUMNS if c.vfield})

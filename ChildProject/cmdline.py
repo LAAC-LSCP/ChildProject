@@ -825,16 +825,18 @@ def compare_recordings(args) -> int:
     
     rec1 = project.recordings[project.recordings['recording_filename'] == args.audio1]
     if rec1.empty or rec1.shape[0] > 1: raise ValueError("{} was not found in the indexed recordings in metadata/recordings.csv or has multiple occurences".format(args.audio1))
-    
+    if rec1.iloc[0]['recording_type'] != 'audio': raise ValueError("{} is not an audio files, comparing only works between audio files".format(args.audio1))
+
     rec2 = project.recordings[project.recordings['recording_filename'] == args.audio2]
     if rec2.empty or rec2.shape[0] > 1: raise ValueError("{} was not found in the indexed recordings in metadata/recordings.csv or has multiple occurences".format(args.audio2))
-    
+    if rec2.iloc[0]['recording_type'] != 'audio': raise ValueError("{} is not an audio files, comparing only works between audio files".format(args.audio2))
+
     if 'duration' not in rec1.columns: 
         logger.warning("WARNING : duration was not found for audio %s. We attempt to compute it...", args.audio1)
-        rec1["duration"].iloc[0] = get_audio_duration(project.get_recording_path(args.audio1, args.profile))
+        rec1["duration"] = get_audio_duration(project.get_recording_path(args.audio1, args.profile))
     if 'duration' not in rec2.columns: 
-        logger.watning("WARNING : duration was not found for audio %s. We attempt to compute it...", args.audio2)
-        rec2["duration"].iloc[0] = get_audio_duration(project.get_recording_path(args.audio2, args.profile))
+        logger.warning("WARNING : duration was not found for audio %s. We attempt to compute it...", args.audio2)
+        rec2["duration"] = get_audio_duration(project.get_recording_path(args.audio2, args.profile))
         
     if rec1['duration'].iloc[0] != rec2['duration'].iloc[0]:
         logger.warning('WARNING : the 2 audio files have different durations, it is unlikely they are the same recording:\n%s : %dms\n%s : %dms', args.audio1, rec1['duration'].iloc[0], args.audio2, rec2['duration'].iloc[0])

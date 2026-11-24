@@ -93,11 +93,11 @@ def create_eaf(
     mime_types = {"mp3": "audio/mpeg", "mp4": "video/mp4", "flac": "audio/x-flac"}
     mime_types.update(eaf.MIMES)
 
-    extension = os.path.splitext(recording_filename)[1]
+    extension = os.path.splitext(recording_filename)[1][1:]
     if extension:
         extension = extension.lower()
         if extension in mime_types:
-            mime_type = mime_types[extension[1:]]
+            mime_type = mime_types[extension]
 
     eaf.add_linked_file(
         file_path=recording_filename, relpath=recording_filename, mimetype=mime_type
