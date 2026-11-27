@@ -5,10 +5,11 @@ A project from scratch
    :maxdepth: 4
 
 Here we give an example of creating a dataset from scratch. You may want to revisit
-this page with more experience, or if you want a whirlwind tour, follow the steps
-with or without a full comprehension.
+this page with more experience, or if you want a whirlwind tour, feel free to follow the steps
+without worrying about fully understanding every detail.
 
-We will try to show you a little bit of everything
+We will try to show you a little bit of everything:
+
 1. How to create a dataset
 2. How to load data
 3. How to run our models on these files and move outputs into the right folders
@@ -34,7 +35,7 @@ Without going into the details of DataLad or the GIN platform, go into a clean f
 
     datalad clone https://gin.g-node.org/LAAC-LSCP/vandam-data
 
-Now cd into your vandam-data folder `cd vandam-data`. Run `datalad get recordings/raw/**` to get the raw recordings. There is only one.
+Now ``cd`` into your vandam-data folder: ``cd vandam-data``. Run ``datalad get recordings/raw/**`` to get the raw recordings. There is only one.
 
 .. note::
 
@@ -43,7 +44,7 @@ Now cd into your vandam-data folder `cd vandam-data`. Run `datalad get recording
 
 The raw recordings are actually stored on the GIN servers or elsewhere. This would not typically be the case for your own datasets. In
 fact, for this reason, the recording file itself is actually a symbolic link, a sort of pointer to a file somewhere else on your computer,
-inside an "annex". To mimick a more realistic setup, let's rip the recording out of the annex ``git annex unlock recordings/raw/BN32_010007.mp3``.
+inside an "annex". To mimic a more realistic setup, let's rip the recording out of the annex: ``git annex unlock recordings/raw/BN32_010007.mp3``.
 If this is all confusing--and it surely once was for me--just run the commands and trust the process.
 
 At this point we're still in the vandam-data folder. Let's step out of it, into the parent folder with ``cd ..``. The next step will be to
@@ -66,22 +67,23 @@ except for their column headers. Running ``child-project validate .`` verifies t
 Adding raw recordings
 ~~~~~~~~~~~~~~~~~~~~~
 
-The next step is to put all your raw recordings under the recordings/raw folder. If you've followed the steps for the Vandam-Daylong data to a tee, you'll be albe
-to run 
+The next step is to put all your raw recordings under the recordings/raw folder. If you've followed the steps for the Vandam-Daylong data to a tee, you'll be able
+to run:
 
 .. code-block:: bash
 
     mv ../vandam-data/recordings/raw/BN32_010007.mp3 ./recordings/raw/BN32_010007.mp3
 
-to move the vandam-data raw recording into the raw recordings folder. If you have other recordings use those instead. Feel free to drag and drop instead of using ``mv``.
+to move the Vandam-Daylong raw recording into the raw recordings folder. If you have other recordings, use those instead. Feel free to drag and drop instead of using ``mv``.
 
-Next Childproject needs to be made aware of these recordings. This digital awareness is all achieved in the metadata. In ``recordings.csv``,
-we will add. Currently, ``recordings.csv`` has the following columns: experiment,child_id,date_iso,start_time,recording_device_type,recording_filename
+Next, ChildProject needs to be made aware of these recordings, which is done through the metadata. We will add a row to ``recordings.csv``.
+Currently, ``recordings.csv`` has the following columns: experiment,child_id,date_iso,start_time,recording_device_type,recording_filename
 Let us call this experiment ``dataset_from_scratch``, use child_id ``CHI_01``, date_iso ``2025-09-20``, start_time ``08:00:00``, recording_device_type ``unknown``,
 and recording_filename ``BN32_010007.mp3``.
 
 .. note::
-    Well, that is assuming you're using the Vandam-Data data... Otherwise you will need to add many more rows with the corresponding filenames.
+
+    This assumes you are using the Vandam-Daylong data. If you have your own recordings, you will need to add one row per recording with the corresponding filenames.
 
 To add a single row to this file run
 
@@ -122,7 +124,7 @@ Running models
 .. note::
     A more complete treatment of running models is found `here <https://laac-lscp.github.io/docs/running-models>`_, but this assumes tooling and infrastructure you likely won't have
 
-We will run a few models. These steps can be skipped if they have already be run for you. Technically they are outside the scope of ChildProject, but it
+We will run a few models. These steps can be skipped if they have already been run for you. Technically they are outside the scope of ChildProject, but it
 is useful for anyone working with it to know how it is done. The model papers can be found in the references section of the repository README files.
 
 I should warn you, though, this section is by far the most advanced and prone to errors. Hopefully you have someone around to help you run and debug things.
@@ -148,9 +150,10 @@ Now run ``conda env list``, and you'll see a new environment. Let's use that one
 
     conda deactivate; conda activate pyannote
 
-The model uses a bash script, ``apply.sh``. Let's run it on what we have
+The model uses a bash script, ``apply.sh``. Let's run it on what we have:
 
 .. code-block:: bash
+
     ./apply.sh ../dataset-from-scratch/recordings/converted/standard/
 
 .. note::
@@ -167,9 +170,9 @@ phoneme, syllable and word counts over segments derived from VTC.
 
 .. note::
 
-    Fun fact: ALICE actually doing transfer learning on VTC, thus using embeddings derived from the model we just saw earlier
+    Fun fact: ALICE actually does transfer learning on VTC, using embeddings derived from the model we just ran.
 
-Assuming you're still in the VTC repository folder, step out `cd ..`, and run
+Assuming you're still in the VTC repository folder, step out with ``cd ..``, and run
 
 .. code-block:: bash
 
@@ -200,13 +203,13 @@ or
 
     ./run_ALICE.sh ../dataset-from-scratch/recordings/converted/standard/ gpu
 
-if you have a gpu available, assuming you have a CUDA-compatible GPU. Note that this will take at least as long as the earlier VTC command.
+if you have a CUDA-compatible GPU available. Note that this will take at least as long as the earlier VTC command.
 
 Running VCM
 ~~~~~~~~~~~
-This vocalisation maturity model lets us estimate occurences of cries, canonical or non-canonical vocalisations.
+This vocalisation maturity model lets us estimate occurrences of cries, canonical vocalisations, and non-canonical vocalisations.
 
-Assuming you're in the ALICE folder, step out first with `cd ..`. Then run
+Assuming you're in the ALICE folder, step out first with ``cd ..``. Then run
 
 .. code-block:: bash
 
@@ -256,14 +259,14 @@ And then move the files you have
 For the rest of the tutorial, we will focus only on vtc annotations,
 though vcm, alice and even lena annotations are handled similarly.
 
-Our next aim is to populate our annotations file--we need to import our annotations.
+Our next aim is to populate our annotations file — we need to import our annotations.
 
 .. code-block:: bash
 
     child-project automated-import . --set vtc --format vtc_rttm --threads 4
 
-You will likely, like me, get an error saying you need recording durations to be stored. Run ``child-project compute-durations .``. This will
-change add a durations column to the recordings metadata. Now run the command above again. Do the same for vcm and alice, changing the ``--set`` and ``--format`` flags accordingly.
+You will likely get an error saying that recording durations need to be stored. Run ``child-project compute-durations .``, which will
+add a durations column to the recordings metadata. Now run the command above again. Do the same for vcm and alice, changing the ``--set`` and ``--format`` flags accordingly.
 You can run ``cat metadata/annotations.csv`` to see that some annotations have been added. We also find that a vtc/converted folder has been created.
 
 Getting Standard Metrics
@@ -278,8 +281,8 @@ Then run ``cat ACLEW.csv`` to inspect the output. Add in the ``--vcm`` and ``--a
 
 Getting Conversational Information
 ----------------------------------
-We have gotten some metrics using the outputted segments from our models. What we can also due is post-process these segments,
-and transform them once more into something useful. We have pipelines for that, and one of the most useful one is the conversations pipeline.
+We have obtained some metrics using the output segments from our models. We can also post-process these segments
+and transform them into something even more useful. We have pipelines for that, and one of the most useful ones is the conversations pipeline.
 
 .. code-block:: bash
 
@@ -290,5 +293,5 @@ This will create the annotations/vtc/conversations folder with the conversationa
 We can also post-process once more, getting a summary of conversational data
 
 .. code-block:: bash
-    
+
     child-project conversations-summary --set vtc/conversations . conversations.csv standard
